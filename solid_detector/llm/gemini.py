@@ -21,6 +21,29 @@ class GeminiProvider(LLMProvider):
     def name(self) -> str:
         return "gemini"
 
+    def list_models(self, text_only: bool = True) -> list[str]:
+        """Return IDs of models that support generateContent for this API key.
+
+        When text_only is True, drop models that aren't useful for this project
+        (image, tts, robotics, computer-use, etc.).
+        """
+        skip_tokens = (
+            "image", "tts", "robotics", "computer-use", "customtools",
+            "clip", "nano-banana", "lyria", "deep-research",
+        )
+        ids = []
+        for m in self._client.models.list():
+            actions = getattr(m, "supported_actions", None) or getattr(
+                m, "supported_generation_methods", None
+            ) or []
+            if actions and "generateContent" not in actions:
+                continue
+            mid = m.name.replace("models/", "")
+            if text_only and any(tok in mid for tok in skip_tokens):
+                continue
+            ids.append(mid)
+        return sorted(ids)
+
     def max_context_tokens(self) -> int:
         return 1_000_000  # Gemini 2.5 Flash supports 1M tokens
 

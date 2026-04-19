@@ -53,11 +53,26 @@ class LLMProvider(ABC):
                 return self.complete(system_prompt, user_prompt, temperature, max_tokens)
             except Exception as e:
                 last_error = e
+                error_str = str(e)
+
+                # 503 = server overloaded — retrying immediately wastes quota.
+                # Raise straight away so the orchestrator marks it as a skip.
+                if "503" in error_str or "UNAVAILABLE" in error_str:
+                    raise RuntimeError(
+                        f"Server unavailable (503) — skipping to preserve quota: {e}"
+                    )
+
+                # 404 = model doesn't exist or isn't accessible to this key.
+                # No point retrying — it will never succeed.
+                if "404" in error_str or "NOT_FOUND" in error_str:
+                    raise RuntimeError(
+                        f"Model not found (404) — check the model ID with "
+                        f"`--list-models`: {e}"
+                    )
+
                 if attempt < max_retries - 1:
-                    error_str = str(e)
-                    # Check for 429 rate limit and extract suggested wait time
+                    # 429 rate limit — honour the suggested retry delay
                     if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                        # Try to parse "retry in Xs" from the error
                         match = re.search(r"retry[^\d]*(\d+)", error_str, re.IGNORECASE)
                         wait = int(match.group(1)) + 5 if match else 60
                         print(f"  Rate limit hit. Waiting {wait}s before retry {attempt + 1}/{max_retries}...")

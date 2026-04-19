@@ -27,13 +27,14 @@ class IssueRegistry:
             except Exception:
                 self._issues = []
 
-    def save(self):
-        """Persist registry to disk."""
+    def save(self, extra: dict | None = None):
+        """Persist registry to disk. `extra` is merged into the top-level JSON."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "issues": [issue.model_dump() for issue in self._issues],
-            "counters": self._counters,
-        }
+        data: dict = {}
+        if extra:
+            data.update(extra)
+        data["issues"] = [issue.model_dump() for issue in self._issues]
+        data["counters"] = self._counters
         self._path.write_text(
             json.dumps(data, indent=2, default=str), encoding="utf-8"
         )
@@ -126,6 +127,11 @@ class IssueRegistry:
             return True
 
         return overlap / min_range > 0.5
+
+    def clear(self):
+        """Drop all in-memory issues and reset counters (registry not saved)."""
+        self._issues = []
+        self._counters = {p.value: 0 for p in Principle}
 
     @property
     def issues(self) -> list[Issue]:
