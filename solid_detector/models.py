@@ -31,7 +31,10 @@ class EntityType(str, Enum):
 
 class ContextMode(str, Enum):
     FULL_REPO = "full-repo"
-    PER_FILE = "per-file"
+    PER_FILE = "per-file"  # legacy, kept for old scan records
+    CLASS_CENTRIC = "class-centric"
+    SKELETON = "skeleton"
+    SMELL = "smell-two-step"
 
 
 class Finding(BaseModel):
@@ -78,7 +81,8 @@ class ScanVariation(BaseModel):
     scan_number: int
     context_mode: ContextMode
     temperature: float
-    provider_name: str  # "gemini" or "groq"
+    provider_name: str  # "gemini" or "cerebras"
+    strategy: str = "full_repo"  # "full_repo" | "smell_two_step" | "class_centric" | "skeleton"
 
 
 class ScanRecord(BaseModel):
@@ -101,6 +105,30 @@ class ScanRecord(BaseModel):
     error: Optional[str] = None
 
 
+class MethodSignature(BaseModel):
+    """A method/function signature without its body."""
+
+    name: str
+    params: str = ""  # raw param string, e.g. "self, x: int, y: str = ''"
+    return_type: str = ""
+    decorators: list[str] = Field(default_factory=list)
+    line_start: int = 0
+    line_end: int = 0
+    is_abstract: bool = False
+
+
+class ClassInfo(BaseModel):
+    """A class declaration with inheritance and member info."""
+
+    name: str
+    bases: list[str] = Field(default_factory=list)
+    line_start: int = 0
+    line_end: int = 0
+    file_path: str = ""
+    methods: list[MethodSignature] = Field(default_factory=list)
+    attributes: list[str] = Field(default_factory=list)
+
+
 class FileInfo(BaseModel):
     """Metadata about a discovered source file."""
 
@@ -109,5 +137,8 @@ class FileInfo(BaseModel):
     line_count: int
     char_count: int
     estimated_tokens: int  # char_count // 4
-    classes: list[str] = Field(default_factory=list)
+    classes: list[str] = Field(default_factory=list)  # names only (backward compat)
     functions: list[str] = Field(default_factory=list)
+    class_infos: list[ClassInfo] = Field(default_factory=list)
+    signatures: list[MethodSignature] = Field(default_factory=list)  # top-level funcs + class methods
+    imports: list[str] = Field(default_factory=list)

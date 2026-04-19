@@ -23,9 +23,10 @@ class RepoConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     primary_provider: str = "gemini"
-    secondary_provider: str = "groq"
+    secondary_provider: str = "gemini"
     temperature_range: list[float] = Field(default_factory=lambda: [0.2, 0.8])
     max_output_tokens: int = 16384
+    model: Optional[str] = None  # None -> GeminiProvider default (gemini-2.5-flash)
 
 
 class ScanConfig(BaseModel):
