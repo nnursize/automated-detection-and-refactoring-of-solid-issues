@@ -27,3 +27,12 @@ scan:
   principles: ["SRP", "OCP", "LSP", "ISP", "DIP"]
   output_dir: "scans"
   reports_dir: "reports"
+
+refactor:
+  build_system: "gradle"           # logstash uses Gradle (gradlew wrapper in repo root)
+  gradle_test_task: ":logstash-core:test"   # multi-module: scope to logstash-core
+  gradle_compile_task: ":logstash-core:compileTestJava"
+  test_timeout_sec: 2400.0         # only used if testing is re-enabled later
+  full_suite_timeout_sec: 5400.0
+  temperature: 0.2
+  max_output_tokens: 65536
