@@ -99,6 +99,7 @@ class JavaGradleAdapter:
         workspace_root: Path,
         timeout_sec: float,
         fail_fast: bool = True,
+        deselect_node_ids: list[str] | None = None,
     ) -> TestResult:
         if self._full_suite_override:
             cmd = list(self._full_suite_override)

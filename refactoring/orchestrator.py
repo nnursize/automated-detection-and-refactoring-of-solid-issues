@@ -469,14 +469,21 @@ class RefactorOrchestrator:
                 self._finalize(attempt, issue, out_dir, attempt_started, diff=diff_text)
                 return
 
-            print(f"  Running full test suite (fail-fast)...")
+            baseline_deselect = sorted(baseline_failures)
+            if baseline_deselect:
+                print(f"  Running full test suite (fail-fast, skipping "
+                      f"{len(baseline_deselect)} baseline failure(s))...")
+            else:
+                print(f"  Running full test suite (fail-fast)...")
             tr = self.adapter.run_tests(
                 workspace_root=self.workspace.clone_dir,
                 timeout_sec=self.project.refactor.test_timeout_sec,
                 fail_fast=True,
+                deselect_node_ids=baseline_deselect,
             )
             tr = self._reconcile_with_baseline(
                 tr, baseline_failures,
+                baseline_failures_deselected=bool(baseline_deselect),
                 workspace_root=self.workspace.clone_dir,
             )
             attempt.test_result = tr
@@ -516,12 +523,15 @@ class RefactorOrchestrator:
         tr: TestResult,
         baseline_failures: set[str],
         workspace_root: Path,
+        baseline_failures_deselected: bool = False,
     ) -> TestResult:
-        """Compute new vs pre-existing failures; possibly re-run without fail-fast.
+        """Compute new vs pre-existing failures.
 
-        With fail-fast a pre-existing failure can stop the run before any
-        regression triggered by the patch shows up. So if every failure in `tr`
-        is already in baseline, we re-run once without fail-fast to confirm.
+        Per-attempt pytest runs deselect known baseline failures before using
+        fail-fast, so the first observed failure should be a new regression.
+        If an old failure still appears (for example a collection error that
+        pytest could not deselect), treat it as pre-existing instead of running
+        a second full suite.
         """
         if tr.timed_out:
             tr.passed = False
@@ -530,6 +540,12 @@ class RefactorOrchestrator:
         observed = set(tr.failed_node_ids) | set(tr.error_node_ids)
         new_failures = sorted(observed - baseline_failures)
         pre_existing = sorted(observed & baseline_failures)
+
+        if observed and not new_failures and baseline_failures_deselected:
+            tr.new_failures = []
+            tr.pre_existing_failures = pre_existing
+            tr.passed = True
+            return tr
 
         if observed and not new_failures:
             # All observed failures are in baseline — fail-fast may have masked

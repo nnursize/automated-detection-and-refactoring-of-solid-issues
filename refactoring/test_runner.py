@@ -18,6 +18,7 @@ def run_pytest(
     timeout_sec: float = 600.0,
     extra_args: list[str] | None = None,
     fail_fast: bool = False,
+    deselect_node_ids: list[str] | None = None,
 ) -> TestResult:
     args = [str(python_exe), "-m", "pytest", "--tb=short", "-q",
             "--no-header", "-p", "no:cacheprovider"]
@@ -31,6 +32,9 @@ def run_pytest(
         args += ["--json-report", f"--json-report-file={json_report_file}"]
     if extra_args:
         args += extra_args
+    for node_id in deselect_node_ids or []:
+        if node_id:
+            args.append(f"--deselect={node_id}")
     if paths:
         args += paths
     cmd_str = " ".join(args)

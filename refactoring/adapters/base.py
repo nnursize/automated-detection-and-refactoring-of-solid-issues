@@ -55,6 +55,7 @@ class LanguageAdapter(Protocol):
         workspace_root: Path,
         timeout_sec: float,
         fail_fast: bool = True,
+        deselect_node_ids: list[str] | None = None,
     ) -> TestResult:
         """Run the full test suite.
 
@@ -62,6 +63,8 @@ class LanguageAdapter(Protocol):
         (pytest `-x`, surefire `skipAfterFailureCount=1`, gradle `--fail-fast`).
         `fail_fast=False` runs the entire suite — used for baseline capture
         and the end-of-run regression gate.
+        `deselect_node_ids` is used by pytest adapters to skip known baseline
+        failures during per-attempt regression checks.
         """
         ...
 
