@@ -87,6 +87,7 @@ class PythonAdapter:
         workspace_root: Path,
         timeout_sec: float,
         fail_fast: bool = True,
+        deselect_node_ids: list[str] | None = None,
     ) -> TestResult:
         return run_pytest(
             python_exe=self.venv_python(workspace_root),
@@ -94,6 +95,7 @@ class PythonAdapter:
             paths=[],
             timeout_sec=timeout_sec,
             fail_fast=fail_fast,
+            deselect_node_ids=deselect_node_ids,
         )
 
     def is_test_path(self, rel_path: str) -> bool:

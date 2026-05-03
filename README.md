@@ -602,6 +602,8 @@ For Python projects, the adapter creates a `.venv` inside the workspace and inst
 
 Tests are only run after a patch is successfully applied. The suite is not run for `detection_rejected`, `obsolete`, `llm_error`, or pre-apply `patch_failed` attempts.
 
+The baseline capture runs the full suite once and stores failing pytest node ids. Per-attempt test runs then skip those known failing tests with pytest `--deselect=<nodeid>` and still use fail-fast (`-x`) on the remaining tests. This keeps pre-existing failures from stopping every refactor attempt while preserving the fast failure behavior for new regressions.
+
 When tests fail after a patch, the framework compares the failures to the baseline:
 
 - only pre-existing failures: the attempt may still pass
