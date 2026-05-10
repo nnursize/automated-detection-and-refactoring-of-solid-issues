@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plot.__init__",
+    "entity_type": "class",
+    "line_start": 183,
+    "line_end": 183,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'Plot' class directly instantiates 'PlotData' concrete dependency.",
+    "reasoning": "The `Plot` class is designed as a high-level declarative interface. It directly instantiates `PlotData`, a concrete implementation of a data handling mechanism. This couples the `Plot` class to a specific data structure implementation rather than depending on a data abstraction that could be injected, making it harder to substitute data sources or test different data handling strategies in isolation."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plot.plot",
+    "entity_type": "method",
+    "line_start": 418,
+    "line_end": 418,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'Plot' class directly instantiates 'Plotter' concrete dependency.",
+    "reasoning": "The `Plot` class, representing the high-level declarative API, directly creates an instance of `Plotter`, which is the concrete implementation responsible for compiling and rendering the plot. This violates DIP because the high-level policy (`Plot`) depends directly on the low-level detail (`Plotter`), hindering flexibility and testability by tightly coupling the interface to a specific rendering engine."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "boxplot",
+    "entity_type": "class",
+    "line_start": 1045,
+    "line_end": 1045,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'boxplot' function directly instantiates '_CategoricalPlotter' concrete dependency.",
+    "reasoning": "The `boxplot` function is a high-level public API entry point for creating plots. It directly instantiates `_CategoricalPlotter`, a concrete implementation class that handles the detailed plotting logic. This creates a direct dependency from a high-level module (user-facing API) to a low-level module (internal implementation detail), violating DIP."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "histplot",
+    "entity_type": "class",
+    "line_start": 1002,
+    "line_end": 1002,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'histplot' function directly instantiates '_DistributionPlotter' concrete dependency.",
+    "reasoning": "Similar to `boxplot`, `histplot` is a high-level public API function that directly instantiates `_DistributionPlotter`, a concrete class implementing the distribution plotting logic. This represents a dependency of a high-level module on a low-level, concrete implementation, which is a direct violation of DIP."
+  },
+  {
+    "file_path": "seaborn/axisgrid.py",
+    "entity_name": "FacetGrid.__init__",
+    "entity_type": "class",
+    "line_start": 301,
+    "line_end": 301,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "'FacetGrid' directly interacts with Matplotlib's global state and concrete figure/subplot creation functions.",
+    "reasoning": "The `FacetGrid` class directly calls `plt.figure` and `fig.subplots` for figure and subplot creation. While Matplotlib itself is a dependency, `FacetGrid` could abstract the creation of its figure and axes, e.g., by receiving a figure factory or an axes manager through its constructor. This direct coupling to Matplotlib's concrete API and global state reduces flexibility and makes it harder to swap out the underlying plotting backend or mock during testing."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter.assign_variables",
+    "entity_type": "method",
+    "line_start": 158,
+    "line_end": 158,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "'VectorPlotter' directly instantiates 'PlotData' concrete dependency.",
+    "reasoning": "The `VectorPlotter` is a base class for many plotting functionalities. Its `assign_variables` method directly instantiates `PlotData`, a concrete data abstraction. This couples a core plotting component to a specific data handling implementation, limiting the ability to inject different data processing strategies or data sources without modifying `VectorPlotter` itself."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Continuous.tick",
+    "entity_type": "method",
+    "line_start": 432,
+    "line_end": 432,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "'Continuous' scale directly instantiates concrete Matplotlib Locator classes.",
+    "reasoning": "The `Continuous` scale class, which is an abstraction for defining data-to-visual mappings, directly instantiates various concrete `matplotlib.ticker.Locator` subclasses (e.g., `LogLocator`, `MaxNLocator`) within its `_get_locators` helper method, which is implicitly called when `tick` is configured. This couples the scale abstraction to specific Matplotlib implementations for tick placement, making it difficult to swap out or customize tick strategies without modifying the `Continuous` scale itself."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.fit_statsmodels",
+    "entity_type": "method",
+    "line_start": 383,
+    "line_end": 386,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "'_RegressionPlotter' directly uses concrete classes from 'statsmodels' library.",
+    "reasoning": "The `_RegressionPlotter` class directly imports and instantiates concrete classes like `GLM`, `Binomial`, and `RLM` from the `statsmodels` library. This couples the regression plotting logic to specific external statistical models, which are low-level details. Ideally, `_RegressionPlotter` would depend on an abstraction for statistical model fitting, allowing different statistical backends or custom models to be injected without modifying the plotter itself."
+  }
+]

@@ -1,0 +1,440 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-005
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/_core/plot.py`
+- **Entity**: `Plotter._setup_figure` (current lines L1097-L1197 in the file as shown below)
+- **Severity**: low
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Direct instantiation of Subplots manager.
+
+### Reasoning
+The Plotter class directly instantiates the Subplots class. While both are internal to the new objects interface, this direct creation prevents the inversion of control that would allow different subplot strategies to be injected into the compilation engine.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/_core/plot.py`
+```python
+# ... 976 earlier lines elided ...
+
+        self._pyplot = pyplot
+        self._theme = theme
+        self._legend_contents: list[tuple[
+            tuple[str, str | int], list[Artist], list[str],
+        ]] = []
+        self._scales: dict[str, Scale] = {}
+
+    def save(self, loc, **kwargs) -> Plotter:  # TODO type args
+        kwargs.setdefault("dpi", 96)
+        try:
+            loc = os.path.expanduser(loc)
+        except TypeError:
+            # loc may be a buffer in which case that would not work
+            pass
+        self._figure.savefig(loc, **kwargs)
+        return self
+
+    def show(self, **kwargs) -> None:
+        """
+        Display the plot by hooking into pyplot.
+
+        This method calls :func:`matplotlib.pyplot.show` with any keyword parameters.
+
+        """
+        # TODO if we did not create the Plotter with pyplot, is it possible to do this?
+        # If not we should clearly raise.
+        import matplotlib.pyplot as plt
+        with theme_context(self._theme):
+            plt.show(**kwargs)
+
+    # TODO API for accessing the underlying matplotlib objects
+    # TODO what else is useful in the public API for this class?
+
+    def _repr_png_(self) -> tuple[bytes, dict[str, float]] | None:
+
+        # TODO use matplotlib backend directly instead of going through savefig?
+
+        # TODO perhaps have self.show() flip a switch to disable this, so that
+        # user does not end up with two versions of the figure in the output
+
+        # TODO use bbox_inches="tight" like the inline backend?
+        # pro: better results,  con: (sometimes) confusing results
+        # Better solution would be to default (with option to change)
+        # to using constrained/tight layout.
+
+        if Plot.config.display["format"] != "png":
+            return None
+
+        buffer = io.BytesIO()
+
+        factor = 2 if Plot.config.display["hidpi"] else 1
+        scaling = Plot.config.display["scaling"] / factor
+        dpi = 96 * factor  # TODO put dpi in Plot.config?
+
+        with theme_context(self._theme):  # TODO _theme_with_defaults?
+            self._figure.savefig(buffer, dpi=dpi, format="png", bbox_inches="tight")
+        data = buffer.getvalue()
+
+        w, h = Image.open(buffer).size
+        metadata = {"width": w * scaling, "height": h * scaling}
+        return data, metadata
+
+    def _repr_svg_(self) -> str | None:
+
+        if Plot.config.display["format"] != "svg":
+            return None
+
+        # TODO DPI for rasterized artists?
+
+        scaling = Plot.config.display["scaling"]
+
+        buffer = io.StringIO()
+        with theme_context(self._theme):  # TODO _theme_with_defaults?
+            self._figure.savefig(buffer, format="svg", bbox_inches="tight")
+
+        root = ElementTree.fromstring(buffer.getvalue())
+        w = scaling * float(root.attrib["width"][:-2])
+        h = scaling * float(root.attrib["height"][:-2])
+        root.attrib.update(width=f"{w}pt", height=f"{h}pt", viewbox=f"0 0 {w} {h}")
+        ElementTree.ElementTree(root).write(out := io.BytesIO())
+
+        return out.getvalue().decode()
+
+    def _extract_data(self, p: Plot) -> tuple[PlotData, list[Layer]]:
+
+        common_data = (
+            p._spec["data"]
+            .join(None, p._spec["facet"].get("variables"))
+            .join(None, p._spec["pair"].get("variables"))
+        )
+
+        layers: list[Layer] = []
+        for layer in p._spec["layers"]:
+            spec = layer.copy()
+            spec["data"] = common_data.join(layer.get("source"), layer.get("vars"))
+            layers.append(spec)
+
+        return common_data, layers
+
+    def _resolve_label(self, p: Plot, var: str, auto_label: str | None) -> str:
+
+        if re.match(r"[xy]\d+", var):
+            key = var if var in p._labels else var[0]
+        else:
+            key = var
+
+        label: str
+        if key in p._labels:
+            manual_label = p._labels[key]
+            if callable(manual_label) and auto_label is not None:
+                label = manual_label(auto_label)
+            else:
+                label = cast(str, manual_label)
+        elif auto_label is None:
+            label = ""
+        else:
+            label = auto_label
+        return label
+
+    def _setup_figure(self, p: Plot, common: PlotData, layers: list[Layer]) -> None:
+
+        # --- Parsing the faceting/pairing parameterization to specify figure grid
+
+        subplot_spec = p._subplot_spec.copy()
+        facet_spec = p._facet_spec.copy()
+        pair_spec = p._pair_spec.copy()
+
+        for axis in "xy":
+            if axis in p._shares:
+                subplot_spec[f"share{axis}"] = p._shares[axis]
+
+        for dim in ["col", "row"]:
+            if dim in common.frame and dim not in facet_spec["structure"]:
+                order = categorical_order(common.frame[dim])
+                facet_spec["structure"][dim] = order
+
+        self._subplots = subplots = Subplots(subplot_spec, facet_spec, pair_spec)
+
+        # --- Figure initialization
+        self._figure = subplots.init_figure(
+            pair_spec, self._pyplot, p._figure_spec, p._target,
+        )
+
+        # --- Figure annotation
+        for sub in subplots:
+            ax = sub["ax"]
+            for axis in "xy":
+                axis_key = sub[axis]
+
+                # ~~ Axis labels
+
+                # TODO Should we make it possible to use only one x/y label for
+                # all rows/columns in a faceted plot? Maybe using sub{axis}label,
+                # although the alignments of the labels from that method leaves
+                # something to be desired (in terms of how it defines 'centered').
+                names = [
+                    common.names.get(axis_key),
+                    *(layer["data"].names.get(axis_key) for layer in layers)
+                ]
+                auto_label = next((name for name in names if name is not None), None)
+                label = self._resolve_label(p, axis_key, auto_label)
+                ax.set(**{f"{axis}label": label})
+
+                # ~~ Decoration visibility
+
+                # TODO there should be some override (in Plot.layout?) so that
+                # axis / tick labels can be shown on interior shared axes if desired
+
+                axis_obj = getattr(ax, f"{axis}axis")
+                visible_side = {"x": "bottom", "y": "left"}.get(axis)
+                show_axis_label = (
+                    sub[visible_side]
+                    or not p._pair_spec.get("cross", True)
+                    or (
+                        axis in p._pair_spec.get("structure", {})
+                        and bool(p._pair_spec.get("wrap"))
+                    )
+                )
+                axis_obj.get_label().set_visible(show_axis_label)
+
+                show_tick_labels = (
+                    show_axis_label
+                    or subplot_spec.get(f"share{axis}") not in (
+                        True, "all", {"x": "col", "y": "row"}[axis]
+                    )
+                )
+                for group in ("major", "minor"):
+                    side = {"x": "bottom", "y": "left"}[axis]
+                    axis_obj.set_tick_params(**{f"label{side}": show_tick_labels})
+                    for t in getattr(axis_obj, f"get_{group}ticklabels")():
+                        t.set_visible(show_tick_labels)
+
+            # TODO we want right-side titles for row facets in most cases?
+            # Let's have what we currently call "margin titles" but properly using the
+            # ax.set_title interface (see my gist)
+            title_parts = []
+            for dim in ["col", "row"]:
+                if sub[dim] is not None:
+                    val = self._resolve_label(p, "title", f"{sub[dim]}")
+                    if dim in p._labels:
+                        key = self._resolve_label(p, dim, common.names.get(dim))
+                        val = f"{key} {val}"
+                    title_parts.append(val)
+
+            has_col = sub["col"] is not None
+            has_row = sub["row"] is not None
+            show_title = (
+                has_col and has_row
+                or (has_col or has_row) and p._facet_spec.get("wrap")
+                or (has_col and sub["top"])
+                # TODO or has_row and sub["right"] and <right titles>
+                or has_row  # TODO and not <right titles>
+            )
+            if title_parts:
+                title = " | ".join(title_parts)
+                title_text = ax.set_title(title)
+                title_text.set_visible(show_title)
+            elif not (has_col or has_row):
+                title = self._resolve_label(p, "title", None)
+                title_text = ax.set_title(title)
+
+    def _compute_stats(self, spec: Plot, layers: list[Layer]) -> None:
+
+        grouping_vars = [v for v in PROPERTIES if v not in "xy"]
+        grouping_vars += ["col", "row", "group"]
+
+        pair_vars = spec._pair_spec.get("structure", {})
+
+        for layer in layers:
+
+            data = layer["data"]
+            mark = layer["mark"]
+            stat = layer["stat"]
+
+            if stat is None:
+                continue
+
+            iter_axes = itertools.product(*[
+                pair_vars.get(axis, [axis]) for axis in "xy"
+            ])
+
+            old = data.frame
+
+            if pair_vars:
+                data.frames = {}
+                data.frame = data.frame.iloc[:0]  # TODO to simplify typing
+
+            for coord_vars in iter_axes:
+
+                pairings = "xy", coord_vars
+
+                df = old.copy()
+                scales = self._scales.copy()
+
+                for axis, var in zip(*pairings):
+                    if axis != var:
+                        df = df.rename(columns={var: axis})
+                        drop_cols = [x for x in df if re.match(rf"{axis}\d+", str(x))]
+                        df = df.drop(drop_cols, axis=1)
+                        scales[axis] = scales[var]
+
+                orient = layer["orient"] or mark._infer_orient(scales)
+
+                if stat.group_by_orient:
+                    grouper = [orient, *grouping_vars]
+                else:
+                    grouper = grouping_vars
+                groupby = GroupBy(grouper)
+                res = stat(df, groupby, orient, scales)
+
+                if pair_vars:
+                    data.frames[coord_vars] = res
+                else:
+                    data.frame = res
+
+    def _get_scale(
+        self, p: Plot, var: str, prop: Property, values: Series
+    ) -> Scale:
+
+        if re.match(r"[xy]\d+", var):
+            key = var if var in p._scales else var[0]
+        else:
+            key = var
+
+        if key in p._scales:
+            arg = p._scales[key]
+            if arg is None or isinstance(arg, Scale):
+                scale = arg
+            else:
+                scale = prop.infer_scale(arg, values)
+        else:
+            scale = prop.default_scale(values)
+
+        return scale
+
+    def _get_subplot_data(self, df, var, view, share_state):
+
+        if share_state in [True, "all"]:
+            # The all-shared case is easiest, every subplot sees all the data
+            seed_values = df[var]
+        else:
+            # Otherwise, we need to setup separate scales for different subplots
+            if share_state in [False, "none"]:
+                # Fully independent axes are also easy: use each subplot's data
+                idx = self._get_subplot_index(df, view)
+            elif share_state in df:
+                # Sharing within row/col is more complicated
+                use_rows = df[share_state] == view[share_state]
+                idx = df.index[use_rows]
+            else:
+                # This configuration doesn't make much sense, but it's fine
+                idx = df.index
+
+            seed_values = df.loc[idx, var]
+
+        return seed_values
+
+    def _setup_scales(
+        self,
+        p: Plot,
+        common: PlotData,
+        layers: list[Layer],
+        variables: list[str] | None = None,
+    ) -> None:
+
+        if variables is None:
+            # Add variables that have data but not a scale, which happens
+            # because this method can be called multiple time, to handle
+            # variables added during the Stat transform.
+            variables = []
+            for layer in layers:
+                variables.extend(layer["data"].frame.columns)
+                for df in layer["data"].frames.values():
+                    variables.extend(str(v) for v in df if v not in variables)
+            variables = [v for v in variables if v not in self._scales]
+
+        for var in variables:
+
+            # Determine whether this is a coordinate variable
+            # (i.e., x/y, paired x/y, or derivative such as xmax)
+# ... 458 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/_core/__init__.py`
+- `seaborn/_core/data.py`
+- `seaborn/_core/exceptions.py`
+- `seaborn/_core/groupby.py`
+- `seaborn/_core/moves.py`
+- `seaborn/_core/properties.py`
+- `seaborn/_core/rules.py`
+- `seaborn/_core/scales.py`
+- `seaborn/_core/subplots.py`
+- `seaborn/_core/typing.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

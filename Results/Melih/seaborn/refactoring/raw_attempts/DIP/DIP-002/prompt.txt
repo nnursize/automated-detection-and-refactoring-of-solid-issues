@@ -1,0 +1,711 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-002
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/distributions.py`
+- **Entity**: `_DistributionPlotter.plot_univariate_histogram` (current lines L416-L778 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 5 independent scans
+
+### Description
+Direct instantiation of the Hist estimator.
+
+### Reasoning
+_DistributionPlotter is responsible for orchestrating the plot but directly instantiates the Hist class. This violates DIP as the plotter (high-level) depends on a concrete statistical detail (low-level) instead of an abstraction or receiving the estimator via dependency injection.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/distributions.py`
+```python
+# ... 295 earlier lines elided ...
+
+    def _multiple_fill(self, curves):
+        curves, baselines = self._multiple_stack(curves)
+        column_groups = self._get_column_groups(curves)
+        for col_idxs in column_groups.values():
+            cols = curves.columns[col_idxs]
+            norm_constant = curves[cols].iloc[:, -1]
+            curves[cols] = curves[cols].div(norm_constant, axis="index")
+            baselines[cols] = baselines[cols].div(norm_constant, axis="index")
+        return curves, baselines
+
+    def _multiple_dodge(self, curves):
+        baselines = {k: np.zeros_like(v) for k, v in curves.items()}
+        hue_levels = self.var_levels["hue"]
+        n = len(hue_levels)
+        f_fwd, f_inv = self._get_scale_transforms(self.data_variable)
+        for key in curves:
+            level = dict(key)["hue"]
+            hist = curves[key].reset_index(name="heights")
+            level_idx = hue_levels.index(level)
+            a = f_fwd(hist["edges"])
+            b = f_fwd(hist["edges"] + hist["widths"])
+            w = (b - a) / n
+            new_min = f_inv(a + level_idx * w)
+            new_max = f_inv(a + (level_idx + 1) * w)
+            hist["widths"] = new_max - new_min
+            hist["edges"] = new_min
+            curves[key] = hist.set_index(["edges", "widths"])["heights"]
+        return curves, baselines
+
+    def _get_column_groups(self, curves):
+        column_groups = {}
+        for i, keyd in enumerate(map(dict, curves.columns)):
+            facet_key = keyd.get("col", None), keyd.get("row", None)
+            column_groups.setdefault(facet_key, [])
+            column_groups[facet_key].append(i)
+        return column_groups
+
+    # -------------------------------------------------------------------------------- #
+    # Computation
+    # -------------------------------------------------------------------------------- #
+
+    def _compute_univariate_density(
+        self,
+        data_variable,
+        common_norm,
+        common_grid,
+        estimate_kws,
+        warn_singular=True,
+    ):
+
+        # Initialize the estimator object
+        estimator = KDE(**estimate_kws)
+
+        if set(self.variables) - {"x", "y"}:
+            if common_grid:
+                all_observations = self.comp_data.dropna()
+                estimator.define_support(all_observations[data_variable])
+        else:
+            common_norm = False
+
+        all_data = self.plot_data.dropna()
+        if common_norm and "weights" in all_data:
+            whole_weight = all_data["weights"].sum()
+        else:
+            whole_weight = len(all_data)
+
+        densities = {}
+
+        for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
+
+            # Extract the data points from this sub set and remove nulls
+            observations = sub_data[data_variable]
+
+            # Extract the weights for this subset of observations
+            if "weights" in self.variables:
+                weights = sub_data["weights"]
+                part_weight = weights.sum()
+            else:
+                weights = None
+                part_weight = len(sub_data)
+
+            # Estimate the density of observations at this level
+            variance = np.nan_to_num(observations.var())
+            singular = len(observations) < 2 or math.isclose(variance, 0)
+            try:
+                if not singular:
+                    # Convoluted approach needed because numerical failures
+                    # can manifest in a few different ways.
+                    density, support = estimator(observations, weights=weights)
+            except np.linalg.LinAlgError:
+                singular = True
+
+            if singular:
+                msg = (
+                    "Dataset has 0 variance; skipping density estimate. "
+                    "Pass `warn_singular=False` to disable this warning."
+                )
+                if warn_singular:
+                    warnings.warn(msg, UserWarning, stacklevel=4)
+                continue
+
+            # Invert the scaling of the support points
+            _, f_inv = self._get_scale_transforms(self.data_variable)
+            support = f_inv(support)
+
+            # Apply a scaling factor so that the integral over all subsets is 1
+            if common_norm:
+                density *= part_weight / whole_weight
+
+            # Store the density for this level
+            key = tuple(sub_vars.items())
+            densities[key] = pd.Series(density, index=support)
+
+        return densities
+
+    # -------------------------------------------------------------------------------- #
+    # Plotting
+    # -------------------------------------------------------------------------------- #
+
+    def plot_univariate_histogram(
+        self,
+        multiple,
+        element,
+        fill,
+        common_norm,
+        common_bins,
+        shrink,
+        kde,
+        kde_kws,
+        color,
+        legend,
+        line_kws,
+        estimate_kws,
+        **plot_kws,
+    ):
+
+        # -- Default keyword dicts
+        kde_kws = {} if kde_kws is None else kde_kws.copy()
+        line_kws = {} if line_kws is None else line_kws.copy()
+        estimate_kws = {} if estimate_kws is None else estimate_kws.copy()
+
+        # --  Input checking
+        _check_argument("multiple", ["layer", "stack", "fill", "dodge"], multiple)
+        _check_argument("element", ["bars", "step", "poly"], element)
+
+        auto_bins_with_weights = (
+            "weights" in self.variables
+            and estimate_kws["bins"] == "auto"
+            and estimate_kws["binwidth"] is None
+            and not estimate_kws["discrete"]
+        )
+        if auto_bins_with_weights:
+            msg = (
+                "`bins` cannot be 'auto' when using weights. "
+                "Setting `bins=10`, but you will likely want to adjust."
+            )
+            warnings.warn(msg, UserWarning)
+            estimate_kws["bins"] = 10
+
+        # Simplify downstream code if we are not normalizing
+        if estimate_kws["stat"] == "count":
+            common_norm = False
+
+        orient = self.data_variable
+
+        # Now initialize the Histogram estimator
+        estimator = Hist(**estimate_kws)
+        histograms = {}
+
+        # Do pre-compute housekeeping related to multiple groups
+        all_data = self.comp_data.dropna()
+        all_weights = all_data.get("weights", None)
+
+        multiple_histograms = set(self.variables) - {"x", "y"}
+        if multiple_histograms:
+            if common_bins:
+                bin_kws = estimator._define_bin_params(all_data, orient, None)
+        else:
+            common_norm = False
+
+        if common_norm and all_weights is not None:
+            whole_weight = all_weights.sum()
+        else:
+            whole_weight = len(all_data)
+
+        # Estimate the smoothed kernel densities, for use later
+        if kde:
+            # TODO alternatively, clip at min/max bins?
+            kde_kws.setdefault("cut", 0)
+            kde_kws["cumulative"] = estimate_kws["cumulative"]
+            densities = self._compute_univariate_density(
+                self.data_variable,
+                common_norm,
+                common_bins,
+                kde_kws,
+                warn_singular=False,
+            )
+
+        # First pass through the data to compute the histograms
+        for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
+
+            # Prepare the relevant data
+            key = tuple(sub_vars.items())
+            orient = self.data_variable
+
+            if "weights" in self.variables:
+                sub_data["weight"] = sub_data.pop("weights")
+                part_weight = sub_data["weight"].sum()
+            else:
+                part_weight = len(sub_data)
+
+            # Do the histogram computation
+            if not (multiple_histograms and common_bins):
+                bin_kws = estimator._define_bin_params(sub_data, orient, None)
+            res = estimator._normalize(estimator._eval(sub_data, orient, bin_kws))
+            heights = res[estimator.stat].to_numpy()
+            widths = res["space"].to_numpy()
+            edges = res[orient].to_numpy() - widths / 2
+
+            # Rescale the smoothed curve to match the histogram
+            if kde and key in densities:
+                density = densities[key]
+                if estimator.cumulative:
+                    hist_norm = heights.max()
+                else:
+                    hist_norm = (heights * widths).sum()
+                densities[key] *= hist_norm
+
+            # Convert edges back to original units for plotting
+            ax = self._get_axes(sub_vars)
+            _, inv = _get_transform_functions(ax, self.data_variable)
+            widths = inv(edges + widths) - inv(edges)
+            edges = inv(edges)
+
+            # Pack the histogram data and metadata together
+            edges = edges + (1 - shrink) / 2 * widths
+            widths *= shrink
+            index = pd.MultiIndex.from_arrays([
+                pd.Index(edges, name="edges"),
+                pd.Index(widths, name="widths"),
+            ])
+            hist = pd.Series(heights, index=index, name="heights")
+
+            # Apply scaling to normalize across groups
+            if common_norm:
+                hist *= part_weight / whole_weight
+
+            # Store the finalized histogram data for future plotting
+            histograms[key] = hist
+
+        # Modify the histogram and density data to resolve multiple groups
+        histograms, baselines = self._resolve_multiple(histograms, multiple)
+        if kde:
+            densities, _ = self._resolve_multiple(
+                densities, None if multiple == "dodge" else multiple
+            )
+
+        # Set autoscaling-related meta
+        sticky_stat = (0, 1) if multiple == "fill" else (0, np.inf)
+        if multiple == "fill":
+            # Filled plots should not have any margins
+            bin_vals = histograms.index.to_frame()
+            edges = bin_vals["edges"]
+            widths = bin_vals["widths"]
+            sticky_data = (
+                edges.min(),
+                edges.max() + widths.loc[edges.idxmax()]
+            )
+        else:
+            sticky_data = []
+
+        # --- Handle default visual attributes
+
+        # Note: default linewidth is determined after plotting
+
+        # Default alpha should depend on other parameters
+        if fill:
+            # Note: will need to account for other grouping semantics if added
+            if "hue" in self.variables and multiple == "layer":
+                default_alpha = .5 if element == "bars" else .25
+            elif kde:
+                default_alpha = .5
+            else:
+                default_alpha = .75
+        else:
+            default_alpha = 1
+        alpha = plot_kws.pop("alpha", default_alpha)  # TODO make parameter?
+
+        hist_artists = []
+
+        # Go back through the dataset and draw the plots
+        for sub_vars, _ in self.iter_data("hue", reverse=True):
+
+            key = tuple(sub_vars.items())
+            hist = histograms[key].rename("heights").reset_index()
+            bottom = np.asarray(baselines[key])
+
+            ax = self._get_axes(sub_vars)
+
+            # Define the matplotlib attributes that depend on semantic mapping
+            if "hue" in self.variables:
+                sub_color = self._hue_map(sub_vars["hue"])
+            else:
+                sub_color = color
+
+            artist_kws = self._artist_kws(
+                plot_kws, fill, element, multiple, sub_color, alpha
+            )
+
+            if element == "bars":
+
+                # Use matplotlib bar plotting
+
+                plot_func = ax.bar if self.data_variable == "x" else ax.barh
+                artists = plot_func(
+                    hist["edges"],
+                    hist["heights"] - bottom,
+                    hist["widths"],
+                    bottom,
+                    align="edge",
+                    **artist_kws,
+                )
+
+                for bar in artists:
+                    if self.data_variable == "x":
+                        bar.sticky_edges.x[:] = sticky_data
+                        bar.sticky_edges.y[:] = sticky_stat
+                    else:
+                        bar.sticky_edges.x[:] = sticky_stat
+                        bar.sticky_edges.y[:] = sticky_data
+
+                hist_artists.extend(artists)
+
+            else:
+
+                # Use either fill_between or plot to draw hull of histogram
+                if element == "step":
+
+                    final = hist.iloc[-1]
+                    x = np.append(hist["edges"], final["edges"] + final["widths"])
+                    y = np.append(hist["heights"], final["heights"])
+                    b = np.append(bottom, bottom[-1])
+
+                    if self.data_variable == "x":
+                        step = "post"
+                        drawstyle = "steps-post"
+                    else:
+                        step = "post"  # fillbetweenx handles mapping internally
+                        drawstyle = "steps-pre"
+
+                elif element == "poly":
+
+                    x = hist["edges"] + hist["widths"] / 2
+                    y = hist["heights"]
+                    b = bottom
+
+                    step = None
+                    drawstyle = None
+
+                if self.data_variable == "x":
+                    if fill:
+                        artist = ax.fill_between(x, b, y, step=step, **artist_kws)
+                    else:
+                        artist, = ax.plot(x, y, drawstyle=drawstyle, **artist_kws)
+                    artist.sticky_edges.x[:] = sticky_data
+                    artist.sticky_edges.y[:] = sticky_stat
+                else:
+                    if fill:
+                        artist = ax.fill_betweenx(x, b, y, step=step, **artist_kws)
+                    else:
+                        artist, = ax.plot(y, x, drawstyle=drawstyle, **artist_kws)
+                    artist.sticky_edges.x[:] = sticky_stat
+                    artist.sticky_edges.y[:] = sticky_data
+
+                hist_artists.append(artist)
+
+            if kde:
+
+                # Add in the density curves
+
+                try:
+                    density = densities[key]
+                except KeyError:
+                    continue
+                support = density.index
+
+                if "x" in self.variables:
+                    line_args = support, density
+                    sticky_x, sticky_y = None, (0, np.inf)
+                else:
+                    line_args = density, support
+                    sticky_x, sticky_y = (0, np.inf), None
+
+                line_kws["color"] = to_rgba(sub_color, 1)
+                line, = ax.plot(
+                    *line_args, **line_kws,
+                )
+
+                if sticky_x is not None:
+                    line.sticky_edges.x[:] = sticky_x
+                if sticky_y is not None:
+                    line.sticky_edges.y[:] = sticky_y
+
+        if element == "bars" and "linewidth" not in plot_kws:
+
+            # Now we handle linewidth, which depends on the scaling of the plot
+
+            # We will base everything on the minimum bin width
+            hist_metadata = pd.concat([
+                # Use .items for generality over dict or df
+                h.index.to_frame() for _, h in histograms.items()
+            ]).reset_index(drop=True)
+            thin_bar_idx = hist_metadata["widths"].idxmin()
+            binwidth = hist_metadata.loc[thin_bar_idx, "widths"]
+            left_edge = hist_metadata.loc[thin_bar_idx, "edges"]
+
+            # Set initial value
+            default_linewidth = math.inf
+
+            # Loop through subsets based only on facet variables
+            for sub_vars, _ in self.iter_data():
+
+                ax = self._get_axes(sub_vars)
+
+                # Needed in some cases to get valid transforms.
+                # Innocuous in other cases?
+                ax.autoscale_view()
+
+                # Convert binwidth from data coordinates to pixels
+                pts_x, pts_y = 72 / ax.figure.dpi * abs(
+                    ax.transData.transform([left_edge + binwidth] * 2)
+                    - ax.transData.transform([left_edge] * 2)
+                )
+                if self.data_variable == "x":
+                    binwidth_points = pts_x
+                else:
+                    binwidth_points = pts_y
+
+                # The relative size of the lines depends on the appearance
+                # This is a provisional value and may need more tweaking
+                default_linewidth = min(.1 * binwidth_points, default_linewidth)
+
+            # Set the attributes
+            for bar in hist_artists:
+
+                # Don't let the lines get too thick
+                max_linewidth = bar.get_linewidth()
+                if not fill:
+                    max_linewidth *= 1.5
+
+                linewidth = min(default_linewidth, max_linewidth)
+
+                # If not filling, don't let lines disappear
+                if not fill:
+                    min_linewidth = .5
+                    linewidth = max(linewidth, min_linewidth)
+
+                bar.set_linewidth(linewidth)
+
+        # --- Finalize the plot ----
+
+        # Axis labels
+        ax = self.ax if self.ax is not None else self.facets.axes.flat[0]
+        default_x = default_y = ""
+        if self.data_variable == "x":
+            default_y = estimator.stat.capitalize()
+        if self.data_variable == "y":
+            default_x = estimator.stat.capitalize()
+        self._add_axis_labels(ax, default_x, default_y)
+
+        # Legend for semantic variables
+        if "hue" in self.variables and legend:
+
+            if fill or element == "bars":
+                artist = partial(mpl.patches.Patch)
+            else:
+                artist = partial(mpl.lines.Line2D, [], [])
+
+            ax_obj = self.ax if self.ax is not None else self.facets
+            self._add_legend(
+                ax_obj, artist, fill, element, multiple, alpha, plot_kws, {},
+            )
+
+    def plot_bivariate_histogram(
+        self,
+        common_bins, common_norm,
+        thresh, pthresh, pmax,
+        color, legend,
+        cbar, cbar_ax, cbar_kws,
+        estimate_kws,
+        **plot_kws,
+    ):
+
+        # Default keyword dicts
+        cbar_kws = {} if cbar_kws is None else cbar_kws.copy()
+
+        # Now initialize the Histogram estimator
+        estimator = Histogram(**estimate_kws)
+
+        # Do pre-compute housekeeping related to multiple groups
+        if set(self.variables) - {"x", "y"}:
+            all_data = self.comp_data.dropna()
+            if common_bins:
+                estimator.define_bin_params(
+                    all_data["x"],
+                    all_data["y"],
+                    all_data.get("weights", None),
+                )
+        else:
+            common_norm = False
+
+        # -- Determine colormap threshold and norm based on the full data
+
+        full_heights = []
+        for _, sub_data in self.iter_data(from_comp_data=True):
+            sub_heights, _ = estimator(
+                sub_data["x"], sub_data["y"], sub_data.get("weights", None)
+            )
+            full_heights.append(sub_heights)
+
+        common_color_norm = not set(self.variables) - {"x", "y"} or common_norm
+
+        if pthresh is not None and common_color_norm:
+            thresh = self._quantile_to_level(full_heights, pthresh)
+
+        plot_kws.setdefault("vmin", 0)
+        if common_color_norm:
+            if pmax is not None:
+                vmax = self._quantile_to_level(full_heights, pmax)
+            else:
+                vmax = plot_kws.pop("vmax", max(map(np.max, full_heights)))
+        else:
+            vmax = None
+
+        # Get a default color
+        # (We won't follow the color cycle here, as multiple plots are unlikely)
+        if color is None:
+            color = "C0"
+
+        # --- Loop over data (subsets) and draw the histograms
+        for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
+
+            if sub_data.empty:
+                continue
+
+            # Do the histogram computation
+            heights, (x_edges, y_edges) = estimator(
+                sub_data["x"],
+                sub_data["y"],
+                weights=sub_data.get("weights", None),
+            )
+
+            # Get the axes for this plot
+            ax = self._get_axes(sub_vars)
+
+            # Invert the scale for the edges
+            _, inv_x = _get_transform_functions(ax, "x")
+            _, inv_y = _get_transform_functions(ax, "y")
+            x_edges = inv_x(x_edges)
+            y_edges = inv_y(y_edges)
+
+            # Apply scaling to normalize across groups
+            if estimator.stat != "count" and common_norm:
+                heights *= len(sub_data) / len(all_data)
+
+            # Define the specific kwargs for this artist
+            artist_kws = plot_kws.copy()
+            if "hue" in self.variables:
+                color = self._hue_map(sub_vars["hue"])
+                cmap = self._cmap_from_color(color)
+                artist_kws["cmap"] = cmap
+            else:
+                cmap = artist_kws.pop("cmap", None)
+                if isinstance(cmap, str):
+                    cmap = color_palette(cmap, as_cmap=True)
+                elif cmap is None:
+                    cmap = self._cmap_from_color(color)
+                artist_kws["cmap"] = cmap
+
+            # Set the upper norm on the colormap
+            if not common_color_norm and pmax is not None:
+                vmax = self._quantile_to_level(heights, pmax)
+            if vmax is not None:
+                artist_kws["vmax"] = vmax
+
+            # Make cells at or below the threshold transparent
+            if not common_color_norm and pthresh:
+                thresh = self._quantile_to_level(heights, pthresh)
+            if thresh is not None:
+                heights = np.ma.masked_less_equal(heights, thresh)
+
+            # pcolormesh is going to turn the grid off, but we want to keep it
+            # I'm not sure if there's a better way to get the grid state
+            x_grid = any([l.get_visible() for l in ax.xaxis.get_gridlines()])
+            y_grid = any([l.get_visible() for l in ax.yaxis.get_gridlines()])
+
+            mesh = ax.pcolormesh(
+                x_edges,
+                y_edges,
+                heights.T,
+                **artist_kws,
+            )
+# ... 1648 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

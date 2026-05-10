@@ -1,0 +1,40 @@
+{
+  "scan_id": "seaborn-master_OCP_scan_09",
+  "repo_name": "seaborn-master",
+  "principle": "OCP",
+  "scan_number": 9,
+  "timestamp": "2026-04-18T15:25:29.016851",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modif...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_boxens\",\n      \"entity_type\": \"method\",\n      \"line_start\": 779,\n      \"line_end\": 909,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Behavior is dispatched by `if/elif` chain on `width_method` string.\",\n      \"reasoning\": \"The `plot_boxens` method contains an `if/elif` chain that explicitly checks the string value of the `width_method` parameter (`'linear'`, `'exponential'`, `'area'`). To introduce a new method for calculating boxen widths, this method's conditional logic would need to be directly modified. This violates OCP, as the code is closed to extension for new width methods without modification. A strategy pattern or a registry of width calculation functions would make this extensible.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_violins\",\n      \"entity_type\": \"method\",\n      \"line_start\": 911,\n      \"line_end\": 1134,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Behavior is dispatched by `if/elif` chains on `inner` and `density_norm` strings.\",\n      \"reasoning\": \"The `plot_violins` method contains multiple `if/elif` chains that dispatch behavior based on string values for `inner` (`'point'`, `'stick'`, `'quart'`, `'box'`) and `density_norm` (`'area'`, `'count'`, `'width'`). To add a new inner visualization type for violins or a new density normalization method, these conditional blocks would need to be directly modified. This violates OCP, as the code is closed to extension for new behaviors without modification. Strategy patterns or registries for `inner` plotting and `density_norm` calculations would be more extensible.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._adjust_cat_axis\",\n      \"entity_type\": \"method\",\n      \"line_start\": 434,\n      \"line_end\": 460,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Axis adjustment logic is conditionally applied based on `self.var_types[axis]` and `axis`.\",\n      \"reasoning\": \"The method uses an `if self.var_types[axis] != 'categorical'` check to bypass logic and an `if axis == 'x'` to apply orientation-specific adjustments. While 'x'/'y' are fundamental, if",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_boxens",
+      "entity_type": "method",
+      "line_start": 779,
+      "line_end": 909,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Behavior is dispatched by `if/elif` chain on `width_method` string.",
+      "reasoning": "The `plot_boxens` method contains an `if/elif` chain that explicitly checks the string value of the `width_method` parameter (`'linear'`, `'exponential'`, `'area'`). To introduce a new method for calculating boxen widths, this method's conditional logic would need to be directly modified. This violates OCP, as the code is closed to extension for new width methods without modification. A strategy pattern or a registry of width calculation functions would make this extensible."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_violins",
+      "entity_type": "method",
+      "line_start": 911,
+      "line_end": 1134,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Behavior is dispatched by `if/elif` chains on `inner` and `density_norm` strings.",
+      "reasoning": "The `plot_violins` method contains multiple `if/elif` chains that dispatch behavior based on string values for `inner` (`'point'`, `'stick'`, `'quart'`, `'box'`) and `density_norm` (`'area'`, `'count'`, `'width'`). To add a new inner visualization type for violins or a new density normalization method, these conditional blocks would need to be directly modified. This violates OCP, as the code is closed to extension for new behaviors without modification. Strategy patterns or registries for `inner` plotting and `density_norm` calculations would be more extensible."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 80294.72208023071,
+  "error": null
+}

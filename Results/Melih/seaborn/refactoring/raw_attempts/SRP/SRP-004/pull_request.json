@@ -1,0 +1,176 @@
+{
+  "issue_id": "SRP-004",
+  "principle": "SRP",
+  "title": "Refactor SRP-004 (SRP): The class mixes data preparation and multi-group resolution logic with render...",
+  "branch": "refactor/SRP-004",
+  "base": "main",
+  "head_commit": "11e83875a77e0bb4e9692f7d424a486dbeb007fc",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in seaborn/distributions.py (block 7)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14838,
+    "completion_tokens": 2727
+  },
+  "detected_issue": {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 800,
+    "severity": "high",
+    "scan_count": 10,
+    "description": "The class mixes data preparation and multi-group resolution logic with rendering logic for multiple distinct distribution plot types.",
+    "reasoning": "The `_DistributionPlotter` class is responsible for plotting distributions, but it directly implements the rendering logic for several distinct types of distribution plots (histograms, KDEs, ECDFs, rug plots), each with univariate and/or bivariate variants (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Furthermore, it contains complex logic in `_resolve_multiple` for handling how multiple distributions are displayed (stack, fill, dodge). A change to how histograms are rendered is a different reason to change than how stacking of densities is calculated, or how KDEs are plotted. This indicates multiple responsibilities, leading to a 'God Class' smell."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract distribution rendering logic into a separate _DistributionRenderer class.",
+    "rationale": "The _DistributionPlotter class was violating SRP by handling both data preparation/grouping and the rendering logic for multiple plot types. By extracting the rendering methods into a _DistributionRenderer class, we separate the concerns of data orchestration from the visual representation of the plots.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/distributions.py"
+    ],
+    "patch_blocks_count": 14,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "class _DistributionPlotter(VectorPlotter):\n\n    wide_structure = {\"x\": \"@values\", \"hue\": \"@columns\"}\n    flat_structure = {\"x\": \"@values\"}\n\n    def __init__(\n        self,\n        data=None,\n        variables={},\n    ):\n\n        super().__init__(data=data, variables=variables)",
+        "replace_text": "class _DistributionRenderer:\n    \"\"\"Helper class to handle rendering logic for distribution plots.\"\"\"\n    def __init__(self, plotter):\n        self.plotter = plotter\n\n    def __getattr__(self, name):\n        return getattr(self.plotter, name)\n\n    def _add_legend(self, *args, **kwargs):\n        return self.plotter._add_legend(*args, **kwargs)\n\n    def _artist_kws(self, *args, **kwargs):\n        return self.plotter._artist_kws(*args, **kwargs)\n\n    def _get_axes(self, *args, **kwargs):\n        return self.plotter._get_axes(*args, **kwargs)\n\n    def _add_axis_labels(self, *args, **kwargs):\n        return self.plotter._add_axis_labels(*args, **kwargs)\n\n    def _cmap_from_color(self, *args, **kwargs):\n        return self.plotter._cmap_from_color(*args, **kwargs)\n\n    def _plot_single_rug(self, *args, **kwargs):\n        return self.plotter._plot_single_rug(*args, **kwargs)\n\n    @property\n    def data_variable(self):\n        return self.plotter.data_variable\n\n    @property\n    def variables(self):\n        return self.plotter.variables\n\n    @property\n    def iter_data(self):\n        return self.plotter.iter_data\n\n    @property\n    def comp_data(self):\n        return self.plotter.comp_data\n\n    @property\n    def ax(self):\n        return self.plotter.ax\n\n    @property\n    def facets(self):\n        return self.plotter.facets\n\n    @property\n    def _hue_map(self):\n        return self.plotter._hue_map\n\n    @property\n    def var_levels(self):\n        return self.plotter.var_levels\n\n\nclass _DistributionPlotter(VectorPlotter):\n\n    wide_structure = {\"x\": \"@values\", \"hue\": \"@columns\"}\n    flat_structure = {\"x\": \"@values\"}\n\n    def __init__(\n        self,\n        data=None,\n        variables={},\n    ):\n\n        super().__init__(data=data, variables=variables)\n        self.renderer = _DistributionRenderer(self)",
+        "search_lines": 12,
+        "replace_lines": 72
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_histogram(\n        self,\n        multiple,\n        element,\n        fill,\n        common_norm,\n        common_bins,\n        shrink,\n        kde,\n        kde_kws,\n        color,\n        legend,\n        line_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def plot_univariate_histogram(self, *args, **kwargs):\n        return self.renderer.plot_univariate_histogram(*args, **kwargs)\n\n    def _render_univariate_histogram(\n        self,\n        multiple,\n        element,\n        fill,\n        common_norm,\n        common_bins,\n        shrink,\n        kde,\n        kde_kws,\n        color,\n        legend,\n        line_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "search_lines": 16,
+        "replace_lines": 19
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_bivariate_histogram(\n        self,\n        common_bins, common_norm,\n        thresh, pthresh, pmax,\n        color, legend,\n        cbar, cbar_ax, cbar_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def plot_bivariate_histogram(self, *args, **kwargs):\n        return self.renderer.plot_bivariate_histogram(*args, **kwargs)\n\n    def _render_bivariate_histogram(\n        self,\n        common_bins, common_norm,\n        thresh, pthresh, pmax,\n        color, legend,\n        cbar, cbar_ax, cbar_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "search_lines": 9,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_density(\n        self,\n        multiple,\n        common_norm,\n        common_grid,\n        warn_singular,\n        fill,\n        color,\n        legend,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def plot_univariate_density(self, *args, **kwargs):\n        return self.renderer.plot_univariate_density(*args, **kwargs)\n\n    def _render_univariate_density(\n        self,\n        multiple,\n        common_norm,\n        common_grid,\n        warn_singular,\n        fill,\n        color,\n        legend,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "search_lines": 12,
+        "replace_lines": 15
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_bivariate_density(\n        self,\n        common_norm,\n        fill,\n        levels,\n        thresh,\n        color,\n        legend,\n        cbar,\n        warn_singular,\n        cbar_ax,\n        cbar_kws,\n        estimate_kws,\n        **contour_kws,\n    ):",
+        "replace_text": "    def plot_bivariate_density(self, *args, **kwargs):\n        return self.renderer.plot_bivariate_density(*args, **kwargs)\n\n    def _render_bivariate_density(\n        self,\n        common_norm,\n        fill,\n        levels,\n        thresh,\n        color,\n        legend,\n        cbar,\n        warn_singular,\n        cbar_ax,\n        cbar_kws,\n        estimate_kws,\n        **contour_kws,\n    ):",
+        "search_lines": 15,
+        "replace_lines": 18
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_ecdf(self, estimate_kws, legend, **plot_kws):",
+        "replace_text": "    def plot_univariate_ecdf(self, *args, **kwargs):\n        return self.renderer.plot_univariate_ecdf(*args, **kwargs)\n\n    def _render_univariate_ecdf(self, estimate_kws, legend, **plot_kws):",
+        "search_lines": 1,
+        "replace_lines": 4
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_rug(self, height, expand_margins, legend, **kws):",
+        "replace_text": "    def plot_rug(self, *args, **kwargs):\n        return self.renderer.plot_rug(*args, **kwargs)\n\n    def _render_rug(self, height, expand_margins, legend, **kws):",
+        "search_lines": 1,
+        "replace_lines": 4
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_histogram(\n        self,\n        multiple,\n        element,\n        fill,\n        common_norm,\n        common_bins,\n        shrink,\n        kde,\n        kde_kws,\n        color,\n        legend,\n        line_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def _render_univariate_histogram(\n        self,\n        multiple,\n        element,\n        fill,\n        common_norm,\n        common_bins,\n        shrink,\n        kde,\n        kde_kws,\n        color,\n        legend,\n        line_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "search_lines": 16,
+        "replace_lines": 16
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_bivariate_histogram(\n        self,\n        common_bins, common_norm,\n        thresh, pthresh, pmax,\n        color, legend,\n        cbar, cbar_ax, cbar_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def _render_bivariate_histogram(\n        self,\n        common_bins, common_norm,\n        thresh, pthresh, pmax,\n        color, legend,\n        cbar, cbar_ax, cbar_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "search_lines": 9,
+        "replace_lines": 9
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_density(\n        self,\n        multiple,\n        common_norm,\n        common_grid,\n        warn_singular,\n        fill,\n        color,\n        legend,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def _render_univariate_density(\n        self,\n        multiple,\n        common_norm,\n        common_grid,\n        warn_singular,\n        fill,\n        color,\n        legend,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "search_lines": 12,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_bivariate_density(\n        self,\n        common_norm,\n        fill,\n        levels,\n        thresh,\n        color,\n        legend,\n        cbar,\n        warn_singular,\n        cbar_ax,\n        cbar_kws,\n        estimate_kws,\n        **contour_kws,\n    ):",
+        "replace_text": "    def _render_bivariate_density(\n        self,\n        common_norm,\n        fill,\n        levels,\n        thresh,\n        color,\n        legend,\n        cbar,\n        warn_singular,\n        cbar_ax,\n        cbar_kws,\n        estimate_kws,\n        **contour_kws,\n    ):",
+        "search_lines": 15,
+        "replace_lines": 15
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_ecdf(self, estimate_kws, legend, **plot_kws):",
+        "replace_text": "    def _render_univariate_ecdf(self, estimate_kws, legend, **plot_kws):",
+        "search_lines": 1,
+        "replace_lines": 1
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_rug(self, height, expand_margins, legend, **kws):",
+        "replace_text": "    def _render_rug(self, height, expand_margins, legend, **kws):",
+        "search_lines": 1,
+        "replace_lines": 1
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "# ==================================================================================== #\n# External API\n# ==================================================================================== #",
+        "replace_text": "# ==================================================================================== #\n# Renderer Implementation\n# ==================================================================================== #\n\n_DistributionRenderer.plot_univariate_histogram = _DistributionPlotter._render_univariate_histogram\n_DistributionRenderer.plot_bivariate_histogram = _DistributionPlotter._render_bivariate_histogram\n_DistributionRenderer.plot_univariate_density = _DistributionPlotter._render_univariate_density\n_DistributionRenderer.plot_bivariate_density = _DistributionPlotter._render_bivariate_density\n_DistributionRenderer.plot_univariate_ecdf = _DistributionPlotter._render_univariate_ecdf\n_DistributionRenderer.plot_rug = _DistributionPlotter._render_rug\n\n# ==================================================================================== #\n# External API\n# ==================================================================================== #",
+        "search_lines": 3,
+        "replace_lines": 14
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1802,
+        "blank_lines": 471,
+        "comment_lines": 258,
+        "function_count": 26,
+        "avg_cc": 13.19,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 9251.288414001465
+}

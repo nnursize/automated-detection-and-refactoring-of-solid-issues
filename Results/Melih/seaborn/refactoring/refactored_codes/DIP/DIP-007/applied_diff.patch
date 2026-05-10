@@ -1,0 +1,21 @@
+diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py
+index 36e8d40..18adeeb 100644
+--- a/seaborn/_core/plot.py
++++ b/seaborn/_core/plot.py
+@@ -292,6 +292,7 @@ class Plot:
+         self,
+         *args: DataSource | VariableSpec,
+         data: DataSource = None,
++        data_handler: type = PlotData,
+         **variables: VariableSpec,
+     ):
+ 
+@@ -304,7 +305,7 @@ class Plot:
+             raise TypeError(err)
+ 
+         self._spec = {
+-            "data": PlotData(data, variables),
++            "data": data_handler(data, variables),
+             "layers": [],
+             "scales": {},
+             "shares": {},

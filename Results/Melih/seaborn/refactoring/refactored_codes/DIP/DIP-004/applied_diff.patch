@@ -1,0 +1,23 @@
+diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py
+index 4958ed0..72bb2f0 100644
+--- a/seaborn/axisgrid.py
++++ b/seaborn/axisgrid.py
+@@ -1693,6 +1693,7 @@ class JointGrid(_BaseGrid):
+         height=6, ratio=5, space=.2,
+         palette=None, hue_order=None, hue_norm=None,
+         dropna=False, xlim=None, ylim=None, marginal_ticks=False,
++        plotter_class=None,
+     ):
+ 
+         # Set up the subplot grid
+@@ -1728,7 +1729,9 @@ class JointGrid(_BaseGrid):
+             ax_marg_y.xaxis.grid(False)
+ 
+         # Process the input variables
+-        p = VectorPlotter(data=data, variables=dict(x=x, y=y, hue=hue))
++        if plotter_class is None:
++            plotter_class = VectorPlotter
++        p = plotter_class(data=data, variables=dict(x=x, y=y, hue=hue))
+         plot_data = p.plot_data.loc[:, p.plot_data.notna().any()]
+ 
+         # Possibly drop NA

@@ -1,0 +1,183 @@
+{
+  "scan_id": "seaborn-master_OCP_scan_08",
+  "repo_name": "seaborn-master",
+  "principle": "OCP",
+  "scan_number": 8,
+  "timestamp": "2026-04-18T15:23:08.671487",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modif...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_boxens\",\n      \"entity_type\": \"method\",\n      \"line_start\": 481,\n      \"line_end\": 560,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Violation of OCP due to if/elif chain on 'width_method' parameter.\",\n      \"reasoning\": \"The `plot_boxens` method contains an `if/elif` chain (`if width_method == 'linear':`, `elif width_method == 'exponential':`, `elif width_method == 'area':`) to determine how relative widths are calculated. Adding a new `width_method` would require modifying this existing method, directly violating OCP. This logic should be encapsulated in a strategy pattern where different `width_method` implementations can be plugged in without altering `plot_boxens`.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_violins\",\n      \"entity_type\": \"method\",\n      \"line_start\": 562,\n      \"line_end\": 855,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Violation of OCP due to if/elif chain on 'inner' parameter for plotting components.\",\n      \"reasoning\": \"The `plot_violins` method uses an `elif` chain (`elif inner.startswith('point'):`, `elif inner.startswith('stick'):`, etc.) to draw different inner components of the violin plot. To introduce a new type of inner visualization (e.g., 'mean_marker'), this method would need to be modified by adding another `elif` branch, which violates the Open/Closed Principle. This behavior should be abstracted using a strategy pattern, where each 'inner' type is a separate object with a `draw` method.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._hue_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 140,\n      \"line_end\": 194,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"This method explicitly handles backwards compatibility for `hue` parametrization using `if` statements that check for specific conditions (`self.input_format == 'wide'`, `color is not None`, `palette is None`). While pragmatic for API evolution, these checks represent modifications to existing code to support old behavior, rather than extending it. The presence of `warnings.warn` and `FutureWarning` indicates this is temporary, but it still violates OCP in its current state.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._palette_without_hue_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 196,\n      \"line_end\": 218,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"Similar to `_hue_backcompat`, this method uses an `if` statement (`if 'hue' not in self.variables and palette is not None:`) to provide backwards compatibility. This modifies existing behavior based on a specific condition to support an older API, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._point_kwargs_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 220,\n      \"line_end\": 257,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"This method uses `if scale is not deprecated:` and `if join is not deprecated:` to handle deprecated parameters. This is a modification to support older API usage, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._err_kws_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 259,\n      \"line_end\": 290,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"This method uses `if errcolor is not None:` and `if capsize is None:` to handle deprecated error bar parameters. This modifies existing behavior to support an older API, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._violin_scale_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 292,\n      \"line_end\": 314,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"This method uses `if scale is not deprecated:` and `if scale_hue is not deprecated:` to handle deprecated violin plot parameters. This modifies existing behavior to support an older API, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._violin_bw_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 316,\n      \"line_end\": 328,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"This method uses `if bw is not deprecated:` to handle a deprecated bandwidth parameter. This modifies existing behavior to support an older API, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter._boxen_scale_backcompat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 330,\n      \"line_end\": 347,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to conditional logic for backwards compatibility.\",\n      \"reasoning\": \"This method uses `if scale is not deprecated:` to handle a deprecated boxen plot parameter. This modifies existing behavior to support an older API, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter._resolve_multiple\",\n      \"entity_type\": \"method\",\n      \"line_start\": 169,\n      \"line_end\": 227,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Violation of OCP due to if/elif chain on 'multiple' parameter.\",\n      \"reasoning\": \"The `_resolve_multiple` method contains an `if/elif` chain (`if multiple in ('stack', 'fill'):`, `if multiple == 'dodge':`) to handle different strategies for plotting multiple densities. Adding a new `multiple` strategy (e.g., 'overlay_alpha') would require modifying this existing method, directly violating OCP. This logic should be implemented using a strategy pattern, where each `multiple` option is an injectable object.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter.plot_univariate_histogram\",\n      \"entity_type\": \"method\",\n      \"line_start\": 300,\n      \"line_end\": 560,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Violation of OCP due to if/elif chain on 'element' parameter for plotting styles.\",\n      \"reasoning\": \"The `plot_univariate_histogram` method contains an `if/elif` chain (`if element == 'bars':`, `elif element == 'step':`, `elif element == 'poly':`) to determine the plotting style for histogram elements. Adding a new element type (e.g., 'spline') would require modifying this existing method, directly violating OCP. This should be refactored using a strategy pattern, where each `element` type is a separate plotting strategy.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/plot.py\",\n      \"entity_name\": \"Plot.add\",\n      \"entity_type\": \"method\",\n      \"line_start\": 401,\n      \"line_end\": 457,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Violation of OCP due to if/elif chain checking transform types and order.\",\n      \"reasoning\": \"The `add` method explicitly checks the types of `transforms` using an `if/elif` chain (`if not transforms:`, `elif isinstance(transforms[0], Stat):`, `else:`). It enforces that at most one `Stat` can be present and must be first, and others must be `Move` types. Introducing a new transform type with different positional or combinatorial rules would necessitate modifying this core logic, directly violating OCP. A more extensible design would use a registry or a more generic processing pipeline for transforms.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/plot.py\",\n      \"entity_name\": \"Plotter._get_subplot_data\",\n      \"entity_type\": \"method\",\n      \"line_start\": 692,\n      \"line_end\": 716,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to if/elif/else chain on 'share_state' parameter.\",\n      \"reasoning\": \"The `_get_subplot_data` method uses an `if/elif/else` chain (`if share_state in [True, 'all']`, `elif share_state in [False, 'none']`, `elif share_state in df`) to determine how to retrieve data based on the `share_state` of axes. If new sharing strategies were introduced (e.g., 'group', 'custom_logic'), this method would require modification to add new `elif` branches, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"FacetGrid.__init__\",\n      \"entity_type\": \"method\",\n      \"line_start\": 372,\n      \"line_end\": 510,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to if/else chain for grid initialization based on 'col_wrap'.\",\n      \"reasoning\": \"The `__init__` method contains an `if/else` block (`if col_wrap is None: ... else:`) that determines how the subplot grid is initialized (using `fig.subplots` or manual `fig.add_subplot` calls) based on the `col_wrap` parameter. If a new grid layout strategy (e.g., `row_wrap` with different subplot arrangement) were to be introduced, this `if/else` structure would need modification, violating OCP.\"\n    },\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"FacetGrid.map\",\n      \"entity_type\": \"method\",\n      \"line_start\": 637,\n      \"line_end\": 703,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to specific checks for seaborn/matplotlib function modules.\",\n      \"reasoning\": \"The `map` method contains `if func_module == 'seaborn.categorical':` and `if func_module.startswith('matplotlib'):` checks. These hardcoded checks for specific function modules determine special handling (e.g., warnings, data conversion). If new categories of functions with unique requirements are introduced, this method would need modification, violating OCP. A more extensible design would use a dispatch mechanism or decorators.\"\n    },\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"FacetGrid._facet_plot\",\n      \"entity_type\": \"method\",\n      \"line_start\": 744,\n      \"line_end\": 755,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Violation of OCP due to specific check for seaborn function module.\",\n      \"reasoning\": \"The `_facet_plot` method uses `if str(func.__module__).startswith('seaborn'):` to decide how to pass arguments to the plotting function. This hardcoded check for 'seaborn' functions",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_boxens",
+      "entity_type": "method",
+      "line_start": 481,
+      "line_end": 560,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Violation of OCP due to if/elif chain on 'width_method' parameter.",
+      "reasoning": "The `plot_boxens` method contains an `if/elif` chain (`if width_method == 'linear':`, `elif width_method == 'exponential':`, `elif width_method == 'area':`) to determine how relative widths are calculated. Adding a new `width_method` would require modifying this existing method, directly violating OCP. This logic should be encapsulated in a strategy pattern where different `width_method` implementations can be plugged in without altering `plot_boxens`."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_violins",
+      "entity_type": "method",
+      "line_start": 562,
+      "line_end": 855,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Violation of OCP due to if/elif chain on 'inner' parameter for plotting components.",
+      "reasoning": "The `plot_violins` method uses an `elif` chain (`elif inner.startswith('point'):`, `elif inner.startswith('stick'):`, etc.) to draw different inner components of the violin plot. To introduce a new type of inner visualization (e.g., 'mean_marker'), this method would need to be modified by adding another `elif` branch, which violates the Open/Closed Principle. This behavior should be abstracted using a strategy pattern, where each 'inner' type is a separate object with a `draw` method."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._hue_backcompat",
+      "entity_type": "method",
+      "line_start": 140,
+      "line_end": 194,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "This method explicitly handles backwards compatibility for `hue` parametrization using `if` statements that check for specific conditions (`self.input_format == 'wide'`, `color is not None`, `palette is None`). While pragmatic for API evolution, these checks represent modifications to existing code to support old behavior, rather than extending it. The presence of `warnings.warn` and `FutureWarning` indicates this is temporary, but it still violates OCP in its current state."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._palette_without_hue_backcompat",
+      "entity_type": "method",
+      "line_start": 196,
+      "line_end": 218,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "Similar to `_hue_backcompat`, this method uses an `if` statement (`if 'hue' not in self.variables and palette is not None:`) to provide backwards compatibility. This modifies existing behavior based on a specific condition to support an older API, violating OCP."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._point_kwargs_backcompat",
+      "entity_type": "method",
+      "line_start": 220,
+      "line_end": 257,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "This method uses `if scale is not deprecated:` and `if join is not deprecated:` to handle deprecated parameters. This is a modification to support older API usage, violating OCP."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._err_kws_backcompat",
+      "entity_type": "method",
+      "line_start": 259,
+      "line_end": 290,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "This method uses `if errcolor is not None:` and `if capsize is None:` to handle deprecated error bar parameters. This modifies existing behavior to support an older API, violating OCP."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._violin_scale_backcompat",
+      "entity_type": "method",
+      "line_start": 292,
+      "line_end": 314,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "This method uses `if scale is not deprecated:` and `if scale_hue is not deprecated:` to handle deprecated violin plot parameters. This modifies existing behavior to support an older API, violating OCP."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._violin_bw_backcompat",
+      "entity_type": "method",
+      "line_start": 316,
+      "line_end": 328,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "This method uses `if bw is not deprecated:` to handle a deprecated bandwidth parameter. This modifies existing behavior to support an older API, violating OCP."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter._boxen_scale_backcompat",
+      "entity_type": "method",
+      "line_start": 330,
+      "line_end": 347,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to conditional logic for backwards compatibility.",
+      "reasoning": "This method uses `if scale is not deprecated:` to handle a deprecated boxen plot parameter. This modifies existing behavior to support an older API, violating OCP."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter._resolve_multiple",
+      "entity_type": "method",
+      "line_start": 169,
+      "line_end": 227,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Violation of OCP due to if/elif chain on 'multiple' parameter.",
+      "reasoning": "The `_resolve_multiple` method contains an `if/elif` chain (`if multiple in ('stack', 'fill'):`, `if multiple == 'dodge':`) to handle different strategies for plotting multiple densities. Adding a new `multiple` strategy (e.g., 'overlay_alpha') would require modifying this existing method, directly violating OCP. This logic should be implemented using a strategy pattern, where each `multiple` option is an injectable object."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter.plot_univariate_histogram",
+      "entity_type": "method",
+      "line_start": 300,
+      "line_end": 560,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Violation of OCP due to if/elif chain on 'element' parameter for plotting styles.",
+      "reasoning": "The `plot_univariate_histogram` method contains an `if/elif` chain (`if element == 'bars':`, `elif element == 'step':`, `elif element == 'poly':`) to determine the plotting style for histogram elements. Adding a new element type (e.g., 'spline') would require modifying this existing method, directly violating OCP. This should be refactored using a strategy pattern, where each `element` type is a separate plotting strategy."
+    },
+    {
+      "file_path": "seaborn/_core/plot.py",
+      "entity_name": "Plot.add",
+      "entity_type": "method",
+      "line_start": 401,
+      "line_end": 457,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Violation of OCP due to if/elif chain checking transform types and order.",
+      "reasoning": "The `add` method explicitly checks the types of `transforms` using an `if/elif` chain (`if not transforms:`, `elif isinstance(transforms[0], Stat):`, `else:`). It enforces that at most one `Stat` can be present and must be first, and others must be `Move` types. Introducing a new transform type with different positional or combinatorial rules would necessitate modifying this core logic, directly violating OCP. A more extensible design would use a registry or a more generic processing pipeline for transforms."
+    },
+    {
+      "file_path": "seaborn/_core/plot.py",
+      "entity_name": "Plotter._get_subplot_data",
+      "entity_type": "method",
+      "line_start": 692,
+      "line_end": 716,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to if/elif/else chain on 'share_state' parameter.",
+      "reasoning": "The `_get_subplot_data` method uses an `if/elif/else` chain (`if share_state in [True, 'all']`, `elif share_state in [False, 'none']`, `elif share_state in df`) to determine how to retrieve data based on the `share_state` of axes. If new sharing strategies were introduced (e.g., 'group', 'custom_logic'), this method would require modification to add new `elif` branches, violating OCP."
+    },
+    {
+      "file_path": "seaborn/axisgrid.py",
+      "entity_name": "FacetGrid.__init__",
+      "entity_type": "method",
+      "line_start": 372,
+      "line_end": 510,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to if/else chain for grid initialization based on 'col_wrap'.",
+      "reasoning": "The `__init__` method contains an `if/else` block (`if col_wrap is None: ... else:`) that determines how the subplot grid is initialized (using `fig.subplots` or manual `fig.add_subplot` calls) based on the `col_wrap` parameter. If a new grid layout strategy (e.g., `row_wrap` with different subplot arrangement) were to be introduced, this `if/else` structure would need modification, violating OCP."
+    },
+    {
+      "file_path": "seaborn/axisgrid.py",
+      "entity_name": "FacetGrid.map",
+      "entity_type": "method",
+      "line_start": 637,
+      "line_end": 703,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Violation of OCP due to specific checks for seaborn/matplotlib function modules.",
+      "reasoning": "The `map` method contains `if func_module == 'seaborn.categorical':` and `if func_module.startswith('matplotlib'):` checks. These hardcoded checks for specific function modules determine special handling (e.g., warnings, data conversion). If new categories of functions with unique requirements are introduced, this method would need modification, violating OCP. A more extensible design would use a dispatch mechanism or decorators."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 80878.8468837738,
+  "error": null
+}

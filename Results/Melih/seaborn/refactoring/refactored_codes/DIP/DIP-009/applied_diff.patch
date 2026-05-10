@@ -1,0 +1,27 @@
+diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py
+index 17d333b..4958ed0 100644
+--- a/seaborn/axisgrid.py
++++ b/seaborn/axisgrid.py
+@@ -375,7 +375,7 @@ class FacetGrid(Grid):
+         row_order=None, col_order=None, hue_order=None, hue_kws=None,
+         dropna=False, legend_out=True, despine=True,
+         margin_titles=False, xlim=None, ylim=None, subplot_kws=None,
+-        gridspec_kws=None,
++        gridspec_kws=None, figure=None,
+     ):
+ 
+         super().__init__()
+@@ -449,8 +449,11 @@ class FacetGrid(Grid):
+ 
+         # --- Initialize the subplot grid
+ 
+-        with _disable_autolayout():
+-            fig = plt.figure(figsize=figsize)
++        if figure is None:
++            with _disable_autolayout():
++                fig = plt.figure(figsize=figsize)
++        else:
++            fig = figure
+ 
+         if col_wrap is None:
+ 

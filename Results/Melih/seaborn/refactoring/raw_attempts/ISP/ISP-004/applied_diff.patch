@@ -1,0 +1,17 @@
+diff --git a/seaborn/_base.py b/seaborn/_base.py
+index f427bc4..0d9f010 100644
+--- a/seaborn/_base.py
++++ b/seaborn/_base.py
+@@ -1329,10 +1329,8 @@ class VectorPlotter:
+                 attr.update({k: v[level] for k, v in other_props.items() if level in v})
+                 update(self.variables[var], formatted_level, **attr)
+ 
+-    # XXX If the scale_* methods are going to modify the plot_data structure, they
+-    # can't be called twice. That means that if they are called twice, they should
+-    # raise. Alternatively, we could store an original version of plot_data and each
+-    # time they are called they operate on the store, not the current state.
++class ScaleMixin:
++    """Mixin for plotters that support data scaling."""
+ 
+     def scale_native(self, axis, *args, **kwargs):
+ 

@@ -1,0 +1,50 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    # Note that the plotting methods here aim (in most cases) to produce the\n    # exact same artists as the original (pre 0.12) version of the code, so\n    # there is some weirdness that might not otherwise be clean or make sense in\n    # this context, such as adding empty artists for combinations of variables\n    # with no observations\n\n    def plot_strips(",
+    "replace_text": "    # Note that the plotting methods here aim (in most cases) to produce the\n    # exact same artists as the original (pre 0.12) version of the code, so\n    # there is some weirdness that might not otherwise be clean or make sense in\n    # this context, such as adding empty artists for combinations of variables\n    # with no observations\n\n    _plot_methods = {}\n\n    def __init_subclass__(cls, **kwargs):\n        super().__init_subclass__(**kwargs)\n        cls._plot_methods = {}\n\n    @classmethod\n    def register_plot(cls, name):\n        def decorator(func):\n            cls._plot_methods[name] = func\n            return func\n        return decorator\n\n    def plot(self, name, *args, **kwargs):\n        return self._plot_methods[name](self, *args, **kwargs)\n\n    @register_plot(\"strips\")\n    def plot_strips("
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_strips(\n        self,\n        jitter,\n        dodge,\n        color,\n        plot_kws,\n    ):",
+    "replace_text": "    def plot_strips(\n        self,\n        jitter,\n        dodge,\n        color,\n        plot_kws,\n    ):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_swarms(\n        self,\n        dodge,\n        color,\n        warn_thresh,\n        plot_kws,\n    ):",
+    "replace_text": "    @register_plot(\"swarms\")\n    def plot_swarms(\n        self,\n        dodge,\n        color,\n        warn_thresh,\n        plot_kws,\n    ):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_boxes(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        whis,\n        color,\n        linecolor,\n        linewidth,\n        fliersize,\n        plot_kws,  # TODO rename user_kws?\n    ):",
+    "replace_text": "    @register_plot(\"boxes\")\n    def plot_boxes(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        whis,\n        color,\n        linecolor,\n        linewidth,\n        fliersize,\n        plot_kws,  # TODO rename user_kws?\n    ):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_boxens(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        color,\n        linecolor,\n        linewidth,\n        width_method,\n        k_depth,\n        outlier_prop,\n        trust_alpha,\n        showfliers,\n        box_kws,\n        flier_kws,\n        line_kws,\n        plot_kws,\n    ):",
+    "replace_text": "    @register_plot(\"boxens\")\n    def plot_boxens(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        color,\n        linecolor,\n        linewidth,\n        width_method,\n        k_depth,\n        outlier_prop,\n        trust_alpha,\n        showfliers,\n        box_kws,\n        flier_kws,\n        line_kws,\n        plot_kws,\n    ):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_violins(\n        self,\n        width,\n        dodge,\n        gap,\n        split,\n        color,\n        fill,\n        linecolor,\n        linewidth,\n        inner,\n        density_norm,\n        common_norm,\n        kde_kws,\n        inner_kws,\n        plot_kws,\n    ):",
+    "replace_text": "    @register_plot(\"violins\")\n    def plot_violins(\n        self,\n        width,\n        dodge,\n        gap,\n        split,\n        color,\n        fill,\n        linecolor,\n        linewidth,\n        inner,\n        density_norm,\n        common_norm,\n        kde_kws,\n        inner_kws,\n        plot_kws,\n    ):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_points(\n        self,\n        aggregator,\n        markers,\n        linestyles,\n        dodge,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):",
+    "replace_text": "    @register_plot(\"points\")\n    def plot_points(\n        self,\n        aggregator,\n        markers,\n        linestyles,\n        dodge,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    def plot_bars(\n        self,\n        aggregator,\n        dodge,\n        gap,\n        width,\n        fill,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):",
+    "replace_text": "    @register_plot(\"bars\")\n    def plot_bars(\n        self,\n        aggregator,\n        dodge,\n        gap,\n        width,\n        fill,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):"
+  }
+]

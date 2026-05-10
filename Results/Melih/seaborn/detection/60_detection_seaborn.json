@@ -1,0 +1,1183 @@
+{
+  "repo_name": "seaborn-master",
+  "per_principle_quota": 12,
+  "total_selected": 60,
+  "total_quota": 60,
+  "short_of_quota": {},
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-001",
+        "rank": 1,
+        "scan_count": 12,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter.__init__",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 96,
+        "description": "The constructor handles data reshaping, variable renaming, orientation inference, legend initialization, and categorical level ordering.",
+        "reasoning": "This constructor bundles multiple responsibilities: data transformation (renaming x/y for wide data, adding anonymous category), configuration (inferring orient, setting legend), and data preparation (determining categorical levels). A change in wide-form data handling, orientation inference rules, or categorical ordering logic would all require modifying this method, indicating multiple reasons to change.",
+        "first_detected_scan": "seaborn-master_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_01",
+          "seaborn-master_SRP_scan_04",
+          "seaborn-master_SRP_scan_07",
+          "seaborn-master_SRP_scan_10",
+          "seaborn-master_SRP_scan_02",
+          "seaborn-master_SRP_scan_03",
+          "seaborn-master_SRP_scan_08",
+          "seaborn-master_SRP_scan_09",
+          "seaborn-master_SRP_scan_11",
+          "seaborn-master_SRP_scan_12",
+          "seaborn-master_SRP_scan_05",
+          "seaborn-master_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-004",
+        "rank": 2,
+        "scan_count": 10,
+        "severity": "high",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "_DistributionPlotter",
+        "entity_type": "class",
+        "line_start": 45,
+        "line_end": 800,
+        "description": "The class mixes data preparation and multi-group resolution logic with rendering logic for multiple distinct distribution plot types.",
+        "reasoning": "The `_DistributionPlotter` class is responsible for plotting distributions, but it directly implements the rendering logic for several distinct types of distribution plots (histograms, KDEs, ECDFs, rug plots), each with univariate and/or bivariate variants (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Furthermore, it contains complex logic in `_resolve_multiple` for handling how multiple distributions are displayed (stack, fill, dodge). A change to how histograms are rendered is a different reason to change than how stacking of densities is calculated, or how KDEs are plotted. This indicates multiple responsibilities, leading to a 'God Class' smell.",
+        "first_detected_scan": "seaborn-master_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_04",
+          "seaborn-master_SRP_scan_07",
+          "seaborn-master_SRP_scan_10",
+          "seaborn-master_SRP_scan_02",
+          "seaborn-master_SRP_scan_03",
+          "seaborn-master_SRP_scan_08",
+          "seaborn-master_SRP_scan_09",
+          "seaborn-master_SRP_scan_11",
+          "seaborn-master_SRP_scan_12",
+          "seaborn-master_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-007",
+        "rank": 3,
+        "scan_count": 7,
+        "severity": "medium",
+        "file_path": "seaborn/regression.py",
+        "entity_name": "_RegressionPlotter",
+        "entity_type": "class",
+        "line_start": 70,
+        "line_end": 442,
+        "description": "Mixes statistical modeling/fitting with visual rendering logic.",
+        "reasoning": "It is responsible for both the statistical estimation (fitting linear models, polynomials, lowess, or calling statsmodels) and the rendering of the resulting lines and scatter points. Statistical logic (the 'what' of the data) should be separated from plotting logic (the 'how' of the display).",
+        "first_detected_scan": "seaborn-master_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_10",
+          "seaborn-master_SRP_scan_02",
+          "seaborn-master_SRP_scan_03",
+          "seaborn-master_SRP_scan_08",
+          "seaborn-master_SRP_scan_09",
+          "seaborn-master_SRP_scan_11",
+          "seaborn-master_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-006",
+        "rank": 4,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "seaborn/_core/plot.py",
+        "entity_name": "Plotter",
+        "entity_type": "class",
+        "line_start": 974,
+        "line_end": 1830,
+        "description": "Massive orchestrator handling data extraction, stat computation, scale resolution, and figure finalization.",
+        "reasoning": "This class acts as a central engine that performs data extraction, statistical processing (_compute_stats), scale resolution (_setup_scales), figure/subplot initialization, and legend construction. These are distinct responsibilities that should be delegated to specialized components to avoid a monolithic design.",
+        "first_detected_scan": "seaborn-master_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_10",
+          "seaborn-master_SRP_scan_03",
+          "seaborn-master_SRP_scan_09",
+          "seaborn-master_SRP_scan_11",
+          "seaborn-master_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-005",
+        "rank": 5,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "seaborn/matrix.py",
+        "entity_name": "ClusterGrid",
+        "entity_type": "class",
+        "line_start": 696,
+        "line_end": 1143,
+        "description": "Mixes data normalization, statistical clustering, and complex layout management.",
+        "reasoning": "The class handles data transformation (z-scoring, standard scaling), statistical clustering (dendrogram calculation via scipy), and complex multi-axes layout management. These are three distinct responsibilities: data engineering, statistical analysis, and UI layout, each of which could change independently.",
+        "first_detected_scan": "seaborn-master_SRP_scan_07",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_07",
+          "seaborn-master_SRP_scan_10",
+          "seaborn-master_SRP_scan_08",
+          "seaborn-master_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-008",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "seaborn/external/docscrape.py",
+        "entity_name": "NumpyDocString",
+        "entity_type": "class",
+        "line_start": 136,
+        "line_end": 561,
+        "description": "Combines docstring parsing logic with string formatting/rendering logic.",
+        "reasoning": "The class is responsible for both parsing raw docstrings into an internal mapping structure and generating formatted string outputs (e.g., _str_header, _str_param_list). These are two distinct responsibilities: data ingestion/parsing and data presentation/formatting.",
+        "first_detected_scan": "seaborn-master_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_10",
+          "seaborn-master_SRP_scan_08",
+          "seaborn-master_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-003",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "catplot",
+        "entity_type": "class",
+        "line_start": 1056,
+        "line_end": 1289,
+        "description": "This figure-level function acts as a 'god function' by dispatching to various plot kinds, handling faceting, managing parameters, and configuring legends.",
+        "reasoning": "`catplot` orchestrates the creation of an entire figure, including: input validation, handling deprecations, selecting the appropriate plotter class based on `kind`, adapting data for `FacetGrid`, initializing `FacetGrid`, applying semantic mappings, dispatching to specific `plot_X` methods, and managing the legend. Any change to a plot kind's parameters, faceting logic, or legend behavior would require modifying this function, making it highly susceptible to change for many reasons.",
+        "first_detected_scan": "seaborn-master_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_01",
+          "seaborn-master_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-011",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "seaborn/matrix.py",
+        "entity_name": "_HeatMapper",
+        "entity_type": "class",
+        "line_start": 97,
+        "line_end": 352,
+        "description": "Class mixes data normalization/color mapping logic with rendering.",
+        "reasoning": "The class is responsible for data-level preprocessing (masking, calculating vmin/vmax, recentering divergent colormaps in _determine_cmap_params) and the actual drawing on the Axes (plot, _annotate_heatmap). Decisions about data distribution and color scales are business/logic concerns that should be decoupled from the Matplotlib drawing commands.",
+        "first_detected_scan": "seaborn-master_SRP_scan_09",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_09",
+          "seaborn-master_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-021",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_base.py",
+        "entity_name": "VectorPlotter",
+        "entity_type": "class",
+        "line_start": 273,
+        "line_end": 769,
+        "description": "The class is a 'God Class' for vector plotting, handling data ingestion, semantic mapping initialization, data iteration, data transformation, Matplotlib Axes integration/configuration, legend data preparation, and axis scaling logic.",
+        "reasoning": "This class exhibits a severe 'God Class' smell. It is responsible for a vast array of concerns: `assign_variables` (complex data wrangling from various input formats), `map_hue`/`size`/`style` (initializing semantic mappers), `iter_data` (data subsetting), `comp_data` (data transformation for plotting), `_attach` (extensive Matplotlib Axes configuration, unit conversion, log scaling, axis inversion), `add_legend_data` (legend preparation), and `scale_categorical` (modifying data types and configuring axes for categorical data). This class changes for almost any change in data handling, plotting semantics, Matplotlib API, or axis scaling requirements, making it highly unstable and difficult to maintain.",
+        "first_detected_scan": "seaborn-master_SRP_scan_05",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-010",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_base.py",
+        "entity_name": "VectorPlotter",
+        "entity_type": "class",
+        "line_start": 616,
+        "line_end": 1448,
+        "description": "Class handles data ingestion, semantic mapping, and Matplotlib axis state management.",
+        "reasoning": "VectorPlotter manages three distinct concerns: 1) Data ingestion and transformation (wide-form vs long-form logic), 2) Semantic mapping (orchestrating Hue, Size, and Style mappings), and 3) Matplotlib integration (attaching to axes, managing unit conversions, and setting scales). These responsibilities are unrelated to the core logic of mapping data to visual properties.",
+        "first_detected_scan": "seaborn-master_SRP_scan_08",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "SRP-019",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/plot.py",
+        "entity_name": "Plotter",
+        "entity_type": "class",
+        "line_start": 366,
+        "line_end": 744,
+        "description": "The class is a 'God Class' responsible for the entire plot compilation process, including figure setup, data preparation, statistical computation, scale application, Matplotlib rendering, legend management, and final output.",
+        "reasoning": "This class exhibits a severe 'God Class' smell. Its methods (`_setup_figure`, `_extract_data`, `_compute_stats`, `_setup_scales`, `_plot_layer`, `_make_legend`, `_finalize_figure`, `save`, `show`, `_repr_png_`, `_repr_svg_`) collectively handle nearly every aspect of turning a plot specification into a rendered Matplotlib figure. This includes: managing figure layout and axes, extracting and transforming data, performing statistical calculations, configuring and applying scales, drawing Matplotlib artists, managing legend contents, and handling output/display. This class has too many distinct reasons to change, making it highly unstable and difficult to maintain.",
+        "first_detected_scan": "seaborn-master_SRP_scan_05",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-018",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/axisgrid.py",
+        "entity_name": "jointplot",
+        "entity_type": "class",
+        "line_start": 1492,
+        "line_end": 1604,
+        "description": "The function acts as a 'God Function' for figure-level joint plots, handling plot kind selection, extensive argument processing, JointGrid initialization, and orchestration of joint and marginal plotting functions.",
+        "reasoning": "This function exhibits the 'God Class' (or 'God Function') smell. It is responsible for handling deprecated arguments, validating plot `kind`, creating a colormap, initializing a `JointGrid`, and then orchestrating the calls to various joint and marginal plotting functions based on the chosen `kind`. It also has specific logic for passing `hue` to marginals and handling `bins` for histograms. This function changes for almost any change in joint plotting functionality, API, or argument handling, violating SRP.",
+        "first_detected_scan": "seaborn-master_SRP_scan_05",
+        "duplicate_scan_ids": [
+          "seaborn-master_SRP_scan_05"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-017",
+        "rank": 1,
+        "scan_count": 7,
+        "severity": "medium",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter",
+        "entity_type": "class",
+        "line_start": 169,
+        "line_end": 741,
+        "description": "Adding new categorical plot types requires modifying this class by adding new plot_X methods.",
+        "reasoning": "The _CategoricalPlotter class contains distinct methods for each specific plot type (e.g., plot_strips, plot_swarms, plot_boxes). To introduce a new categorical plot, a new method (e.g., plot_newplot) would need to be added to this class. This means the class is open for modification when new behaviors (plot types) are introduced, violating OCP. A more OCP-compliant design might involve a registry or factory pattern where new plot types are registered externally without modifying the base plotter.",
+        "first_detected_scan": "seaborn-master_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_02",
+          "seaborn-master_OCP_scan_04",
+          "seaborn-master_OCP_scan_10",
+          "seaborn-master_OCP_scan_11",
+          "seaborn-master_OCP_scan_07",
+          "seaborn-master_OCP_scan_08",
+          "seaborn-master_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-002",
+        "rank": 2,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "_DistributionPlotter._resolve_multiple",
+        "entity_type": "method",
+        "line_start": 280,
+        "line_end": 327,
+        "description": "Conditional logic for handling different 'multiple' strategies.",
+        "reasoning": "The `_resolve_multiple` method contains `if multiple in ('stack', 'fill'):` and `if multiple == 'dodge':` blocks to apply different data transformation logic based on the `multiple` parameter. If a new strategy for handling multiple distributions is introduced, this method would need to be modified to add a new conditional branch, violating OCP.",
+        "first_detected_scan": "seaborn-master_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_01",
+          "seaborn-master_OCP_scan_02",
+          "seaborn-master_OCP_scan_10",
+          "seaborn-master_OCP_scan_11",
+          "seaborn-master_OCP_scan_08",
+          "seaborn-master_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-001",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "catplot",
+        "entity_type": "class",
+        "line_start": 1086,
+        "line_end": 1260,
+        "description": "Long if/elif/else chain for dispatching plot kinds.",
+        "reasoning": "The `catplot` function uses a long `if/elif/else` chain based on the `kind` string parameter to dispatch to different plotting logic. To introduce a new categorical plot type, this function would require modification to add a new `elif` branch, directly violating the Open/Closed Principle. A more OCP-compliant design would involve a registry or a strategy pattern where new plot kinds can be registered without modifying `catplot`.",
+        "first_detected_scan": "seaborn-master_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_01",
+          "seaborn-master_OCP_scan_02",
+          "seaborn-master_OCP_scan_03",
+          "seaborn-master_OCP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "OCP-052",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "seaborn/_core/properties.py",
+        "entity_name": "Property.infer_scale",
+        "entity_type": "method",
+        "line_start": 66,
+        "line_end": 83,
+        "description": "Method dispatches scale type instantiation based on argument type and value.",
+        "reasoning": "This method uses an `if/elif/else` chain to determine which `Scale` subclass to instantiate based on the type of the `arg` parameter (`str` in this case) and string matching (`arg.startswith(k)`). Adding new 'magic' scale arguments or types would require modifying this method, violating OCP.",
+        "first_detected_scan": "seaborn-master_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_03",
+          "seaborn-master_OCP_scan_06",
+          "seaborn-master_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-016",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/_core/properties.py",
+        "entity_name": "Property.default_scale",
+        "entity_type": "method",
+        "line_start": 39,
+        "line_end": 49,
+        "description": "Conditional dispatch for default scale based on variable type.",
+        "reasoning": "The `default_scale` method uses an `if/elif/else` chain to return a specific `Scale` subclass based on the `var_type` ('numeric', 'datetime', 'boolean', or other). If new fundamental variable types are introduced, this method would need to be modified to add a new `elif` branch, directly violating the Open/Closed Principle.",
+        "first_detected_scan": "seaborn-master_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_01",
+          "seaborn-master_OCP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "OCP-075",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/_core/properties.py",
+        "entity_name": "Color.infer_scale",
+        "entity_type": "method",
+        "line_start": 444,
+        "line_end": 477,
+        "description": "The `infer_scale` method in the `Color` property class uses a complex if/elif/else chain with `isinstance` and string checks to determine the appropriate scale type based on the argument and data type.",
+        "reasoning": "This method is not closed for modification. If new types of color scales (e.g., a new named palette, a custom callable scale, or a new way to specify a continuous gradient) or new variable types are introduced, this method would need to be modified to include new `elif` branches or `isinstance` checks. This makes the system brittle to extensions in how color scales are defined or inferred. A more OCP-compliant approach might involve a registry pattern or a more extensible factory for scale inference.",
+        "first_detected_scan": "seaborn-master_OCP_scan_04",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_04",
+          "seaborn-master_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-012",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Continuous._get_locators",
+        "entity_type": "method",
+        "line_start": 380,
+        "line_end": 428,
+        "description": "Long if/elif chain for dispatching tick locator strategies.",
+        "reasoning": "The `_get_locators` method uses a long `if/elif` chain to determine the appropriate `Locator` based on various parameters (`locator`, `upto`, `count`, `every`, `at`). Adding a new tick placement strategy would require modifying this method to add a new `elif` branch, directly violating the Open/Closed Principle.",
+        "first_detected_scan": "seaborn-master_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_01",
+          "seaborn-master_OCP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "OCP-013",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Continuous._get_formatter",
+        "entity_type": "method",
+        "line_start": 430,
+        "line_end": 459,
+        "description": "Long if/elif chain for dispatching tick formatter strategies.",
+        "reasoning": "The `_get_formatter` method uses a long `if/elif` chain to determine the appropriate `Formatter` based on various parameters (`formatter`, `like`, `base`, `unit`). Adding a new tick label formatting strategy would require modifying this method to add a new `elif` branch, directly violating the Open/Closed Principle.",
+        "first_detected_scan": "seaborn-master_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_01",
+          "seaborn-master_OCP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "OCP-077",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "catplot",
+        "entity_type": "class",
+        "line_start": 789,
+        "line_end": 1002,
+        "description": "Violates OCP by using a large if/elif/else chain to dispatch plotting logic based on the 'kind' parameter.",
+        "reasoning": "The `catplot` function contains an extensive `if/elif/else` block (lines 858-990) that explicitly checks the string value of the `kind` parameter ('strip', 'swarm', 'box', 'violin', 'boxen', 'point', 'bar', 'count') to select and call the appropriate plotting method. Adding a new categorical plot type would require modifying this existing function by adding a new `elif` branch, directly violating the Open/Closed Principle. This is a 'Divergent Change' smell as changes to plot types diverge into this function.",
+        "first_detected_scan": "seaborn-master_OCP_scan_05",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_05",
+          "seaborn-master_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-105",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter.plot_violins",
+        "entity_type": "method",
+        "line_start": 821,
+        "line_end": 1190,
+        "description": "Logic branches on `inner` and `density_norm` strings, requiring modification for new types.",
+        "reasoning": "This method contains multiple `if/elif` chains: one for `inner` (`if inner is None`, `elif inner.startswith('point')`, etc.) and another for `density_norm` (`if density_norm == 'area'`, `elif density_norm == 'count'`, etc.). Introducing new 'inner' plot types or 'density_norm' methods would necessitate modifying these existing conditional blocks, which violates OCP. These behaviors should be implemented polymorphically.",
+        "first_detected_scan": "seaborn-master_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_07",
+          "seaborn-master_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-104",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "catplot",
+        "entity_type": "class",
+        "line_start": 2761,
+        "line_end": 2788,
+        "description": "Top-level function with 'kind' parameter implies conditional logic, violating OCP.",
+        "reasoning": "The `catplot` function takes a `kind` parameter (e.g., `kind='strip'`). This strongly suggests that its internal implementation uses conditional logic (e.g., `if kind == 'strip': ... elif kind == 'box': ...`) to dispatch to different plotting functions or classes. To add support for a new 'kind' of categorical plot, the `catplot` function itself would need to be modified, which is a classic violation of the Open/Closed Principle. A more OCP-compliant approach would use a factory pattern or a registry to dynamically select the appropriate plotting strategy based on the `kind` parameter.",
+        "first_detected_scan": "seaborn-master_OCP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_10",
+          "seaborn-master_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-003",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "displot",
+        "entity_type": "class",
+        "line_start": 1111,
+        "line_end": 1200,
+        "description": "Long if/elif/else chain for dispatching plot kinds.",
+        "reasoning": "The `displot` function uses a long `if/elif/else` chain based on the `kind` string parameter to dispatch to different plotting logic (hist, kde, ecdf). To introduce a new distribution plot type, this function would require modification to add a new `elif` branch, directly violating the Open/Closed Principle. A more OCP-compliant design would involve a registry or a strategy pattern where new plot kinds can be registered without modifying `displot`.",
+        "first_detected_scan": "seaborn-master_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_OCP_scan_01",
+          "seaborn-master_OCP_scan_02"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-010",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter.plot_swarms",
+        "entity_type": "method",
+        "line_start": 466,
+        "line_end": 491,
+        "description": "Monkey-patching the 'draw' method of a base type instance alters its behavioral contract",
+        "reasoning": "Inappropriate Intimacy smell -> LSP violation because this method replaces the 'draw' method of a matplotlib.collections.PathCollection instance with a custom local function. This violates the behavioral contract of the matplotlib Artist hierarchy; any consumer expecting a standard PathCollection will now trigger Seaborn-specific beeswarm logic during the rendering pass, which is an unexpected side effect for that type.",
+        "first_detected_scan": "seaborn-master_LSP_scan_04",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_04",
+          "seaborn-master_LSP_scan_07",
+          "seaborn-master_LSP_scan_08",
+          "seaborn-master_LSP_scan_09",
+          "seaborn-master_LSP_scan_12",
+          "seaborn-master_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-004",
+        "rank": 2,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "_DistributionPlotter.data_variable",
+        "entity_type": "method",
+        "line_start": 147,
+        "line_end": 152,
+        "description": "Property raises AttributeError based on internal state, violating the stability of the subtype contract.",
+        "reasoning": "The data_variable property in _DistributionPlotter raises an AttributeError if the plot is not univariate. This strengthens the preconditions for accessing the property in a way that is not present in the base class (VectorPlotter) or expected of a stable interface, making the subclass non-substitutable in contexts where the property is accessed on a distribution plotter instance.",
+        "first_detected_scan": "seaborn-master_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_01",
+          "seaborn-master_LSP_scan_04",
+          "seaborn-master_LSP_scan_06",
+          "seaborn-master_LSP_scan_07",
+          "seaborn-master_LSP_scan_08",
+          "seaborn-master_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-007",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Scale._identity",
+        "entity_type": "class",
+        "line_start": 122,
+        "line_end": 130,
+        "description": "Subtype 'Identity' nullifies a required callable attribute '_spacer' used by the base class.",
+        "reasoning": "The 'Identity' class (returned by the Scale._identity factory method) explicitly sets '_spacer = None'. However, the base class 'Scale' provides a concrete method '_spacing' (line 92) that executes 'self._spacer(x)'. Substituting an 'Identity' instance where a 'Scale' is expected and invoking the '_spacing' method will result in a TypeError. A subclass must not nullify or break the internal contract of a base class method that it inherits.",
+        "first_detected_scan": "seaborn-master_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_03",
+          "seaborn-master_LSP_scan_05",
+          "seaborn-master_LSP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "LSP-001",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Scale._identity",
+        "entity_type": "class",
+        "line_start": 144,
+        "line_end": 153,
+        "description": "Subclass nullifies a base class attribute required by a base class method.",
+        "reasoning": "The Identity subclass (defined within the _identity method) sets the _spacer attribute to None. However, the base class Scale defines a method _spacing that attempts to call self._spacer(x). This ensures that any instance of the Identity subclass will raise a TypeError when _spacing is invoked, violating the principle that a subclass should be substitutable for its base class without breaking base class functionality.",
+        "first_detected_scan": "seaborn-master_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_01",
+          "seaborn-master_LSP_scan_10",
+          "seaborn-master_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-020",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "seaborn/regression.py",
+        "entity_name": "_RegressionPlotter.plot",
+        "entity_type": "method",
+        "line_start": 351,
+        "line_end": 384,
+        "description": "Subclass method signature is incompatible with the base class method signature.",
+        "reasoning": "The base class _LinearPlotter defines the plot method with a single parameter 'ax' (line 66). The subclass _RegressionPlotter overrides this method but changes the signature to require three mandatory parameters: 'ax', 'scatter_kws', and 'line_kws' (line 351). This violates LSP because a caller holding a reference to the base type _LinearPlotter cannot substitute it with a _RegressionPlotter without the program failing due to a TypeError when calling plot(ax).",
+        "first_detected_scan": "seaborn-master_LSP_scan_08",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_08",
+          "seaborn-master_LSP_scan_09",
+          "seaborn-master_LSP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "LSP-002",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "seaborn/_core/properties.py",
+        "entity_name": "IntervalProperty.get_mapping",
+        "entity_type": "method",
+        "line_start": 133,
+        "line_end": 158,
+        "description": "Method uses explicit type-checking to handle subclasses differently, violating the abstraction of the base class.",
+        "reasoning": "The get_mapping method in IntervalProperty uses isinstance to check for specific subclasses of Scale (Nominal and Boolean). This violates LSP as it indicates that the Property hierarchy is not truly decoupled from the Scale hierarchy; the base class contract of Scale is insufficient for IntervalProperty, which must instead rely on specific knowledge of Scale's subtypes to function correctly.",
+        "first_detected_scan": "seaborn-master_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_01",
+          "seaborn-master_LSP_scan_02",
+          "seaborn-master_LSP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "LSP-012",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter.__init__",
+        "entity_type": "method",
+        "line_start": 73,
+        "line_end": 110,
+        "description": "Subclass mutates base class state and structure in a way that breaks mapping invariants",
+        "reasoning": "Inappropriate Intimacy smell -> LSP violation because the subclass constructor mutates the 'plot_data' and 'variables' state established by the base class VectorPlotter. Specifically, it renames columns (line 80) and injects dummy data (line 104) to force categorical rules. This breaks the post-conditions of the base class initialization, as the resulting object no longer adheres to the standard variable mapping contract expected by other VectorPlotter methods.",
+        "first_detected_scan": "seaborn-master_LSP_scan_04",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_04",
+          "seaborn-master_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-008",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_base.py",
+        "entity_name": "VariableType",
+        "entity_type": "class",
+        "line_start": 1047,
+        "line_end": 1061,
+        "description": "VariableType strengthens pre-conditions and changes the contract of equality comparison inherited from UserString.",
+        "reasoning": "VariableType inherits from collections.UserString. The base class equality contract allows comparison against any object, typically returning False for inequality. VariableType overrides __eq__ to 'assert' that the other operand must be one of three specific allowed strings. This strengthens the pre-condition of the method and causes a crash (AssertionError) for values that the base class would handle gracefully. This prevents VariableType from being a valid substitute for a standard string-like object in logic using equality checks.",
+        "first_detected_scan": "seaborn-master_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-006",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/properties.py",
+        "entity_name": "Color.infer_scale",
+        "entity_type": "method",
+        "line_start": 487,
+        "line_end": 515,
+        "description": "Subclass override violates the behavioral contract of the parent method by ignoring transformation logic.",
+        "reasoning": "Similar to IntervalProperty, the 'Color' subclass overrides 'infer_scale' and fails to respect the base class contract for processing transformation strings. While the base class 'Property' is designed to handle 'log', 'pow', etc., 'Color.infer_scale' redirects string arguments to nominal palette lookups or other color-specific logic, breaking the substitutability of the Property interface for numeric-based color mappings.",
+        "first_detected_scan": "seaborn-master_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "LSP-005",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Scale._identity.<locals>.Identity",
+        "entity_type": "class",
+        "line_start": 132,
+        "line_end": 141,
+        "description": "Subclass fails to implement the abstract contract of the base class.",
+        "reasoning": "The base class 'Scale' defines an interface where methods like '_setup', 'tick', and 'label' are expected to be implemented by subtypes (they raise NotImplementedError in the base). The 'Identity' subclass, created within the '_identity' static method, inherits from 'Scale' but does not implement these methods. Consequently, an 'Identity' instance cannot be substituted for a 'Scale' instance in any context that requires setting up the scale or configuring ticks/labels, leading to runtime crashes.",
+        "first_detected_scan": "seaborn-master_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "LSP-025",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Identity",
+        "entity_type": "class",
+        "line_start": 139,
+        "line_end": 143,
+        "description": "Concrete class inherits abstract methods from Scale but does not implement them.",
+        "reasoning": "The Identity class inherits from Scale, which defines abstract methods (tick, label, _get_locators, _get_formatter, _setup). Identity does not implement any of these abstract methods. As a concrete class, it violates LSP because it cannot fulfill the contract of its base class, making it not fully substitutable.",
+        "first_detected_scan": "seaborn-master_LSP_scan_11",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-023",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Ordinal",
+        "entity_type": "class",
+        "line_start": 402,
+        "line_end": 404,
+        "description": "Empty concrete class inherits abstract methods from Scale but does not implement them.",
+        "reasoning": "The Ordinal class is an empty class inheriting from Scale, which defines multiple abstract methods (tick, label, _get_locators, _get_formatter, _setup). An empty class in Python is concrete. Therefore, Ordinal is a concrete class that fails to implement the abstract contract of its base class, violating LSP. Instances of Ordinal would not be fully substitutable for Scale.",
+        "first_detected_scan": "seaborn-master_LSP_scan_11",
+        "duplicate_scan_ids": [
+          "seaborn-master_LSP_scan_11"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-003",
+        "rank": 1,
+        "scan_count": 12,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter",
+        "entity_type": "class",
+        "line_start": 51,
+        "line_end": 930,
+        "description": "Fat interface bundling logic for all categorical plot types",
+        "reasoning": "The class acts as a monolithic interface for all categorical plot types (strips, swarms, boxes, violins, etc.). Individual axes-level functions like boxplot or violinplot only require a small subset of the class's functionality (e.g., plot_boxes), but are forced to depend on a fat interface containing logic for every other unrelated categorical plot type.",
+        "first_detected_scan": "seaborn-master_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_01",
+          "seaborn-master_ISP_scan_02",
+          "seaborn-master_ISP_scan_03",
+          "seaborn-master_ISP_scan_04",
+          "seaborn-master_ISP_scan_05",
+          "seaborn-master_ISP_scan_06",
+          "seaborn-master_ISP_scan_07",
+          "seaborn-master_ISP_scan_08",
+          "seaborn-master_ISP_scan_09",
+          "seaborn-master_ISP_scan_10",
+          "seaborn-master_ISP_scan_11",
+          "seaborn-master_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-006",
+        "rank": 2,
+        "scan_count": 11,
+        "severity": "medium",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "_DistributionPlotter",
+        "entity_type": "class",
+        "line_start": 80,
+        "line_end": 929,
+        "description": "_DistributionPlotter bundles unrelated plotting methods into a single interface.",
+        "reasoning": "Similar to _CategoricalPlotter, this class acts as a fat interface by bundling logic for histograms, KDEs, ECDFs, and rug plots. A client using only one type of distribution plot (e.g., rugplot) is forced to depend on a plotter object that carries the implementation details and dependencies of all other distribution visualization methods.",
+        "first_detected_scan": "seaborn-master_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_02",
+          "seaborn-master_ISP_scan_03",
+          "seaborn-master_ISP_scan_04",
+          "seaborn-master_ISP_scan_05",
+          "seaborn-master_ISP_scan_06",
+          "seaborn-master_ISP_scan_07",
+          "seaborn-master_ISP_scan_08",
+          "seaborn-master_ISP_scan_09",
+          "seaborn-master_ISP_scan_10",
+          "seaborn-master_ISP_scan_11",
+          "seaborn-master_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 3,
+        "scan_count": 9,
+        "severity": "medium",
+        "file_path": "seaborn/_base.py",
+        "entity_name": "VectorPlotter",
+        "entity_type": "class",
+        "line_start": 1042,
+        "line_end": 1110,
+        "description": "Fat interface for scaling different data types",
+        "reasoning": "VectorPlotter defines a broad scaling interface (scale_native, scale_numeric, scale_datetime, scale_categorical). Subclasses like _CategoricalPlotter are forced to inherit and carry methods for data types they do not support, leaving them as the default NotImplementedError. This forces subclasses to depend on methods they do not use.",
+        "first_detected_scan": "seaborn-master_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_01",
+          "seaborn-master_ISP_scan_03",
+          "seaborn-master_ISP_scan_04",
+          "seaborn-master_ISP_scan_07",
+          "seaborn-master_ISP_scan_08",
+          "seaborn-master_ISP_scan_09",
+          "seaborn-master_ISP_scan_10",
+          "seaborn-master_ISP_scan_11",
+          "seaborn-master_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-001",
+        "rank": 4,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Scale",
+        "entity_type": "class",
+        "line_start": 38,
+        "line_end": 100,
+        "description": "Fat interface bundling data transformation with axis-specific UI logic",
+        "reasoning": "The Scale interface combines data transformation logic (__call__) with axis-specific UI logic (tick, label, _get_locators). This forces semantic scales (like color or size) to implement or mock axis-specific methods. The Identity scale subclass (lines 91-100) is forced to inherit these methods but cannot fulfill them, leading to NotImplementedError crashes if called.",
+        "first_detected_scan": "seaborn-master_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_01",
+          "seaborn-master_ISP_scan_03",
+          "seaborn-master_ISP_scan_05",
+          "seaborn-master_ISP_scan_06",
+          "seaborn-master_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-004",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/_base.py",
+        "entity_name": "VectorPlotter",
+        "entity_type": "class",
+        "line_start": 1111,
+        "line_end": 1128,
+        "description": "Base class defines a scaling interface that subclasses cannot fully satisfy.",
+        "reasoning": "The VectorPlotter class defines an interface for multiple types of data scaling including scale_native, scale_numeric, and scale_datetime. These methods raise NotImplementedError by default. Subclasses like _CategoricalPlotter are forced to inherit these methods even though they are only intended to handle categorical data. This forces subclasses to depend on and expose an interface they do not use or support, which is a direct violation of ISP.",
+        "first_detected_scan": "seaborn-master_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_02",
+          "seaborn-master_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-008",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/matrix.py",
+        "entity_name": "ClusterGrid",
+        "entity_type": "class",
+        "line_start": 696,
+        "line_end": 1143,
+        "description": "Class depends on unused legend and tick parameter management methods from its base interface.",
+        "reasoning": "The ClusterGrid class inherits from Grid, which provides methods for general legend management (e.g., add_legend, _update_legend_data, _get_palette, legend property) and tick parameter configuration (tick_params). ClusterGrid, being specialized for clustered heatmaps, handles its color processing and legend/colorbar (cbar) logic differently and does not utilize or override these inherited methods in a meaningful way. This forces ClusterGrid to depend on parts of the Grid interface that are not relevant to its specific responsibilities, violating ISP.",
+        "first_detected_scan": "seaborn-master_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_07",
+          "seaborn-master_ISP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "ISP-009",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/plot.py",
+        "entity_name": "Plot",
+        "entity_type": "class",
+        "line_start": 253,
+        "line_end": 968,
+        "description": "God object combining many unrelated plot configuration and manipulation responsibilities.",
+        "reasoning": "The `Plot` class aggregates a vast amount of functionality, including adding marks, faceting, pairing, scaling, sharing, limiting, labeling, layout, theming, saving, showing, and plotting. This makes it a 'god object' with a fat interface. Clients are forced to depend on this broad interface even if they only require a small subset of its capabilities, violating ISP.",
+        "first_detected_scan": "seaborn-master_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-010",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/plot.py",
+        "entity_name": "Plotter",
+        "entity_type": "class",
+        "line_start": 974,
+        "line_end": 1830,
+        "description": "Bloated class responsible for diverse plotting execution and rendering concerns.",
+        "reasoning": "The `Plotter` class handles a wide range of responsibilities related to plot execution, including data extraction, label resolution, figure setup, statistics computation, scale setup, layer plotting, coordinate unscaling, pairing generation, subplot filtering, and legend management. This broad interface forces clients to depend on many unrelated functionalities, making it a fat interface and violating ISP.",
+        "first_detected_scan": "seaborn-master_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Scale._identity",
+        "entity_type": "method",
+        "line_start": 98,
+        "line_end": 106,
+        "description": "Identity scale implementation violates the Scale interface contract.",
+        "reasoning": "The _identity static method creates an anonymous subclass of Scale that explicitly leaves the tick and label methods as NotImplementedError. This forces the Identity scale to depend on an interface it cannot satisfy, violating ISP and potentially causing runtime errors for clients expecting a fully functional Scale object.",
+        "first_detected_scan": "seaborn-master_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "ISP-015",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Identity",
+        "entity_type": "class",
+        "line_start": 139,
+        "line_end": 143,
+        "description": "Class 'Identity' inherits from abstract base class 'Scale' but does not implement any of its abstract methods.",
+        "reasoning": "The 'Scale' abstract base class (L55-L145) defines several abstract methods like 'tick', 'label', '_get_locators', '_get_formatter', and '_setup'. The 'Identity' class (L139-L143) inherits from 'Scale' but does not provide implementations for any of these abstract methods. This forces 'Identity' to depend on an interface it does not fully implement, violating ISP by failing to fulfill the contract of its base interface.",
+        "first_detected_scan": "seaborn-master_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-005",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "ContinuousBase",
+        "entity_type": "class",
+        "line_start": 255,
+        "line_end": 334,
+        "description": "ContinuousBase fails to implement multiple methods of the Scale interface.",
+        "reasoning": "ContinuousBase implements the Scale interface but fails to provide implementations for tick, label, _get_locators, and _get_formatter, leaving them to raise NotImplementedError. This indicates that the Scale interface is too broad (fat) for this specific base class, which is designed only to handle setup and transformation logic rather than axis decoration.",
+        "first_detected_scan": "seaborn-master_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "ISP-011",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Ordinal",
+        "entity_type": "class",
+        "line_start": 402,
+        "line_end": 404,
+        "description": "Class inherits from abstract 'Scale' but does not implement its abstract methods.",
+        "reasoning": "The `Ordinal` class inherits from `Scale`, which defines abstract methods like `tick`, `label`, `_get_locators`, `_get_formatter`, and `_setup`. However, `Ordinal` is an empty class and does not implement any of these abstract methods. This forces `Ordinal` to depend on an interface it does not fully use, violating ISP.",
+        "first_detected_scan": "seaborn-master_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_ISP_scan_10"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-010",
+        "rank": 1,
+        "scan_count": 7,
+        "severity": "medium",
+        "file_path": "seaborn/_base.py",
+        "entity_name": "VectorPlotter.assign_variables",
+        "entity_type": "method",
+        "line_start": 158,
+        "line_end": 158,
+        "description": "'VectorPlotter' directly instantiates 'PlotData' concrete dependency.",
+        "reasoning": "The `VectorPlotter` is a base class for many plotting functionalities. Its `assign_variables` method directly instantiates `PlotData`, a concrete data abstraction. This couples a core plotting component to a specific data handling implementation, limiting the ability to inject different data processing strategies or data sources without modifying `VectorPlotter` itself.",
+        "first_detected_scan": "seaborn-master_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_03",
+          "seaborn-master_DIP_scan_04",
+          "seaborn-master_DIP_scan_05",
+          "seaborn-master_DIP_scan_07",
+          "seaborn-master_DIP_scan_10",
+          "seaborn-master_DIP_scan_11",
+          "seaborn-master_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-001",
+        "rank": 2,
+        "scan_count": 7,
+        "severity": "medium",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "_CategoricalPlotter.plot_violins",
+        "entity_type": "method",
+        "line_start": 847,
+        "line_end": 847,
+        "description": "Direct instantiation of the KDE statistical engine.",
+        "reasoning": "The _CategoricalPlotter class directly instantiates the KDE class from seaborn._statistics. This couples the high-level plotting logic to a specific low-level statistical implementation, making it difficult to substitute the density estimation logic without modifying the plotter class.",
+        "first_detected_scan": "seaborn-master_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_01",
+          "seaborn-master_DIP_scan_02",
+          "seaborn-master_DIP_scan_04",
+          "seaborn-master_DIP_scan_05",
+          "seaborn-master_DIP_scan_06",
+          "seaborn-master_DIP_scan_07",
+          "seaborn-master_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-002",
+        "rank": 3,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "_DistributionPlotter.plot_univariate_histogram",
+        "entity_type": "method",
+        "line_start": 335,
+        "line_end": 335,
+        "description": "Direct instantiation of the Hist estimator.",
+        "reasoning": "_DistributionPlotter is responsible for orchestrating the plot but directly instantiates the Hist class. This violates DIP as the plotter (high-level) depends on a concrete statistical detail (low-level) instead of an abstraction or receiving the estimator via dependency injection.",
+        "first_detected_scan": "seaborn-master_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_01",
+          "seaborn-master_DIP_scan_02",
+          "seaborn-master_DIP_scan_06",
+          "seaborn-master_DIP_scan_07",
+          "seaborn-master_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-031",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Scale",
+        "entity_type": "class",
+        "line_start": 55,
+        "line_end": 145,
+        "description": "Scale base class defines abstract methods that force subclasses to implement specific matplotlib-dependent logic.",
+        "reasoning": "The Scale base class defines abstract methods like _get_locators and _get_formatter which are tightly coupled to matplotlib's internal API. Subclasses are forced to implement these details, violating the principle that abstractions should not depend on low-level implementation details.",
+        "first_detected_scan": "seaborn-master_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_10",
+          "seaborn-master_DIP_scan_11",
+          "seaborn-master_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-009",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "seaborn/axisgrid.py",
+        "entity_name": "FacetGrid.__init__",
+        "entity_type": "class",
+        "line_start": 301,
+        "line_end": 301,
+        "description": "'FacetGrid' directly interacts with Matplotlib's global state and concrete figure/subplot creation functions.",
+        "reasoning": "The `FacetGrid` class directly calls `plt.figure` and `fig.subplots` for figure and subplot creation. While Matplotlib itself is a dependency, `FacetGrid` could abstract the creation of its figure and axes, e.g., by receiving a figure factory or an axes manager through its constructor. This direct coupling to Matplotlib's concrete API and global state reduces flexibility and makes it harder to swap out the underlying plotting backend or mock during testing.",
+        "first_detected_scan": "seaborn-master_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_03",
+          "seaborn-master_DIP_scan_04",
+          "seaborn-master_DIP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "DIP-006",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "boxplot",
+        "entity_type": "class",
+        "line_start": 1125,
+        "line_end": 1167,
+        "description": "High-level API function instantiating a concrete plotter.",
+        "reasoning": "The boxplot function (and other similar functions like violinplot, barplot, etc.) directly instantiates _CategoricalPlotter. While these act as entry points, the tight coupling to concrete plotter classes prevents the injection of alternative plotting engines or the ability to unit test the parameter processing logic in isolation from the plotting implementation.",
+        "first_detected_scan": "seaborn-master_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_02",
+          "seaborn-master_DIP_scan_03",
+          "seaborn-master_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-005",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "low",
+        "file_path": "seaborn/_core/plot.py",
+        "entity_name": "Plotter._setup_figure",
+        "entity_type": "method",
+        "line_start": 955,
+        "line_end": 955,
+        "description": "Direct instantiation of Subplots manager.",
+        "reasoning": "The Plotter class directly instantiates the Subplots class. While both are internal to the new objects interface, this direct creation prevents the inversion of control that would allow different subplot strategies to be injected into the compilation engine.",
+        "first_detected_scan": "seaborn-master_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_01",
+          "seaborn-master_DIP_scan_02",
+          "seaborn-master_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-007",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/_core/plot.py",
+        "entity_name": "Plot.__init__",
+        "entity_type": "class",
+        "line_start": 183,
+        "line_end": 183,
+        "description": "High-level 'Plot' class directly instantiates 'PlotData' concrete dependency.",
+        "reasoning": "The `Plot` class is designed as a high-level declarative interface. It directly instantiates `PlotData`, a concrete implementation of a data handling mechanism. This couples the `Plot` class to a specific data structure implementation rather than depending on a data abstraction that could be injected, making it harder to substitute data sources or test different data handling strategies in isolation.",
+        "first_detected_scan": "seaborn-master_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_03",
+          "seaborn-master_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-016",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/categorical.py",
+        "entity_name": "catplot",
+        "entity_type": "class",
+        "line_start": 1555,
+        "line_end": 1555,
+        "description": "High-level figure-level function directly instantiates a concrete grid layout manager.",
+        "reasoning": "The `catplot` function, a high-level figure-level interface, directly instantiates the concrete `FacetGrid` class (`g = FacetGrid(...)`). This means the high-level `catplot` depends on a specific, concrete implementation of a grid layout manager rather than an abstraction, leading to tight coupling and a violation of DIP.",
+        "first_detected_scan": "seaborn-master_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_05",
+          "seaborn-master_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-008",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "seaborn/distributions.py",
+        "entity_name": "histplot",
+        "entity_type": "class",
+        "line_start": 1002,
+        "line_end": 1002,
+        "description": "High-level 'histplot' function directly instantiates '_DistributionPlotter' concrete dependency.",
+        "reasoning": "Similar to `boxplot`, `histplot` is a high-level public API function that directly instantiates `_DistributionPlotter`, a concrete class implementing the distribution plotting logic. This represents a dependency of a high-level module on a low-level, concrete implementation, which is a direct violation of DIP.",
+        "first_detected_scan": "seaborn-master_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_03",
+          "seaborn-master_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-011",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "seaborn/_core/scales.py",
+        "entity_name": "Continuous.tick",
+        "entity_type": "method",
+        "line_start": 432,
+        "line_end": 432,
+        "description": "'Continuous' scale directly instantiates concrete Matplotlib Locator classes.",
+        "reasoning": "The `Continuous` scale class, which is an abstraction for defining data-to-visual mappings, directly instantiates various concrete `matplotlib.ticker.Locator` subclasses (e.g., `LogLocator`, `MaxNLocator`) within its `_get_locators` helper method, which is implicitly called when `tick` is configured. This couples the scale abstraction to specific Matplotlib implementations for tick placement, making it difficult to swap out or customize tick strategies without modifying the `Continuous` scale itself.",
+        "first_detected_scan": "seaborn-master_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_03",
+          "seaborn-master_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "seaborn/axisgrid.py",
+        "entity_name": "JointGrid.__init__",
+        "entity_type": "method",
+        "line_start": 1030,
+        "line_end": 1030,
+        "description": "Direct instantiation of VectorPlotter dependency.",
+        "reasoning": "JointGrid, a high-level layout manager, directly instantiates VectorPlotter to handle variable assignment. This prevents the use of alternative data processing strategies and couples the grid layout logic to a specific data-handling implementation.",
+        "first_detected_scan": "seaborn-master_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "seaborn-master_DIP_scan_01",
+          "seaborn-master_DIP_scan_09"
+        ]
+      }
+    ]
+  }
+}

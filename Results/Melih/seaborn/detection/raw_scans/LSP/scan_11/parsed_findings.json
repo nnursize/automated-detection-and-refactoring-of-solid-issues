@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Concrete class does not implement abstract methods from its base class VectorPlotter.",
+    "reasoning": "The _CategoricalPlotter class inherits from VectorPlotter (defined in seaborn/_base.py), which declares scale_native, scale_numeric, and scale_datetime as abstract methods. The skeleton view of _CategoricalPlotter does not show implementations for these abstract methods. If _CategoricalPlotter is intended to be a concrete class, it violates LSP because instances of it cannot be substituted for VectorPlotter without altering program correctness (calling these methods would raise NotImplementedError)."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Concrete class does not implement abstract methods from its base class VectorPlotter.",
+    "reasoning": "Similar to _CategoricalPlotter, _DistributionPlotter inherits from VectorPlotter (seaborn/_base.py) but does not implement its abstract methods (scale_native, scale_numeric, scale_datetime). If _DistributionPlotter is intended to be a concrete class, it violates LSP as it fails to fulfill the contract defined by its base type."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Ordinal",
+    "entity_type": "class",
+    "line_start": 402,
+    "line_end": 404,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Empty concrete class inherits abstract methods from Scale but does not implement them.",
+    "reasoning": "The Ordinal class is an empty class inheriting from Scale, which defines multiple abstract methods (tick, label, _get_locators, _get_formatter, _setup). An empty class in Python is concrete. Therefore, Ordinal is a concrete class that fails to implement the abstract contract of its base class, violating LSP. Instances of Ordinal would not be fully substitutable for Scale."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Discrete",
+    "entity_type": "class",
+    "line_start": 408,
+    "line_end": 410,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Empty concrete class inherits abstract methods from Scale but does not implement them.",
+    "reasoning": "Similar to Ordinal, the Discrete class is an empty concrete class inheriting from Scale, but it does not implement Scale's abstract methods. This is a direct violation of LSP, as a concrete subtype must be substitutable for its base type and fulfill its contract."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Identity",
+    "entity_type": "class",
+    "line_start": 139,
+    "line_end": 143,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Concrete class inherits abstract methods from Scale but does not implement them.",
+    "reasoning": "The Identity class inherits from Scale, which defines abstract methods (tick, label, _get_locators, _get_formatter, _setup). Identity does not implement any of these abstract methods. As a concrete class, it violates LSP because it cannot fulfill the contract of its base class, making it not fully substitutable."
+  },
+  {
+    "file_path": "seaborn/_stats/regression.py",
+    "entity_name": "OLSFit",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 50,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Empty concrete class inherits an abstract method from Stat but does not implement it.",
+    "reasoning": "The OLSFit class is an empty concrete class inheriting from Stat, which declares __call__ as an abstract method. OLSFit does not implement this abstract method. This is a direct violation of LSP, as a concrete subtype must implement all abstract methods of its base class to be substitutable."
+  }
+]

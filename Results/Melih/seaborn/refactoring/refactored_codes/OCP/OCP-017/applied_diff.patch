@@ -1,0 +1,76 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 017f0b8..dcbddc2 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -463,6 +463,23 @@ class _CategoricalPlotter(VectorPlotter):
+     # this context, such as adding empty artists for combinations of variables
+     # with no observations
+ 
++    _plot_methods = {}
++
++    def __init_subclass__(cls, **kwargs):
++        super().__init_subclass__(**kwargs)
++        cls._plot_methods = {}
++
++    @classmethod
++    def register_plot(cls, name):
++        def decorator(func):
++            cls._plot_methods[name] = func
++            return func
++        return decorator
++
++    def plot(self, name, *args, **kwargs):
++        return self._plot_methods[name](self, *args, **kwargs)
++
++    @register_plot("strips")
+     def plot_strips(
+         self,
+         jitter,
+@@ -514,6 +531,7 @@ class _CategoricalPlotter(VectorPlotter):
+ 
+         self._configure_legend(ax, _scatter_legend_artist, common_kws=plot_kws)
+ 
++    @register_plot("swarms")
+     def plot_swarms(
+         self,
+         dodge,
+@@ -588,6 +606,7 @@ class _CategoricalPlotter(VectorPlotter):
+         _draw_figure(ax.figure)
+         self._configure_legend(ax, _scatter_legend_artist, plot_kws)
+ 
++    @register_plot("boxes")
+     def plot_boxes(
+         self,
+         width,
+@@ -752,6 +771,7 @@ class _CategoricalPlotter(VectorPlotter):
+         legend_artist = _get_patch_legend_artist(fill)
+         self._configure_legend(ax, legend_artist, boxprops)
+ 
++    @register_plot("boxens")
+     def plot_boxens(
+         self,
+         width,
+@@ -893,6 +913,7 @@ class _CategoricalPlotter(VectorPlotter):
+         common_kws = {**box_kws, "linewidth": linewidth, "edgecolor": linecolor}
+         self._configure_legend(ax, legend_artist, common_kws)
+ 
++    @register_plot("violins")
+     def plot_violins(
+         self,
+         width,
+@@ -1169,6 +1190,7 @@ class _CategoricalPlotter(VectorPlotter):
+         common_kws = {**plot_kws, "linewidth": linewidth, "edgecolor": linecolor}
+         self._configure_legend(ax, legend_artist, common_kws)
+ 
++    @register_plot("points")
+     def plot_points(
+         self,
+         aggregator,
+@@ -1249,6 +1271,7 @@ class _CategoricalPlotter(VectorPlotter):
+         semantic_kws = {"hue": {"marker": markers, "linestyle": linestyles}}
+         self._configure_legend(ax, legend_artist, sub_kws, semantic_kws)
+ 
++    @register_plot("bars")
+     def plot_bars(
+         self,
+         aggregator,

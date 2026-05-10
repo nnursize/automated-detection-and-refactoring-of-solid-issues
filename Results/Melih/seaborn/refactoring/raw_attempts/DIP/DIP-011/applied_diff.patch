@@ -1,0 +1,26 @@
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index 5980ffb..61b75bc 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -752,18 +752,18 @@ class Continuous(ContinuousBase, TickLabelScale):
+             major_locator = FixedLocator(at)
+         else:
+             if log_base:
+-                major_locator = LogLocator(log_base)
++                major_locator = LogLocator(base=log_base)
+             elif symlog_thresh:
+                 major_locator = SymmetricalLogLocator(linthresh=symlog_thresh, base=10)
+             else:
+                 major_locator = AutoLocator()
+ 
+         if minor is None:
+-            minor_locator = LogLocator(log_base, subs=None) if log_base else None
++            minor_locator = LogLocator(base=log_base, subs=None) if log_base else None
+         else:
+             if log_base:
+                 subs = np.linspace(0, log_base, minor + 2)[1:-1]
+-                minor_locator = LogLocator(log_base, subs=subs)
++                minor_locator = LogLocator(base=log_base, subs=subs)
+             else:
+                 minor_locator = AutoMinorLocator(minor + 1)
+ 

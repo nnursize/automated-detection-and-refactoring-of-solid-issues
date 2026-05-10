@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-020",
+  "principle": "LSP",
+  "title": "Refactor LSP-020 (LSP): Subclass method signature is incompatible with the base class method signature.",
+  "branch": "refactor/LSP-020",
+  "base": "main",
+  "head_commit": "19ea9134d8be76c87a8e6c8ed3d5b9deaa6386db",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10903,
+    "completion_tokens": 818
+  },
+  "detected_issue": {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.plot",
+    "entity_type": "method",
+    "line_start": 351,
+    "line_end": 384,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Subclass method signature is incompatible with the base class method signature.",
+    "reasoning": "The base class _LinearPlotter defines the plot method with a single parameter 'ax' (line 66). The subclass _RegressionPlotter overrides this method but changes the signature to require three mandatory parameters: 'ax', 'scatter_kws', and 'line_kws' (line 351). This violates LSP because a caller holding a reference to the base type _LinearPlotter cannot substitute it with a _RegressionPlotter without the program failing due to a TypeError when calling plot(ax)."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Update _RegressionPlotter.plot signature to match base class _LinearPlotter.plot",
+    "rationale": "The base class _LinearPlotter defines plot(self, ax). The subclass _RegressionPlotter.plot was overriding this with plot(self, ax, scatter_kws, line_kws), violating the Liskov Substitution Principle. I have updated the signature to use optional keyword arguments, ensuring compatibility with the base class while maintaining existing functionality.",
+    "files_touched": [
+      "seaborn/regression.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/regression.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/regression.py",
+        "search_text": "    def plot(self, ax, scatter_kws, line_kws):\n        \"\"\"Draw the full plot.\"\"\"\n        # Insert the plot label into the correct set of keyword arguments\n        if self.scatter:\n            scatter_kws[\"label\"] = self.label\n        else:\n            line_kws[\"label\"] = self.label\n\n        # Use the current color cycle state as a default\n        if self.color is None:\n            lines, = ax.plot([], [])\n            color = lines.get_color()\n            lines.remove()\n        else:\n            color = self.color\n\n        # Ensure that color is hex to avoid matplotlib weirdness\n        color = mpl.colors.rgb2hex(mpl.colors.colorConverter.to_rgb(color))\n\n        # Let color in keyword arguments override overall plot color\n        scatter_kws.setdefault(\"color\", color)\n        line_kws.setdefault(\"color\", color)\n\n        # Draw the constituent plots\n        if self.scatter:\n            self.scatterplot(ax, scatter_kws)\n\n        if self.fit_reg:\n            self.lineplot(ax, line_kws)\n\n        # Label the axes\n        if hasattr(self.x, \"name\"):\n            ax.set_xlabel(self.x.name)\n        if hasattr(self.y, \"name\"):\n            ax.set_ylabel(self.y.name)",
+        "replace_text": "    def plot(self, ax, scatter_kws=None, line_kws=None):\n        \"\"\"Draw the full plot.\"\"\"\n        if scatter_kws is None:\n            scatter_kws = {}\n        if line_kws is None:\n            line_kws = {}\n\n        # Insert the plot label into the correct set of keyword arguments\n        if self.scatter:\n            scatter_kws[\"label\"] = self.label\n        else:\n            line_kws[\"label\"] = self.label\n\n        # Use the current color cycle state as a default\n        if self.color is None:\n            lines, = ax.plot([], [])\n            color = lines.get_color()\n            lines.remove()\n        else:\n            color = self.color\n\n        # Ensure that color is hex to avoid matplotlib weirdness\n        color = mpl.colors.rgb2hex(mpl.colors.colorConverter.to_rgb(color))\n\n        # Let color in keyword arguments override overall plot color\n        scatter_kws.setdefault(\"color\", color)\n        line_kws.setdefault(\"color\", color)\n\n        # Draw the constituent plots\n        if self.scatter:\n            self.scatterplot(ax, scatter_kws)\n\n        if self.fit_reg:\n            self.lineplot(ax, line_kws)\n\n        # Label the axes\n        if hasattr(self.x, \"name\"):\n            ax.set_xlabel(self.x.name)\n        if hasattr(self.y, \"name\"):\n            ax.set_ylabel(self.y.name)",
+        "search_lines": 35,
+        "replace_lines": 40
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2213.665723800659,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.36s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/regression.py",
+        "loc": 773,
+        "blank_lines": 136,
+        "comment_lines": 41,
+        "function_count": 27,
+        "avg_cc": 5.0,
+        "max_cc": 11.0,
+        "mi": 27.93
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/regression.py",
+        "loc": 777,
+        "blank_lines": 137,
+        "comment_lines": 41,
+        "function_count": 27,
+        "avg_cc": 5.09,
+        "max_cc": 11.0,
+        "mi": 27.42
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/regression.py b/seaborn/regression.py\nindex b9a0c45..51269fb 100644\n--- a/seaborn/regression.py\n+++ b/seaborn/regression.py\n@@ -353,8 +353,13 @@ class _RegressionPlotter(_LinearPlotter):\n         a_prime = a - b.dot(np.linalg.pinv(b).dot(a))\n         return np.asarray(a_prime + a_mean).reshape(a.shape)\n \n-    def plot(self, ax, scatter_kws, line_kws):\n+    def plot(self, ax, scatter_kws=None, line_kws=None):\n         \"\"\"Draw the full plot.\"\"\"\n+        if scatter_kws is None:\n+            scatter_kws = {}\n+        if line_kws is None:\n+            line_kws = {}\n+\n         # Insert the plot label into the correct set of keyword arguments\n         if self.scatter:\n             scatter_kws[\"label\"] = self.label\n",
+  "duration_ms": 7299.350261688232
+}

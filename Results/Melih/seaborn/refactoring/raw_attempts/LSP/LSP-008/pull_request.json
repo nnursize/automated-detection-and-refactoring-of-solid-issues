@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-008",
+  "principle": "LSP",
+  "title": "Refactor LSP-008 (LSP): VariableType strengthens pre-conditions and changes the contract of equality...",
+  "branch": "refactor/LSP-008",
+  "base": "main",
+  "head_commit": "e2148729454c27163e5232605d47c3f290781e05",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3772,
+    "completion_tokens": 160
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VariableType",
+    "entity_type": "class",
+    "line_start": 1047,
+    "line_end": 1061,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "VariableType strengthens pre-conditions and changes the contract of equality comparison inherited from UserString.",
+    "reasoning": "VariableType inherits from collections.UserString. The base class equality contract allows comparison against any object, typically returning False for inequality. VariableType overrides __eq__ to 'assert' that the other operand must be one of three specific allowed strings. This strengthens the pre-condition of the method and causes a crash (AssertionError) for values that the base class would handle gracefully. This prevents VariableType from being a valid substitute for a standard string-like object in logic using equality checks."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove LSP-violating assertions from VariableType.__eq__",
+    "rationale": "The VariableType class inherited from UserString but violated the Liskov Substitution Principle by overriding __eq__ to raise an AssertionError when compared against non-allowed values. Standard string equality should return False instead of crashing. Removing the assertion restores the expected contract of equality comparison.",
+    "files_touched": [
+      "seaborn/_base.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_base.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_base.py",
+        "search_text": "    def __eq__(self, other):\n        assert other in self.allowed, other\n        return self.data == other",
+        "replace_text": "    def __eq__(self, other):\n        return self.data == other",
+        "search_lines": 3,
+        "replace_lines": 2
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2220.4463481903076,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:460: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.37s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_base.py",
+        "loc": 1146,
+        "blank_lines": 359,
+        "comment_lines": 271,
+        "function_count": 47,
+        "avg_cc": 6.84,
+        "max_cc": 28.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_base.py",
+        "loc": 1145,
+        "blank_lines": 359,
+        "comment_lines": 271,
+        "function_count": 47,
+        "avg_cc": 6.82,
+        "max_cc": 28.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_base.py b/seaborn/_base.py\nindex 1eb0c96..f427bc4 100644\n--- a/seaborn/_base.py\n+++ b/seaborn/_base.py\n@@ -1464,7 +1464,6 @@ class VariableType(UserString):\n         super().__init__(data)\n \n     def __eq__(self, other):\n-        assert other in self.allowed, other\n         return self.data == other\n \n \n",
+  "duration_ms": 15470.980644226074
+}

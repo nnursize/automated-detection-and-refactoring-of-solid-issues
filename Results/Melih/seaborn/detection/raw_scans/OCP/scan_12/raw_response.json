@@ -1,0 +1,73 @@
+{
+  "scan_id": "seaborn-master_OCP_scan_12",
+  "repo_name": "seaborn-master",
+  "principle": "OCP",
+  "scan_number": 12,
+  "timestamp": "2026-04-18T15:26:55.508264",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Bloated class with many specific plotting methods, requiring modification for new plot types.\",\n      \"reasoning\": \"The _CategoricalPlotter class contains distinct methods for plotting each categorical chart type (e.g., plot_strips, plot_swarms, plot_boxes, plot_violins). This structure indicates that to introduce a new type of categorical plot, the _CategoricalPlotter class itself would need to be modified by adding a new 'plot_X' method. This directly violates the Open/Closed Principle, as extending the system with new behavior requires altering existing code rather than extending it.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"catplot\",\n      \"entity_type\": \"function\",\n      \"line_start\": 2761,\n      \"line_end\": 2802,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'kind' parameter forces conditional logic, requiring modification to support new plot types.\",\n      \"reasoning\": \"The `catplot` function takes a `kind` parameter (e.g., 'strip', 'box', 'violin') to determine which type of categorical plot to draw. This design necessitates internal conditional logic (e.g., if/elif/else statements or a dispatch table) to select the appropriate plotting function based on the `kind` value. Adding a new 'kind' of categorical plot would require modifying the `catplot` function itself to add another branch or entry, thus violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Bloated class with many specific plotting methods, requiring modification for new distribution types.\",\n      \"reasoning\": \"Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class includes distinct methods for various distribution plots (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Adding a new distribution plot type would require modifying this existing class to include a new `plot_X` method, directly violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"displot\",\n      \"entity_type\": \"function\",\n      \"line_start\": 2094,\n      \"line_end\": 2110,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'kind' parameter forces conditional logic, requiring modification to support new plot types.\",\n      \"reasoning\": \"The `displot` function, like `catplot`, uses a `kind` parameter (e.g., 'hist', 'kde') to select the plotting strategy. This structure implies internal conditional logic that must be modified when introducing new types of distribution plots. This violates the Open/Closed Principle, as extension requires modification.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/properties.py\",\n      \"entity_name\": \"Property.infer_scale\",\n      \"entity_type\": \"method\",\n      \"line_start\": 72,\n      \"line_end\": 74,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Methods like `infer_scale` often contain conditional logic based on data types, requiring modification for new scale types.\",\n      \"reasoning\": \"Methods like `Property.infer_scale`, `IntervalProperty.infer_scale`, `ObjectProperty.infer_scale`, `Color.infer_scale`, and `Fill.infer_scale` are responsible for determining the appropriate `Scale` type based on input data. This often involves type-checking (e.g., `isinstance` or checking `data.dtype`) or `if/elif` logic. If a new `Scale` subclass is introduced, these `infer_scale` methods would likely need to be modified to recognize and handle the new type, thus violating the Open/Closed Principle. An OCP-compliant design might use a registry or a more generic type-mapping mechanism that doesn't require explicit modification for new types.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Bloated class with many specific plotting methods, requiring modification for new plot types.",
+      "reasoning": "The _CategoricalPlotter class contains distinct methods for plotting each categorical chart type (e.g., plot_strips, plot_swarms, plot_boxes, plot_violins). This structure indicates that to introduce a new type of categorical plot, the _CategoricalPlotter class itself would need to be modified by adding a new 'plot_X' method. This directly violates the Open/Closed Principle, as extending the system with new behavior requires altering existing code rather than extending it."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "catplot",
+      "entity_type": "class",
+      "line_start": 2761,
+      "line_end": 2802,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'kind' parameter forces conditional logic, requiring modification to support new plot types.",
+      "reasoning": "The `catplot` function takes a `kind` parameter (e.g., 'strip', 'box', 'violin') to determine which type of categorical plot to draw. This design necessitates internal conditional logic (e.g., if/elif/else statements or a dispatch table) to select the appropriate plotting function based on the `kind` value. Adding a new 'kind' of categorical plot would require modifying the `catplot` function itself to add another branch or entry, thus violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Bloated class with many specific plotting methods, requiring modification for new distribution types.",
+      "reasoning": "Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class includes distinct methods for various distribution plots (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Adding a new distribution plot type would require modifying this existing class to include a new `plot_X` method, directly violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "displot",
+      "entity_type": "class",
+      "line_start": 2094,
+      "line_end": 2110,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'kind' parameter forces conditional logic, requiring modification to support new plot types.",
+      "reasoning": "The `displot` function, like `catplot`, uses a `kind` parameter (e.g., 'hist', 'kde') to select the plotting strategy. This structure implies internal conditional logic that must be modified when introducing new types of distribution plots. This violates the Open/Closed Principle, as extension requires modification."
+    },
+    {
+      "file_path": "seaborn/_core/properties.py",
+      "entity_name": "Property.infer_scale",
+      "entity_type": "method",
+      "line_start": 72,
+      "line_end": 74,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Methods like `infer_scale` often contain conditional logic based on data types, requiring modification for new scale types.",
+      "reasoning": "Methods like `Property.infer_scale`, `IntervalProperty.infer_scale`, `ObjectProperty.infer_scale`, `Color.infer_scale`, and `Fill.infer_scale` are responsible for determining the appropriate `Scale` type based on input data. This often involves type-checking (e.g., `isinstance` or checking `data.dtype`) or `if/elif` logic. If a new `Scale` subclass is introduced, these `infer_scale` methods would likely need to be modified to recognize and handle the new type, thus violating the Open/Closed Principle. An OCP-compliant design might use a registry or a more generic type-mapping mechanism that doesn't require explicit modification for new types."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 26440.08159637451,
+  "error": null
+}

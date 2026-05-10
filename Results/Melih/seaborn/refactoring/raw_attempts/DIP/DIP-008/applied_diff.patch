@@ -1,0 +1,26 @@
+diff --git a/seaborn/distributions.py b/seaborn/distributions.py
+index 1ffaba2..175cb39 100644
+--- a/seaborn/distributions.py
++++ b/seaborn/distributions.py
+@@ -1396,6 +1396,12 @@ class _DistributionPlotter(
+ # External API
+ # ==================================================================================== #
+ 
++class _DistributionPlotter(object):
++    # ... (existing implementation of _DistributionPlotter) ...
++    @classmethod
++    def from_data(cls, data, variables):
++        return cls(data=data, variables=variables)
++
+ def histplot(
+     data=None, *,
+     # Vector variables
+@@ -1417,7 +1423,7 @@ def histplot(
+     **kwargs,
+ ):
+ 
+-    p = _DistributionPlotter(
++    p = _DistributionPlotter.from_data(
+         data=data,
+         variables=dict(x=x, y=y, hue=hue, weights=weights),
+     )

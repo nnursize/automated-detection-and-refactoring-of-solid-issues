@@ -1,0 +1,100 @@
+{
+  "issue_id": "DIP-007",
+  "principle": "DIP",
+  "title": "Refactor DIP-007 (DIP): High-level 'Plot' class directly instantiates 'PlotData' concrete dependency.",
+  "branch": "refactor/DIP-007",
+  "base": "main",
+  "head_commit": "86f976fc784ebb6d7bfcbb3d662b377b68fb00ee",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3652,
+    "completion_tokens": 524
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plot.__init__",
+    "entity_type": "class",
+    "line_start": 183,
+    "line_end": 183,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "High-level 'Plot' class directly instantiates 'PlotData' concrete dependency.",
+    "reasoning": "The `Plot` class is designed as a high-level declarative interface. It directly instantiates `PlotData`, a concrete implementation of a data handling mechanism. This couples the `Plot` class to a specific data structure implementation rather than depending on a data abstraction that could be injected, making it harder to substitute data sources or test different data handling strategies in isolation."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject PlotData dependency into Plot constructor",
+    "rationale": "Decouples Plot from the concrete PlotData implementation by allowing it to be passed as an optional argument, defaulting to the concrete class if not provided. This adheres to the Dependency Inversion Principle.",
+    "files_touched": [
+      "seaborn/_core/plot.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/plot.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/plot.py",
+        "search_text": "    def __init__(\n        self,\n        *args: DataSource | VariableSpec,\n        data: DataSource = None,\n        **variables: VariableSpec,\n    ):\n\n        if args:\n            data, variables = self._resolve_positionals(args, data, variables)\n\n        unknown = [x for x in variables if x not in PROPERTIES]\n        if unknown:\n            err = f\"Plot() got unexpected keyword argument(s): {', '.join(unknown)}\"\n            raise TypeError(err)\n\n        self._spec = {\n            \"data\": PlotData(data, variables),\n            \"layers\": [],\n            \"scales\": {},\n            \"shares\": {},\n            \"limits\": {},\n            \"labels\": {},\n            \"theme\": {},\n            \"facet\": {},\n            \"pair\": {},\n            \"figure\": {},\n            \"subplot\": {},\n            \"layout\": {},\n            \"target\": None,\n        }",
+        "replace_text": "    def __init__(\n        self,\n        *args: DataSource | VariableSpec,\n        data: DataSource = None,\n        data_handler: type = PlotData,\n        **variables: VariableSpec,\n    ):\n\n        if args:\n            data, variables = self._resolve_positionals(args, data, variables)\n\n        unknown = [x for x in variables if x not in PROPERTIES]\n        if unknown:\n            err = f\"Plot() got unexpected keyword argument(s): {', '.join(unknown)}\"\n            raise TypeError(err)\n\n        self._spec = {\n            \"data\": data_handler(data, variables),\n            \"layers\": [],\n            \"scales\": {},\n            \"shares\": {},\n            \"limits\": {},\n            \"labels\": {},\n            \"theme\": {},\n            \"facet\": {},\n            \"pair\": {},\n            \"figure\": {},\n            \"subplot\": {},\n            \"layout\": {},\n            \"target\": None,\n        }",
+        "search_lines": 30,
+        "replace_lines": 31
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2242.006540298462,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:462: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:463: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.38s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/plot.py",
+        "loc": 1292,
+        "blank_lines": 348,
+        "comment_lines": 135,
+        "function_count": 58,
+        "avg_cc": 5.22,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/plot.py",
+        "loc": 1293,
+        "blank_lines": 348,
+        "comment_lines": 135,
+        "function_count": 58,
+        "avg_cc": 5.22,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py\nindex 36e8d40..18adeeb 100644\n--- a/seaborn/_core/plot.py\n+++ b/seaborn/_core/plot.py\n@@ -292,6 +292,7 @@ class Plot:\n         self,\n         *args: DataSource | VariableSpec,\n         data: DataSource = None,\n+        data_handler: type = PlotData,\n         **variables: VariableSpec,\n     ):\n \n@@ -304,7 +305,7 @@ class Plot:\n             raise TypeError(err)\n \n         self._spec = {\n-            \"data\": PlotData(data, variables),\n+            \"data\": data_handler(data, variables),\n             \"layers\": [],\n             \"scales\": {},\n             \"shares\": {},\n",
+  "duration_ms": 11969.11334991455
+}

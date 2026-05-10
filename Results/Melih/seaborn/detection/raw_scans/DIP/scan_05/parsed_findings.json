@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_violins",
+    "entity_type": "method",
+    "line_start": 505,
+    "line_end": 505,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level plotting logic directly instantiates a concrete statistical estimator.",
+    "reasoning": "The `_CategoricalPlotter` class, representing high-level plotting logic, directly instantiates the concrete `KDE` class (a low-level statistical implementation) using `kde = KDE(**kde_kws)`. This creates a tight coupling where the high-level module depends on a low-level detail, violating DIP. An abstraction for statistical estimation should be used, with `KDE` being injected or provided via a factory."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_points",
+    "entity_type": "method",
+    "line_start": 700,
+    "line_end": 701,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level plotting logic directly instantiates concrete statistical aggregators.",
+    "reasoning": "The `_CategoricalPlotter` class, a high-level module, directly decides which concrete aggregator (`WeightedAggregator` or `EstimateAggregator`) to use and then instantiates it (`aggregator = agg_cls(...)`). This hard-codes a dependency on specific low-level statistical implementations within the high-level plotting logic, violating the Dependency Inversion Principle. These aggregators should be provided through an abstraction or injected."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 1555,
+    "line_end": 1555,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level figure-level function directly instantiates a concrete grid layout manager.",
+    "reasoning": "The `catplot` function, a high-level figure-level interface, directly instantiates the concrete `FacetGrid` class (`g = FacetGrid(...)`). This means the high-level `catplot` depends on a specific, concrete implementation of a grid layout manager rather than an abstraction, leading to tight coupling and a violation of DIP."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter._setup_figure",
+    "entity_type": "method",
+    "line_start": 571,
+    "line_end": 571,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "The core plot compilation engine directly instantiates a concrete subplot layout manager.",
+    "reasoning": "The `Plotter` class, which serves as the core compilation engine for the declarative `Plot` API, directly instantiates the concrete `Subplots` class (`self._subplots = subplots = Subplots(...)`). This hard-codes a dependency from a high-level architectural component (`Plotter`) to a specific low-level implementation detail of subplot arrangement (`Subplots`), violating the Dependency Inversion Principle. `Subplots` should be an abstraction, or an instance should be injected."
+  },
+  {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Color.infer_scale",
+    "entity_type": "method",
+    "line_start": 307,
+    "line_end": 319,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Abstract property definitions directly depend on concrete scale implementations.",
+    "reasoning": "The `Color` class, which represents an abstract visual property, directly returns concrete `Scale` implementations (`Boolean()`, `Nominal()`, `Continuous()`, `Temporal()`) within its `infer_scale` method based on input arguments and data type. This means the high-level abstraction (`Property` and its subclasses) depends on low-level concrete implementations of `Scale` rather than an `IScale` abstraction, which is a clear violation of DIP. This pattern is repeated across other `Property` subclasses."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Boolean._setup",
+    "entity_type": "method",
+    "line_start": 51,
+    "line_end": 62,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Concrete scale implementations directly instantiate concrete Matplotlib scale and axis helper objects.",
+    "reasoning": "The `Boolean` class, a concrete implementation of the `Scale` abstraction, directly instantiates `matplotlib.scale.FuncScale` and `PseudoAxis` within its `_setup` method. This demonstrates a tight coupling where a concrete scale implementation depends on specific low-level Matplotlib scale details and an internal helper class (`PseudoAxis`), rather than relying on abstractions or receiving these dependencies through injection. This violates DIP by binding the scale logic to concrete rendering components."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter.map_hue",
+    "entity_type": "method",
+    "line_start": 500,
+    "line_end": 501,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level plotter base class directly instantiates concrete semantic mapping implementations.",
+    "reasoning": "The `VectorPlotter` class, a high-level base class for all plotters, directly instantiates the concrete `HueMapping` class (`mapping = HueMapping(...)`). This means the high-level plotter depends on a specific, concrete implementation of how hue is mapped, rather than an abstraction for semantic mapping. This tight coupling makes it difficult to swap out different mapping strategies without modifying `VectorPlotter`, violating DIP. Similar violations exist for `map_size` and `map_style`."
+  }
+]

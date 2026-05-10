@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "God class handling data munging, legacy backcompat, and rendering for 7+ distinct plot types.",
+    "reasoning": "The class is responsible for data transformation (wide-to-long conversion), maintaining a massive suite of backward compatibility logic for deprecated parameters (e.g., _hue_backcompat, _point_kwargs_backcompat), and implementing the specific rendering algorithms for multiple distinct plot types (strips, swarms, boxes, boxens, violins, points, bars). These are unrelated concerns; for example, the logic for a violin plot's kernel density estimation is distinct from the physics-based collision detection in a swarm plot."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Combines statistical computation (KDE/Hist) with rendering logic for multiple distribution plot types.",
+    "reasoning": "It violates SRP by mixing statistical data processing (KDE and Histogram estimation) with complex rendering logic for multiple plot elements (bars, steps, polygons, contours). It also manages legend generation and colormap heuristics. Changes to how a KDE is calculated are coupled with changes to how a bivariate contour is drawn, providing multiple reasons for the class to change."
+  },
+  {
+    "file_path": "seaborn/matrix.py",
+    "entity_name": "ClusterGrid",
+    "entity_type": "class",
+    "line_start": 696,
+    "line_end": 1143,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Mixes data normalization, statistical clustering, and complex layout management.",
+    "reasoning": "The class handles data transformation (z-scoring, standard scaling), statistical clustering (dendrogram calculation via scipy), and complex multi-axes layout management. These are three distinct responsibilities: data engineering, statistical analysis, and UI layout, each of which could change independently."
+  }
+]

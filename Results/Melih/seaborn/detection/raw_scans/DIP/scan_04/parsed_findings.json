@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plot._plot",
+    "entity_type": "method",
+    "line_start": 489,
+    "line_end": 515,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'Plot' class directly instantiates concrete 'Plotter' implementation.",
+    "reasoning": "The `Plot` class represents the high-level specification of a visualization. It directly instantiates the `Plotter` class, which is the concrete engine responsible for compiling and rendering the plot. This creates a tight coupling between the abstract specification and its concrete implementation, violating DIP. `Plot` should depend on an `IPlotter` abstraction, and the concrete `Plotter` should be injected."
+  },
+  {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Property.default_scale",
+    "entity_type": "method",
+    "line_start": 50,
+    "line_end": 63,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Abstract 'Property' class directly instantiates concrete 'Scale' implementations.",
+    "reasoning": "The `Property` class is an abstraction for visual attributes. Its `default_scale` method directly instantiates concrete `Scale` implementations such as `Continuous()`, `Temporal()`, `Boolean()`, and `Nominal()`. This means the high-level `Property` abstraction depends on low-level `Scale` details, violating DIP. A factory or dependency injection mechanism should be used to provide `Scale` instances."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Continuous._get_locators",
+    "entity_type": "method",
+    "line_start": 361,
+    "line_end": 408,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Concrete 'Continuous' scale directly instantiates various concrete Matplotlib Locator classes.",
+    "reasoning": "The `Continuous` class, while representing a specific type of scale, is still part of Seaborn's abstraction layer for scaling. Its `_get_locators` method directly instantiates concrete Matplotlib `Locator` classes (e.g., `LogLocator`, `MaxNLocator`, `AutoLocator`). This couples Seaborn's scaling logic to specific Matplotlib implementations, violating DIP. Ideally, `Continuous` should depend on an abstraction for locators, or receive pre-configured locator instances."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter.assign_variables",
+    "entity_type": "method",
+    "line_start": 130,
+    "line_end": 222,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "High-level 'VectorPlotter' directly instantiates concrete 'PlotData' and 'pandas.DataFrame'.",
+    "reasoning": "The `VectorPlotter` is a base class for various plotting functions, representing high-level plotting logic. Its `assign_variables` method directly instantiates `PlotData` (a concrete data handling class) and `pandas.DataFrame`. This creates a tight coupling to specific data structures and data processing implementations, violating DIP. `VectorPlotter` should ideally depend on an abstraction for data handling, or receive pre-processed data objects."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_swarms",
+    "entity_type": "method",
+    "line_start": 308,
+    "line_end": 349,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "High-level '_CategoricalPlotter' directly instantiates concrete 'Beeswarm' utility.",
+    "reasoning": "The `_CategoricalPlotter` class encapsulates high-level logic for categorical plots. Its `plot_swarms` method directly instantiates `Beeswarm`, a concrete utility class for adjusting point positions. This couples the plotting logic to a specific implementation of point adjustment, violating DIP. `_CategoricalPlotter` should depend on an abstraction for point adjustment, or receive an `IBeeswarm` instance."
+  },
+  {
+    "file_path": "seaborn/axisgrid.py",
+    "entity_name": "FacetGrid.__init__",
+    "entity_type": "method",
+    "line_start": 182,
+    "line_end": 307,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'FacetGrid' directly instantiates 'matplotlib.pyplot.figure'.",
+    "reasoning": "The `FacetGrid` class is a high-level component responsible for managing a grid of subplots. Its constructor directly calls `plt.figure()` to create a concrete Matplotlib figure. This tightly couples the grid management logic to the specific Matplotlib backend and its figure creation mechanism, violating DIP. `FacetGrid` should ideally receive a figure object (or an abstraction for it) through dependency injection."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.fit_statsmodels",
+    "entity_type": "method",
+    "line_start": 298,
+    "line_end": 333,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level '_RegressionPlotter' directly instantiates concrete 'statsmodels' classes.",
+    "reasoning": "The `_RegressionPlotter` class provides high-level regression fitting logic. Its `fit_statsmodels` method directly imports and instantiates concrete `statsmodels` classes like `GLM`, `Binomial`, and `RLM`. This creates a strong dependency on specific external statistical library implementations, violating DIP. `_RegressionPlotter` should depend on an abstraction for statistical models, allowing different concrete models to be injected."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "displot",
+    "entity_type": "class",
+    "line_start": 894,
+    "line_end": 1025,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Figure-level 'displot' function directly instantiates concrete 'FacetGrid'.",
+    "reasoning": "The `displot` function is a high-level, figure-level entry point for distribution plots. It directly instantiates `FacetGrid`, a concrete class for managing subplot grids. This couples the figure-level function to a specific grid implementation, violating DIP. `displot` should ideally depend on an abstraction for grid management, or receive a grid object through injection."
+  }
+]

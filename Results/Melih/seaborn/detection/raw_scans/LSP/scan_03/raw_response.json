@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_LSP_scan_03",
+  "repo_name": "seaborn-master",
+  "principle": "LSP",
+  "scan_number": 3,
+  "timestamp": "2026-04-18T13:56:03.298294",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses t...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale._identity\",\n      \"entity_type\": \"class\",\n      \"line_start\": 122,\n      \"line_end\": 130,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype 'Identity' nullifies a required callable attribute '_spacer' used by the base class.\",\n      \"reasoning\": \"The 'Identity' class (returned by the Scale._identity factory method) explicitly sets '_spacer = None'. However, the base class 'Scale' provides a concrete method '_spacing' (line 92) that executes 'self._spacer(x)'. Substituting an 'Identity' instance where a 'Scale' is expected and invoking the '_spacing' method will result in a TypeError. A subclass must not nullify or break the internal contract of a base class method that it inherits.\"\n    },\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VariableType\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1047,\n      \"line_end\": 1061,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"VariableType strengthens pre-conditions and changes the contract of equality comparison inherited from UserString.\",\n      \"reasoning\": \"VariableType inherits from collections.UserString. The base class equality contract allows comparison against any object, typically returning False for inequality. VariableType overrides __eq__ to 'assert' that the other operand must be one of three specific allowed strings. This strengthens the pre-condition of the method and causes a crash (AssertionError) for values that the base class would handle gracefully. This prevents VariableType from being a valid substitute for a standard string-like object in logic using equality checks.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale._identity\",\n      \"entity_type\": \"class\",\n      \"line_start\": 122,\n      \"line_end\": 130,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Identity subclass fails to implement abstract-style methods defined in the Scale base class.\",\n      \"reasoning\": \"The Scale base class defines 'tick' and 'label' as methods that raise NotImplementedError, indicating they are required interface components for concrete subtypes. The 'Identity' subclass is treated as a concrete subtype within the library's plotting engine, yet it fails to implement these methods. This breaks the substitutability of the Scale type, as generic code calling '.tick()' or '.label()' on a Scale object will fail if the object happens to be an Identity instance.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale._identity",
+      "entity_type": "class",
+      "line_start": 122,
+      "line_end": 130,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype 'Identity' nullifies a required callable attribute '_spacer' used by the base class.",
+      "reasoning": "The 'Identity' class (returned by the Scale._identity factory method) explicitly sets '_spacer = None'. However, the base class 'Scale' provides a concrete method '_spacing' (line 92) that executes 'self._spacer(x)'. Substituting an 'Identity' instance where a 'Scale' is expected and invoking the '_spacing' method will result in a TypeError. A subclass must not nullify or break the internal contract of a base class method that it inherits."
+    },
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VariableType",
+      "entity_type": "class",
+      "line_start": 1047,
+      "line_end": 1061,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "VariableType strengthens pre-conditions and changes the contract of equality comparison inherited from UserString.",
+      "reasoning": "VariableType inherits from collections.UserString. The base class equality contract allows comparison against any object, typically returning False for inequality. VariableType overrides __eq__ to 'assert' that the other operand must be one of three specific allowed strings. This strengthens the pre-condition of the method and causes a crash (AssertionError) for values that the base class would handle gracefully. This prevents VariableType from being a valid substitute for a standard string-like object in logic using equality checks."
+    },
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale._identity",
+      "entity_type": "class",
+      "line_start": 122,
+      "line_end": 130,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "The Identity subclass fails to implement abstract-style methods defined in the Scale base class.",
+      "reasoning": "The Scale base class defines 'tick' and 'label' as methods that raise NotImplementedError, indicating they are required interface components for concrete subtypes. The 'Identity' subclass is treated as a concrete subtype within the library's plotting engine, yet it fails to implement these methods. This breaks the substitutability of the Scale type, as generic code calling '.tick()' or '.label()' on a Scale object will fail if the object happens to be an Identity instance."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 40430.859327316284,
+  "error": null
+}

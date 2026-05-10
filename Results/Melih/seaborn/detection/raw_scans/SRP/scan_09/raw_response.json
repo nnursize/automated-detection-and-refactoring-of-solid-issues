@@ -1,0 +1,73 @@
+{
+  "scan_id": "seaborn-master_SRP_scan_09",
+  "repo_name": "seaborn-master",
+  "principle": "SRP",
+  "scan_number": 9,
+  "timestamp": "2026-04-17T17:41:07.120290",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Single Responsibility Principle (SRP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a c...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class handles multiple distinct plot types, statistical estimation, and extensive backward compatibility logic.\",\n      \"reasoning\": \"The class violates SRP by acting as a 'God Class' for categorical visualizations. It encapsulates the rendering logic for widely different plot types (strips, swarms, boxes, violins, points, bars), performs statistical calculations (e.g., boxplot stats, KDE estimation for violins), manages legend metadata, and contains a massive amount of legacy parameter mapping logic (e.g., _hue_backcompat, _point_kwargs_backcompat). Changes to the statistical model for violins or the rendering of box plots both require modifying this single class.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class mixes statistical computation (KDE, Histograms) with low-level Matplotlib rendering.\",\n      \"reasoning\": \"This class is responsible for both the 'what' (statistical computation of densities, histograms, and ECDFs via methods like _compute_univariate_density) and the 'how' (rendering using Matplotlib via methods like plot_univariate_histogram and plot_bivariate_density). These are unrelated concerns; a change in the statistical algorithm (e.g., switching KDE providers) and a change in the visual style (e.g., how bars are drawn) both force changes in this class.\"\n    },\n    {\n      \"file_path\": \"seaborn/regression.py\",\n      \"entity_name\": \"_RegressionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 70,\n      \"line_end\": 442,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class combines statistical model fitting with plot rendering.\",\n      \"reasoning\": \"The class performs heavy lifting for statistical modeling (implementing linear, polynomial, logistic, lowess, and robust regression models in methods like fit_poly, fit_statsmodels, and fit_logx) alongside plotting logic (methods like scatterplot, lineplot, and plot). Mathematical modeling and graphical representation are distinct responsibilities that should be separated to allow independent evolution of the statistical engine and the drawing logic.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/plot.py\",\n      \"entity_name\": \"Plotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 974,\n      \"line_end\": 1830,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Orchestrator class that handles data processing, stats, layout, rendering, and I/O.\",\n      \"reasoning\": \"Plotter handles too many unrelated concerns: data extraction (_extract_data), statistical orchestration (_compute_stats), figure/subplot layout management (_setup_figure), coordinate scaling (_setup_scales), legend generation (_make_legend), and file I/O/serialization (save, _repr_png_, _repr_svg_). It acts as a central hub that must change whenever the data pipeline, the visual layout logic, or the output format requirements change.\"\n    },\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"_HeatMapper\",\n      \"entity_type\": \"class\",\n      \"line_start\": 97,\n      \"line_end\": 352,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Class mixes data normalization/color mapping logic with rendering.\",\n      \"reasoning\": \"The class is responsible for data-level preprocessing (masking, calculating vmin/vmax, recentering divergent colormaps in _determine_cmap_params) and the actual drawing on the Axes (plot, _annotate_heatmap). Decisions about data distribution and color scales are business/logic concerns that should be decoupled from the Matplotlib drawing commands.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class handles multiple distinct plot types, statistical estimation, and extensive backward compatibility logic.",
+      "reasoning": "The class violates SRP by acting as a 'God Class' for categorical visualizations. It encapsulates the rendering logic for widely different plot types (strips, swarms, boxes, violins, points, bars), performs statistical calculations (e.g., boxplot stats, KDE estimation for violins), manages legend metadata, and contains a massive amount of legacy parameter mapping logic (e.g., _hue_backcompat, _point_kwargs_backcompat). Changes to the statistical model for violins or the rendering of box plots both require modifying this single class."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class mixes statistical computation (KDE, Histograms) with low-level Matplotlib rendering.",
+      "reasoning": "This class is responsible for both the 'what' (statistical computation of densities, histograms, and ECDFs via methods like _compute_univariate_density) and the 'how' (rendering using Matplotlib via methods like plot_univariate_histogram and plot_bivariate_density). These are unrelated concerns; a change in the statistical algorithm (e.g., switching KDE providers) and a change in the visual style (e.g., how bars are drawn) both force changes in this class."
+    },
+    {
+      "file_path": "seaborn/regression.py",
+      "entity_name": "_RegressionPlotter",
+      "entity_type": "class",
+      "line_start": 70,
+      "line_end": 442,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class combines statistical model fitting with plot rendering.",
+      "reasoning": "The class performs heavy lifting for statistical modeling (implementing linear, polynomial, logistic, lowess, and robust regression models in methods like fit_poly, fit_statsmodels, and fit_logx) alongside plotting logic (methods like scatterplot, lineplot, and plot). Mathematical modeling and graphical representation are distinct responsibilities that should be separated to allow independent evolution of the statistical engine and the drawing logic."
+    },
+    {
+      "file_path": "seaborn/_core/plot.py",
+      "entity_name": "Plotter",
+      "entity_type": "class",
+      "line_start": 974,
+      "line_end": 1830,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Orchestrator class that handles data processing, stats, layout, rendering, and I/O.",
+      "reasoning": "Plotter handles too many unrelated concerns: data extraction (_extract_data), statistical orchestration (_compute_stats), figure/subplot layout management (_setup_figure), coordinate scaling (_setup_scales), legend generation (_make_legend), and file I/O/serialization (save, _repr_png_, _repr_svg_). It acts as a central hub that must change whenever the data pipeline, the visual layout logic, or the output format requirements change."
+    },
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "_HeatMapper",
+      "entity_type": "class",
+      "line_start": 97,
+      "line_end": 352,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Class mixes data normalization/color mapping logic with rendering.",
+      "reasoning": "The class is responsible for data-level preprocessing (masking, calculating vmin/vmax, recentering divergent colormaps in _determine_cmap_params) and the actual drawing on the Axes (plot, _annotate_heatmap). Decisions about data distribution and color scales are business/logic concerns that should be decoupled from the Matplotlib drawing commands."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 23979.095220565796,
+  "error": null
+}

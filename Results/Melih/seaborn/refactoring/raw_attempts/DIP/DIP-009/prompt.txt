@@ -1,0 +1,527 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-009
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/axisgrid.py`
+- **Entity**: `FacetGrid.__init__` (current lines L371-L549 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 3 independent scans
+
+### Description
+'FacetGrid' directly interacts with Matplotlib's global state and concrete figure/subplot creation functions.
+
+### Reasoning
+The `FacetGrid` class directly calls `plt.figure` and `fig.subplots` for figure and subplot creation. While Matplotlib itself is a dependency, `FacetGrid` could abstract the creation of its figure and axes, e.g., by receiving a figure factory or an axes manager through its constructor. This direct coupling to Matplotlib's concrete API and global state reduces flexibility and makes it harder to swap out the underlying plotting backend or mock during testing.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/axisgrid.py`
+```python
+# ... 250 earlier lines elided ...
+        if hue is None:
+            palette = color_palette(n_colors=1)
+
+        else:
+            hue_names = categorical_order(data[hue], hue_order)
+            n_colors = len(hue_names)
+
+            # By default use either the current color palette or HUSL
+            if palette is None:
+                current_palette = utils.get_color_cycle()
+                if n_colors > len(current_palette):
+                    colors = color_palette("husl", n_colors)
+                else:
+                    colors = color_palette(n_colors=n_colors)
+
+            # Allow for palette to map from hue variable names
+            elif isinstance(palette, dict):
+                color_names = [palette[h] for h in hue_names]
+                colors = color_palette(color_names, n_colors)
+
+            # Otherwise act as if we just got a list of colors
+            else:
+                colors = color_palette(palette, n_colors)
+
+            palette = color_palette(colors, n_colors)
+
+        return palette
+
+    @property
+    def legend(self):
+        """The :class:`matplotlib.legend.Legend` object, if present."""
+        try:
+            return self._legend
+        except AttributeError:
+            return None
+
+    def tick_params(self, axis='both', **kwargs):
+        """Modify the ticks, tick labels, and gridlines.
+
+        Parameters
+        ----------
+        axis : {'x', 'y', 'both'}
+            The axis on which to apply the formatting.
+        kwargs : keyword arguments
+            Additional keyword arguments to pass to
+            :meth:`matplotlib.axes.Axes.tick_params`.
+
+        Returns
+        -------
+        self : Grid instance
+            Returns self for easy chaining.
+
+        """
+        for ax in self.figure.axes:
+            ax.tick_params(axis=axis, **kwargs)
+        return self
+
+
+_facet_docs = dict(
+
+    data=dedent("""\
+    data : DataFrame
+        Tidy ("long-form") dataframe where each column is a variable and each
+        row is an observation.\
+    """),
+    rowcol=dedent("""\
+    row, col : vectors or keys in ``data``
+        Variables that define subsets to plot on different facets.\
+    """),
+    rowcol_order=dedent("""\
+    {row,col}_order : vector of strings
+        Specify the order in which levels of the ``row`` and/or ``col`` variables
+        appear in the grid of subplots.\
+    """),
+    col_wrap=dedent("""\
+    col_wrap : int
+        "Wrap" the column variable at this width, so that the column facets
+        span multiple rows. Incompatible with a ``row`` facet.\
+    """),
+    share_xy=dedent("""\
+    share{x,y} : bool, 'col', or 'row' optional
+        If true, the facets will share y axes across columns and/or x axes
+        across rows.\
+    """),
+    height=dedent("""\
+    height : scalar
+        Height (in inches) of each facet. See also: ``aspect``.\
+    """),
+    aspect=dedent("""\
+    aspect : scalar
+        Aspect ratio of each facet, so that ``aspect * height`` gives the width
+        of each facet in inches.\
+    """),
+    palette=dedent("""\
+    palette : palette name, list, or dict
+        Colors to use for the different levels of the ``hue`` variable. Should
+        be something that can be interpreted by :func:`color_palette`, or a
+        dictionary mapping hue levels to matplotlib colors.\
+    """),
+    legend_out=dedent("""\
+    legend_out : bool
+        If ``True``, the figure size will be extended, and the legend will be
+        drawn outside the plot on the center right.\
+    """),
+    margin_titles=dedent("""\
+    margin_titles : bool
+        If ``True``, the titles for the row variable are drawn to the right of
+        the last column. This option is experimental and may not work in all
+        cases.\
+    """),
+    facet_kws=dedent("""\
+    facet_kws : dict
+        Additional parameters passed to :class:`FacetGrid`.
+    """),
+)
+
+
+class FacetGrid(Grid):
+    """Multi-plot grid for plotting conditional relationships."""
+
+    def __init__(
+        self, data, *,
+        row=None, col=None, hue=None, col_wrap=None,
+        sharex=True, sharey=True, height=3, aspect=1, palette=None,
+        row_order=None, col_order=None, hue_order=None, hue_kws=None,
+        dropna=False, legend_out=True, despine=True,
+        margin_titles=False, xlim=None, ylim=None, subplot_kws=None,
+        gridspec_kws=None,
+    ):
+
+        super().__init__()
+        data = handle_data_source(data)
+
+        # Determine the hue facet layer information
+        hue_var = hue
+        if hue is None:
+            hue_names = None
+        else:
+            hue_names = categorical_order(data[hue], hue_order)
+
+        colors = self._get_palette(data, hue, hue_order, palette)
+
+        # Set up the lists of names for the row and column facet variables
+        if row is None:
+            row_names = []
+        else:
+            row_names = categorical_order(data[row], row_order)
+
+        if col is None:
+            col_names = []
+        else:
+            col_names = categorical_order(data[col], col_order)
+
+        # Additional dict of kwarg -> list of values for mapping the hue var
+        hue_kws = hue_kws if hue_kws is not None else {}
+
+        # Make a boolean mask that is True anywhere there is an NA
+        # value in one of the faceting variables, but only if dropna is True
+        none_na = np.zeros(len(data), bool)
+        if dropna:
+            row_na = none_na if row is None else data[row].isnull()
+            col_na = none_na if col is None else data[col].isnull()
+            hue_na = none_na if hue is None else data[hue].isnull()
+            not_na = ~(row_na | col_na | hue_na)
+        else:
+            not_na = ~none_na
+
+        # Compute the grid shape
+        ncol = 1 if col is None else len(col_names)
+        nrow = 1 if row is None else len(row_names)
+        self._n_facets = ncol * nrow
+
+        self._col_wrap = col_wrap
+        if col_wrap is not None:
+            if row is not None:
+                err = "Cannot use `row` and `col_wrap` together."
+                raise ValueError(err)
+            ncol = col_wrap
+            nrow = int(np.ceil(len(col_names) / col_wrap))
+        self._ncol = ncol
+        self._nrow = nrow
+
+        # Calculate the base figure size
+        # This can get stretched later by a legend
+        # TODO this doesn't account for axis labels
+        figsize = (ncol * height * aspect, nrow * height)
+
+        # Validate some inputs
+        if col_wrap is not None:
+            margin_titles = False
+
+        # Build the subplot keyword dictionary
+        subplot_kws = {} if subplot_kws is None else subplot_kws.copy()
+        gridspec_kws = {} if gridspec_kws is None else gridspec_kws.copy()
+        if xlim is not None:
+            subplot_kws["xlim"] = xlim
+        if ylim is not None:
+            subplot_kws["ylim"] = ylim
+
+        # --- Initialize the subplot grid
+
+        with _disable_autolayout():
+            fig = plt.figure(figsize=figsize)
+
+        if col_wrap is None:
+
+            kwargs = dict(squeeze=False,
+                          sharex=sharex, sharey=sharey,
+                          subplot_kw=subplot_kws,
+                          gridspec_kw=gridspec_kws)
+
+            axes = fig.subplots(nrow, ncol, **kwargs)
+
+            if col is None and row is None:
+                axes_dict = {}
+            elif col is None:
+                axes_dict = dict(zip(row_names, axes.flat))
+            elif row is None:
+                axes_dict = dict(zip(col_names, axes.flat))
+            else:
+                facet_product = product(row_names, col_names)
+                axes_dict = dict(zip(facet_product, axes.flat))
+
+        else:
+
+            # If wrapping the col variable we need to make the grid ourselves
+            if gridspec_kws:
+                warnings.warn("`gridspec_kws` ignored when using `col_wrap`")
+
+            n_axes = len(col_names)
+            axes = np.empty(n_axes, object)
+            axes[0] = fig.add_subplot(nrow, ncol, 1, **subplot_kws)
+            if sharex:
+                subplot_kws["sharex"] = axes[0]
+            if sharey:
+                subplot_kws["sharey"] = axes[0]
+            for i in range(1, n_axes):
+                axes[i] = fig.add_subplot(nrow, ncol, i + 1, **subplot_kws)
+
+            axes_dict = dict(zip(col_names, axes))
+
+        # --- Set up the class attributes
+
+        # Attributes that are part of the public API but accessed through
+        # a  property so that Sphinx adds them to the auto class doc
+        self._figure = fig
+        self._axes = axes
+        self._axes_dict = axes_dict
+        self._legend = None
+
+        # Public attributes that aren't explicitly documented
+        # (It's not obvious that having them be public was a good idea)
+        self.data = data
+        self.row_names = row_names
+        self.col_names = col_names
+        self.hue_names = hue_names
+        self.hue_kws = hue_kws
+
+        # Next the private variables
+        self._nrow = nrow
+        self._row_var = row
+        self._ncol = ncol
+        self._col_var = col
+
+        self._margin_titles = margin_titles
+        self._margin_titles_texts = []
+        self._col_wrap = col_wrap
+        self._hue_var = hue_var
+        self._colors = colors
+        self._legend_out = legend_out
+        self._legend_data = {}
+        self._x_var = None
+        self._y_var = None
+        self._sharex = sharex
+        self._sharey = sharey
+        self._dropna = dropna
+        self._not_na = not_na
+
+        # --- Make the axes look good
+
+        self.set_titles()
+        self.tight_layout()
+
+        if despine:
+            self.despine()
+
+        if sharex in [True, 'col']:
+            for ax in self._not_bottom_axes:
+                for label in ax.get_xticklabels():
+                    label.set_visible(False)
+                ax.xaxis.offsetText.set_visible(False)
+                ax.xaxis.label.set_visible(False)
+
+        if sharey in [True, 'row']:
+            for ax in self._not_left_axes:
+                for label in ax.get_yticklabels():
+                    label.set_visible(False)
+                ax.yaxis.offsetText.set_visible(False)
+                ax.yaxis.label.set_visible(False)
+
+    __init__.__doc__ = dedent("""\
+        Initialize the matplotlib figure and FacetGrid object.
+
+        This class maps a dataset onto multiple axes arrayed in a grid of rows
+        and columns that correspond to *levels* of variables in the dataset.
+        The plots it produces are often called "lattice", "trellis", or
+        "small-multiple" graphics.
+
+        It can also represent levels of a third variable with the ``hue``
+        parameter, which plots different subsets of data in different colors.
+        This uses color to resolve elements on a third dimension, but only
+        draws subsets on top of each other and will not tailor the ``hue``
+        parameter for the specific visualization the way that axes-level
+        functions that accept ``hue`` will.
+
+        The basic workflow is to initialize the :class:`FacetGrid` object with
+        the dataset and the variables that are used to structure the grid. Then
+        one or more plotting functions can be applied to each subset by calling
+        :meth:`FacetGrid.map` or :meth:`FacetGrid.map_dataframe`. Finally, the
+        plot can be tweaked with other methods to do things like change the
+        axis labels, use different ticks, or add a legend. See the detailed
+        code examples below for more information.
+
+        .. warning::
+
+            When using seaborn functions that infer semantic mappings from a
+            dataset, care must be taken to synchronize those mappings across
+            facets (e.g., by defining the ``hue`` mapping with a palette dict or
+            setting the data type of the variables to ``category``). In most cases,
+            it will be better to use a figure-level function (e.g. :func:`relplot`
+            or :func:`catplot`) than to use :class:`FacetGrid` directly.
+
+        See the :ref:`tutorial <grid_tutorial>` for more information.
+
+        Parameters
+        ----------
+        {data}
+        row, col, hue : strings
+            Variables that define subsets of the data, which will be drawn on
+            separate facets in the grid. See the ``{{var}}_order`` parameters to
+            control the order of levels of this variable.
+        {col_wrap}
+        {share_xy}
+        {height}
+        {aspect}
+        {palette}
+        {{row,col,hue}}_order : lists
+            Order for the levels of the faceting variables. By default, this
+            will be the order that the levels appear in ``data`` or, if the
+            variables are pandas categoricals, the category order.
+        hue_kws : dictionary of param -> list of values mapping
+            Other keyword arguments to insert into the plotting call to let
+            other plot attributes vary across levels of the hue variable (e.g.
+            the markers in a scatterplot).
+        {legend_out}
+        despine : boolean
+            Remove the top and right spines from the plots.
+        {margin_titles}
+        {{x, y}}lim: tuples
+            Limits for each of the axes on each facet (only relevant when
+            share{{x, y}} is True).
+        subplot_kws : dict
+            Dictionary of keyword arguments passed to matplotlib subplot(s)
+            methods.
+        gridspec_kws : dict
+            Dictionary of keyword arguments passed to
+            :class:`matplotlib.gridspec.GridSpec`
+            (via :meth:`matplotlib.figure.Figure.subplots`).
+            Ignored if ``col_wrap`` is not ``None``.
+
+        See Also
+        --------
+        PairGrid : Subplot grid for plotting pairwise relationships
+        relplot : Combine a relational plot and a :class:`FacetGrid`
+        displot : Combine a distribution plot and a :class:`FacetGrid`
+        catplot : Combine a categorical plot and a :class:`FacetGrid`
+        lmplot : Combine a regression plot and a :class:`FacetGrid`
+
+        Examples
+        --------
+
+        .. note::
+
+            These examples use seaborn functions to demonstrate some of the
+            advanced features of the class, but in most cases you will want
+            to use figue-level functions (e.g. :func:`displot`, :func:`relplot`)
+            to make the plots shown here.
+
+        .. include:: ../docstrings/FacetGrid.rst
+
+        """).format(**_facet_docs)
+
+    def facet_data(self):
+        """Generator for name indices and data subsets for each facet.
+
+        Yields
+        ------
+        (i, j, k), data_ijk : tuple of ints, DataFrame
+            The ints provide an index into the {row, col, hue}_names attribute,
+            and the dataframe contains a subset of the full data corresponding
+            to each facet. The generator yields subsets that correspond with
+            the self.axes.flat iterator, or self.axes[i, j] when `col_wrap`
+            is None.
+
+        """
+        data = self.data
+
+        # Construct masks for the row variable
+        if self.row_names:
+            row_masks = [data[self._row_var] == n for n in self.row_names]
+        else:
+            row_masks = [np.repeat(True, len(self.data))]
+
+        # Construct masks for the column variable
+        if self.col_names:
+            col_masks = [data[self._col_var] == n for n in self.col_names]
+        else:
+            col_masks = [np.repeat(True, len(self.data))]
+
+# ... 1732 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def _setup(self, data, prop, axis=None):\n                return self\n\n            def _finalize(self, p, axis):\n                pass\n\n        return Identity()",
+    "replace_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def _setup(self, data, prop, axis=None):\n                return self\n\n            def _finalize(self, p, axis):\n                pass\n\n            def tick(self, locator=None):\n                return self\n\n            def label(self, formatter=None):\n                return self\n\n            def _get_locators(self, **kwargs):\n                return None, None\n\n            def _get_formatter(self, locator=None, **kwargs):\n                return None\n\n        return Identity()"
+  }
+]

@@ -1,0 +1,25 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 5d95e05..d9910fe 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -2780,7 +2780,7 @@ def catplot(
+     col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,
+     formatter=None, orient=None, color=None, palette=None, hue_norm=None,
+     legend="auto", legend_out=True, sharex=True, sharey=True,
+-    margin_titles=False, facet_kws=None, ci=deprecated, **kwargs
++    margin_titles=False, facet_kws=None, ci=deprecated, grid_class=None, **kwargs
+ ):
+ 
+     # Check for attempt to plot onto specific axes and warn
+@@ -2836,7 +2836,10 @@ def catplot(
+     if facet_kws is None:
+         facet_kws = {}
+ 
+-    g = FacetGrid(
++    if grid_class is None:
++        grid_class = FacetGrid
++
++    g = grid_class(
+         data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,
+         row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,
+         legend_out=legend_out, margin_titles=margin_titles,

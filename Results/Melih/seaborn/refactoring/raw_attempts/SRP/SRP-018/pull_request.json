@@ -1,0 +1,99 @@
+{
+  "issue_id": "SRP-018",
+  "principle": "SRP",
+  "title": "Refactor SRP-018 (SRP): The function acts as a 'God Function' for figure-level joint plots, handling...",
+  "branch": "refactor/SRP-018",
+  "base": "main",
+  "head_commit": "11e83875a77e0bb4e9692f7d424a486dbeb007fc",
+  "status": "applied_failed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4727,
+    "completion_tokens": 2138
+  },
+  "detected_issue": {
+    "file_path": "seaborn/axisgrid.py",
+    "entity_name": "jointplot",
+    "entity_type": "class",
+    "line_start": 1492,
+    "line_end": 1604,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The function acts as a 'God Function' for figure-level joint plots, handling plot kind selection, extensive argument processing, JointGrid initialization, and orchestration of joint and marginal plotting functions.",
+    "reasoning": "This function exhibits the 'God Class' (or 'God Function') smell. It is responsible for handling deprecated arguments, validating plot `kind`, creating a colormap, initializing a `JointGrid`, and then orchestrating the calls to various joint and marginal plotting functions based on the chosen `kind`. It also has specific logic for passing `hue` to marginals and handling `bins` for histograms. This function changes for almost any change in joint plotting functionality, API, or argument handling, violating SRP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor jointplot to delegate plotting logic to specialized internal functions.",
+    "rationale": "The jointplot function was a 'God Function' handling argument validation, grid initialization, and complex conditional plotting logic. By extracting the plotting logic into a private helper class or set of functions, we separate the orchestration of the JointGrid from the specific implementation details of each plot kind, adhering to the Single Responsibility Principle.",
+    "files_touched": [
+      "seaborn/axisgrid.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/axisgrid.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/axisgrid.py",
+        "search_text": "    # Plot the data using the grid\n    if kind.startswith(\"scatter\"):\n\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(scatterplot, **joint_kws)\n\n        if grid.hue is None:\n            marg_func = histplot\n        else:\n            marg_func = kdeplot\n            marginal_kws.setdefault(\"warn_singular\", False)\n            marginal_kws.setdefault(\"fill\", True)\n\n        marginal_kws.setdefault(\"color\", color)\n        grid.plot_marginals(marg_func, **marginal_kws)\n\n    elif kind.startswith(\"hist\"):\n\n        # TODO process pair parameters for bins, etc. and pass\n        # to both joint and marginal plots\n\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(histplot, **joint_kws)\n\n        marginal_kws.setdefault(\"kde\", False)\n        marginal_kws.setdefault(\"color\", color)\n\n        marg_x_kws = marginal_kws.copy()\n        marg_y_kws = marginal_kws.copy()\n\n        pair_keys = \"bins\", \"binwidth\", \"binrange\"\n        for key in pair_keys:\n            if isinstance(joint_kws.get(key), tuple):\n                x_val, y_val = joint_kws[key]\n                marg_x_kws.setdefault(key, x_val)\n                marg_y_kws.setdefault(key, y_val)\n\n        histplot(data=data, x=x, hue=hue, **marg_x_kws, ax=grid.ax_marg_x)\n        histplot(data=data, y=y, hue=hue, **marg_y_kws, ax=grid.ax_marg_y)\n\n    elif kind.startswith(\"kde\"):\n\n        joint_kws.setdefault(\"color\", color)\n        joint_kws.setdefault(\"warn_singular\", False)\n        grid.plot_joint(kdeplot, **joint_kws)\n\n        marginal_kws.setdefault(\"color\", color)\n        if \"fill\" in joint_kws:\n            marginal_kws.setdefault(\"fill\", joint_kws[\"fill\"])\n\n        grid.plot_marginals(kdeplot, **marginal_kws)\n\n    elif kind.startswith(\"hex\"):\n\n        x_bins = min(_freedman_diaconis_bins(grid.x), 50)\n        y_bins = min(_freedman_diaconis_bins(grid.y), 50)\n        gridsize = int(np.mean([x_bins, y_bins]))\n\n        joint_kws.setdefault(\"gridsize\", gridsize)\n        joint_kws.setdefault(\"cmap\", cmap)\n        grid.plot_joint(plt.hexbin, **joint_kws)\n\n        marginal_kws.setdefault(\"kde\", False)\n        marginal_kws.setdefault(\"color\", color)\n        grid.plot_marginals(histplot, **marginal_kws)\n\n    elif kind.startswith(\"reg\"):\n\n        marginal_kws.setdefault(\"color\", color)\n        marginal_kws.setdefault(\"kde\", True)\n        grid.plot_marginals(histplot, **marginal_kws)\n\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(regplot, **joint_kws)\n\n    elif kind.startswith(\"resid\"):\n\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(residplot, **joint_kws)\n\n        x, y = grid.ax_joint.collections[0].get_offsets().T\n        marginal_kws.setdefault(\"color\", color)\n        histplot(x=x, hue=hue, ax=grid.ax_marg_x, **marginal_kws)\n        histplot(y=y, hue=hue, ax=grid.ax_marg_y, **marginal_kws)",
+        "replace_text": "    _plot_jointplot(\n        grid, kind, color, cmap,\n        joint_kws, marginal_kws,\n        data=data, x=x, y=y, hue=hue\n    )",
+        "search_lines": 84,
+        "replace_lines": 5
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/axisgrid.py",
+        "search_text": "    return grid\n\n\njointplot.__doc__ = \"\"\"\\",
+        "replace_text": "    return grid\n\n\ndef _plot_jointplot(grid, kind, color, cmap, joint_kws, marginal_kws, **data_kws):\n    \"\"\"Helper to dispatch plotting to the correct function.\"\"\"\n    from .relational import scatterplot\n    from .regression import regplot, residplot\n    from .distributions import histplot, kdeplot, _freedman_diaconis_bins\n\n    data, x, y, hue = data_kws[\"data\"], data_kws[\"x\"], data_kws[\"y\"], data_kws[\"hue\"]\n\n    if kind.startswith(\"scatter\"):\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(scatterplot, **joint_kws)\n        if grid.hue is None:\n            marg_func = histplot\n        else:\n            marg_func = kdeplot\n            marginal_kws.setdefault(\"warn_singular\", False)\n            marginal_kws.setdefault(\"fill\", True)\n        marginal_kws.setdefault(\"color\", color)\n        grid.plot_marginals(marg_func, **marginal_kws)\n\n    elif kind.startswith(\"hist\"):\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(histplot, **joint_kws)\n        marginal_kws.setdefault(\"kde\", False)\n        marginal_kws.setdefault(\"color\", color)\n        marg_x_kws = marginal_kws.copy()\n        marg_y_kws = marginal_kws.copy()\n        for key in [\"bins\", \"binwidth\", \"binrange\"]:\n            if isinstance(joint_kws.get(key), tuple):\n                x_val, y_val = joint_kws[key]\n                marg_x_kws.setdefault(key, x_val)\n                marg_y_kws.setdefault(key, y_val)\n        histplot(data=data, x=x, hue=hue, **marg_x_kws, ax=grid.ax_marg_x)\n        histplot(data=data, y=y, hue=hue, **marg_y_kws, ax=grid.ax_marg_y)\n\n    elif kind.startswith(\"kde\"):\n        joint_kws.setdefault(\"color\", color)\n        joint_kws.setdefault(\"warn_singular\", False)\n        grid.plot_joint(kdeplot, **joint_kws)\n        marginal_kws.setdefault(\"color\", color)\n        if \"fill\" in joint_kws:\n            marginal_kws.setdefault(\"fill\", joint_kws[\"fill\"])\n        grid.plot_marginals(kdeplot, **marginal_kws)\n\n    elif kind.startswith(\"hex\"):\n        x_bins = min(_freedman_diaconis_bins(grid.x), 50)\n        y_bins = min(_freedman_diaconis_bins(grid.y), 50)\n        gridsize = int(np.mean([x_bins, y_bins]))\n        joint_kws.setdefault(\"gridsize\", gridsize)\n        joint_kws.setdefault(\"cmap\", cmap)\n        grid.plot_joint(plt.hexbin, **joint_kws)\n        marginal_kws.setdefault(\"kde\", False)\n        marginal_kws.setdefault(\"color\", color)\n        grid.plot_marginals(histplot, **marginal_kws)\n\n    elif kind.startswith(\"reg\"):\n        marginal_kws.setdefault(\"color\", color)\n        marginal_kws.setdefault(\"kde\", True)\n        grid.plot_marginals(histplot, **marginal_kws)\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(regplot, **joint_kws)\n\n    elif kind.startswith(\"resid\"):\n        joint_kws.setdefault(\"color\", color)\n        grid.plot_joint(residplot, **joint_kws)\n        x_data, y_data = grid.ax_joint.collections[0].get_offsets().T\n        marginal_kws.setdefault(\"color\", color)\n        histplot(x=x_data, hue=hue, ax=grid.ax_marg_x, **marginal_kws)\n        histplot(y=y_data, hue=hue, ax=grid.ax_marg_y, **marginal_kws)\n\n\njointplot.__doc__ = \"\"\"\\",
+        "search_lines": 4,
+        "replace_lines": 75
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": false,
+    "total": 823,
+    "passed_count": 815,
+    "failed_count": 1,
+    "skipped_count": 1,
+    "error_count": 0,
+    "duration_ms": 41656.458616256714,
+    "timed_out": false,
+    "new_failures_count": 1,
+    "pre_existing_failures_count": 0,
+    "new_failures": [
+      "tests/test_axisgrid.py::TestPairGrid::test_palette"
+    ],
+    "pre_existing_failures": [],
+    "output_tail": "....................................s................................... [  3%]\n.................................x............x...x................x.x.. [  6%]\n........................................................................ [  9%]\n........................................................................ [ 12%]\n........................................................................ [ 15%]\n........................................................................ [ 18%]\n.....................................................................x.. [ 21%]\n........................................................................ [ 24%]\n........................................................................ [ 27%]\n........................................................................ [ 30%]\n........................................................................ [ 33%]\n..............................F\n================================== FAILURES ===================================\n__________________________ TestPairGrid.test_palette __________________________\ntests\\test_axisgrid.py:1106: in test_palette\n    g = ag.PairGrid(self.df, hue=\"a\", palette=\"Set2\")\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\axisgrid.py:1280: in __init__\n    fig = plt.figure(figsize=figsize)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\pyplot.py:1041: in figure\n    manager = new_figure_manager(\n.venv\\Lib\\site-packages\\matplotlib\\pyplot.py:551: in new_figure_manager\n    return _get_backend_mod().new_figure_manager(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backend_bases.py:3504: in new_figure_manager\n    return cls.new_figure_manager_given_figure(num, fig)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backend_bases.py:3509: in new_figure_manager_given_figure\n    return cls.FigureCanvas.new_manager(figure, num)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backend_bases.py:1785: in new_manager\n    return cls.manager_class.create_with_canvas(cls, figure, num)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backends\\_backend_tk.py:535: in create_with_canvas\n    window = tk.Tk(className=\"matplotlib\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nC:\\Users\\User\\miniconda3\\Lib\\tkinter\\__init__.py:2326: in __init__\n    self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   _tkinter.TclError: Can't find a usable tk.tcl in the following directories: \nE       C:/Users/User/miniconda3/Library/lib/tcl8.6/tk8.6 C:/Users/User/miniconda3/Library/lib/tk8.6 C:/Users/User/lib/tk8.6 C:/Users/User/lib/tk8.6 C:/Users/lib/tk8.6 C:/Users/User/library\nE   \nE   C:/Users/User/miniconda3/Library/lib/tk8.6/tk.tcl: couldn't read file \"C:/Users/User/miniconda3/Library/lib/tk8.6/scrlbar.tcl\": no such file or directory\nE   couldn't read file \"C:/Users/User/miniconda3/Library/lib/tk8.6/scrlbar.tcl\": no such file or directory\nE       while executing\nE   \"source -encoding utf-8 C:/Users/User/miniconda3/Library/lib/tk8.6/scrlbar.tcl\"\nE       (in namespace eval \"::\" script line 1)\nE       invoked from within\nE   \"namespace eval :: [list source -encoding utf-8 [file join $::tk_library $file.tcl]]\"\nE       (procedure \"SourceLibFile\" line 2)\nE       invoked from within\nE   \"SourceLibFile scrlbar\"\nE       (in namespace eval \"::tk\" script line 9)\nE       invoked from within\nE   \"namespace eval ::tk {\nE   \tSourceLibFile icons\nE   \tSourceLibFile button\nE   \tSourceLibFile entry\nE   \tSourceLibFile listbox\nE   \tSourceLibFile menu\nE   \tSourceLibFile panedw...\"\nE       (file \"C:/Users/User/miniconda3/Library/lib/tk8.6/tk.tcl\" line 501)\nE       invoked from within\nE   \"source C:/Users/User/miniconda3/Library/lib/tk8.6/tk.tcl\"\nE       (\"uplevel\" body line 1)\nE       invoked from within\nE   \"uplevel #0 [list source $file]\"\nE   \nE   \nE   This probably means that tk wasn't installed properly.\n=========================== short test summary info ===========================\nFAILED tests/test_axisgrid.py::TestPairGrid::test_palette - _tkinter.TclError...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 815 passed, 1 skipped, 6 xfailed in 40.50s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/axisgrid.py",
+        "loc": 1827,
+        "blank_lines": 424,
+        "comment_lines": 150,
+        "function_count": 59,
+        "avg_cc": 6.13,
+        "max_cc": 34.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py\nindex 17d333b..8707ec6 100644\n--- a/seaborn/axisgrid.py\n+++ b/seaborn/axisgrid.py\n@@ -2250,95 +2250,87 @@ def jointplot(\n     if grid.hue is not None:\n         marginal_kws.setdefault(\"legend\", False)\n \n-    # Plot the data using the grid\n-    if kind.startswith(\"scatter\"):\n+    _plot_jointplot(\n+        grid, kind, color, cmap,\n+        joint_kws, marginal_kws,\n+        data=data, x=x, y=y, hue=hue\n+    )\n+\n+    # Make the main axes active in the matplotlib state machine\n+    plt.sca(grid.ax_joint)\n \n+    return grid\n+\n+\n+def _plot_jointplot(grid, kind, color, cmap, joint_kws, marginal_kws, **data_kws):\n+    \"\"\"Helper to dispatch plotting to the correct function.\"\"\"\n+    from .relational import scatterplot\n+    from .regression import regplot, residplot\n+    from .distributions import histplot, kdeplot, _freedman_diaconis_bins\n+\n+    data, x, y, hue = data_kws[\"data\"], data_kws[\"x\"], data_kws[\"y\"], data_kws[\"hue\"]\n+\n+    if kind.startswith(\"scatter\"):\n         joint_kws.setdefault(\"color\", color)\n         grid.plot_joint(scatterplot, **joint_kws)\n-\n         if grid.hue is None:\n             marg_func = histplot\n         else:\n             marg_func = kdeplot\n             marginal_kws.setdefault(\"warn_singular\", False)\n             marginal_kws.setdefault(\"fill\", True)\n-\n         marginal_kws.setdefault(\"color\", color)\n         grid.plot_marginals(marg_func, **marginal_kws)\n \n     elif kind.startswith(\"hist\"):\n-\n-        # TODO process pair parameters for bins, etc. and pass\n-        # to both joint and marginal plots\n-\n         joint_kws.setdefault(\"color\", color)\n         grid.plot_joint(histplot, **joint_kws)\n-\n         marginal_kws.setdefault(\"kde\", False)\n         marginal_kws.setdefault(\"color\", color)\n-\n         marg_x_kws = marginal_kws.copy()\n         marg_y_kws = marginal_kws.copy()\n-\n-        pair_keys = \"bins\", \"binwidth\", \"binrange\"\n-        for key in pair_keys:\n+        for key in [\"bins\", \"binwidth\", \"binrange\"]:\n             if isinstance(joint_kws.get(key), tuple):\n                 x_val, y_val = joint_kws[key]\n                 marg_x_kws.setdefault(key, x_val)\n                 marg_y_kws.setdefault(key, y_val)\n-\n         histplot(data=data, x=x, hue=hue, **marg_x_kws, ax=grid.ax_marg_x)\n         histplot(data=data, y=y, hue=hue, **marg_y_kws, ax=grid.ax_marg_y)\n \n     elif kind.startswith(\"kde\"):\n-\n         joint_kws.setdefault(\"color\", color)\n         joint_kws.setdefault(\"warn_singular\", False)\n         grid.plot_joint(kdeplot, **joint_kws)\n-\n         marginal_kws.setdefault(\"color\", color)\n         if \"fill\" in joint_kws:\n             marginal_kws.setdefault(\"fill\", joint_kws[\"fill\"])\n-\n         grid.plot_marginals(kdeplot, **marginal_kws)\n \n     elif kind.startswith(\"hex\"):\n-\n         x_bins = min(_freedman_diaconis_bins(grid.x), 50)\n         y_bins = min(_freedman_diaconis_bins(grid.y), 50)\n         gridsize = int(np.mean([x_bins, y_bins]))\n-\n         joint_kws.setdefault(\"gridsize\", gridsize)\n         joint_kws.setdefault(\"cmap\", cmap)\n         grid.plot_joint(plt.hexbin, **joint_kws)\n-\n         marginal_kws.setdefault(\"kde\", False)\n         marginal_kws.setdefault(\"color\", color)\n         grid.plot_marginals(histplot, **marginal_kws)\n \n     elif kind.startswith(\"reg\"):\n-\n         marginal_kws.setdefault(\"color\", color)\n         marginal_kws.setdefault(\"kde\", True)\n         grid.plot_marginals(histplot, **marginal_kws)\n-\n         joint_kws.setdefault(\"color\", color)\n         grid.plot_joint(regplot, **joint_kws)\n \n     elif kind.startswith(\"resid\"):\n-\n         joint_kws.setdefault(\"color\", color)\n         grid.plot_joint(residplot, **joint_kws)\n-\n-        x, y = grid.ax_joint.collections[0].get_offsets().T\n+        x_data, y_data = grid.ax_joint.collections[0].get_offsets().T\n         marginal_kws.setdefault(\"color\", color)\n-        histplot(x=x, hue=hue, ax=grid.ax_marg_x, **marginal_kws)\n-        histplot(y=y, hue=hue, ax=grid.ax_marg_y, **marginal_kws)\n-\n-    # Make the main axes active in the matplotlib state machine\n-    plt.sca(grid.ax_joint)\n-\n-    return grid\n+        histplot(x=x_data, hue=hue, ax=grid.ax_marg_x, **marginal_kws)\n+        histplot(y=y_data, hue=hue, ax=grid.ax_marg_y, **marginal_kws)\n \n \n jointplot.__doc__ = \"\"\"\\\n",
+  "duration_ms": 47737.345933914185
+}

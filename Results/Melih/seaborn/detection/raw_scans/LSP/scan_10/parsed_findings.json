@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._get_locators",
+    "entity_type": "method",
+    "line_start": 78,
+    "line_end": 78,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclasses of Scale redefine _get_locators with incompatible signatures.",
+    "reasoning": "The base class Scale defines _get_locators as taking no arguments (L78). However, subclasses like Boolean (L230), Nominal (L382), Continuous (L665), and Temporal (L843) redefine it to require at least one argument ('locator'). This breaks substitution because a client holding a Scale reference calling _get_locators() will fail on these subclasses."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._get_formatter",
+    "entity_type": "method",
+    "line_start": 81,
+    "line_end": 81,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclasses of Scale redefine _get_formatter with incompatible signatures.",
+    "reasoning": "The base class Scale defines _get_formatter with one optional argument (L81). Subclasses like Boolean (L235), Nominal (L391), Continuous (L721), and Temporal (L856) redefine it to require two or more arguments. A client calling _get_formatter(locator) on a Scale reference will fail when the instance is a subclass that requires additional positional arguments."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.plot",
+    "entity_type": "method",
+    "line_start": 356,
+    "line_end": 356,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass _RegressionPlotter alters the contract shape of _LinearPlotter.plot.",
+    "reasoning": "The base class _LinearPlotter defines plot(self, ax) (L66). The subclass _RegressionPlotter overrides this as plot(self, ax, scatter_kws, line_kws) (L356), adding two required positional arguments. This violates LSP as _RegressionPlotter cannot be used where _LinearPlotter is expected without breaking the call site."
+  }
+]

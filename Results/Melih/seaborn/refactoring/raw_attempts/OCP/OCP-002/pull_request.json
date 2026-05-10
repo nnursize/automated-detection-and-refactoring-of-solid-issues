@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-002",
+  "principle": "OCP",
+  "title": "Refactor OCP-002 (OCP): Conditional logic for handling different 'multiple' strategies.",
+  "branch": "refactor/OCP-002",
+  "base": "main",
+  "head_commit": "977ea50463d7be2d2ebafe0aa246c7ba8db213de",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4365,
+    "completion_tokens": 1601
+  },
+  "detected_issue": {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter._resolve_multiple",
+    "entity_type": "method",
+    "line_start": 280,
+    "line_end": 327,
+    "severity": "medium",
+    "scan_count": 6,
+    "description": "Conditional logic for handling different 'multiple' strategies.",
+    "reasoning": "The `_resolve_multiple` method contains `if multiple in ('stack', 'fill'):` and `if multiple == 'dodge':` blocks to apply different data transformation logic based on the `multiple` parameter. If a new strategy for handling multiple distributions is introduced, this method would need to be modified to add a new conditional branch, violating OCP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor _resolve_multiple to use a strategy pattern for multiple-distribution handling.",
+    "rationale": "Replaced the conditional if/elif chain in _resolve_multiple with a dictionary-based strategy lookup, allowing for easier extension without modifying the core logic.",
+    "files_touched": [
+      "seaborn/distributions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/distributions.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def _resolve_multiple(self, curves, multiple):\n        \"\"\"Modify the density data structure to handle multiple densities.\"\"\"\n\n        # Default baselines have all densities starting at 0\n        baselines = {k: np.zeros_like(v) for k, v in curves.items()}\n\n        # TODO we should have some central clearinghouse for checking if any\n        # \"grouping\" (terminnology?) semantics have been assigned\n        if \"hue\" not in self.variables:\n            return curves, baselines\n\n        if multiple in (\"stack\", \"fill\"):\n\n            # Setting stack or fill means that the curves share a\n            # support grid / set of bin edges, so we can make a dataframe\n            # Reverse the column order to plot from top to bottom\n            curves = pd.DataFrame(curves).iloc[:, ::-1]\n\n            # Find column groups that are nested within col/row variables\n            column_groups = {}\n            for i, keyd in enumerate(map(dict, curves.columns)):\n                facet_key = keyd.get(\"col\", None), keyd.get(\"row\", None)\n                column_groups.setdefault(facet_key, [])\n                column_groups[facet_key].append(i)\n\n            baselines = curves.copy()\n\n            for col_idxs in column_groups.values():\n                cols = curves.columns[col_idxs]\n\n                norm_constant = curves[cols].sum(axis=\"columns\")\n\n                # Take the cumulative sum to stack\n                curves[cols] = curves[cols].cumsum(axis=\"columns\")\n\n                # Normalize by row sum to fill\n                if multiple == \"fill\":\n                    curves[cols] = curves[cols].div(norm_constant, axis=\"index\")\n\n                # Define where each segment starts\n                baselines[cols] = curves[cols].shift(1, axis=1).fillna(0)\n\n        if multiple == \"dodge\":\n\n            # Account for the unique semantic (non-faceting) levels\n            # This will require rethiniking if we add other semantics!\n            hue_levels = self.var_levels[\"hue\"]\n            n = len(hue_levels)\n            f_fwd, f_inv = self._get_scale_transforms(self.data_variable)\n            for key in curves:\n\n                level = dict(key)[\"hue\"]\n                hist = curves[key].reset_index(name=\"heights\")\n                level_idx = hue_levels.index(level)\n\n                a = f_fwd(hist[\"edges\"])\n                b = f_fwd(hist[\"edges\"] + hist[\"widths\"])\n                w = (b - a) / n\n                new_min = f_inv(a + level_idx * w)\n                new_max = f_inv(a + (level_idx + 1) * w)\n                hist[\"widths\"] = new_max - new_min\n                hist[\"edges\"] = new_min\n\n                curves[key] = hist.set_index([\"edges\", \"widths\"])[\"heights\"]\n\n        return curves, baselines",
+        "replace_text": "    def _resolve_multiple(self, curves, multiple):\n        \"\"\"Modify the density data structure to handle multiple densities.\"\"\"\n\n        # Default baselines have all densities starting at 0\n        baselines = {k: np.zeros_like(v) for k, v in curves.items()}\n\n        # TODO we should have some central clearinghouse for checking if any\n        # \"grouping\" (terminnology?) semantics have been assigned\n        if \"hue\" not in self.variables or multiple == \"layer\":\n            return curves, baselines\n\n        strategies = {\n            \"stack\": self._multiple_stack,\n            \"fill\": self._multiple_fill,\n            \"dodge\": self._multiple_dodge,\n        }\n\n        if multiple in strategies:\n            curves, baselines = strategies[multiple](curves)\n\n        return curves, baselines\n\n    def _multiple_stack(self, curves):\n        curves = pd.DataFrame(curves).iloc[:, ::-1]\n        column_groups = self._get_column_groups(curves)\n        baselines = curves.copy()\n        for col_idxs in column_groups.values():\n            cols = curves.columns[col_idxs]\n            curves[cols] = curves[cols].cumsum(axis=\"columns\")\n            baselines[cols] = curves[cols].shift(1, axis=1).fillna(0)\n        return curves, baselines\n\n    def _multiple_fill(self, curves):\n        curves, baselines = self._multiple_stack(curves)\n        column_groups = self._get_column_groups(curves)\n        for col_idxs in column_groups.values():\n            cols = curves.columns[col_idxs]\n            norm_constant = curves[cols].iloc[:, -1]\n            curves[cols] = curves[cols].div(norm_constant, axis=\"index\")\n            baselines[cols] = baselines[cols].div(norm_constant, axis=\"index\")\n        return curves, baselines\n\n    def _multiple_dodge(self, curves):\n        baselines = {k: np.zeros_like(v) for k, v in curves.items()}\n        hue_levels = self.var_levels[\"hue\"]\n        n = len(hue_levels)\n        f_fwd, f_inv = self._get_scale_transforms(self.data_variable)\n        for key in curves:\n            level = dict(key)[\"hue\"]\n            hist = curves[key].reset_index(name=\"heights\")\n            level_idx = hue_levels.index(level)\n            a = f_fwd(hist[\"edges\"])\n            b = f_fwd(hist[\"edges\"] + hist[\"widths\"])\n            w = (b - a) / n\n            new_min = f_inv(a + level_idx * w)\n            new_max = f_inv(a + (level_idx + 1) * w)\n            hist[\"widths\"] = new_max - new_min\n            hist[\"edges\"] = new_min\n            curves[key] = hist.set_index([\"edges\", \"widths\"])[\"heights\"]\n        return curves, baselines\n\n    def _get_column_groups(self, curves):\n        column_groups = {}\n        for i, keyd in enumerate(map(dict, curves.columns)):\n            facet_key = keyd.get(\"col\", None), keyd.get(\"row\", None)\n            column_groups.setdefault(facet_key, [])\n            column_groups[facet_key].append(i)\n        return column_groups",
+        "search_lines": 66,
+        "replace_lines": 68
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2220.294237136841,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.36s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1802,
+        "blank_lines": 471,
+        "comment_lines": 258,
+        "function_count": 26,
+        "avg_cc": 13.19,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1821,
+        "blank_lines": 463,
+        "comment_lines": 249,
+        "function_count": 30,
+        "avg_cc": 11.53,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/distributions.py b/seaborn/distributions.py\nindex f8ec166..99ee5df 100644\n--- a/seaborn/distributions.py\n+++ b/seaborn/distributions.py\n@@ -232,65 +232,67 @@ class _DistributionPlotter(VectorPlotter):\n \n         # TODO we should have some central clearinghouse for checking if any\n         # \"grouping\" (terminnology?) semantics have been assigned\n-        if \"hue\" not in self.variables:\n+        if \"hue\" not in self.variables or multiple == \"layer\":\n             return curves, baselines\n \n-        if multiple in (\"stack\", \"fill\"):\n-\n-            # Setting stack or fill means that the curves share a\n-            # support grid / set of bin edges, so we can make a dataframe\n-            # Reverse the column order to plot from top to bottom\n-            curves = pd.DataFrame(curves).iloc[:, ::-1]\n-\n-            # Find column groups that are nested within col/row variables\n-            column_groups = {}\n-            for i, keyd in enumerate(map(dict, curves.columns)):\n-                facet_key = keyd.get(\"col\", None), keyd.get(\"row\", None)\n-                column_groups.setdefault(facet_key, [])\n-                column_groups[facet_key].append(i)\n-\n-            baselines = curves.copy()\n-\n-            for col_idxs in column_groups.values():\n-                cols = curves.columns[col_idxs]\n-\n-                norm_constant = curves[cols].sum(axis=\"columns\")\n-\n-                # Take the cumulative sum to stack\n-                curves[cols] = curves[cols].cumsum(axis=\"columns\")\n-\n-                # Normalize by row sum to fill\n-                if multiple == \"fill\":\n-                    curves[cols] = curves[cols].div(norm_constant, axis=\"index\")\n-\n-                # Define where each segment starts\n-                baselines[cols] = curves[cols].shift(1, axis=1).fillna(0)\n-\n-        if multiple == \"dodge\":\n+        strategies = {\n+            \"stack\": self._multiple_stack,\n+            \"fill\": self._multiple_fill,\n+            \"dodge\": self._multiple_dodge,\n+        }\n \n-            # Account for the unique semantic (non-faceting) levels\n-            # This will require rethiniking if we add other semantics!\n-            hue_levels = self.var_levels[\"hue\"]\n-            n = len(hue_levels)\n-            f_fwd, f_inv = self._get_scale_transforms(self.data_variable)\n-            for key in curves:\n+        if multiple in strategies:\n+            curves, baselines = strategies[multiple](curves)\n \n-                level = dict(key)[\"hue\"]\n-                hist = curves[key].reset_index(name=\"heights\")\n-                level_idx = hue_levels.index(level)\n+        return curves, baselines\n \n-                a = f_fwd(hist[\"edges\"])\n-                b = f_fwd(hist[\"edges\"] + hist[\"widths\"])\n-                w = (b - a) / n\n-                new_min = f_inv(a + level_idx * w)\n-                new_max = f_inv(a + (level_idx + 1) * w)\n-                hist[\"widths\"] = new_max - new_min\n-                hist[\"edges\"] = new_min\n+    def _multiple_stack(self, curves):\n+        curves = pd.DataFrame(curves).iloc[:, ::-1]\n+        column_groups = self._get_column_groups(curves)\n+        baselines = curves.copy()\n+        for col_idxs in column_groups.values():\n+            cols = curves.columns[col_idxs]\n+            curves[cols] = curves[cols].cumsum(axis=\"columns\")\n+            baselines[cols] = curves[cols].shift(1, axis=1).fillna(0)\n+        return curves, baselines\n \n-                curves[key] = hist.set_index([\"edges\", \"widths\"])[\"heights\"]\n+    def _multiple_fill(self, curves):\n+        curves, baselines = self._multiple_stack(curves)\n+        column_groups = self._get_column_groups(curves)\n+        for col_idxs in column_groups.values():\n+            cols = curves.columns[col_idxs]\n+            norm_constant = curves[cols].iloc[:, -1]\n+            curves[cols] = curves[cols].div(norm_constant, axis=\"index\")\n+            baselines[cols] = baselines[cols].div(norm_constant, axis=\"index\")\n+        return curves, baselines\n \n+    def _multiple_dodge(self, curves):\n+        baselines = {k: np.zeros_like(v) for k, v in curves.items()}\n+        hue_levels = self.var_levels[\"hue\"]\n+        n = len(hue_levels)\n+        f_fwd, f_inv = self._get_scale_transforms(self.data_variable)\n+        for key in curves:\n+            level = dict(key)[\"hue\"]\n+            hist = curves[key].reset_index(name=\"heights\")\n+            level_idx = hue_levels.index(level)\n+            a = f_fwd(hist[\"edges\"])\n+            b = f_fwd(hist[\"edges\"] + hist[\"widths\"])\n+            w = (b - a) / n\n+            new_min = f_inv(a + level_idx * w)\n+            new_max = f_inv(a + (level_idx + 1) * w)\n+            hist[\"widths\"] = new_max - new_min\n+            hist[\"edges\"] = new_min\n+            curves[key] = hist.set_index([\"edges\", \"widths\"])[\"heights\"]\n         return curves, baselines\n \n+    def _get_column_groups(self, curves):\n+        column_groups = {}\n+        for i, keyd in enumerate(map(dict, curves.columns)):\n+            facet_key = keyd.get(\"col\", None), keyd.get(\"row\", None)\n+            column_groups.setdefault(facet_key, [])\n+            column_groups[facet_key].append(i)\n+        return column_groups\n+\n     # -------------------------------------------------------------------------------- #\n     # Computation\n     # -------------------------------------------------------------------------------- #\n",
+  "duration_ms": 21892.134428024292
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from VectorPlotter but does not implement scale_native, scale_numeric, or scale_datetime, which raise NotImplementedError in the base class.",
+    "reasoning": "The _CategoricalPlotter class is forced to depend on methods (scale_native, scale_numeric, scale_datetime) defined in its base class VectorPlotter, but it leaves them effectively unimplemented (as they raise NotImplementedError in the base). This indicates that VectorPlotter is a 'fat interface' for _CategoricalPlotter, as it includes methods irrelevant to categorical plotting that this class is nevertheless forced to 'implement'."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from VectorPlotter but does not implement scale_native, scale_numeric, scale_datetime, or scale_categorical, which raise NotImplementedError in the base class.",
+    "reasoning": "The _DistributionPlotter class is forced to depend on methods (scale_native, scale_numeric, scale_datetime, scale_categorical) defined in its base class VectorPlotter, but it leaves them effectively unimplemented (as they raise NotImplementedError in the base). This indicates that VectorPlotter is a 'fat interface' for _DistributionPlotter, as it includes methods for various scaling types that this class is nevertheless forced to 'implement'."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The VectorPlotter class defines abstract-like scale_* methods (scale_native, scale_numeric, scale_datetime) that raise NotImplementedError, making it a fat interface.",
+    "reasoning": "VectorPlotter acts as a fat interface by defining multiple scale_* methods (scale_native, scale_numeric, scale_datetime) that simply raise NotImplementedError. This forces all subclasses to inherit and 'implement' these methods, even if they only need a subset of the scaling functionalities. This leads to subclasses being coupled to an interface larger than what they require, violating ISP."
+  },
+  {
+    "file_path": "seaborn/matrix.py",
+    "entity_name": "ClusterGrid",
+    "entity_type": "class",
+    "line_start": 696,
+    "line_end": 1143,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from Grid but does not use or correctly support legend-related methods (add_legend, _update_legend_data, _get_palette) from the base class.",
+    "reasoning": "ClusterGrid inherits from Grid, which provides comprehensive legend management methods (add_legend, _update_legend_data, _get_palette). However, ClusterGrid does not utilize these methods internally and instead manages its own colorbar. The inherited add_legend method, if called by a client, would likely fail or produce incorrect results due to missing internal state (like _legend_data, _hue_var, hue_names) that ClusterGrid does not set up. This forces ClusterGrid to depend on an interface (Grid's legend functionality) that it does not use and is not relevant to its purpose, making Grid a 'fat interface' for ClusterGrid."
+  }
+]

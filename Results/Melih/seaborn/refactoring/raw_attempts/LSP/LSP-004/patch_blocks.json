@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/distributions.py",
+    "search_text": "    @property\n    def data_variable(self):\n        \"\"\"Return the variable with data for univariate plots.\"\"\"\n        # TODO This could also be in core, but it should have a better name.\n        if not self.univariate:\n            raise AttributeError(\"This is not a univariate plot\")\n        return {\"x\", \"y\"}.intersection(self.variables).pop()",
+    "replace_text": "    @property\n    def data_variable(self):\n        \"\"\"Return the variable with data for univariate plots, or None.\"\"\"\n        # TODO This could also be in core, but it should have a better name.\n        if not self.univariate:\n            return None\n        return {\"x\", \"y\"}.intersection(self.variables).pop()"
+  }
+]

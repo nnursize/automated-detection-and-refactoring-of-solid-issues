@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class manages data transformation, legacy API compatibility, and rendering for multiple distinct plot types.",
+    "reasoning": "The class violates SRP by acting as a 'God Class' for categorical plots. It handles data preprocessing (wide-to-long conversion), contains extensive logic for backwards compatibility with deprecated parameters (e.g., _hue_backcompat, _point_kwargs_backcompat), and implements complex rendering logic for several different plot types (strips, swarms, boxes, violins, etc.) that should ideally be delegated to specialized classes."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class combines statistical estimation logic with complex multi-format rendering logic.",
+    "reasoning": "This class is responsible for both the statistical computation of distributions (KDE, Histograms, ECDFs) and the low-level Matplotlib rendering of those distributions across multiple plot types (histplot, kdeplot, rugplot). Mixing statistical modeling with specific drawing logic for various chart elements creates multiple reasons for the class to change."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class handles data ingestion, semantic mapping, and Matplotlib axis state management.",
+    "reasoning": "VectorPlotter manages three distinct concerns: 1) Data ingestion and transformation (wide-form vs long-form logic), 2) Semantic mapping (orchestrating Hue, Size, and Style mappings), and 3) Matplotlib integration (attaching to axes, managing unit conversions, and setting scales). These responsibilities are unrelated to the core logic of mapping data to visual properties."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter",
+    "entity_type": "class",
+    "line_start": 70,
+    "line_end": 442,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class couples statistical model fitting with visualization rendering.",
+    "reasoning": "The class is responsible for statistical modeling (fitting linear, polynomial, logistic, and lowess models, plus bootstrapping for confidence intervals) and the actual drawing of scatter plots and regression lines. Statistical fitting logic and visualization logic are distinct responsibilities that should be separated."
+  },
+  {
+    "file_path": "seaborn/matrix.py",
+    "entity_name": "ClusterGrid",
+    "entity_type": "class",
+    "line_start": 696,
+    "line_end": 1143,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class manages data normalization, hierarchical clustering orchestration, and complex layout rendering.",
+    "reasoning": "ClusterGrid handles mathematical data normalization (z-score and standard scaling), the orchestration of hierarchical clustering (dendrograms), and the complex layout management of a multi-axis figure. It mixes data processing, algorithmic orchestration, and rendering."
+  },
+  {
+    "file_path": "seaborn/external/docscrape.py",
+    "entity_name": "NumpyDocString",
+    "entity_type": "class",
+    "line_start": 136,
+    "line_end": 561,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Class couples docstring parsing with string formatting/rendering.",
+    "reasoning": "The class is responsible for parsing raw Numpy-style docstrings into an internal representation and also contains multiple methods (prefixed with _str_) and a __str__ method for rendering that data back into a formatted string. Parsing and rendering are separate concerns."
+  }
+]

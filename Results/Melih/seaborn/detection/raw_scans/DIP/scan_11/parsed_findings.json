@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "VectorPlotter defines abstract methods (scale_native, scale_numeric, scale_datetime) that force subclasses to implement specific scaling logic.",
+    "reasoning": "The VectorPlotter class acts as a base class that forces its subclasses to implement specific scaling logic (scale_native, scale_numeric, scale_datetime) instead of delegating this behavior to a dedicated Scale abstraction or strategy pattern. This forces subclasses to be aware of and implement low-level scaling details, violating the principle that abstractions should not depend on details."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 145,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Scale base class contains abstract methods that force specific implementation details on all scale types.",
+    "reasoning": "The Scale class defines abstract methods like tick, label, and _get_locators. By forcing all subclasses to implement these specific interfaces, it creates a rigid contract where high-level scale abstractions are tightly coupled to the implementation details of Matplotlib's ticker system, rather than being truly decoupled abstractions."
+  },
+  {
+    "file_path": "seaborn/_marks/base.py",
+    "entity_name": "Mark",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 229,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Mark class forces subclasses to implement _plot and _legend_artist, tying them to specific drawing implementations.",
+    "reasoning": "The Mark class forces subclasses to implement _plot and _legend_artist. This forces concrete mark types (Line, Bar, etc.) to handle the low-level rendering logic and Matplotlib integration directly, rather than depending on a higher-level rendering abstraction."
+  }
+]

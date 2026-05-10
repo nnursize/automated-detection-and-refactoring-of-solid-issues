@@ -1,0 +1,148 @@
+{
+  "issue_id": "ISP-001",
+  "principle": "ISP",
+  "title": "Refactor ISP-001 (ISP): Fat interface bundling data transformation with axis-specific UI logic",
+  "branch": "refactor/ISP-001",
+  "base": "main",
+  "head_commit": "21f13251f9426b9375e5bf9e31e9793c9438265d",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10741,
+    "completion_tokens": 1255
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 38,
+    "line_end": 100,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "Fat interface bundling data transformation with axis-specific UI logic",
+    "reasoning": "The Scale interface combines data transformation logic (__call__) with axis-specific UI logic (tick, label, _get_locators). This forces semantic scales (like color or size) to implement or mock axis-specific methods. The Identity scale subclass (lines 91-100) is forced to inherit these methods but cannot fulfill them, leading to NotImplementedError crashes if called."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract axis-related logic from Scale into a new AxisScale mixin",
+    "rationale": "The Scale base class was violating the Interface Segregation Principle by forcing all scales (including non-axis-based ones like Identity) to implement axis-specific methods. By introducing an AxisScale mixin, only scales that actually require axis-related functionality (like Continuous, Temporal, Nominal, Boolean) will inherit these methods, while simple scales remain clean.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 7,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "class Scale:\n    \"\"\"Base class for objects that map data values to visual properties.\"\"\"\n\n    values: tuple | str | list | dict | None\n\n    _priority: ClassVar[int]\n    _pipeline: Pipeline\n    _matplotlib_scale: ScaleBase\n    _spacer: staticmethod\n    _legend: tuple[list[Any], list[str]] | None\n\n    def __post_init__(self):\n\n        self._tick_params = None\n        self._label_params = None\n        self._legend = None\n\n    def tick(self):\n        raise NotImplementedError()\n\n    def label(self):\n        raise NotImplementedError()\n\n    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))\n\n    def _spacing(self, x: Series) -> float:",
+        "replace_text": "class Scale:\n    \"\"\"Base class for objects that map data values to visual properties.\"\"\"\n\n    values: tuple | str | list | dict | None\n\n    _priority: ClassVar[int]\n    _pipeline: Pipeline\n    _matplotlib_scale: ScaleBase\n    _spacer: staticmethod\n    _legend: tuple[list[Any], list[str]] | None\n\n    def __post_init__(self):\n\n        self._legend = None\n\n    def _spacing(self, x: Series) -> float:",
+        "search_lines": 44,
+        "replace_lines": 16
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def tick(self): return self\n            def label(self): return self\n            def _get_locators(self): return None, None\n            def _get_formatter(self, locator=None): return None\n            def _setup(self, data, prop, axis=None): return self\n\n        return Identity()",
+        "replace_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def _setup(self, data, prop, axis=None): return self\n\n        return Identity()\n\n\nclass AxisScale(Scale):\n    \"\"\"Mixin for scales that interact with matplotlib axes.\"\"\"\n\n    def __post_init__(self):\n        super().__post_init__()\n        self._tick_params = None\n        self._label_params = None\n\n    def tick(self):\n        raise NotImplementedError()\n\n    def label(self):\n        raise NotImplementedError()\n\n    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))",
+        "search_lines": 16,
+        "replace_lines": 47
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Boolean(Scale):",
+        "replace_text": "@dataclass\nclass Boolean(AxisScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Nominal(Scale):",
+        "replace_text": "@dataclass\nclass Nominal(AxisScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Ordinal(Scale):",
+        "replace_text": "@dataclass\nclass Ordinal(AxisScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass ContinuousBase(Scale):",
+        "replace_text": "@dataclass\nclass ContinuousBase(AxisScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Temporal(ContinuousBase):",
+        "replace_text": "@dataclass\nclass Temporal(ContinuousBase):",
+        "search_lines": 2,
+        "replace_lines": 2
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2209.93709564209,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.36s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 772,
+        "blank_lines": 243,
+        "comment_lines": 98,
+        "function_count": 88,
+        "avg_cc": 2.66,
+        "max_cc": 16.0,
+        "mi": 21.81
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 772,
+        "blank_lines": 246,
+        "comment_lines": 98,
+        "function_count": 85,
+        "avg_cc": 2.64,
+        "max_cc": 16.0,
+        "mi": 21.74
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex d23bcda..61eaf91 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -65,36 +65,8 @@ class Scale:\n \n     def __post_init__(self):\n \n-        self._tick_params = None\n-        self._label_params = None\n         self._legend = None\n \n-    def tick(self):\n-        raise NotImplementedError()\n-\n-    def label(self):\n-        raise NotImplementedError()\n-\n-    def _get_locators(self):\n-        raise NotImplementedError()\n-\n-    def _get_formatter(self, locator: Locator | None = None):\n-        raise NotImplementedError()\n-\n-    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n-\n-        major_locator, minor_locator = self._get_locators(**self._tick_params)\n-        major_formatter = self._get_formatter(major_locator, **self._label_params)\n-\n-        class InternalScale(mpl.scale.FuncScale):\n-            def set_default_locators_and_formatters(self, axis):\n-                axis.set_major_locator(major_locator)\n-                if minor_locator is not None:\n-                    axis.set_minor_locator(minor_locator)\n-                axis.set_major_formatter(major_formatter)\n-\n-        return InternalScale(name, (forward, inverse))\n-\n     def _spacing(self, x: Series) -> float:\n         space = self._spacer(x)\n         if np.isnan(space):\n@@ -142,17 +114,48 @@ class Scale:\n             _legend = None\n             _matplotlib_scale = None\n \n-            def tick(self): return self\n-            def label(self): return self\n-            def _get_locators(self): return None, None\n-            def _get_formatter(self, locator=None): return None\n             def _setup(self, data, prop, axis=None): return self\n \n         return Identity()\n \n \n+class AxisScale(Scale):\n+    \"\"\"Mixin for scales that interact with matplotlib axes.\"\"\"\n+\n+    def __post_init__(self):\n+        super().__post_init__()\n+        self._tick_params = None\n+        self._label_params = None\n+\n+    def tick(self):\n+        raise NotImplementedError()\n+\n+    def label(self):\n+        raise NotImplementedError()\n+\n+    def _get_locators(self):\n+        raise NotImplementedError()\n+\n+    def _get_formatter(self, locator: Locator | None = None):\n+        raise NotImplementedError()\n+\n+    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n+\n+        major_locator, minor_locator = self._get_locators(**self._tick_params)\n+        major_formatter = self._get_formatter(major_locator, **self._label_params)\n+\n+        class InternalScale(mpl.scale.FuncScale):\n+            def set_default_locators_and_formatters(self, axis):\n+                axis.set_major_locator(major_locator)\n+                if minor_locator is not None:\n+                    axis.set_minor_locator(minor_locator)\n+                axis.set_major_formatter(major_formatter)\n+\n+        return InternalScale(name, (forward, inverse))\n+\n+\n @dataclass\n-class Boolean(Scale):\n+class Boolean(AxisScale):\n     \"\"\"\n     A scale with a discrete domain of True and False values.\n \n@@ -245,7 +248,7 @@ class Boolean(Scale):\n \n \n @dataclass\n-class Nominal(Scale):\n+class Nominal(AxisScale):\n     \"\"\"\n     A categorical scale without relative importance / magnitude.\n     \"\"\"\n@@ -405,7 +408,7 @@ class Nominal(Scale):\n \n \n @dataclass\n-class Ordinal(Scale):\n+class Ordinal(AxisScale):\n     # Categorical (convert to strings), sortable, can skip ticklabels\n     values: tuple | str | list | dict | None = None\n     order: list | None = None\n@@ -445,7 +448,7 @@ class Discrete(Scale):\n \n \n @dataclass\n-class ContinuousBase(Scale):\n+class ContinuousBase(AxisScale):\n \n     values: tuple | str | None = None\n     norm: tuple | None = None\n",
+  "duration_ms": 8531.980276107788
+}

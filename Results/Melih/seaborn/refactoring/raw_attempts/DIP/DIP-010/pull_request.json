@@ -1,0 +1,108 @@
+{
+  "issue_id": "DIP-010",
+  "principle": "DIP",
+  "title": "Refactor DIP-010 (DIP): 'VectorPlotter' directly instantiates 'PlotData' concrete dependency.",
+  "branch": "refactor/DIP-010",
+  "base": "main",
+  "head_commit": "943cdcac73e25d1541cbf030745d787117b6916c",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3928,
+    "completion_tokens": 578
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter.assign_variables",
+    "entity_type": "method",
+    "line_start": 158,
+    "line_end": 158,
+    "severity": "medium",
+    "scan_count": 7,
+    "description": "'VectorPlotter' directly instantiates 'PlotData' concrete dependency.",
+    "reasoning": "The `VectorPlotter` is a base class for many plotting functionalities. Its `assign_variables` method directly instantiates `PlotData`, a concrete data abstraction. This couples a core plotting component to a specific data handling implementation, limiting the ability to inject different data processing strategies or data sources without modifying `VectorPlotter` itself."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject PlotData dependency into VectorPlotter via constructor",
+    "rationale": "Decouples VectorPlotter from the concrete PlotData implementation by allowing it to be passed as an argument, defaulting to the original implementation to maintain backward compatibility.",
+    "files_touched": [
+      "seaborn/_base.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_base.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_base.py",
+        "search_text": "    def __init__(self, data=None, variables={}):\n\n        self._var_levels = {}\n        # var_ordered is relevant only for categorical axis variables, and may\n        # be better handled by an internal axis information object that tracks\n        # such information and is set up by the scale_* methods. The analogous\n        # information for numeric axes would be information about log scales.\n        self._var_ordered = {\"x\": False, \"y\": False}  # alt., used DefaultDict\n        self.assign_variables(data, variables)\n\n        # TODO Lots of tests assume that these are called to initialize the",
+        "replace_text": "    def __init__(self, data=None, variables={}, plot_data_cls=None):\n\n        self._var_levels = {}\n        # var_ordered is relevant only for categorical axis variables, and may\n        # be better handled by an internal axis information object that tracks\n        # such information and is set up by the scale_* methods. The analogous\n        # information for numeric axes would be information about log scales.\n        self._var_ordered = {\"x\": False, \"y\": False}  # alt., used DefaultDict\n        self.plot_data_cls = plot_data_cls or PlotData\n        self.assign_variables(data, variables)\n\n        # TODO Lots of tests assume that these are called to initialize the",
+        "search_lines": 11,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_base.py",
+        "search_text": "        else:\n            # When dealing with long-form input, use the newer PlotData\n            # object (internal but introduced for the objects interface)\n            # to centralize / standardize data consumption logic.\n            self.input_format = \"long\"\n            plot_data = PlotData(data, variables)\n            frame = plot_data.frame\n            names = plot_data.names",
+        "replace_text": "        else:\n            # When dealing with long-form input, use the newer PlotData\n            # object (internal but introduced for the objects interface)\n            # to centralize / standardize data consumption logic.\n            self.input_format = \"long\"\n            plot_data = self.plot_data_cls(data, variables)\n            frame = plot_data.frame\n            names = plot_data.names",
+        "search_lines": 8,
+        "replace_lines": 8
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2602.828025817871,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.54s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_base.py",
+        "loc": 1147,
+        "blank_lines": 359,
+        "comment_lines": 267,
+        "function_count": 47,
+        "avg_cc": 6.76,
+        "max_cc": 28.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_base.py",
+        "loc": 1148,
+        "blank_lines": 359,
+        "comment_lines": 267,
+        "function_count": 47,
+        "avg_cc": 6.78,
+        "max_cc": 28.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_base.py b/seaborn/_base.py\nindex 0d9f010..93ee868 100644\n--- a/seaborn/_base.py\n+++ b/seaborn/_base.py\n@@ -623,7 +623,7 @@ class VectorPlotter:\n \n     _default_size_range = 1, 2  # Unused but needed in tests, ugh\n \n-    def __init__(self, data=None, variables={}):\n+    def __init__(self, data=None, variables={}, plot_data_cls=None):\n \n         self._var_levels = {}\n         # var_ordered is relevant only for categorical axis variables, and may\n@@ -631,6 +631,7 @@ class VectorPlotter:\n         # such information and is set up by the scale_* methods. The analogous\n         # information for numeric axes would be information about log scales.\n         self._var_ordered = {\"x\": False, \"y\": False}  # alt., used DefaultDict\n+        self.plot_data_cls = plot_data_cls or PlotData\n         self.assign_variables(data, variables)\n \n         # TODO Lots of tests assume that these are called to initialize the\n@@ -676,7 +677,7 @@ class VectorPlotter:\n             # object (internal but introduced for the objects interface)\n             # to centralize / standardize data consumption logic.\n             self.input_format = \"long\"\n-            plot_data = PlotData(data, variables)\n+            plot_data = self.plot_data_cls(data, variables)\n             frame = plot_data.frame\n             names = plot_data.names\n \n",
+  "duration_ms": 21498.154878616333
+}

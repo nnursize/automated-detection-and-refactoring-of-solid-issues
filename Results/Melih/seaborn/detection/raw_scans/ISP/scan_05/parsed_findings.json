@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 57,
+    "line_end": 128,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Scale interface forces the Identity subclass to inherit methods it does not use or implement.",
+    "reasoning": "The Scale base class defines a contract including tick(), label(), and _setup(). However, the Internal Identity class created via the _identity static method (line 120) inherits from Scale but leaves these methods unimplemented (raising NotImplementedError from the base). This forces the Identity scale to depend on a fat interface that it does not fully satisfy, a clear violation of ISP."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 1109,
+    "line_end": 1123,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Base class defines specific scaling methods that subclasses are forced to inherit but may not implement.",
+    "reasoning": "Refused Bequest smell -> ISP violation. The VectorPlotter class defines scale_native, scale_numeric, and scale_datetime as methods that raise NotImplementedError. This creates a fat interface where subclasses (like _CategoricalPlotter) are forced to carry these methods even if they only support categorical scaling. This forces clients of the subclasses to depend on an interface that is partially unimplemented for their specific use case."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 54,
+    "line_end": 1001,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Fat interface in _CategoricalPlotter forces specific plot functions to depend on unrelated plotting methods.",
+    "reasoning": "God Class smell -> ISP violation. _CategoricalPlotter serves as a single interface for all categorical plot types, containing methods like plot_strips, plot_swarms, plot_boxes, etc. Functional clients like boxplot() or violinplot() are forced to depend on this entire fat interface, including many methods they never call. This couples unrelated plotting logic into a single monolithic interface."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 101,
+    "line_end": 851,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Fat interface in _DistributionPlotter forces specific plot functions to depend on unrelated plotting methods.",
+    "reasoning": "God Class smell -> ISP violation. Similar to _CategoricalPlotter, this class aggregates all distribution-related plotting logic (histograms, KDEs, ECDFs, rugs) into one interface. Clients like kdeplot() are forced to depend on the entire class, including histogram and rug plotting logic they do not use, violating the principle that clients should not depend on methods they do not use."
+  }
+]

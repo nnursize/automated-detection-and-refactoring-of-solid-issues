@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity.<locals>.Identity",
+    "entity_type": "class",
+    "line_start": 86,
+    "line_end": 91,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The Identity class inherits from Scale but fails to implement its core interface methods.",
+    "reasoning": "The Scale base class defines a broad interface including methods like tick(), label(), and _setup(). The Identity class, created via the _identity static method, inherits from Scale but does not provide implementations for these methods. Consequently, it relies on the base class implementations which raise NotImplementedError. This forces the Identity scale to depend on and carry around an interface it cannot fulfill, violating ISP."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 63,
+    "line_end": 1042,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Monolithic plotter class acts as a fat interface for all categorical plot types.",
+    "reasoning": "_CategoricalPlotter provides a massive interface containing specialized plotting methods for every categorical plot type (e.g., plot_strips, plot_swarms, plot_violins, plot_boxes). Clients like the boxplot() or violinplot() functions are forced to depend on this bloated object, even though they only require a small subset of the provided functionality. This is a violation where a large interface should be segregated into smaller, plot-specific components."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 103,
+    "line_end": 918,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Distribution plotter provides a fat interface for unrelated distribution visualizations.",
+    "reasoning": "Similar to the categorical plotter, _DistributionPlotter combines univariate and bivariate histograms, KDEs, rug plots, and ECDFs into a single class. Specific client functions like kdeplot() or rugplot() instantiate this class and depend on its entire surface area, despite only using 10-20% of its methods. The interface is not segregated according to the needs of the distinct visualization types."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 1045,
+    "line_end": 1065,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Base class defines a scaling interface that is frequently left unimplemented by subclasses.",
+    "reasoning": "VectorPlotter defines methods like scale_native, scale_numeric, and scale_datetime that raise NotImplementedError. Subclasses such as _CategoricalPlotter or _RelationalPlotter inherit this 'fat' interface but often do not implement all (or any) of these specific scaling methods, preferring their own specialized logic. This forces subclasses to carry around and depend on an interface that they are not prepared to fully implement."
+  }
+]

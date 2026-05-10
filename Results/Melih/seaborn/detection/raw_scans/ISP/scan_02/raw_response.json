@@ -1,0 +1,73 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_02",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 2,
+  "timestamp": "2026-04-18T14:26:16.125563",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Interface Segregation Principle (ISP).\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.\n\n## What to Look For\n- Abstract base classes or interfaces with too many methods\n- Clas...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1111,\n      \"line_end\": 1128,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Base class defines a scaling interface that subclasses cannot fully satisfy.\",\n      \"reasoning\": \"The VectorPlotter class defines an interface for multiple types of data scaling including scale_native, scale_numeric, and scale_datetime. These methods raise NotImplementedError by default. Subclasses like _CategoricalPlotter are forced to inherit these methods even though they are only intended to handle categorical data. This forces subclasses to depend on and expose an interface they do not use or support, which is a direct violation of ISP.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"ContinuousBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 255,\n      \"line_end\": 334,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"ContinuousBase fails to implement multiple methods of the Scale interface.\",\n      \"reasoning\": \"ContinuousBase implements the Scale interface but fails to provide implementations for tick, label, _get_locators, and _get_formatter, leaving them to raise NotImplementedError. This indicates that the Scale interface is too broad (fat) for this specific base class, which is designed only to handle setup and transformation logic rather than axis decoration.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 53,\n      \"line_end\": 653,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"_CategoricalPlotter is a monolithic class bundling logic for all categorical plot types.\",\n      \"reasoning\": \"This class serves as a 'fat interface' by aggregating specialized plotting methods for disparate plot types (e.g., plot_boxes, plot_violins, plot_swarms, plot_boxens). Individual plotting functions (the clients, such as boxplot or violinplot) are forced to depend on this monolithic class and all its unrelated plotting logic rather than smaller, segregated interfaces specific to their requirements.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 80,\n      \"line_end\": 929,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"_DistributionPlotter bundles unrelated plotting methods into a single interface.\",\n      \"reasoning\": \"Similar to _CategoricalPlotter, this class acts as a fat interface by bundling logic for histograms, KDEs, ECDFs, and rug plots. A client using only one type of distribution plot (e.g., rugplot) is forced to depend on a plotter object that carries the implementation details and dependencies of all other distribution visualization methods.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale._identity\",\n      \"entity_type\": \"method\",\n      \"line_start\": 98,\n      \"line_end\": 106,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Identity scale implementation violates the Scale interface contract.\",\n      \"reasoning\": \"The _identity static method creates an anonymous subclass of Scale that explicitly leaves the tick and label methods as NotImplementedError. This forces the Identity scale to depend on an interface it cannot satisfy, violating ISP and potentially causing runtime errors for clients expecting a fully functional Scale object.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 1111,
+      "line_end": 1128,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Base class defines a scaling interface that subclasses cannot fully satisfy.",
+      "reasoning": "The VectorPlotter class defines an interface for multiple types of data scaling including scale_native, scale_numeric, and scale_datetime. These methods raise NotImplementedError by default. Subclasses like _CategoricalPlotter are forced to inherit these methods even though they are only intended to handle categorical data. This forces subclasses to depend on and expose an interface they do not use or support, which is a direct violation of ISP."
+    },
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "ContinuousBase",
+      "entity_type": "class",
+      "line_start": 255,
+      "line_end": 334,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "ContinuousBase fails to implement multiple methods of the Scale interface.",
+      "reasoning": "ContinuousBase implements the Scale interface but fails to provide implementations for tick, label, _get_locators, and _get_formatter, leaving them to raise NotImplementedError. This indicates that the Scale interface is too broad (fat) for this specific base class, which is designed only to handle setup and transformation logic rather than axis decoration."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 53,
+      "line_end": 653,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "_CategoricalPlotter is a monolithic class bundling logic for all categorical plot types.",
+      "reasoning": "This class serves as a 'fat interface' by aggregating specialized plotting methods for disparate plot types (e.g., plot_boxes, plot_violins, plot_swarms, plot_boxens). Individual plotting functions (the clients, such as boxplot or violinplot) are forced to depend on this monolithic class and all its unrelated plotting logic rather than smaller, segregated interfaces specific to their requirements."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 80,
+      "line_end": 929,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "_DistributionPlotter bundles unrelated plotting methods into a single interface.",
+      "reasoning": "Similar to _CategoricalPlotter, this class acts as a fat interface by bundling logic for histograms, KDEs, ECDFs, and rug plots. A client using only one type of distribution plot (e.g., rugplot) is forced to depend on a plotter object that carries the implementation details and dependencies of all other distribution visualization methods."
+    },
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale._identity",
+      "entity_type": "method",
+      "line_start": 98,
+      "line_end": 106,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Identity scale implementation violates the Scale interface contract.",
+      "reasoning": "The _identity static method creates an anonymous subclass of Scale that explicitly leaves the tick and label methods as NotImplementedError. This forces the Identity scale to depend on an interface it cannot satisfy, violating ISP and potentially causing runtime errors for clients expecting a fully functional Scale object."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 84191.36953353882,
+  "error": null
+}

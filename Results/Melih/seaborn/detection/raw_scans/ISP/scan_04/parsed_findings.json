@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 1058,
+    "line_end": 1076,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Fat interface for scaling logic forces subclasses to inherit unsupported methods.",
+    "reasoning": "The 'Fat Interface' smell in VectorPlotter is a violation of ISP because it defines several specific scaling methods (scale_native, scale_numeric, scale_datetime) that raise NotImplementedError. This forces all subclasses, regardless of their specific data handling needs, to inherit and depend on an interface that includes methods they do not implement or support. For example, a categorical plotter is forced to carry the interface for numeric and datetime scaling."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 58,
+    "line_end": 1100,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "God Class bundles unrelated plotting methods, creating a fat interface for clients and subclasses.",
+    "reasoning": "The 'God Class' smell in _CategoricalPlotter leads to an ISP violation. It bundles plotting logic for many distinct types (boxes, violins, bars, etc.) into a single interface. Clients like the 'boxplot' function are forced to depend on the entire class despite only using one method (plot_boxes). Furthermore, subclasses like _CategoricalAggPlotter are forced to inherit numerous plotting methods (like plot_violins or plot_boxens) that are irrelevant to their purpose, violating the principle that classes should not depend on methods they do not use."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 840,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "God Class bundles univariate and bivariate logic, forcing clients to depend on unused functionality.",
+    "reasoning": "The 'God Class' smell in _DistributionPlotter violates ISP by combining disparate plotting logic for histograms, KDEs, and ECDFs in both univariate and bivariate forms. This creates a fat interface where clients (e.g., kdeplot) and potential subclasses are forced to depend on a large set of methods they do not use (e.g., bivariate histogram logic when only doing univariate KDEs). This violates the principle that clients should not be forced to depend on interfaces they do not use."
+  }
+]

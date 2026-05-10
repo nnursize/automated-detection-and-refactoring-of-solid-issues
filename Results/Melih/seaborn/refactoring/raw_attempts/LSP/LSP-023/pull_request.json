@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-023",
+  "principle": "LSP",
+  "title": "Refactor LSP-023 (LSP): Empty concrete class inherits abstract methods from Scale but does not implem...",
+  "branch": "refactor/LSP-023",
+  "base": "main",
+  "head_commit": "e3c6fbb3995590714fd97e241badeebaff3f3258",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10461,
+    "completion_tokens": 475
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Ordinal",
+    "entity_type": "class",
+    "line_start": 402,
+    "line_end": 404,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Empty concrete class inherits abstract methods from Scale but does not implement them.",
+    "reasoning": "The Ordinal class is an empty class inheriting from Scale, which defines multiple abstract methods (tick, label, _get_locators, _get_formatter, _setup). An empty class in Python is concrete. Therefore, Ordinal is a concrete class that fails to implement the abstract contract of its base class, violating LSP. Instances of Ordinal would not be fully substitutable for Scale."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Implement abstract methods in Ordinal class to satisfy Scale contract",
+    "rationale": "The Ordinal class was an empty subclass of Scale, which defines abstract methods (tick, label, _get_locators, _get_formatter, _setup). This violated the Liskov Substitution Principle. I have implemented these methods to match the expected behavior of a categorical scale, similar to the Nominal class.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Ordinal(Scale):\n    # Categorical (convert to strings), sortable, can skip ticklabels\n    ...",
+        "replace_text": "@dataclass\nclass Ordinal(Scale):\n    # Categorical (convert to strings), sortable, can skip ticklabels\n    values: tuple | str | list | dict | None = None\n    order: list | None = None\n\n    _priority: ClassVar[int] = 4\n\n    def _setup(\n        self, data: Series, prop: Property, axis: Axis | None = None,\n    ) -> Scale:\n        # Ordinal behaves like Nominal for setup\n        return Nominal(values=self.values, order=self.order)._setup(data, prop, axis)\n\n    def _finalize(self, p: Plot, axis: Axis) -> None:\n        return Nominal(values=self.values, order=self.order)._finalize(p, axis)\n\n    def tick(self, locator: Locator | None = None) -> Ordinal:\n        new = copy(self)\n        new._tick_params = {\"locator\": locator}\n        return new\n\n    def label(self, formatter: Formatter | None = None) -> Ordinal:\n        new = copy(self)\n        new._label_params = {\"formatter\": formatter}\n        return new\n\n    def _get_locators(self, locator):\n        return Nominal()._get_locators(locator)\n\n    def _get_formatter(self, locator, formatter):\n        return Nominal()._get_formatter(locator, formatter)",
+        "search_lines": 4,
+        "replace_lines": 32
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2660.6082916259766,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:460: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.59s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 752,
+        "blank_lines": 236,
+        "comment_lines": 97,
+        "function_count": 82,
+        "avg_cc": 2.79,
+        "max_cc": 16.0,
+        "mi": 23.27
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 772,
+        "blank_lines": 243,
+        "comment_lines": 98,
+        "function_count": 88,
+        "avg_cc": 2.66,
+        "max_cc": 16.0,
+        "mi": 21.81
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex be3815a..d23bcda 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -407,7 +407,35 @@ class Nominal(Scale):\n @dataclass\n class Ordinal(Scale):\n     # Categorical (convert to strings), sortable, can skip ticklabels\n-    ...\n+    values: tuple | str | list | dict | None = None\n+    order: list | None = None\n+\n+    _priority: ClassVar[int] = 4\n+\n+    def _setup(\n+        self, data: Series, prop: Property, axis: Axis | None = None,\n+    ) -> Scale:\n+        # Ordinal behaves like Nominal for setup\n+        return Nominal(values=self.values, order=self.order)._setup(data, prop, axis)\n+\n+    def _finalize(self, p: Plot, axis: Axis) -> None:\n+        return Nominal(values=self.values, order=self.order)._finalize(p, axis)\n+\n+    def tick(self, locator: Locator | None = None) -> Ordinal:\n+        new = copy(self)\n+        new._tick_params = {\"locator\": locator}\n+        return new\n+\n+    def label(self, formatter: Formatter | None = None) -> Ordinal:\n+        new = copy(self)\n+        new._label_params = {\"formatter\": formatter}\n+        return new\n+\n+    def _get_locators(self, locator):\n+        return Nominal()._get_locators(locator)\n+\n+    def _get_formatter(self, locator, formatter):\n+        return Nominal()._get_formatter(locator, formatter)\n \n \n @dataclass\n",
+  "duration_ms": 12371.532678604126
+}

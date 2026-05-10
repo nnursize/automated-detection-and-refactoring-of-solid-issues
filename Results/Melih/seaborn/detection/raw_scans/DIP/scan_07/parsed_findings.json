@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Directly instantiates concrete statistical and algorithmic classes (KDE, Beeswarm, LetterValues).",
+    "reasoning": "The class directly instantiates concrete statistical and algorithmic implementations such as KDE (line 1031), Beeswarm (line 743), and LetterValues (line 913) instead of depending on abstractions and using dependency injection. This couples the high-level plotting logic to specific low-level details, making it difficult to swap or mock these components for testing or extension."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Directly instantiates multiple concrete statistical estimator classes (KDE, Hist, Histogram, ECDF).",
+    "reasoning": "The class directly instantiates multiple concrete statistical estimator classes such as KDE (line 237), Hist (line 347), Histogram (line 566), and ECDF (line 893) instead of depending on abstractions. This violates DIP as high-level modules should not depend on low-level implementation details, and it prevents the injection of alternative statistical models."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Directly instantiates concrete data container (PlotData) and semantic mapping classes.",
+    "reasoning": "The base class directly instantiates concrete implementations of data containers like PlotData (line 665) and semantic mappers such as HueMapping (line 811), SizeMapping (line 815), and StyleMapping (line 819). This violates DIP as the base class should depend on abstractions for these components, allowing for substitutability and reducing tight coupling between the base plotter and its data/mapping strategies."
+  }
+]

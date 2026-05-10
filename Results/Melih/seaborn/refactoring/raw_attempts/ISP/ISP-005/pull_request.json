@@ -1,0 +1,148 @@
+{
+  "issue_id": "ISP-005",
+  "principle": "ISP",
+  "title": "Refactor ISP-005 (ISP): ContinuousBase fails to implement multiple methods of the Scale interface.",
+  "branch": "refactor/ISP-005",
+  "base": "main",
+  "head_commit": "2682fe601550ef9b10a85e5ae8950b695961a943",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10742,
+    "completion_tokens": 1143
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "ContinuousBase",
+    "entity_type": "class",
+    "line_start": 255,
+    "line_end": 334,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "ContinuousBase fails to implement multiple methods of the Scale interface.",
+    "reasoning": "ContinuousBase implements the Scale interface but fails to provide implementations for tick, label, _get_locators, and _get_formatter, leaving them to raise NotImplementedError. This indicates that the Scale interface is too broad (fat) for this specific base class, which is designed only to handle setup and transformation logic rather than axis decoration."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Split AxisScale into AxisScale and TickLabelScale to resolve ISP violation",
+    "rationale": "The Scale interface was too broad for classes that only need basic axis interaction but not necessarily tick/label configuration logic. By splitting the interface, classes like ContinuousBase (which handles transformation logic) are no longer forced to implement tick/label methods that were previously raising NotImplementedError.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 7,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "class AxisScale(Scale):\n    \"\"\"Mixin for scales that interact with matplotlib axes.\"\"\"\n\n    def __post_init__(self):\n        super().__post_init__()\n        self._tick_params = None\n        self._label_params = None\n\n    def tick(self):\n        raise NotImplementedError()\n\n    def label(self):\n        raise NotImplementedError()\n\n    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))",
+        "replace_text": "class AxisScale(Scale):\n    \"\"\"Mixin for scales that interact with matplotlib axes.\"\"\"\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n        return mpl.scale.FuncScale(name, (forward, inverse))\n\n\nclass TickLabelScale(AxisScale):\n    \"\"\"Mixin for scales that support tick and label configuration.\"\"\"\n\n    def __post_init__(self):\n        super().__post_init__()\n        self._tick_params = None\n        self._label_params = None\n\n    def tick(self):\n        raise NotImplementedError()\n\n    def label(self):\n        raise NotImplementedError()\n\n    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))",
+        "search_lines": 33,
+        "replace_lines": 40
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Boolean(AxisScale):",
+        "replace_text": "@dataclass\nclass Boolean(TickLabelScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Nominal(AxisScale):",
+        "replace_text": "@dataclass\nclass Nominal(TickLabelScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Ordinal(AxisScale):",
+        "replace_text": "@dataclass\nclass Ordinal(TickLabelScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass ContinuousBase(AxisScale):\n\n    values: tuple | str | None = None\n    norm: tuple | None = None\n\n    def _setup(\n        self, data: Series, prop: Property, axis: Axis | None = None,\n    ) -> Scale:\n\n        new = copy(self)\n        if new._tick_params is None:\n            new = new.tick()\n        if new._label_params is None:\n            new = new.label()\n\n        forward, inverse = new._get_transform()",
+        "replace_text": "@dataclass\nclass ContinuousBase(AxisScale):\n\n    values: tuple | str | None = None\n    norm: tuple | None = None\n\n    def _setup(\n        self, data: Series, prop: Property, axis: Axis | None = None,\n    ) -> Scale:\n\n        new = copy(self)\n        forward, inverse = new._get_transform()",
+        "search_lines": 17,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Continuous(ContinuousBase):",
+        "replace_text": "@dataclass\nclass Continuous(ContinuousBase, TickLabelScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "@dataclass\nclass Temporal(ContinuousBase):",
+        "replace_text": "@dataclass\nclass Temporal(ContinuousBase, TickLabelScale):",
+        "search_lines": 2,
+        "replace_lines": 2
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2420.5193519592285,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.50s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 775,
+        "blank_lines": 247,
+        "comment_lines": 98,
+        "function_count": 86,
+        "avg_cc": 2.64,
+        "max_cc": 16.0,
+        "mi": 21.69
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 775,
+        "blank_lines": 249,
+        "comment_lines": 98,
+        "function_count": 87,
+        "avg_cc": 2.57,
+        "max_cc": 16.0,
+        "mi": 21.88
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex bbbfa96..1abc9f9 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -126,6 +126,13 @@ class Scale:\n class AxisScale(Scale):\n     \"\"\"Mixin for scales that interact with matplotlib axes.\"\"\"\n \n+    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n+        return mpl.scale.FuncScale(name, (forward, inverse))\n+\n+\n+class TickLabelScale(AxisScale):\n+    \"\"\"Mixin for scales that support tick and label configuration.\"\"\"\n+\n     def __post_init__(self):\n         super().__post_init__()\n         self._tick_params = None\n@@ -159,7 +166,7 @@ class AxisScale(Scale):\n \n \n @dataclass\n-class Boolean(AxisScale):\n+class Boolean(TickLabelScale):\n     \"\"\"\n     A scale with a discrete domain of True and False values.\n \n@@ -252,7 +259,7 @@ class Boolean(AxisScale):\n \n \n @dataclass\n-class Nominal(AxisScale):\n+class Nominal(TickLabelScale):\n     \"\"\"\n     A categorical scale without relative importance / magnitude.\n     \"\"\"\n@@ -412,7 +419,7 @@ class Nominal(AxisScale):\n \n \n @dataclass\n-class Ordinal(AxisScale):\n+class Ordinal(TickLabelScale):\n     # Categorical (convert to strings), sortable, can skip ticklabels\n     values: tuple | str | list | dict | None = None\n     order: list | None = None\n@@ -462,11 +469,6 @@ class ContinuousBase(AxisScale):\n     ) -> Scale:\n \n         new = copy(self)\n-        if new._tick_params is None:\n-            new = new.tick()\n-        if new._label_params is None:\n-            new = new.label()\n-\n         forward, inverse = new._get_transform()\n \n         mpl_scale = new._get_scale(str(data.name), forward, inverse)\n@@ -564,7 +566,7 @@ class ContinuousBase(AxisScale):\n \n \n @dataclass\n-class Continuous(ContinuousBase):\n+class Continuous(ContinuousBase, TickLabelScale):\n     \"\"\"\n     A numeric scale supporting norms and functional transforms.\n     \"\"\"\n@@ -789,7 +791,7 @@ class Continuous(ContinuousBase):\n \n \n @dataclass\n-class Temporal(ContinuousBase):\n+class Temporal(ContinuousBase, TickLabelScale):\n     \"\"\"\n     A scale for date/time data.\n     \"\"\"\n",
+  "duration_ms": 16837.571620941162
+}

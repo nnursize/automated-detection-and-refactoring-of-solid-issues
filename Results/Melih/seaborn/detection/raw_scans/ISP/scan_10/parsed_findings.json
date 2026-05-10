@@ -1,0 +1,101 @@
+[
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Abstract base class defines scaling methods not implemented by all subclasses.",
+    "reasoning": "The `VectorPlotter` class defines abstract methods `scale_native`, `scale_numeric`, and `scale_datetime`. Subclasses like `_CategoricalPlotter` and `_DistributionPlotter` (in other files) inherit from `VectorPlotter` but do not implement these abstract methods, forcing them to depend on an interface that includes methods they do not use or provide functionality for. This indicates `VectorPlotter` is a fat interface for these specific clients."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Bloated class combining many distinct categorical plot functionalities.",
+    "reasoning": "The `_CategoricalPlotter` class includes methods for various distinct categorical plot types such as `plot_strips`, `plot_swarms`, `plot_boxes`, `plot_violins`, `plot_points`, and `plot_bars`. A client interested in only one type of categorical plot (e.g., `plot_strips`) is forced to depend on the entire broad interface, including methods for other plot types they do not need. This interface could be segregated into smaller, more focused interfaces."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Bloated class combining many distinct distribution plot functionalities.",
+    "reasoning": "The `_DistributionPlotter` class includes methods for various distinct distribution plot types such as `plot_univariate_histogram`, `plot_bivariate_histogram`, `plot_univariate_density`, `plot_bivariate_density`, `plot_univariate_ecdf`, and `plot_rug`. A client interested in only one type of distribution plot is forced to depend on the entire broad interface, including methods for other plot types they do not need. This interface could be segregated into smaller, more focused interfaces."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plot",
+    "entity_type": "class",
+    "line_start": 253,
+    "line_end": 968,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "God object combining many unrelated plot configuration and manipulation responsibilities.",
+    "reasoning": "The `Plot` class aggregates a vast amount of functionality, including adding marks, faceting, pairing, scaling, sharing, limiting, labeling, layout, theming, saving, showing, and plotting. This makes it a 'god object' with a fat interface. Clients are forced to depend on this broad interface even if they only require a small subset of its capabilities, violating ISP."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter",
+    "entity_type": "class",
+    "line_start": 974,
+    "line_end": 1830,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Bloated class responsible for diverse plotting execution and rendering concerns.",
+    "reasoning": "The `Plotter` class handles a wide range of responsibilities related to plot execution, including data extraction, label resolution, figure setup, statistics computation, scale setup, layer plotting, coordinate unscaling, pairing generation, subplot filtering, and legend management. This broad interface forces clients to depend on many unrelated functionalities, making it a fat interface and violating ISP."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Ordinal",
+    "entity_type": "class",
+    "line_start": 402,
+    "line_end": 404,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from abstract 'Scale' but does not implement its abstract methods.",
+    "reasoning": "The `Ordinal` class inherits from `Scale`, which defines abstract methods like `tick`, `label`, `_get_locators`, `_get_formatter`, and `_setup`. However, `Ordinal` is an empty class and does not implement any of these abstract methods. This forces `Ordinal` to depend on an interface it does not fully use, violating ISP."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Discrete",
+    "entity_type": "class",
+    "line_start": 408,
+    "line_end": 410,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from abstract 'Scale' but does not implement its abstract methods.",
+    "reasoning": "The `Discrete` class inherits from `Scale`, which defines abstract methods like `tick`, `label`, `_get_locators`, `_get_formatter`, and `_setup`. However, `Discrete` is an empty class and does not implement any of these abstract methods. This forces `Discrete` to depend on an interface it does not fully use, violating ISP."
+  },
+  {
+    "file_path": "seaborn/_marks/area.py",
+    "entity_name": "Band",
+    "entity_type": "class",
+    "line_start": 141,
+    "line_end": 170,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from abstract 'AreaBase' but does not implement its abstract method '_postprocess_artist'.",
+    "reasoning": "The `Band` class inherits from `AreaBase`, which defines the abstract method `_postprocess_artist`. However, `Band` does not implement this method. This forces `Band` to depend on an interface it does not fully use, violating ISP. It should either implement the method or be marked as abstract itself."
+  },
+  {
+    "file_path": "seaborn/_stats/regression.py",
+    "entity_name": "OLSFit",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 50,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class inherits from abstract 'Stat' but does not implement its abstract method '__call__'.",
+    "reasoning": "The `OLSFit` class inherits from `Stat`, which defines the abstract method `__call__`. However, `OLSFit` is an empty class and does not implement this method. This forces `OLSFit` to depend on an interface it does not fully use, violating ISP. It should either implement the method or be marked as abstract itself."
+  }
+]

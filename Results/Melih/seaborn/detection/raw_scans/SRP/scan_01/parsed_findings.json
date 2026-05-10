@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.__init__",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 96,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The constructor handles data reshaping, variable renaming, orientation inference, legend initialization, and categorical level ordering.",
+    "reasoning": "This constructor bundles multiple responsibilities: data transformation (renaming x/y for wide data, adding anonymous category), configuration (inferring orient, setting legend), and data preparation (determining categorical levels). A change in wide-form data handling, orientation inference rules, or categorical ordering logic would all require modifying this method, indicating multiple reasons to change."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_violins",
+    "entity_type": "method",
+    "line_start": 435,
+    "line_end": 648,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This method performs statistical estimation (KDE), data normalization, coordinate transformation, Matplotlib artist creation, and legend configuration.",
+    "reasoning": "The `plot_violins` method is responsible for too many distinct concerns. It calculates kernel density estimates, normalizes densities across groups, transforms coordinates, creates and configures various Matplotlib artists (fill_between, scatter, LineCollection, plot), and manages legend data. Changes to the KDE algorithm, density normalization, coordinate system, rendering logic, or legend behavior would all necessitate modifying this single method."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 1056,
+    "line_end": 1289,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This figure-level function acts as a 'god function' by dispatching to various plot kinds, handling faceting, managing parameters, and configuring legends.",
+    "reasoning": "`catplot` orchestrates the creation of an entire figure, including: input validation, handling deprecations, selecting the appropriate plotter class based on `kind`, adapting data for `FacetGrid`, initializing `FacetGrid`, applying semantic mappings, dispatching to specific `plot_X` methods, and managing the legend. Any change to a plot kind's parameters, faceting logic, or legend behavior would require modifying this function, making it highly susceptible to change for many reasons."
+  }
+]

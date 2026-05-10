@@ -1,0 +1,108 @@
+{
+  "issue_id": "ISP-004",
+  "principle": "ISP",
+  "title": "Refactor ISP-004 (ISP): Base class defines a scaling interface that subclasses cannot fully satisfy.",
+  "branch": "refactor/ISP-004",
+  "base": "main",
+  "head_commit": "858bf09fcd98754b8b32b96ddd40cd95eeaed120",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11911,
+    "completion_tokens": 1752
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 1111,
+    "line_end": 1128,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Base class defines a scaling interface that subclasses cannot fully satisfy.",
+    "reasoning": "The VectorPlotter class defines an interface for multiple types of data scaling including scale_native, scale_numeric, and scale_datetime. These methods raise NotImplementedError by default. Subclasses like _CategoricalPlotter are forced to inherit these methods even though they are only intended to handle categorical data. This forces subclasses to depend on and expose an interface they do not use or support, which is a direct violation of ISP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract scaling methods from VectorPlotter into a mixin class to resolve ISP violation.",
+    "rationale": "The VectorPlotter class was forced to implement scaling methods (native, numeric, datetime) that were not applicable to all subclasses (e.g., categorical plotters). By moving these to a 'ScaleMixin', we allow only the relevant plotters to inherit these capabilities, adhering to the Interface Segregation Principle.",
+    "files_touched": [
+      "seaborn/_base.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_base.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_base.py",
+        "search_text": "    # XXX If the scale_* methods are going to modify the plot_data structure, they\n    # can't be called twice. That means that if they are called twice, they should\n    # raise. Alternatively, we could store an original version of plot_data and each\n    # time they are called they operate on the store, not the current state.\n\n    def scale_native(self, axis, *args, **kwargs):\n\n        # Default, defer to matplotlib\n\n        raise NotImplementedError\n\n    def scale_numeric(self, axis, *args, **kwargs):\n\n        # Feels needed to completeness, what should it do?\n        # Perhaps handle log scaling? Set the ticker/formatter/limits?\n\n        raise NotImplementedError\n\n    def scale_datetime(self, axis, *args, **kwargs):\n\n        # Use pd.to_datetime to convert strings or numbers to datetime objects\n        # Note, use day-resolution for numeric->datetime to match matplotlib\n\n        raise NotImplementedError\n\n    def scale_categorical(self, axis, order=None, formatter=None):",
+        "replace_text": "class ScaleMixin:\n    \"\"\"Mixin for plotters that support data scaling.\"\"\"\n\n    def scale_native(self, axis, *args, **kwargs):\n\n        # Default, defer to matplotlib\n\n        raise NotImplementedError\n\n    def scale_numeric(self, axis, *args, **kwargs):\n\n        # Feels needed to completeness, what should it do?\n        # Perhaps handle log scaling? Set the ticker/formatter/limits?\n\n        raise NotImplementedError\n\n    def scale_datetime(self, axis, *args, **kwargs):\n\n        # Use pd.to_datetime to convert strings or numbers to datetime objects\n        # Note, use day-resolution for numeric->datetime to match matplotlib\n\n        raise NotImplementedError\n\n    def scale_categorical(self, axis, order=None, formatter=None):",
+        "search_lines": 26,
+        "replace_lines": 24
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_base.py",
+        "search_text": "        # TODO another, and distinct idea, is to expose a cut= param here\n\n        _check_argument(\"axis\", [\"x\", \"y\"], axis)\n\n        # Categorical plots can be \"univariate\" in which case they get an anonymous\n        # category label on the opposite axis.\n        if axis not in self.variables:\n            self.variables[axis] = None\n            self.var_types[axis] = \"categorical\"\n            self.plot_data[axis] = \"\"\n\n        # If the \"categorical\" variable has a numeric type, sort the rows so that\n        # the default result from categorical_order has those values sorted after\n        # they have been coerced to strings. The reason for this is so that later\n        # we can get facet-wise orders that are correct.\n        # XXX Should this also sort datetimes?\n        # It feels more consistent, but technically will be a default change\n        # If so, should also change categorical_order to behave that way\n        if self.var_types[axis] == \"numeric\":\n            self.plot_data = self.plot_data.sort_values(axis, kind=\"mergesort\")\n\n        # Now get a reference to the categorical data vector and remove na values\n        cat_data = self.plot_data[axis].dropna()\n\n        # Get the initial categorical order, which we do before string\n        # conversion to respect the original types of the order list.\n        # Track whether the order is given explicitly so that we can know\n        # whether or not to use the order constructed here downstream\n        self._var_ordered[axis] = order is not None or cat_data.dtype.name == \"category\"\n        order = pd.Index(categorical_order(cat_data, order), name=axis)\n\n        # Then convert data to strings. This is because in matplotlib,\n        # \"categorical\" data really mean \"string\" data, so doing this artists\n        # will be drawn on the categorical axis with a fixed scale.\n        # TODO implement formatter here; check that it returns strings?\n        if formatter is not None:\n            cat_data = cat_data.map(formatter)\n            order = order.map(formatter)\n        else:\n            cat_data = cat_data.astype(str)\n            order = order.astype(str)\n\n        # Update the levels list with the type-converted order variable\n        self.var_levels[axis] = order\n\n        # Now ensure that seaborn will use categorical rules internally\n        self.var_types[axis] = \"categorical\"\n\n        # Put the string-typed categorical vector back into the plot_data structure\n        self.plot_data[axis] = cat_data\n\n        return self",
+        "replace_text": "        # TODO another, and distinct idea, is to expose a cut= param here\n\n        _check_argument(\"axis\", [\"x\", \"y\"], axis)\n\n        # Categorical plots can be \"univariate\" in which case they get an anonymous\n        # category label on the opposite axis.\n        if axis not in self.variables:\n            self.variables[axis] = None\n            self.var_types[axis] = \"categorical\"\n            self.plot_data[axis] = \"\"\n\n        # If the \"categorical\" variable has a numeric type, sort the rows so that\n        # the default result from categorical_order has those values sorted after\n        # they have been coerced to strings. The reason for this is so that later\n        # we can get facet-wise orders that are correct.\n        # XXX Should this also sort datetimes?\n        # It feels more consistent, but technically will be a default change\n        # If so, should also change categorical_order to behave that way\n        if self.var_types[axis] == \"numeric\":\n            self.plot_data = self.plot_data.sort_values(axis, kind=\"mergesort\")\n\n        # Now get a reference to the categorical data vector and remove na values\n        cat_data = self.plot_data[axis].dropna()\n\n        # Get the initial categorical order, which we do before string\n        # conversion to respect the original types of the order list.\n        # Track whether the order is given explicitly so that we can know\n        # whether or not to use the order constructed here downstream\n        self._var_ordered[axis] = order is not None or cat_data.dtype.name == \"category\"\n        order = pd.Index(categorical_order(cat_data, order), name=axis)\n\n        # Then convert data to strings. This is because in matplotlib,\n        # \"categorical\" data really mean \"string\" data, so doing this artists\n        # will be drawn on the categorical axis with a fixed scale.\n        # TODO implement formatter here; check that it returns strings?\n        if formatter is not None:\n            cat_data = cat_data.map(formatter)\n            order = order.map(formatter)\n        else:\n            cat_data = cat_data.astype(str)\n            order = order.astype(str)\n\n        # Update the levels list with the type-converted order variable\n        self.var_levels[axis] = order\n\n        # Now ensure that seaborn will use categorical rules internally\n        self.var_types[axis] = \"categorical\"\n\n        # Put the string-typed categorical vector back into the plot_data structure\n        self.plot_data[axis] = cat_data\n\n        return self",
+        "search_lines": 52,
+        "replace_lines": 52
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2305.9864044189453,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.39s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_base.py",
+        "loc": 1145,
+        "blank_lines": 359,
+        "comment_lines": 271,
+        "function_count": 47,
+        "avg_cc": 6.82,
+        "max_cc": 28.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_base.py",
+        "loc": 1147,
+        "blank_lines": 359,
+        "comment_lines": 267,
+        "function_count": 47,
+        "avg_cc": 6.76,
+        "max_cc": 28.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_base.py b/seaborn/_base.py\nindex f427bc4..0d9f010 100644\n--- a/seaborn/_base.py\n+++ b/seaborn/_base.py\n@@ -1329,10 +1329,8 @@ class VectorPlotter:\n                 attr.update({k: v[level] for k, v in other_props.items() if level in v})\n                 update(self.variables[var], formatted_level, **attr)\n \n-    # XXX If the scale_* methods are going to modify the plot_data structure, they\n-    # can't be called twice. That means that if they are called twice, they should\n-    # raise. Alternatively, we could store an original version of plot_data and each\n-    # time they are called they operate on the store, not the current state.\n+class ScaleMixin:\n+    \"\"\"Mixin for plotters that support data scaling.\"\"\"\n \n     def scale_native(self, axis, *args, **kwargs):\n \n",
+  "duration_ms": 21577.717065811157
+}

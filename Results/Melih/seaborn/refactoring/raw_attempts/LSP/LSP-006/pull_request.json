@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-006",
+  "principle": "LSP",
+  "title": "Refactor LSP-006 (LSP): Subclass override violates the behavioral contract of the parent method by ig...",
+  "branch": "refactor/LSP-006",
+  "base": "main",
+  "head_commit": "909d86c6fd5c4bbb2f761a668a97158802822856",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8794,
+    "completion_tokens": 630
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Color.infer_scale",
+    "entity_type": "method",
+    "line_start": 487,
+    "line_end": 515,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Subclass override violates the behavioral contract of the parent method by ignoring transformation logic.",
+    "reasoning": "Similar to IntervalProperty, the 'Color' subclass overrides 'infer_scale' and fails to respect the base class contract for processing transformation strings. While the base class 'Property' is designed to handle 'log', 'pow', etc., 'Color.infer_scale' redirects string arguments to nominal palette lookups or other color-specific logic, breaking the substitutability of the Property interface for numeric-based color mappings."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Update Color.infer_scale to respect base class magic scale arguments",
+    "rationale": "The Color subclass was overriding infer_scale and ignoring the base class's logic for 'magic' scale arguments (like 'log', 'pow', etc.). By incorporating the base class's magic scale check into Color.infer_scale, we restore the expected behavior for numeric-based color mappings while maintaining color-specific palette logic.",
+    "files_touched": [
+      "seaborn/_core/properties.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/properties.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/properties.py",
+        "search_text": "    def infer_scale(self, arg: Any, data: Series) -> Scale:\n        var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n\n        if var_type == \"boolean\":\n            return Boolean(arg)\n\n        if isinstance(arg, (dict, list)):\n            return Nominal(arg)\n\n        if isinstance(arg, tuple):\n            return Nominal(arg) if var_type == \"categorical\" else Continuous(arg)\n\n        if callable(arg):\n            return Continuous(arg)\n\n        if isinstance(arg, str):\n            if arg in QUAL_PALETTES:\n                return Nominal(arg)\n            if var_type == \"numeric\":\n                return Continuous(arg)\n            return Nominal(arg)\n\n        msg = \" \".join([\n            f\"A single scale argument for {self.variable} variables must be\",\n            f\"a string, dict, tuple, list, or callable, not {type(arg)}.\"\n        ])\n        raise TypeError(msg)",
+        "replace_text": "    def infer_scale(self, arg: Any, data: Series) -> Scale:\n        var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n\n        if var_type == \"boolean\":\n            return Boolean(arg)\n\n        if isinstance(arg, (dict, list)):\n            return Nominal(arg)\n\n        if isinstance(arg, tuple):\n            return Nominal(arg) if var_type == \"categorical\" else Continuous(arg)\n\n        if callable(arg):\n            return Continuous(arg)\n\n        if isinstance(arg, str):\n            for key, cls in self._magic_scales.items():\n                if arg.startswith(key):\n                    return cls(trans=arg)\n            if arg in QUAL_PALETTES:\n                return Nominal(arg)\n            if var_type == \"numeric\":\n                return Continuous(arg)\n            return Nominal(arg)\n\n        msg = \" \".join([\n            f\"A single scale argument for {self.variable} variables must be\",\n            f\"a string, dict, tuple, list, or callable, not {type(arg)}.\"\n        ])\n        raise TypeError(msg)",
+        "search_lines": 27,
+        "replace_lines": 30
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2219.5069789886475,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:460: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.35s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/properties.py",
+        "loc": 587,
+        "blank_lines": 171,
+        "comment_lines": 62,
+        "function_count": 55,
+        "avg_cc": 2.89,
+        "max_cc": 12.0,
+        "mi": 23.43
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/properties.py",
+        "loc": 590,
+        "blank_lines": 171,
+        "comment_lines": 62,
+        "function_count": 55,
+        "avg_cc": 2.94,
+        "max_cc": 12.0,
+        "mi": 23.05
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/properties.py b/seaborn/_core/properties.py\nindex 8bbddde..86bb33b 100644\n--- a/seaborn/_core/properties.py\n+++ b/seaborn/_core/properties.py\n@@ -598,6 +598,9 @@ class Color(Property):\n             return Continuous(arg)\n \n         if isinstance(arg, str):\n+            for key, cls in self._magic_scales.items():\n+                if arg.startswith(key):\n+                    return cls(trans=arg)\n             if arg in QUAL_PALETTES:\n                 return Nominal(arg)\n             if var_type == \"numeric\":\n",
+  "duration_ms": 17414.19267654419
+}

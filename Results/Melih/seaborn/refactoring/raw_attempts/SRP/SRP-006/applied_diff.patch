@@ -1,0 +1,249 @@
+diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py
+index b235af9..72b21fb 100644
+--- a/seaborn/_core/plot.py
++++ b/seaborn/_core/plot.py
+@@ -992,6 +992,122 @@ class Plotter:
+         ]] = []
+         self._scales: dict[str, Scale] = {}
+ 
++
++class LegendManager:
++    def update(
++        self,
++        plotter: Plotter,
++        p: Plot,
++        mark: Mark,
++        data: PlotData,
++        scales: dict[str, Scale],
++        layer_label: str | None,
++    ) -> None:
++        """Add legend artists / labels for one layer in the plot."""
++        if data.frame.empty and data.frames:
++            legend_vars: list[str] = []
++            for frame in data.frames.values():
++                frame_vars = frame.columns.intersection(list(scales))
++                legend_vars.extend(v for v in frame_vars if v not in legend_vars)
++        else:
++            legend_vars = list(data.frame.columns.intersection(list(scales)))
++
++        # First handle layer legends, which occupy a single entry in legend_contents.
++        if layer_label is not None:
++            legend_title = str(p._labels.get("legend", ""))
++            layer_key = (legend_title, -1)
++            artist = mark._legend_artist([], None, {})
++            if artist is not None:
++                for content in plotter._legend_contents:
++                    if content[0] == layer_key:
++                        content[1].append(artist)
++                        content[2].append(layer_label)
++                        break
++                else:
++                    plotter._legend_contents.append((layer_key, [artist], [layer_label]))
++
++        # Then handle the scale legends
++        # First pass: Identify the values that will be shown for each variable
++        schema: list[tuple[
++            tuple[str, str | int], list[str], tuple[list[Any], list[str]]
++        ]] = []
++        schema = []
++        for var in legend_vars:
++            var_legend = scales[var]._legend
++            if var_legend is not None:
++                values, labels = var_legend
++                for (_, part_id), part_vars, _ in schema:
++                    if data.ids[var] == part_id:
++                        # Allow multiple plot semantics to represent same data variable
++                        part_vars.append(var)
++                        break
++                else:
++                    title = plotter._resolve_label(p, var, data.names[var])
++                    entry = (title, data.ids[var]), [var], (values, labels)
++                    schema.append(entry)
++
++        # Second pass, generate an artist corresponding to each value
++        contents: list[tuple[tuple[str, str | int], Any, list[str]]] = []
++        for key, variables, (values, labels) in schema:
++            artists = []
++            for val in values:
++                artist = mark._legend_artist(variables, val, scales)
++                if artist is not None:
++                    artists.append(artist)
++            if artists:
++                contents.append((key, artists, labels))
++
++        plotter._legend_contents.extend(contents)
++
++    def make(self, plotter: Plotter, p: Plot) -> None:
++        """Create the legend artist(s) and add onto the figure."""
++        # Combine artists representing same information across layers
++        # Input list has an entry for each distinct variable in each layer
++        # Output dict has an entry for each distinct variable
++        merged_contents: dict[
++            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],
++        ] = {}
++        for key, new_artists, labels in plotter._legend_contents:
++            # Key is (name, id); we need the id to resolve variable uniqueness,
++            # but will need the name in the next step to title the legend
++            if key not in merged_contents:
++                # Matplotlib accepts a tuple of artists and will overlay them
++                new_artist_tuples = [tuple([a]) for a in new_artists]
++                merged_contents[key] = new_artist_tuples, labels
++            else:
++                existing_artists = merged_contents[key][0]
++                for i, new_artist in enumerate(new_artists):
++                    existing_artists[i] += tuple([new_artist])
++
++        # When using pyplot, an "external" legend won't be shown, so this
++        # keeps it inside the axes (though still attached to the figure)
++        # This is necessary because matplotlib layout engines currently don't
++        # support figure legends â€” ideally this will change.
++        loc = "center right" if plotter._pyplot else "center left"
++
++        base_legend = None
++        for (name, _), (handles, labels) in merged_contents.items():
++
++            legend = mpl.legend.Legend(
++                plotter._figure,
++                handles,  # type: ignore  # matplotlib/issues/26639
++                labels,
++                title=name,
++                loc=loc,
++                bbox_to_anchor=(.98, .55),
++            )
++
++            if base_legend:
++                # Matplotlib has no public API for this so it is a bit of a hack.
++                # Ideally we'd define our own legend class with more flexibility,
++                # but that is a lot of work!
++                base_legend_box = base_legend.get_children()[0]
++                this_legend_box = legend.get_children()[0]
++                base_legend_box.get_children().extend(this_legend_box.get_children())
++            else:
++                base_legend = legend
++                plotter._figure.legends.append(legend)
++
+     def save(self, loc, **kwargs) -> Plotter:  # TODO type args
+         kwargs.setdefault("dpi", 96)
+         try:
+@@ -1663,118 +1779,11 @@ class Plotter:
+ 
+         return split_generator
+ 
+-    def _update_legend_contents(
+-        self,
+-        p: Plot,
+-        mark: Mark,
+-        data: PlotData,
+-        scales: dict[str, Scale],
+-        layer_label: str | None,
+-    ) -> None:
+-        """Add legend artists / labels for one layer in the plot."""
+-        if data.frame.empty and data.frames:
+-            legend_vars: list[str] = []
+-            for frame in data.frames.values():
+-                frame_vars = frame.columns.intersection(list(scales))
+-                legend_vars.extend(v for v in frame_vars if v not in legend_vars)
+-        else:
+-            legend_vars = list(data.frame.columns.intersection(list(scales)))
+-
+-        # First handle layer legends, which occupy a single entry in legend_contents.
+-        if layer_label is not None:
+-            legend_title = str(p._labels.get("legend", ""))
+-            layer_key = (legend_title, -1)
+-            artist = mark._legend_artist([], None, {})
+-            if artist is not None:
+-                for content in self._legend_contents:
+-                    if content[0] == layer_key:
+-                        content[1].append(artist)
+-                        content[2].append(layer_label)
+-                        break
+-                else:
+-                    self._legend_contents.append((layer_key, [artist], [layer_label]))
+-
+-        # Then handle the scale legends
+-        # First pass: Identify the values that will be shown for each variable
+-        schema: list[tuple[
+-            tuple[str, str | int], list[str], tuple[list[Any], list[str]]
+-        ]] = []
+-        schema = []
+-        for var in legend_vars:
+-            var_legend = scales[var]._legend
+-            if var_legend is not None:
+-                values, labels = var_legend
+-                for (_, part_id), part_vars, _ in schema:
+-                    if data.ids[var] == part_id:
+-                        # Allow multiple plot semantics to represent same data variable
+-                        part_vars.append(var)
+-                        break
+-                else:
+-                    title = self._resolve_label(p, var, data.names[var])
+-                    entry = (title, data.ids[var]), [var], (values, labels)
+-                    schema.append(entry)
+-
+-        # Second pass, generate an artist corresponding to each value
+-        contents: list[tuple[tuple[str, str | int], Any, list[str]]] = []
+-        for key, variables, (values, labels) in schema:
+-            artists = []
+-            for val in values:
+-                artist = mark._legend_artist(variables, val, scales)
+-                if artist is not None:
+-                    artists.append(artist)
+-            if artists:
+-                contents.append((key, artists, labels))
+-
+-        self._legend_contents.extend(contents)
++    def _update_legend_contents(self, *args, **kwargs):
++        return LegendManager().update(self, *args, **kwargs)
+ 
+     def _make_legend(self, p: Plot) -> None:
+-        """Create the legend artist(s) and add onto the figure."""
+-        # Combine artists representing same information across layers
+-        # Input list has an entry for each distinct variable in each layer
+-        # Output dict has an entry for each distinct variable
+-        merged_contents: dict[
+-            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],
+-        ] = {}
+-        for key, new_artists, labels in self._legend_contents:
+-            # Key is (name, id); we need the id to resolve variable uniqueness,
+-            # but will need the name in the next step to title the legend
+-            if key not in merged_contents:
+-                # Matplotlib accepts a tuple of artists and will overlay them
+-                new_artist_tuples = [tuple([a]) for a in new_artists]
+-                merged_contents[key] = new_artist_tuples, labels
+-            else:
+-                existing_artists = merged_contents[key][0]
+-                for i, new_artist in enumerate(new_artists):
+-                    existing_artists[i] += tuple([new_artist])
+-
+-        # When using pyplot, an "external" legend won't be shown, so this
+-        # keeps it inside the axes (though still attached to the figure)
+-        # This is necessary because matplotlib layout engines currently don't
+-        # support figure legends â€” ideally this will change.
+-        loc = "center right" if self._pyplot else "center left"
+-
+-        base_legend = None
+-        for (name, _), (handles, labels) in merged_contents.items():
+-
+-            legend = mpl.legend.Legend(
+-                self._figure,
+-                handles,  # type: ignore  # matplotlib/issues/26639
+-                labels,
+-                title=name,
+-                loc=loc,
+-                bbox_to_anchor=(.98, .55),
+-            )
+-
+-            if base_legend:
+-                # Matplotlib has no public API for this so it is a bit of a hack.
+-                # Ideally we'd define our own legend class with more flexibility,
+-                # but that is a lot of work!
+-                base_legend_box = base_legend.get_children()[0]
+-                this_legend_box = legend.get_children()[0]
+-                base_legend_box.get_children().extend(this_legend_box.get_children())
+-            else:
+-                base_legend = legend
+-                self._figure.legends.append(legend)
++        LegendManager().make(self, p)
+ 
+     def _finalize_figure(self, p: Plot) -> None:
+ 

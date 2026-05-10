@@ -1,0 +1,108 @@
+{
+  "issue_id": "DIP-016",
+  "principle": "DIP",
+  "title": "Refactor DIP-016 (DIP): High-level figure-level function directly instantiates a concrete grid layout...",
+  "branch": "refactor/DIP-016",
+  "base": "main",
+  "head_commit": "c6724420b4cdb562337c14e8c6e59fbcf8c7f0f3",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6546,
+    "completion_tokens": 771
+  },
+  "detected_issue": {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 1555,
+    "line_end": 1555,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "High-level figure-level function directly instantiates a concrete grid layout manager.",
+    "reasoning": "The `catplot` function, a high-level figure-level interface, directly instantiates the concrete `FacetGrid` class (`g = FacetGrid(...)`). This means the high-level `catplot` depends on a specific, concrete implementation of a grid layout manager rather than an abstraction, leading to tight coupling and a violation of DIP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject FacetGrid class into catplot to decouple from concrete implementation",
+    "rationale": "The catplot function directly instantiated FacetGrid, violating the Dependency Inversion Principle. By adding a grid_class parameter (defaulting to FacetGrid), we allow for dependency injection, enabling better testing and decoupling.",
+    "files_touched": [
+      "seaborn/categorical.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/categorical.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "def catplot(\n    data=None, *, x=None, y=None, hue=None, row=None, col=None, kind=\"strip\",\n    estimator=\"mean\", errorbar=(\"ci\", 95), n_boot=1000, seed=None, units=None,\n    weights=None, order=None, hue_order=None, row_order=None, col_order=None,\n    col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,\n    formatter=None, orient=None, color=None, palette=None, hue_norm=None,\n    legend=\"auto\", legend_out=True, sharex=True, sharey=True,\n    margin_titles=False, facet_kws=None, ci=deprecated, **kwargs\n):",
+        "replace_text": "def catplot(\n    data=None, *, x=None, y=None, hue=None, row=None, col=None, kind=\"strip\",\n    estimator=\"mean\", errorbar=(\"ci\", 95), n_boot=1000, seed=None, units=None,\n    weights=None, order=None, hue_order=None, row_order=None, col_order=None,\n    col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,\n    formatter=None, orient=None, color=None, palette=None, hue_norm=None,\n    legend=\"auto\", legend_out=True, sharex=True, sharey=True,\n    margin_titles=False, facet_kws=None, ci=deprecated, grid_class=None, **kwargs\n):",
+        "search_lines": 9,
+        "replace_lines": 9
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    if facet_kws is None:\n        facet_kws = {}\n\n    g = FacetGrid(\n        data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,\n        row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,\n        legend_out=legend_out, margin_titles=margin_titles,\n        height=height, aspect=aspect,\n        **facet_kws,\n    )",
+        "replace_text": "    if facet_kws is None:\n        facet_kws = {}\n\n    if grid_class is None:\n        grid_class = FacetGrid\n\n    g = grid_class(\n        data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,\n        row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,\n        legend_out=legend_out, margin_titles=margin_titles,\n        height=height, aspect=aspect,\n        **facet_kws,\n    )",
+        "search_lines": 10,
+        "replace_lines": 13
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2212.742805480957,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:462: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:463: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.36s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2596,
+        "blank_lines": 561,
+        "comment_lines": 145,
+        "function_count": 62,
+        "avg_cc": 7.21,
+        "max_cc": 39.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2598,
+        "blank_lines": 562,
+        "comment_lines": 145,
+        "function_count": 62,
+        "avg_cc": 7.23,
+        "max_cc": 40.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/categorical.py b/seaborn/categorical.py\nindex 5d95e05..d9910fe 100644\n--- a/seaborn/categorical.py\n+++ b/seaborn/categorical.py\n@@ -2780,7 +2780,7 @@ def catplot(\n     col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,\n     formatter=None, orient=None, color=None, palette=None, hue_norm=None,\n     legend=\"auto\", legend_out=True, sharex=True, sharey=True,\n-    margin_titles=False, facet_kws=None, ci=deprecated, **kwargs\n+    margin_titles=False, facet_kws=None, ci=deprecated, grid_class=None, **kwargs\n ):\n \n     # Check for attempt to plot onto specific axes and warn\n@@ -2836,7 +2836,10 @@ def catplot(\n     if facet_kws is None:\n         facet_kws = {}\n \n-    g = FacetGrid(\n+    if grid_class is None:\n+        grid_class = FacetGrid\n+\n+    g = grid_class(\n         data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,\n         row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,\n         legend_out=legend_out, margin_titles=margin_titles,\n",
+  "duration_ms": 23269.65618133545
+}

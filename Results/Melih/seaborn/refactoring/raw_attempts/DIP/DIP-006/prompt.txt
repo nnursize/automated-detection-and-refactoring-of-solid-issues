@@ -1,0 +1,410 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-006
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/categorical.py`
+- **Entity**: `boxplot` (current lines L1612-L1673 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 3 independent scans
+
+### Description
+High-level API function instantiating a concrete plotter.
+
+### Reasoning
+The boxplot function (and other similar functions like violinplot, barplot, etc.) directly instantiates _CategoricalPlotter. While these act as entry points, the tight coupling to concrete plotter classes prevents the injection of alternative plotting engines or the ability to unit test the parameter processing logic in isolation from the plotting implementation.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/categorical.py`
+```python
+# ... 1491 earlier lines elided ...
+    fill : bool
+        If True, use a solid patch. Otherwise, draw as line art.
+
+        .. versionadded:: v0.13.0\
+    """),
+    gap=dedent("""\
+    gap : float
+        Shrink on the orient axis by this factor to add a gap between dodged elements.
+
+        .. versionadded:: 0.13.0\
+    """),
+    width=dedent("""\
+    width : float
+        Width allotted to each element on the orient axis. When `native_scale=True`,
+        it is relative to the minimum distance between two values in the native scale.\
+    """),
+    dodge=dedent("""\
+    dodge : "auto" or bool
+        When hue mapping is used, whether elements should be narrowed and shifted along
+        the orient axis to eliminate overlap. If `"auto"`, set to `True` when the
+        orient variable is crossed with the categorical variable or `False` otherwise.
+
+        .. versionchanged:: 0.13.0
+
+            Added `"auto"` mode as a new default.\
+    """),
+    linewidth=dedent("""\
+    linewidth : float
+        Width of the lines that frame the plot elements.\
+    """),
+    linecolor=dedent("""\
+    linecolor : color
+        Color to use for line elements, when `fill` is True.
+
+        .. versionadded:: v0.13.0\
+    """),
+    log_scale=dedent("""\
+    log_scale : bool or number, or pair of bools or numbers
+        Set axis scale(s) to log. A single value sets the data axis for any numeric
+        axes in the plot. A pair of values sets each axis independently.
+        Numeric values are interpreted as the desired base (default 10).
+        When `None` or `False`, seaborn defers to the existing Axes scale.
+
+        .. versionadded:: v0.13.0\
+    """),
+    native_scale=dedent("""\
+    native_scale : bool
+        When True, numeric or datetime values on the categorical axis will maintain
+        their original scaling rather than being converted to fixed indices.
+
+        .. versionadded:: v0.13.0\
+    """),
+    formatter=dedent("""\
+    formatter : callable
+        Function for converting categorical data into strings. Affects both grouping
+        and tick labels.
+
+        .. versionadded:: v0.13.0\
+    """),
+    legend=dedent("""\
+    legend : "auto", "brief", "full", or False
+        How to draw the legend. If "brief", numeric `hue` and `size`
+        variables will be represented with a sample of evenly spaced values.
+        If "full", every group will get an entry in the legend. If "auto",
+        choose between brief or full representation based on number of levels.
+        If `False`, no legend data is added and no legend is drawn.
+
+        .. versionadded:: v0.13.0\
+    """),
+    err_kws=dedent("""\
+    err_kws : dict
+        Parameters of :class:`matplotlib.lines.Line2D`, for the error bar artists.
+
+        .. versionadded:: v0.13.0\
+    """),
+    ax_in=dedent("""\
+    ax : matplotlib Axes
+        Axes object to draw the plot onto, otherwise uses the current Axes.\
+    """),
+    ax_out=dedent("""\
+    ax : matplotlib Axes
+        Returns the Axes object with the plot drawn onto it.\
+    """),
+
+    # Shared see also
+    boxplot=dedent("""\
+    boxplot : A traditional box-and-whisker plot with a similar API.\
+    """),
+    violinplot=dedent("""\
+    violinplot : A combination of boxplot and kernel density estimation.\
+    """),
+    stripplot=dedent("""\
+    stripplot : A scatterplot where one variable is categorical. Can be used
+                in conjunction with other plots to show each observation.\
+    """),
+    swarmplot=dedent("""\
+    swarmplot : A categorical scatterplot where the points do not overlap. Can
+                be used with other plots to show each observation.\
+    """),
+    barplot=dedent("""\
+    barplot : Show point estimates and confidence intervals using bars.\
+    """),
+    countplot=dedent("""\
+    countplot : Show the counts of observations in each categorical bin.\
+    """),
+    pointplot=dedent("""\
+    pointplot : Show point estimates and confidence intervals using dots.\
+    """),
+    catplot=dedent("""\
+    catplot : Combine a categorical plot with a :class:`FacetGrid`.\
+    """),
+    boxenplot=dedent("""\
+    boxenplot : An enhanced boxplot for larger datasets.\
+    """),
+
+)
+
+_categorical_docs.update(_facet_docs)
+
+
+def boxplot(
+    data=None, *, x=None, y=None, hue=None, order=None, hue_order=None,
+    orient=None, color=None, palette=None, saturation=.75, fill=True,
+    dodge="auto", width=.8, gap=0, whis=1.5, linecolor="auto", linewidth=None,
+    fliersize=None, hue_norm=None, native_scale=False, log_scale=None, formatter=None,
+    legend="auto", ax=None, **kwargs
+):
+
+    p = _CategoricalPlotter(
+        data=data,
+        variables=dict(x=x, y=y, hue=hue),
+        order=order,
+        orient=orient,
+        color=color,
+        legend=legend,
+    )
+
+    if ax is None:
+        ax = plt.gca()
+
+    if p.plot_data.empty:
+        return ax
+
+    if dodge == "auto":
+        # Needs to be before scale_categorical changes the coordinate series dtype
+        dodge = p._dodge_needed()
+
+    if p.var_types.get(p.orient) == "categorical" or not native_scale:
+        p.scale_categorical(p.orient, order=order, formatter=formatter)
+
+    p._attach(ax, log_scale=log_scale)
+
+    # Deprecations to remove in v0.14.0.
+    hue_order = p._palette_without_hue_backcompat(palette, hue_order)
+    palette, hue_order = p._hue_backcompat(color, palette, hue_order)
+
+    saturation = saturation if fill else 1
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm, saturation=saturation)
+    color = _default_color(
+        ax.fill_between, hue, color,
+        {k: v for k, v in kwargs.items() if k in ["c", "color", "fc", "facecolor"]},
+        saturation=saturation,
+    )
+    linecolor = p._complement_color(linecolor, color, p._hue_map)
+
+    p.plot_boxes(
+        width=width,
+        dodge=dodge,
+        gap=gap,
+        fill=fill,
+        whis=whis,
+        color=color,
+        linecolor=linecolor,
+        linewidth=linewidth,
+        fliersize=fliersize,
+        plot_kws=kwargs,
+    )
+
+    p._add_axis_labels(ax)
+    p._adjust_cat_axis(ax, axis=p.orient)
+
+    return ax
+
+
+boxplot.__doc__ = dedent("""\
+    Draw a box plot to show distributions with respect to categories.
+
+    A box plot (or box-and-whisker plot) shows the distribution of quantitative
+    data in a way that facilitates comparisons between variables or across
+    levels of a categorical variable. The box shows the quartiles of the
+    dataset while the whiskers extend to show the rest of the distribution,
+    except for points that are determined to be "outliers" using a method
+    that is a function of the inter-quartile range.
+
+    {categorical_narrative}
+
+    Parameters
+    ----------
+    {categorical_data}
+    {input_params}
+    {order_vars}
+    {orient}
+    {color}
+    {palette}
+    {saturation}
+    {fill}
+    {dodge}
+    {width}
+    {gap}
+    whis : float or pair of floats
+        Paramater that controls whisker length. If scalar, whiskers are drawn
+        to the farthest datapoint within *whis * IQR* from the nearest hinge.
+        If a tuple, it is interpreted as percentiles that whiskers represent.
+    {linecolor}
+    {linewidth}
+    fliersize : float
+        Size of the markers used to indicate outlier observations.
+    {hue_norm}
+    {log_scale}
+    {native_scale}
+    {formatter}
+    {legend}
+    {ax_in}
+    kwargs : key, value mappings
+        Other keyword arguments are passed through to
+        :meth:`matplotlib.axes.Axes.boxplot`.
+
+    Returns
+    -------
+    {ax_out}
+
+    See Also
+    --------
+    {violinplot}
+    {stripplot}
+    {swarmplot}
+    {catplot}
+
+    Examples
+    --------
+    .. include:: ../docstrings/boxplot.rst
+
+    """).format(**_categorical_docs)
+
+
+def violinplot(
+    data=None, *, x=None, y=None, hue=None, order=None, hue_order=None,
+    orient=None, color=None, palette=None, saturation=.75, fill=True,
+    inner="box", split=False, width=.8, dodge="auto", gap=0,
+    linewidth=None, linecolor="auto", cut=2, gridsize=100,
+    bw_method="scott", bw_adjust=1, density_norm="area", common_norm=False,
+    hue_norm=None, formatter=None, log_scale=None, native_scale=False,
+    legend="auto", scale=deprecated, scale_hue=deprecated, bw=deprecated,
+    inner_kws=None, ax=None, **kwargs,
+):
+
+    p = _CategoricalPlotter(
+        data=data,
+        variables=dict(x=x, y=y, hue=hue),
+        order=order,
+        orient=orient,
+        color=color,
+        legend=legend,
+    )
+
+    if ax is None:
+        ax = plt.gca()
+
+    if p.plot_data.empty:
+        return ax
+
+    if dodge == "auto":
+        # Needs to be before scale_categorical changes the coordinate series dtype
+        dodge = p._dodge_needed()
+
+    if p.var_types.get(p.orient) == "categorical" or not native_scale:
+        p.scale_categorical(p.orient, order=order, formatter=formatter)
+
+    p._attach(ax, log_scale=log_scale)
+
+    # Deprecations to remove in v0.14.0.
+    hue_order = p._palette_without_hue_backcompat(palette, hue_order)
+    palette, hue_order = p._hue_backcompat(color, palette, hue_order)
+
+    saturation = saturation if fill else 1
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm, saturation=saturation)
+    color = _default_color(
+        ax.fill_between, hue, color,
+        {k: v for k, v in kwargs.items() if k in ["c", "color", "fc", "facecolor"]},
+        saturation=saturation,
+    )
+    linecolor = p._complement_color(linecolor, color, p._hue_map)
+
+    density_norm, common_norm = p._violin_scale_backcompat(
+        scale, scale_hue, density_norm, common_norm,
+    )
+
+    bw_method = p._violin_bw_backcompat(bw, bw_method)
+    kde_kws = dict(cut=cut, gridsize=gridsize, bw_method=bw_method, bw_adjust=bw_adjust)
+    inner_kws = {} if inner_kws is None else inner_kws.copy()
+
+    p.plot_violins(
+# ... 1509 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

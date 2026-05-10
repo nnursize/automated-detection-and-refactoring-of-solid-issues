@@ -1,0 +1,122 @@
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index d23bcda..61eaf91 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -65,36 +65,8 @@ class Scale:
+ 
+     def __post_init__(self):
+ 
+-        self._tick_params = None
+-        self._label_params = None
+         self._legend = None
+ 
+-    def tick(self):
+-        raise NotImplementedError()
+-
+-    def label(self):
+-        raise NotImplementedError()
+-
+-    def _get_locators(self):
+-        raise NotImplementedError()
+-
+-    def _get_formatter(self, locator: Locator | None = None):
+-        raise NotImplementedError()
+-
+-    def _get_scale(self, name: str, forward: Callable, inverse: Callable):
+-
+-        major_locator, minor_locator = self._get_locators(**self._tick_params)
+-        major_formatter = self._get_formatter(major_locator, **self._label_params)
+-
+-        class InternalScale(mpl.scale.FuncScale):
+-            def set_default_locators_and_formatters(self, axis):
+-                axis.set_major_locator(major_locator)
+-                if minor_locator is not None:
+-                    axis.set_minor_locator(minor_locator)
+-                axis.set_major_formatter(major_formatter)
+-
+-        return InternalScale(name, (forward, inverse))
+-
+     def _spacing(self, x: Series) -> float:
+         space = self._spacer(x)
+         if np.isnan(space):
+@@ -142,17 +114,48 @@ class Scale:
+             _legend = None
+             _matplotlib_scale = None
+ 
+-            def tick(self): return self
+-            def label(self): return self
+-            def _get_locators(self): return None, None
+-            def _get_formatter(self, locator=None): return None
+             def _setup(self, data, prop, axis=None): return self
+ 
+         return Identity()
+ 
+ 
++class AxisScale(Scale):
++    """Mixin for scales that interact with matplotlib axes."""
++
++    def __post_init__(self):
++        super().__post_init__()
++        self._tick_params = None
++        self._label_params = None
++
++    def tick(self):
++        raise NotImplementedError()
++
++    def label(self):
++        raise NotImplementedError()
++
++    def _get_locators(self):
++        raise NotImplementedError()
++
++    def _get_formatter(self, locator: Locator | None = None):
++        raise NotImplementedError()
++
++    def _get_scale(self, name: str, forward: Callable, inverse: Callable):
++
++        major_locator, minor_locator = self._get_locators(**self._tick_params)
++        major_formatter = self._get_formatter(major_locator, **self._label_params)
++
++        class InternalScale(mpl.scale.FuncScale):
++            def set_default_locators_and_formatters(self, axis):
++                axis.set_major_locator(major_locator)
++                if minor_locator is not None:
++                    axis.set_minor_locator(minor_locator)
++                axis.set_major_formatter(major_formatter)
++
++        return InternalScale(name, (forward, inverse))
++
++
+ @dataclass
+-class Boolean(Scale):
++class Boolean(AxisScale):
+     """
+     A scale with a discrete domain of True and False values.
+ 
+@@ -245,7 +248,7 @@ class Boolean(Scale):
+ 
+ 
+ @dataclass
+-class Nominal(Scale):
++class Nominal(AxisScale):
+     """
+     A categorical scale without relative importance / magnitude.
+     """
+@@ -405,7 +408,7 @@ class Nominal(Scale):
+ 
+ 
+ @dataclass
+-class Ordinal(Scale):
++class Ordinal(AxisScale):
+     # Categorical (convert to strings), sortable, can skip ticklabels
+     values: tuple | str | list | dict | None = None
+     order: list | None = None
+@@ -445,7 +448,7 @@ class Discrete(Scale):
+ 
+ 
+ @dataclass
+-class ContinuousBase(Scale):
++class ContinuousBase(AxisScale):
+ 
+     values: tuple | str | None = None
+     norm: tuple | None = None

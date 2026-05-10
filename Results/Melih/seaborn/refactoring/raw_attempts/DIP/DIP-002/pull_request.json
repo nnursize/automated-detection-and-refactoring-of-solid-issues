@@ -1,0 +1,108 @@
+{
+  "issue_id": "DIP-002",
+  "principle": "DIP",
+  "title": "Refactor DIP-002 (DIP): Direct instantiation of the Hist estimator.",
+  "branch": "refactor/DIP-002",
+  "base": "main",
+  "head_commit": "626f3ff6a3460b09d04e94a49b51eda28b108d54",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6931,
+    "completion_tokens": 359
+  },
+  "detected_issue": {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter.plot_univariate_histogram",
+    "entity_type": "method",
+    "line_start": 335,
+    "line_end": 335,
+    "severity": "medium",
+    "scan_count": 5,
+    "description": "Direct instantiation of the Hist estimator.",
+    "reasoning": "_DistributionPlotter is responsible for orchestrating the plot but directly instantiates the Hist class. This violates DIP as the plotter (high-level) depends on a concrete statistical detail (low-level) instead of an abstraction or receiving the estimator via dependency injection."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject Hist estimator into _DistributionPlotter.plot_univariate_histogram",
+    "rationale": "The _DistributionPlotter class was directly instantiating the Hist class, violating the Dependency Inversion Principle. By allowing the estimator to be passed as an argument (with a default value), we decouple the plotter from the concrete implementation, facilitating better testing and extensibility.",
+    "files_touched": [
+      "seaborn/distributions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/distributions.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    def plot_univariate_histogram(\n        self,\n        multiple,\n        element,\n        fill,\n        common_norm,\n        common_bins,\n        shrink,\n        kde,\n        kde_kws,\n        color,\n        legend,\n        line_kws,\n        estimate_kws,\n        **plot_kws,\n    ):",
+        "replace_text": "    def plot_univariate_histogram(\n        self,\n        multiple,\n        element,\n        fill,\n        common_norm,\n        common_bins,\n        shrink,\n        kde,\n        kde_kws,\n        color,\n        legend,\n        line_kws,\n        estimate_kws,\n        estimator_class=Hist,\n        **plot_kws,\n    ):",
+        "search_lines": 16,
+        "replace_lines": 17
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "        # Now initialize the Histogram estimator\n        estimator = Hist(**estimate_kws)\n        histograms = {}",
+        "replace_text": "        # Now initialize the Histogram estimator\n        estimator = estimator_class(**estimate_kws)\n        histograms = {}",
+        "search_lines": 3,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2274.653196334839,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:462: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:463: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.38s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1849,
+        "blank_lines": 446,
+        "comment_lines": 251,
+        "function_count": 39,
+        "avg_cc": 8.75,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1850,
+        "blank_lines": 446,
+        "comment_lines": 251,
+        "function_count": 39,
+        "avg_cc": 8.75,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/distributions.py b/seaborn/distributions.py\nindex a21d55b..1ffaba2 100644\n--- a/seaborn/distributions.py\n+++ b/seaborn/distributions.py\n@@ -427,6 +427,7 @@ class _DistributionPlotter(\n         legend,\n         line_kws,\n         estimate_kws,\n+        estimator_class=Hist,\n         **plot_kws,\n     ):\n \n@@ -460,7 +461,7 @@ class _DistributionPlotter(\n         orient = self.data_variable\n \n         # Now initialize the Histogram estimator\n-        estimator = Hist(**estimate_kws)\n+        estimator = estimator_class(**estimate_kws)\n         histograms = {}\n \n         # Do pre-compute housekeeping related to multiple groups\n",
+  "duration_ms": 8750.762224197388
+}

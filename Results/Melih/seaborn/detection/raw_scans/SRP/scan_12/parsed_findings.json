@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "God class handling data processing, legend management, and diverse plotting logic for 8+ distinct chart types.",
+    "reasoning": "The class violates SRP by encapsulating logic for unrelated visual representations (strips, swarms, boxes, violins, bars, etc.). It also mixes business logic for data back-compatibility (e.g., _violin_scale_backcompat) with low-level axis adjustments and legend configuration, giving it too many reasons to change."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class manages disparate statistical visualization types including Histograms, KDEs, and ECDFs.",
+    "reasoning": "This class is responsible for computing and rendering entirely different statistical models (bivariate histograms vs. univariate density vs. cumulative functions). These responsibilities should be segregated into specific plotter or mark classes rather than centralized in one distribution orchestrator."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter",
+    "entity_type": "class",
+    "line_start": 974,
+    "line_end": 1830,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Orchestrator class mixing data extraction, statistical computation, rendering, and I/O.",
+    "reasoning": "The Plotter class handles the entire lifecycle of a visualization: it extracts data from the Plot spec, performs statistical computations (_compute_stats), resolves visual scales, generates legend content, and handles file I/O (save/show). This mixes data processing, rendering, and output concerns."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter",
+    "entity_type": "class",
+    "line_start": 70,
+    "line_end": 442,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Mixes statistical model fitting with visual rendering logic.",
+    "reasoning": "The class is responsible for both the statistical analysis (fitting polynomials, lowess models, and logistic regressions) and the visual rendering (plotting scatter points and lines). Statistical modeling logic and visualization logic are separate concerns that should be decoupled."
+  },
+  {
+    "file_path": "seaborn/matrix.py",
+    "entity_name": "ClusterGrid",
+    "entity_type": "class",
+    "line_start": 696,
+    "line_end": 1143,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Combines data normalization, clustering logic, and complex multi-axis rendering.",
+    "reasoning": "ClusterGrid handles data transformation (z-score/standard_scale), manages the dendrogram linkage calculations, and coordinates the layout and rendering of multiple axes (colors, dendrograms, and heatmaps). It acts as both a data processor and a complex layout manager."
+  }
+]

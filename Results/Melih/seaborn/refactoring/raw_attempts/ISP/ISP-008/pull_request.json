@@ -1,0 +1,100 @@
+{
+  "issue_id": "ISP-008",
+  "principle": "ISP",
+  "title": "Refactor ISP-008 (ISP): Class depends on unused legend and tick parameter management methods from its...",
+  "branch": "refactor/ISP-008",
+  "base": "main",
+  "head_commit": "8f9eb9b6ced81174fa9e1c93114df163ba5f9690",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14025,
+    "completion_tokens": 168
+  },
+  "detected_issue": {
+    "file_path": "seaborn/matrix.py",
+    "entity_name": "ClusterGrid",
+    "entity_type": "class",
+    "line_start": 696,
+    "line_end": 1143,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Class depends on unused legend and tick parameter management methods from its base interface.",
+    "reasoning": "The ClusterGrid class inherits from Grid, which provides methods for general legend management (e.g., add_legend, _update_legend_data, _get_palette, legend property) and tick parameter configuration (tick_params). ClusterGrid, being specialized for clustered heatmaps, handles its color processing and legend/colorbar (cbar) logic differently and does not utilize or override these inherited methods in a meaningful way. This forces ClusterGrid to depend on parts of the Grid interface that are not relevant to its specific responsibilities, violating ISP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove inheritance from Grid in ClusterGrid to satisfy ISP",
+    "rationale": "ClusterGrid does not use the legend or tick management methods provided by the Grid base class. Removing the inheritance avoids forcing ClusterGrid to depend on an interface it does not use, resolving the ISP violation.",
+    "files_touched": [
+      "seaborn/matrix.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/matrix.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/matrix.py",
+        "search_text": "class ClusterGrid(Grid):\n\n    def __init__(self, data, pivot_kws=None, z_score=None, standard_scale=None,",
+        "replace_text": "class ClusterGrid:\n\n    def __init__(self, data, pivot_kws=None, z_score=None, standard_scale=None,",
+        "search_lines": 3,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2225.3377437591553,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.34s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/matrix.py",
+        "loc": 978,
+        "blank_lines": 201,
+        "comment_lines": 83,
+        "function_count": 31,
+        "avg_cc": 5.76,
+        "max_cc": 22.0,
+        "mi": 20.95
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/matrix.py",
+        "loc": 978,
+        "blank_lines": 201,
+        "comment_lines": 83,
+        "function_count": 31,
+        "avg_cc": 5.76,
+        "max_cc": 22.0,
+        "mi": 20.95
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/matrix.py b/seaborn/matrix.py\nindex 4e96132..102a202 100644\n--- a/seaborn/matrix.py\n+++ b/seaborn/matrix.py\n@@ -693,7 +693,7 @@ def dendrogram(\n     return plotter.plot(ax=ax, tree_kws=tree_kws)\n \n \n-class ClusterGrid(Grid):\n+class ClusterGrid:\n \n     def __init__(self, data, pivot_kws=None, z_score=None, standard_scale=None,\n                  figsize=None, row_colors=None, col_colors=None, mask=None,\n",
+  "duration_ms": 3917.1974658966064
+}

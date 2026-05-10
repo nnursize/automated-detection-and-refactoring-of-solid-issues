@@ -1,0 +1,340 @@
+diff --git a/seaborn/regression.py b/seaborn/regression.py
+index b9a0c45..1a00d3a 100644
+--- a/seaborn/regression.py
++++ b/seaborn/regression.py
+@@ -67,12 +67,127 @@ class _LinearPlotter:
+         raise NotImplementedError
+ 
+ 
+-class _RegressionPlotter(_LinearPlotter):
+-    """Plotter for numeric independent variables with regression model.
++class _RegressionModeler:
++    """Helper class for statistical modeling in regression plots."""
++    def __init__(self, x, y, units=None, x_estimator=None, x_ci="ci",
++                 n_boot=1000, seed=None, order=1, logistic=False, lowess=False,
++                 robust=False, logx=False, ci=95):
++        self.x = x
++        self.y = y
++        self.units = units
++        self.x_estimator = x_estimator
++        self.x_ci = x_ci
++        self.n_boot = n_boot
++        self.seed = seed
++        self.order = order
++        self.logistic = logistic
++        self.lowess = lowess
++        self.robust = robust
++        self.logx = logx
++        self.ci = ci
+ 
+-    This does the computations and drawing for the `regplot` function, and
+-    is thus also used indirectly by `lmplot`.
+-    """
++    def _check_statsmodels(self):
++        options = "logistic", "robust", "lowess"
++        err = "`{}=True` requires statsmodels, an optional dependency, to be installed."
++        for option in options:
++            if getattr(self, option) and not _has_statsmodels:
++                raise RuntimeError(err.format(option))
++
++    def fit_regression(self, grid):
++        self._check_statsmodels()
++        ci = self.ci
++        if self.order > 1:
++            yhat, yhat_boots = self.fit_poly(grid, self.order)
++        elif self.logistic:
++            from statsmodels.genmod.generalized_linear_model import GLM
++            from statsmodels.genmod.families import Binomial
++            yhat, yhat_boots = self.fit_statsmodels(grid, GLM, family=Binomial())
++        elif self.lowess:
++            ci = None
++            grid, yhat = self.fit_lowess()
++        elif self.robust:
++            from statsmodels.robust.robust_linear_model import RLM
++            yhat, yhat_boots = self.fit_statsmodels(grid, RLM)
++        elif self.logx:
++            yhat, yhat_boots = self.fit_logx(grid)
++        else:
++            yhat, yhat_boots = self.fit_fast(grid)
++
++        if ci is None:
++            err_bands = None
++        else:
++            err_bands = utils.ci(yhat_boots, ci, axis=0)
++        return grid, yhat, err_bands
++
++    def fit_fast(self, grid):
++        def reg_func(_x, _y):
++            return np.linalg.pinv(_x).dot(_y)
++        X, y = np.c_[np.ones(len(self.x)), self.x], self.y
++        grid = np.c_[np.ones(len(grid)), grid]
++        yhat = grid.dot(reg_func(X, y))
++        if self.ci is None:
++            return yhat, None
++        beta_boots = algo.bootstrap(X, y, func=reg_func, n_boot=self.n_boot,
++                                    units=self.units, seed=self.seed).T
++        yhat_boots = grid.dot(beta_boots).T
++        return yhat, yhat_boots
++
++    def fit_poly(self, grid, order):
++        def reg_func(_x, _y):
++            return np.polyval(np.polyfit(_x, _y, order), grid)
++        yhat = reg_func(self.x, self.y)
++        if self.ci is None:
++            return yhat, None
++        yhat_boots = algo.bootstrap(self.x, self.y, func=reg_func,
++                                    n_boot=self.n_boot, units=self.units,
++                                    seed=self.seed)
++        return yhat, yhat_boots
++
++    def fit_statsmodels(self, grid, model, **kwargs):
++        import statsmodels.tools.sm_exceptions as sme
++        X, y = np.c_[np.ones(len(self.x)), self.x], self.y
++        grid = np.c_[np.ones(len(grid)), grid]
++        def reg_func(_x, _y):
++            err_classes = (sme.PerfectSeparationError,)
++            try:
++                with warnings.catch_warnings():
++                    if hasattr(sme, "PerfectSeparationWarning"):
++                        warnings.simplefilter("error", sme.PerfectSeparationWarning)
++                        err_classes = (*err_classes, sme.PerfectSeparationWarning)
++                    yhat = model(_y, _x, **kwargs).fit().predict(grid)
++            except err_classes:
++                yhat = np.empty(len(grid))
++                yhat.fill(np.nan)
++            return yhat
++        yhat = reg_func(X, y)
++        if self.ci is None:
++            return yhat, None
++        yhat_boots = algo.bootstrap(X, y, func=reg_func, n_boot=self.n_boot,
++                                    units=self.units, seed=self.seed)
++        return yhat, yhat_boots
++
++    def fit_lowess(self):
++        from statsmodels.nonparametric.smoothers_lowess import lowess
++        grid, yhat = lowess(self.y, self.x).T
++        return grid, yhat
++
++    def fit_logx(self, grid):
++        X, y = np.c_[np.ones(len(self.x)), self.x], self.y
++        grid = np.c_[np.ones(len(grid)), np.log(grid)]
++        def reg_func(_x, _y):
++            _x = np.c_[_x[:, 0], np.log(_x[:, 1])]
++            return np.linalg.pinv(_x).dot(_y)
++        yhat = grid.dot(reg_func(X, y))
++        if self.ci is None:
++            return yhat, None
++        beta_boots = algo.bootstrap(X, y, func=reg_func, n_boot=self.n_boot,
++                                    units=self.units, seed=self.seed).T
++        yhat_boots = grid.dot(beta_boots).T
++        return yhat, yhat_boots
++
++
++class _RegressionPlotter(_LinearPlotter):
++    """Plotter for numeric independent variables with regression model."""
+     def __init__(self, x, y, data=None, x_estimator=None, x_bins=None,
+                  x_ci="ci", scatter=True, fit_reg=True, ci=95, n_boot=1000,
+                  units=None, seed=None, order=1, logistic=False, lowess=False,
+@@ -80,7 +195,6 @@ class _RegressionPlotter(_LinearPlotter):
+                  truncate=False, dropna=True, x_jitter=None, y_jitter=None,
+                  color=None, label=None):
+ 
+-        # Set member attributes
+         self.x_estimator = x_estimator
+         self.ci = ci
+         self.x_ci = ci if x_ci == "ci" else x_ci
+@@ -99,25 +213,20 @@ class _RegressionPlotter(_LinearPlotter):
+         self.color = color
+         self.label = label
+ 
+-        # Validate the regression options:
+         if sum((order > 1, logistic, robust, lowess, logx)) > 1:
+             raise ValueError("Mutually exclusive regression options.")
+ 
+-        # Extract the data vals from the arguments or passed dataframe
+         self.establish_variables(data, x=x, y=y, units=units,
+                                  x_partial=x_partial, y_partial=y_partial)
+ 
+-        # Drop null observations
+         if dropna:
+             self.dropna("x", "y", "units", "x_partial", "y_partial")
+ 
+-        # Regress nuisance variables out of the data
+         if self.x_partial is not None:
+             self.x = self.regress_out(self.x, self.x_partial)
+         if self.y_partial is not None:
+             self.y = self.regress_out(self.y, self.y_partial)
+ 
+-        # Possibly bin the predictor variable, which implies a point estimate
+         if x_bins is not None:
+             self.x_estimator = np.mean if x_estimator is None else x_estimator
+             x_discrete, x_bins = self.bin_predictor(x_bins)
+@@ -125,13 +234,16 @@ class _RegressionPlotter(_LinearPlotter):
+         else:
+             self.x_discrete = self.x
+ 
+-        # Disable regression in case of singleton inputs
+         if len(self.x) <= 1:
+             self.fit_reg = False
+ 
+-        # Save the range of the x variable for the grid later
+         if self.fit_reg:
+             self.x_range = self.x.min(), self.x.max()
++            self.modeler = _RegressionModeler(
++                self.x, self.y, self.units, self.x_estimator, self.x_ci,
++                self.n_boot, self.seed, self.order, self.logistic,
++                self.lowess, self.robust, self.logx, self.ci
++            )
+ 
+     @property
+     def scatter_data(self):
+@@ -185,19 +297,8 @@ class _RegressionPlotter(_LinearPlotter):
+ 
+         return vals, points, cis
+ 
+-    def _check_statsmodels(self):
+-        """Check whether statsmodels is installed if any boolean options require it."""
+-        options = "logistic", "robust", "lowess"
+-        err = "`{}=True` requires statsmodels, an optional dependency, to be installed."
+-        for option in options:
+-            if getattr(self, option) and not _has_statsmodels:
+-                raise RuntimeError(err.format(option))
+-
+     def fit_regression(self, ax=None, x_range=None, grid=None):
+         """Fit the regression model."""
+-        self._check_statsmodels()
+-
+-        # Create the grid for the regression
+         if grid is None:
+             if self.truncate:
+                 x_min, x_max = self.x_range
+@@ -207,128 +308,7 @@ class _RegressionPlotter(_LinearPlotter):
+                 else:
+                     x_min, x_max = ax.get_xlim()
+             grid = np.linspace(x_min, x_max, 100)
+-        ci = self.ci
+-
+-        # Fit the regression
+-        if self.order > 1:
+-            yhat, yhat_boots = self.fit_poly(grid, self.order)
+-        elif self.logistic:
+-            from statsmodels.genmod.generalized_linear_model import GLM
+-            from statsmodels.genmod.families import Binomial
+-            yhat, yhat_boots = self.fit_statsmodels(grid, GLM,
+-                                                    family=Binomial())
+-        elif self.lowess:
+-            ci = None
+-            grid, yhat = self.fit_lowess()
+-        elif self.robust:
+-            from statsmodels.robust.robust_linear_model import RLM
+-            yhat, yhat_boots = self.fit_statsmodels(grid, RLM)
+-        elif self.logx:
+-            yhat, yhat_boots = self.fit_logx(grid)
+-        else:
+-            yhat, yhat_boots = self.fit_fast(grid)
+-
+-        # Compute the confidence interval at each grid point
+-        if ci is None:
+-            err_bands = None
+-        else:
+-            err_bands = utils.ci(yhat_boots, ci, axis=0)
+-
+-        return grid, yhat, err_bands
+-
+-    def fit_fast(self, grid):
+-        """Low-level regression and prediction using linear algebra."""
+-        def reg_func(_x, _y):
+-            return np.linalg.pinv(_x).dot(_y)
+-
+-        X, y = np.c_[np.ones(len(self.x)), self.x], self.y
+-        grid = np.c_[np.ones(len(grid)), grid]
+-        yhat = grid.dot(reg_func(X, y))
+-        if self.ci is None:
+-            return yhat, None
+-
+-        beta_boots = algo.bootstrap(X, y,
+-                                    func=reg_func,
+-                                    n_boot=self.n_boot,
+-                                    units=self.units,
+-                                    seed=self.seed).T
+-        yhat_boots = grid.dot(beta_boots).T
+-        return yhat, yhat_boots
+-
+-    def fit_poly(self, grid, order):
+-        """Regression using numpy polyfit for higher-order trends."""
+-        def reg_func(_x, _y):
+-            return np.polyval(np.polyfit(_x, _y, order), grid)
+-
+-        x, y = self.x, self.y
+-        yhat = reg_func(x, y)
+-        if self.ci is None:
+-            return yhat, None
+-
+-        yhat_boots = algo.bootstrap(x, y,
+-                                    func=reg_func,
+-                                    n_boot=self.n_boot,
+-                                    units=self.units,
+-                                    seed=self.seed)
+-        return yhat, yhat_boots
+-
+-    def fit_statsmodels(self, grid, model, **kwargs):
+-        """More general regression function using statsmodels objects."""
+-        import statsmodels.tools.sm_exceptions as sme
+-        X, y = np.c_[np.ones(len(self.x)), self.x], self.y
+-        grid = np.c_[np.ones(len(grid)), grid]
+-
+-        def reg_func(_x, _y):
+-            err_classes = (sme.PerfectSeparationError,)
+-            try:
+-                with warnings.catch_warnings():
+-                    if hasattr(sme, "PerfectSeparationWarning"):
+-                        # statsmodels>=0.14.0
+-                        warnings.simplefilter("error", sme.PerfectSeparationWarning)
+-                        err_classes = (*err_classes, sme.PerfectSeparationWarning)
+-                    yhat = model(_y, _x, **kwargs).fit().predict(grid)
+-            except err_classes:
+-                yhat = np.empty(len(grid))
+-                yhat.fill(np.nan)
+-            return yhat
+-
+-        yhat = reg_func(X, y)
+-        if self.ci is None:
+-            return yhat, None
+-
+-        yhat_boots = algo.bootstrap(X, y,
+-                                    func=reg_func,
+-                                    n_boot=self.n_boot,
+-                                    units=self.units,
+-                                    seed=self.seed)
+-        return yhat, yhat_boots
+-
+-    def fit_lowess(self):
+-        """Fit a locally-weighted regression, which returns its own grid."""
+-        from statsmodels.nonparametric.smoothers_lowess import lowess
+-        grid, yhat = lowess(self.y, self.x).T
+-        return grid, yhat
+-
+-    def fit_logx(self, grid):
+-        """Fit the model in log-space."""
+-        X, y = np.c_[np.ones(len(self.x)), self.x], self.y
+-        grid = np.c_[np.ones(len(grid)), np.log(grid)]
+-
+-        def reg_func(_x, _y):
+-            _x = np.c_[_x[:, 0], np.log(_x[:, 1])]
+-            return np.linalg.pinv(_x).dot(_y)
+-
+-        yhat = grid.dot(reg_func(X, y))
+-        if self.ci is None:
+-            return yhat, None
+-
+-        beta_boots = algo.bootstrap(X, y,
+-                                    func=reg_func,
+-                                    n_boot=self.n_boot,
+-                                    units=self.units,
+-                                    seed=self.seed).T
+-        yhat_boots = grid.dot(beta_boots).T
+-        return yhat, yhat_boots
++        return self.modeler.fit_regression(grid)
+ 
+     def bin_predictor(self, bins):
+         """Discretize a predictor by assigning value to closest bin."""

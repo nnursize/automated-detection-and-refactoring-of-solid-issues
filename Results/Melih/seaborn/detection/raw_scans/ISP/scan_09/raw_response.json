@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_09",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 9,
+  "timestamp": "2026-04-18T15:33:32.023606",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interfac...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 616,\n      \"line_end\": 1448,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The VectorPlotter class acts as a fat interface by defining multiple abstract scaling methods.\",\n      \"reasoning\": \"The `VectorPlotter` class defines `scale_native`, `scale_numeric`, and `scale_datetime` methods that explicitly raise `NotImplementedError`. This indicates that it's intended to serve as an abstract base class or an interface. By bundling these diverse and potentially unrelated scaling responsibilities (native, numeric, datetime, and categorical) into a single interface, it forces its subclasses (clients) to depend on methods they may not need to implement or use. For instance, a subclass focused solely on categorical data would still inherit the obligation to handle or ignore native, numeric, and datetime scaling methods, violating the Interface Segregation Principle by creating a fat interface.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The _CategoricalPlotter class is forced to depend on unused abstract methods from its VectorPlotter base class.\",\n      \"reasoning\": \"The `_CategoricalPlotter` class inherits from `VectorPlotter`. The `VectorPlotter` defines `scale_native`, `scale_numeric`, and `scale_datetime` methods that raise `NotImplementedError`. `_CategoricalPlotter` does not override these methods, implying it does not use them for its specific purpose (categorical plotting). This forces `_CategoricalPlotter` to depend on parts of the `VectorPlotter` interface that it does not utilize, thereby violating the Interface Segregation Principle. The interface of `VectorPlotter` is too broad for the specialized needs of `_CategoricalPlotter`.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The _DistributionPlotter class is forced to depend on unused abstract methods from its VectorPlotter base class.\",\n      \"reasoning\": \"Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class inherits from `VectorPlotter`. The `VectorPlotter` defines `scale_native`, `scale_numeric`, and `scale_datetime` methods that raise `NotImplementedError`. `_DistributionPlotter` does not override these methods, indicating they are not relevant to its functionality (distribution plotting). This forces `_DistributionPlotter` to depend on methods in the `VectorPlotter` interface that it does not use, violating the Interface Segregation Principle. The base interface is too fat for this specialized client.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 616,
+      "line_end": 1448,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The VectorPlotter class acts as a fat interface by defining multiple abstract scaling methods.",
+      "reasoning": "The `VectorPlotter` class defines `scale_native`, `scale_numeric`, and `scale_datetime` methods that explicitly raise `NotImplementedError`. This indicates that it's intended to serve as an abstract base class or an interface. By bundling these diverse and potentially unrelated scaling responsibilities (native, numeric, datetime, and categorical) into a single interface, it forces its subclasses (clients) to depend on methods they may not need to implement or use. For instance, a subclass focused solely on categorical data would still inherit the obligation to handle or ignore native, numeric, and datetime scaling methods, violating the Interface Segregation Principle by creating a fat interface."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The _CategoricalPlotter class is forced to depend on unused abstract methods from its VectorPlotter base class.",
+      "reasoning": "The `_CategoricalPlotter` class inherits from `VectorPlotter`. The `VectorPlotter` defines `scale_native`, `scale_numeric`, and `scale_datetime` methods that raise `NotImplementedError`. `_CategoricalPlotter` does not override these methods, implying it does not use them for its specific purpose (categorical plotting). This forces `_CategoricalPlotter` to depend on parts of the `VectorPlotter` interface that it does not utilize, thereby violating the Interface Segregation Principle. The interface of `VectorPlotter` is too broad for the specialized needs of `_CategoricalPlotter`."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The _DistributionPlotter class is forced to depend on unused abstract methods from its VectorPlotter base class.",
+      "reasoning": "Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class inherits from `VectorPlotter`. The `VectorPlotter` defines `scale_native`, `scale_numeric`, and `scale_datetime` methods that raise `NotImplementedError`. `_DistributionPlotter` does not override these methods, indicating they are not relevant to its functionality (distribution plotting). This forces `_DistributionPlotter` to depend on methods in the `VectorPlotter` interface that it does not use, violating the Interface Segregation Principle. The base interface is too fat for this specialized client."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 30385.066270828247,
+  "error": null
+}

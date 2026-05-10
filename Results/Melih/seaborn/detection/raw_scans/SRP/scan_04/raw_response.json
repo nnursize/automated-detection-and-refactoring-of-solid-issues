@@ -1,0 +1,40 @@
+{
+  "scan_id": "seaborn-master_SRP_scan_04",
+  "repo_name": "seaborn-master",
+  "principle": "SRP",
+  "scan_number": 4,
+  "timestamp": "2026-04-16T19:16:33.995114",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Single Responsibility Principle (SRP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these i...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 40,\n      \"line_end\": 990,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class mixes core data/variable setup with extensive backwards compatibility management and rendering logic for multiple distinct plot types.\",\n      \"reasoning\": \"The `_CategoricalPlotter` class has multiple reasons to change. It handles initial data processing and variable assignment (`__init__`), manages numerous deprecated API parameters across several `_backcompat` methods (e.g., `_hue_backcompat`, `_violin_scale_backcompat`), and directly implements the rendering logic for seven distinct categorical plot types (e.g., `plot_strips`, `plot_boxes`, `plot_violins`, `plot_bars`). A change to how boxplots are rendered is a different reason to change than removing a deprecated `hue` parameter, or changing how violin plots are drawn. This is a clear 'God Class' smell, violating SRP by encapsulating too many unrelated responsibilities.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 45,\n      \"line_end\": 800,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class mixes data preparation and multi-group resolution logic with rendering logic for multiple distinct distribution plot types.\",\n      \"reasoning\": \"The `_DistributionPlotter` class is responsible for plotting distributions, but it directly implements the rendering logic for several distinct types of distribution plots (histograms, KDEs, ECDFs, rug plots), each with univariate and/or bivariate variants (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Furthermore, it contains complex logic in `_resolve_multiple` for handling how multiple distributions are displayed (stack, fill, dodge). A change to how histograms are rendered is a different reason to change than how stacking of densities is calculated, or how KDEs are plotted. This indicates multiple responsibilities, leading to a 'God Class' smell.\"\n    },\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"Grid.add_legend\",\n      \"entity_type\": \"method\",\n      \"line_start\": 106,\n      \"line_end\": 177,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The method mixes drawing a legend with calculating and applying figure layout adjustments to accommodate it.\",",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 40,
+      "line_end": 990,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class mixes core data/variable setup with extensive backwards compatibility management and rendering logic for multiple distinct plot types.",
+      "reasoning": "The `_CategoricalPlotter` class has multiple reasons to change. It handles initial data processing and variable assignment (`__init__`), manages numerous deprecated API parameters across several `_backcompat` methods (e.g., `_hue_backcompat`, `_violin_scale_backcompat`), and directly implements the rendering logic for seven distinct categorical plot types (e.g., `plot_strips`, `plot_boxes`, `plot_violins`, `plot_bars`). A change to how boxplots are rendered is a different reason to change than removing a deprecated `hue` parameter, or changing how violin plots are drawn. This is a clear 'God Class' smell, violating SRP by encapsulating too many unrelated responsibilities."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 45,
+      "line_end": 800,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class mixes data preparation and multi-group resolution logic with rendering logic for multiple distinct distribution plot types.",
+      "reasoning": "The `_DistributionPlotter` class is responsible for plotting distributions, but it directly implements the rendering logic for several distinct types of distribution plots (histograms, KDEs, ECDFs, rug plots), each with univariate and/or bivariate variants (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Furthermore, it contains complex logic in `_resolve_multiple` for handling how multiple distributions are displayed (stack, fill, dodge). A change to how histograms are rendered is a different reason to change than how stacking of densities is calculated, or how KDEs are plotted. This indicates multiple responsibilities, leading to a 'God Class' smell."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 115249.87649917603,
+  "error": null
+}

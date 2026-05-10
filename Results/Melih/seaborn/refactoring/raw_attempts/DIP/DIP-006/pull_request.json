@@ -1,0 +1,108 @@
+{
+  "issue_id": "DIP-006",
+  "principle": "DIP",
+  "title": "Refactor DIP-006 (DIP): High-level API function instantiating a concrete plotter.",
+  "branch": "refactor/DIP-006",
+  "base": "main",
+  "head_commit": "a2f681d99ab0fe40df9069b65c343785c681bb96",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4153,
+    "completion_tokens": 1008
+  },
+  "detected_issue": {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "boxplot",
+    "entity_type": "class",
+    "line_start": 1125,
+    "line_end": 1167,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "High-level API function instantiating a concrete plotter.",
+    "reasoning": "The boxplot function (and other similar functions like violinplot, barplot, etc.) directly instantiates _CategoricalPlotter. While these act as entry points, the tight coupling to concrete plotter classes prevents the injection of alternative plotting engines or the ability to unit test the parameter processing logic in isolation from the plotting implementation."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject CategoricalPlotter class into boxplot and violinplot functions",
+    "rationale": "To resolve the DIP violation, I am introducing a default plotter class reference that can be overridden, allowing for dependency injection. This decouples the high-level API functions from the concrete implementation of the plotter.",
+    "files_touched": [
+      "seaborn/categorical.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/categorical.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "def boxplot(\n    data=None, *, x=None, y=None, hue=None, order=None, hue_order=None,\n    orient=None, color=None, palette=None, saturation=.75, fill=True,\n    dodge=\"auto\", width=.8, gap=0, whis=1.5, linecolor=\"auto\", linewidth=None,\n    fliersize=None, hue_norm=None, native_scale=False, log_scale=None, formatter=None,\n    legend=\"auto\", ax=None, **kwargs\n):\n\n    p = _CategoricalPlotter(\n        data=data,\n        variables=dict(x=x, y=y, hue=hue),\n        order=order,\n        orient=orient,\n        color=color,\n        legend=legend,\n    )",
+        "replace_text": "def boxplot(\n    data=None, *, x=None, y=None, hue=None, order=None, hue_order=None,\n    orient=None, color=None, palette=None, saturation=.75, fill=True,\n    dodge=\"auto\", width=.8, gap=0, whis=1.5, linecolor=\"auto\", linewidth=None,\n    fliersize=None, hue_norm=None, native_scale=False, log_scale=None, formatter=None,\n    legend=\"auto\", ax=None, plotter_cls=_CategoricalPlotter, **kwargs\n):\n\n    p = plotter_cls(\n        data=data,\n        variables=dict(x=x, y=y, hue=hue),\n        order=order,\n        orient=orient,\n        color=color,\n        legend=legend,\n    )",
+        "search_lines": 16,
+        "replace_lines": 16
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "def violinplot(\n    data=None, *, x=None, y=None, hue=None, order=None, hue_order=None,\n    orient=None, color=None, palette=None, saturation=.75, fill=True,\n    inner=\"box\", split=False, width=.8, dodge=\"auto\", gap=0,\n    linewidth=None, linecolor=\"auto\", cut=2, gridsize=100,\n    bw_method=\"scott\", bw_adjust=1, density_norm=\"area\", common_norm=False,\n    hue_norm=None, formatter=None, log_scale=None, native_scale=False,\n    legend=\"auto\", scale=deprecated, scale_hue=deprecated, bw=deprecated,\n    inner_kws=None, ax=None, **kwargs,\n):\n\n    p = _CategoricalPlotter(\n        data=data,\n        variables=dict(x=x, y=y, hue=hue),\n        order=order,\n        orient=orient,\n        color=color,\n        legend=legend,\n    )",
+        "replace_text": "def violinplot(\n    data=None, *, x=None, y=None, hue=None, order=None, hue_order=None,\n    orient=None, color=None, palette=None, saturation=.75, fill=True,\n    inner=\"box\", split=False, width=.8, dodge=\"auto\", gap=0,\n    linewidth=None, linecolor=\"auto\", cut=2, gridsize=100,\n    bw_method=\"scott\", bw_adjust=1, density_norm=\"area\", common_norm=False,\n    hue_norm=None, formatter=None, log_scale=None, native_scale=False,\n    legend=\"auto\", scale=deprecated, scale_hue=deprecated, bw=deprecated,\n    inner_kws=None, ax=None, plotter_cls=_CategoricalPlotter, **kwargs,\n):\n\n    p = plotter_cls(\n        data=data,\n        variables=dict(x=x, y=y, hue=hue),\n        order=order,\n        orient=orient,\n        color=color,\n        legend=legend,\n    )",
+        "search_lines": 19,
+        "replace_lines": 19
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2437.7386569976807,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:462: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:463: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.49s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2596,
+        "blank_lines": 561,
+        "comment_lines": 145,
+        "function_count": 62,
+        "avg_cc": 7.21,
+        "max_cc": 39.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2596,
+        "blank_lines": 561,
+        "comment_lines": 145,
+        "function_count": 62,
+        "avg_cc": 7.21,
+        "max_cc": 39.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/categorical.py b/seaborn/categorical.py\nindex 4a9cae1..5d95e05 100644\n--- a/seaborn/categorical.py\n+++ b/seaborn/categorical.py\n@@ -1614,10 +1614,10 @@ def boxplot(\n     orient=None, color=None, palette=None, saturation=.75, fill=True,\n     dodge=\"auto\", width=.8, gap=0, whis=1.5, linecolor=\"auto\", linewidth=None,\n     fliersize=None, hue_norm=None, native_scale=False, log_scale=None, formatter=None,\n-    legend=\"auto\", ax=None, **kwargs\n+    legend=\"auto\", ax=None, plotter_cls=_CategoricalPlotter, **kwargs\n ):\n \n-    p = _CategoricalPlotter(\n+    p = plotter_cls(\n         data=data,\n         variables=dict(x=x, y=y, hue=hue),\n         order=order,\n@@ -1742,10 +1742,10 @@ def violinplot(\n     bw_method=\"scott\", bw_adjust=1, density_norm=\"area\", common_norm=False,\n     hue_norm=None, formatter=None, log_scale=None, native_scale=False,\n     legend=\"auto\", scale=deprecated, scale_hue=deprecated, bw=deprecated,\n-    inner_kws=None, ax=None, **kwargs,\n+    inner_kws=None, ax=None, plotter_cls=_CategoricalPlotter, **kwargs,\n ):\n \n-    p = _CategoricalPlotter(\n+    p = plotter_cls(\n         data=data,\n         variables=dict(x=x, y=y, hue=hue),\n         order=order,\n",
+  "duration_ms": 19088.186025619507
+}

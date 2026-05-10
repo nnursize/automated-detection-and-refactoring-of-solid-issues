@@ -1,0 +1,62 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_12",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 12,
+  "timestamp": "2026-04-18T15:37:57.023112",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Identity\",\n      \"entity_type\": \"class\",\n      \"line_start\": 139,\n      \"line_end\": 143,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Class 'Identity' inherits from abstract base class 'Scale' but does not implement any of its abstract methods.\",\n      \"reasoning\": \"The 'Scale' abstract base class (L55-L145) defines several abstract methods like 'tick', 'label', '_get_locators', '_get_formatter', and '_setup'. The 'Identity' class (L139-L143) inherits from 'Scale' but does not provide implementations for any of these abstract methods. This forces 'Identity' to depend on an interface it does not fully implement, violating ISP by failing to fulfill the contract of its base interface.\"\n    },\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 616,\n      \"line_end\": 1448,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Abstract base class 'VectorPlotter' defines multiple abstract scaling methods for different data types, creating a fat interface.\",\n      \"reasoning\": \"The 'VectorPlotter' class (L616-L1448) defines abstract methods such as 'scale_native', 'scale_numeric', and 'scale_datetime'. Concrete subclasses like '_CategoricalPlotter' (seaborn/categorical.py) or '_DistributionPlotter' (seaborn/distributions.py) might only need to handle a subset of these scaling types (e.g., a categorical plotter may not need to implement 'scale_datetime'). This forces implementing classes to provide unneeded methods, potentially with dummy implementations, thus violating the Interface Segregation Principle by making the interface too broad.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"Bloated class with a broad API for multiple categorical plot types that could be segregated.\",\n      \"reasoning\": \"The '_CategoricalPlotter' class (L49-L1360) includes numerous distinct plotting methods such as 'plot_strips', 'plot_swarms', 'plot_boxes', 'plot_boxens', 'plot_violins', 'plot_points', 'plot_bars', and 'plot_errorbars'. A client needing to generate only one specific type of categorical plot (e.g., 'plot_boxes') is forced to depend on the entire broad API of unrelated plot methods. This indicates a 'fat interface' where responsibilities could be segregated into smaller, more focused interfaces or classes for each plot type, adhering to ISP.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"Bloated class with a broad API for multiple distribution plot types that could be segregated.\",\n      \"reasoning\": \"Similar to '_CategoricalPlotter', the '_DistributionPlotter' class (L99-L1351) aggregates methods for various distribution plot types, including 'plot_univariate_histogram', 'plot_bivariate_histogram', 'plot_univariate_density', 'plot_bivariate_density', 'plot_univariate_ecdf', and 'plot_rug'. A client interested in only one specific distribution plot (e.g., 'plot_univariate_histogram') must depend on the entire extensive API. This violates ISP by presenting a fat interface that could be split into more specialized, role-specific interfaces or classes.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Identity",
+      "entity_type": "class",
+      "line_start": 139,
+      "line_end": 143,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Class 'Identity' inherits from abstract base class 'Scale' but does not implement any of its abstract methods.",
+      "reasoning": "The 'Scale' abstract base class (L55-L145) defines several abstract methods like 'tick', 'label', '_get_locators', '_get_formatter', and '_setup'. The 'Identity' class (L139-L143) inherits from 'Scale' but does not provide implementations for any of these abstract methods. This forces 'Identity' to depend on an interface it does not fully implement, violating ISP by failing to fulfill the contract of its base interface."
+    },
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 616,
+      "line_end": 1448,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Abstract base class 'VectorPlotter' defines multiple abstract scaling methods for different data types, creating a fat interface.",
+      "reasoning": "The 'VectorPlotter' class (L616-L1448) defines abstract methods such as 'scale_native', 'scale_numeric', and 'scale_datetime'. Concrete subclasses like '_CategoricalPlotter' (seaborn/categorical.py) or '_DistributionPlotter' (seaborn/distributions.py) might only need to handle a subset of these scaling types (e.g., a categorical plotter may not need to implement 'scale_datetime'). This forces implementing classes to provide unneeded methods, potentially with dummy implementations, thus violating the Interface Segregation Principle by making the interface too broad."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "Bloated class with a broad API for multiple categorical plot types that could be segregated.",
+      "reasoning": "The '_CategoricalPlotter' class (L49-L1360) includes numerous distinct plotting methods such as 'plot_strips', 'plot_swarms', 'plot_boxes', 'plot_boxens', 'plot_violins', 'plot_points', 'plot_bars', and 'plot_errorbars'. A client needing to generate only one specific type of categorical plot (e.g., 'plot_boxes') is forced to depend on the entire broad API of unrelated plot methods. This indicates a 'fat interface' where responsibilities could be segregated into smaller, more focused interfaces or classes for each plot type, adhering to ISP."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "Bloated class with a broad API for multiple distribution plot types that could be segregated.",
+      "reasoning": "Similar to '_CategoricalPlotter', the '_DistributionPlotter' class (L99-L1351) aggregates methods for various distribution plot types, including 'plot_univariate_histogram', 'plot_bivariate_histogram', 'plot_univariate_density', 'plot_bivariate_density', 'plot_univariate_ecdf', and 'plot_rug'. A client interested in only one specific distribution plot (e.g., 'plot_univariate_histogram') must depend on the entire extensive API. This violates ISP by presenting a fat interface that could be split into more specialized, role-specific interfaces or classes."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 31668.79677772522,
+  "error": null
+}

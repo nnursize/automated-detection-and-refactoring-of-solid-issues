@@ -1,0 +1,124 @@
+{
+  "issue_id": "DIP-031",
+  "principle": "DIP",
+  "title": "Refactor DIP-031 (DIP): Scale base class defines abstract methods that force subclasses to implement...",
+  "branch": "refactor/DIP-031",
+  "base": "main",
+  "head_commit": "75dcd80879b98e66a2348526fde9ea5a72bf0f87",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10855,
+    "completion_tokens": 1122
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 145,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Scale base class defines abstract methods that force subclasses to implement specific matplotlib-dependent logic.",
+    "reasoning": "The Scale base class defines abstract methods like _get_locators and _get_formatter which are tightly coupled to matplotlib's internal API. Subclasses are forced to implement these details, violating the principle that abstractions should not depend on low-level implementation details."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Decouple Scale base class from matplotlib-specific locator/formatter logic.",
+    "rationale": "The Scale base class and TickLabelScale mixin were forcing subclasses to implement matplotlib-specific methods (_get_locators, _get_formatter). By moving these methods to a dedicated helper or making them optional/abstracted, we reduce the coupling. Specifically, I am removing the abstract requirements from the base classes and moving the logic into the specific implementations that actually require matplotlib interaction, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))",
+        "replace_text": "    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        # Subclasses implementing TickLabelScale should define _get_locators\n        # and _get_formatter if they need custom matplotlib behavior.\n        # We provide defaults here to satisfy the interface.\n        loc_method = getattr(self, \"_get_locators\", lambda **k: (None, None))\n        fmt_method = getattr(self, \"_get_formatter\", lambda l, **k: None)\n\n        major_locator, minor_locator = loc_method(**self._tick_params)\n        major_formatter = fmt_method(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                if major_locator is not None:\n                    axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                if major_formatter is not None:\n                    axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))",
+        "search_lines": 19,
+        "replace_lines": 21
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    def _get_locators(self, locator):\n        if locator is not None:\n            return locator\n        return FixedLocator([0, 1]), None\n\n    def _get_formatter(self, locator, formatter):\n        if formatter is not None:\n            return formatter\n        return FuncFormatter(lambda x, _: str(bool(x)))",
+        "replace_text": "    def _get_locators(self, locator=None):\n        if locator is not None:\n            return locator, None\n        return FixedLocator([0, 1]), None\n\n    def _get_formatter(self, locator=None, formatter=None):\n        if formatter is not None:\n            return formatter\n        return FuncFormatter(lambda x, _: str(bool(x)))",
+        "search_lines": 9,
+        "replace_lines": 9
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    def _get_locators(self, locator):\n\n        if locator is not None:\n            return locator, None\n\n        locator = mpl.category.StrCategoryLocator({})\n\n        return locator, None\n\n    def _get_formatter(self, locator, formatter):\n\n        if formatter is not None:\n            return formatter\n\n        formatter = mpl.category.StrCategoryFormatter({})\n\n        return formatter",
+        "replace_text": "    def _get_locators(self, locator=None):\n\n        if locator is not None:\n            return locator, None\n\n        locator = mpl.category.StrCategoryLocator({})\n\n        return locator, None\n\n    def _get_formatter(self, locator=None, formatter=None):\n\n        if formatter is not None:\n            return formatter\n\n        formatter = mpl.category.StrCategoryFormatter({})\n\n        return formatter",
+        "search_lines": 17,
+        "replace_lines": 17
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    def _get_locators(self, locator=None):\n        return Nominal()._get_locators(locator)\n\n    def _get_formatter(self, locator=None, formatter=None):\n        return Nominal()._get_formatter(locator, formatter)",
+        "replace_text": "    def _get_locators(self, locator=None):\n        return Nominal()._get_locators(locator)\n\n    def _get_formatter(self, locator=None, formatter=None):\n        return Nominal()._get_formatter(locator, formatter)",
+        "search_lines": 5,
+        "replace_lines": 5
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2215.465307235718,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:462: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:463: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.38s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 783,
+        "blank_lines": 253,
+        "comment_lines": 98,
+        "function_count": 91,
+        "avg_cc": 2.57,
+        "max_cc": 16.0,
+        "mi": 21.68
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 783,
+        "blank_lines": 252,
+        "comment_lines": 101,
+        "function_count": 89,
+        "avg_cc": 2.61,
+        "max_cc": 16.0,
+        "mi": 21.94
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex 82e56d5..5980ffb 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -156,23 +156,25 @@ class TickLabelScale(AxisScale):\n     def label(self):\n         raise NotImplementedError()\n \n-    def _get_locators(self):\n-        raise NotImplementedError()\n-\n-    def _get_formatter(self, locator: Locator | None = None):\n-        raise NotImplementedError()\n-\n     def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n \n-        major_locator, minor_locator = self._get_locators(**self._tick_params)\n-        major_formatter = self._get_formatter(major_locator, **self._label_params)\n+        # Subclasses implementing TickLabelScale should define _get_locators\n+        # and _get_formatter if they need custom matplotlib behavior.\n+        # We provide defaults here to satisfy the interface.\n+        loc_method = getattr(self, \"_get_locators\", lambda **k: (None, None))\n+        fmt_method = getattr(self, \"_get_formatter\", lambda l, **k: None)\n+\n+        major_locator, minor_locator = loc_method(**self._tick_params)\n+        major_formatter = fmt_method(major_locator, **self._label_params)\n \n         class InternalScale(mpl.scale.FuncScale):\n             def set_default_locators_and_formatters(self, axis):\n-                axis.set_major_locator(major_locator)\n+                if major_locator is not None:\n+                    axis.set_major_locator(major_locator)\n                 if minor_locator is not None:\n                     axis.set_minor_locator(minor_locator)\n-                axis.set_major_formatter(major_formatter)\n+                if major_formatter is not None:\n+                    axis.set_major_formatter(major_formatter)\n \n         return InternalScale(name, (forward, inverse))\n \n@@ -259,12 +261,12 @@ class Boolean(TickLabelScale):\n         new._label_params = {\"formatter\": formatter}\n         return new\n \n-    def _get_locators(self, locator):\n+    def _get_locators(self, locator=None):\n         if locator is not None:\n-            return locator\n+            return locator, None\n         return FixedLocator([0, 1]), None\n \n-    def _get_formatter(self, locator, formatter):\n+    def _get_formatter(self, locator=None, formatter=None):\n         if formatter is not None:\n             return formatter\n         return FuncFormatter(lambda x, _: str(bool(x)))\n@@ -411,7 +413,7 @@ class Nominal(TickLabelScale):\n         new._label_params = {\"formatter\": formatter}\n         return new\n \n-    def _get_locators(self, locator):\n+    def _get_locators(self, locator=None):\n \n         if locator is not None:\n             return locator, None\n@@ -420,7 +422,7 @@ class Nominal(TickLabelScale):\n \n         return locator, None\n \n-    def _get_formatter(self, locator, formatter):\n+    def _get_formatter(self, locator=None, formatter=None):\n \n         if formatter is not None:\n             return formatter\n",
+  "duration_ms": 7816.839933395386
+}

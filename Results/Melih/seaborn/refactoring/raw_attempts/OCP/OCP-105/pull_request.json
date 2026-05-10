@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-105",
+  "principle": "OCP",
+  "title": "Refactor OCP-105 (OCP): Logic branches on `inner` and `density_norm` strings, requiring modification...",
+  "branch": "refactor/OCP-105",
+  "base": "main",
+  "head_commit": "68bedf7105c28dcd5093ca34c2ee9bcde96329ed",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7157,
+    "completion_tokens": 2809
+  },
+  "detected_issue": {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_violins",
+    "entity_type": "method",
+    "line_start": 821,
+    "line_end": 1190,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Logic branches on `inner` and `density_norm` strings, requiring modification for new types.",
+    "reasoning": "This method contains multiple `if/elif` chains: one for `inner` (`if inner is None`, `elif inner.startswith('point')`, etc.) and another for `density_norm` (`if density_norm == 'area'`, `elif density_norm == 'count'`, etc.). Introducing new 'inner' plot types or 'density_norm' methods would necessitate modifying these existing conditional blocks, which violates OCP. These behaviors should be implemented polymorphically."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor inner violin plot logic into a strategy-based dispatcher to improve OCP compliance.",
+    "rationale": "The long if/elif chain for 'inner' plot types in plot_violins was replaced with a dictionary-based strategy pattern. This allows adding new inner plot types without modifying the core plotting loop, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "seaborn/categorical.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/categorical.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "            # --- Plot the inner components\n            if inner is None:\n                continue\n\n            elif inner.startswith(\"point\"):\n                pos = np.array([pos_dict[self.orient]] * len(obs))\n                if split:\n                    pos += (-1 if right_side else 1) * pos_dict[\"width\"] / 2\n                x, y = (pos, obs) if self.orient == \"x\" else (obs, pos)\n                kws = {\n                    \"color\": linecolor,\n                    \"edgecolor\": linecolor,\n                    \"s\": (linewidth * 2) ** 2,\n                    \"zorder\": violin[\"kwargs\"].get(\"zorder\", 2) + 1,\n                    **inner_kws,\n                }\n                ax.scatter(invx(x), invy(y), **kws)\n\n            elif inner.startswith(\"stick\"):\n                pos0 = np.interp(obs, data[value_var], data[self.orient] - offsets[0])\n                pos1 = np.interp(obs, data[value_var], data[self.orient] + offsets[1])\n                pos_pts = np.stack([inv_pos(pos0), inv_pos(pos1)])\n                val_pts = np.stack([inv_val(obs), inv_val(obs)])\n                segments = np.stack([pos_pts, val_pts]).transpose(2, 1, 0)\n                if self.orient == \"y\":\n                    segments = segments[:, :, ::-1]\n                kws = {\n                    \"color\": linecolor,\n                    \"linewidth\": linewidth / 2,\n                    **inner_kws,\n                }\n                lines = mpl.collections.LineCollection(segments, **kws)\n                ax.add_collection(lines, autolim=False)\n\n            elif inner.startswith(\"quart\"):\n                stats = np.percentile(obs, [25, 50, 75])\n                pos0 = np.interp(stats, data[value_var], data[self.orient] - offsets[0])\n                pos1 = np.interp(stats, data[value_var], data[self.orient] + offsets[1])\n                pos_pts = np.stack([inv_pos(pos0), inv_pos(pos1)])\n                val_pts = np.stack([inv_val(stats), inv_val(stats)])\n                segments = np.stack([pos_pts, val_pts]).transpose(2, 0, 1)\n                if self.orient == \"y\":\n                    segments = segments[:, ::-1, :]\n                dashes = [(1.25, .75), (2.5, 1), (1.25, .75)]\n                for i, segment in enumerate(segments):\n                    kws = {\n                        \"color\": linecolor,\n                        \"linewidth\": linewidth,\n                        \"dashes\": dashes[i],\n                        **inner_kws,\n                    }\n                    ax.plot(*segment, **kws)\n\n            elif inner.startswith(\"box\"):\n                stats = mpl.cbook.boxplot_stats(obs)[0]\n                pos = np.array(pos_dict[self.orient])\n                if split:\n                    pos += (-1 if right_side else 1) * pos_dict[\"width\"] / 2\n                pos = [pos, pos], [pos, pos], [pos]\n                val = (\n                    [stats[\"whislo\"], stats[\"whishi\"]],\n                    [stats[\"q1\"], stats[\"q3\"]],\n                    [stats[\"med\"]]\n                )\n                if self.orient == \"x\":\n                    (x0, x1, x2), (y0, y1, y2) = pos, val\n                else:\n                    (x0, x1, x2), (y0, y1, y2) = val, pos\n\n                if split:\n                    offset = (1 if right_side else -1) * box_width / 72 / 2\n                    dx, dy = (offset, 0) if self.orient == \"x\" else (0, -offset)\n                    trans = ax.transData + mpl.transforms.ScaledTranslation(\n                        dx, dy, ax.figure.dpi_scale_trans,\n                    )\n                else:\n                    trans = ax.transData\n                line_kws = {\n                    \"color\": linecolor,\n                    \"transform\": trans,\n                    **inner_kws,\n                    \"linewidth\": whis_width,\n                }\n                ax.plot(invx(x0), invy(y0), **line_kws)\n                line_kws[\"linewidth\"] = box_width\n                ax.plot(invx(x1), invy(y1), **line_kws)\n                dot_kws = {\n                    \"marker\": marker,\n                    \"markersize\": box_width / 1.2,\n                    \"markeredgewidth\": box_width / 5,\n                    \"transform\": trans,\n                    **inner_kws,\n                    \"markeredgecolor\": \"w\",\n                    \"markerfacecolor\": \"w\",\n                    \"color\": linecolor,  # simplify tests\n                }\n                ax.plot(invx(x2), invy(y2), **dot_kws)",
+        "replace_text": "            # --- Plot the inner components\n            if inner is None:\n                continue\n\n            def _plot_point(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws):\n                pos = np.array([pos_dict[self.orient]] * len(obs))\n                if split:\n                    pos += (-1 if right_side else 1) * pos_dict[\"width\"] / 2\n                x, y = (pos, obs) if self.orient == \"x\" else (obs, pos)\n                kws = {\n                    \"color\": linecolor,\n                    \"edgecolor\": linecolor,\n                    \"s\": (linewidth * 2) ** 2,\n                    \"zorder\": violin[\"kwargs\"].get(\"zorder\", 2) + 1,\n                    **inner_kws,\n                }\n                ax.scatter(invx(x), invy(y), **kws)\n\n            def _plot_stick(ax, obs, data, offsets, linecolor, linewidth, inner_kws):\n                pos0 = np.interp(obs, data[value_var], data[self.orient] - offsets[0])\n                pos1 = np.interp(obs, data[value_var], data[self.orient] + offsets[1])\n                pos_pts = np.stack([inv_pos(pos0), inv_pos(pos1)])\n                val_pts = np.stack([inv_val(obs), inv_val(obs)])\n                segments = np.stack([pos_pts, val_pts]).transpose(2, 1, 0)\n                if self.orient == \"y\":\n                    segments = segments[:, :, ::-1]\n                kws = {\n                    \"color\": linecolor,\n                    \"linewidth\": linewidth / 2,\n                    **inner_kws,\n                }\n                lines = mpl.collections.LineCollection(segments, **kws)\n                ax.add_collection(lines, autolim=False)\n\n            def _plot_quart(ax, obs, data, offsets, linecolor, linewidth, inner_kws):\n                stats = np.percentile(obs, [25, 50, 75])\n                pos0 = np.interp(stats, data[value_var], data[self.orient] - offsets[0])\n                pos1 = np.interp(stats, data[value_var], data[self.orient] + offsets[1])\n                pos_pts = np.stack([inv_pos(pos0), inv_pos(pos1)])\n                val_pts = np.stack([inv_val(stats), inv_val(stats)])\n                segments = np.stack([pos_pts, val_pts]).transpose(2, 0, 1)\n                if self.orient == \"y\":\n                    segments = segments[:, ::-1, :]\n                dashes = [(1.25, .75), (2.5, 1), (1.25, .75)]\n                for i, segment in enumerate(segments):\n                    kws = {\n                        \"color\": linecolor,\n                        \"linewidth\": linewidth,\n                        \"dashes\": dashes[i],\n                        **inner_kws,\n                    }\n                    ax.plot(*segment, **kws)\n\n            def _plot_box(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws):\n                stats = mpl.cbook.boxplot_stats(obs)[0]\n                pos = np.array(pos_dict[self.orient])\n                if split:\n                    pos += (-1 if right_side else 1) * pos_dict[\"width\"] / 2\n                pos = [pos, pos], [pos, pos], [pos]\n                val = (\n                    [stats[\"whislo\"], stats[\"whishi\"]],\n                    [stats[\"q1\"], stats[\"q3\"]],\n                    [stats[\"med\"]]\n                )\n                if self.orient == \"x\":\n                    (x0, x1, x2), (y0, y1, y2) = pos, val\n                else:\n                    (x0, x1, x2), (y0, y1, y2) = val, pos\n\n                if split:\n                    offset = (1 if right_side else -1) * box_width / 72 / 2\n                    dx, dy = (offset, 0) if self.orient == \"x\" else (0, -offset)\n                    trans = ax.transData + mpl.transforms.ScaledTranslation(\n                        dx, dy, ax.figure.dpi_scale_trans,\n                    )\n                else:\n                    trans = ax.transData\n                line_kws = {\n                    \"color\": linecolor,\n                    \"transform\": trans,\n                    **inner_kws,\n                    \"linewidth\": whis_width,\n                }\n                ax.plot(invx(x0), invy(y0), **line_kws)\n                line_kws[\"linewidth\"] = box_width\n                ax.plot(invx(x1), invy(y1), **line_kws)\n                dot_kws = {\n                    \"marker\": marker,\n                    \"markersize\": box_width / 1.2,\n                    \"markeredgewidth\": box_width / 5,\n                    \"transform\": trans,\n                    **inner_kws,\n                    \"markeredgecolor\": \"w\",\n                    \"markerfacecolor\": \"w\",\n                    \"color\": linecolor,\n                }\n                ax.plot(invx(x2), invy(y2), **dot_kws)\n\n            strategies = {\n                \"point\": lambda: _plot_point(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws),\n                \"stick\": lambda: _plot_stick(ax, obs, data, offsets, linecolor, linewidth, inner_kws),\n                \"quart\": lambda: _plot_quart(ax, obs, data, offsets, linecolor, linewidth, inner_kws),\n                \"box\": lambda: _plot_box(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws),\n            }\n\n            for key, func in strategies.items():\n                if inner.startswith(key):\n                    func()\n                    break",
+        "search_lines": 97,
+        "replace_lines": 109
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2218.7304496765137,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.37s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2645,
+        "blank_lines": 572,
+        "comment_lines": 157,
+        "function_count": 65,
+        "avg_cc": 7.23,
+        "max_cc": 53.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2655,
+        "blank_lines": 574,
+        "comment_lines": 157,
+        "function_count": 69,
+        "avg_cc": 6.96,
+        "max_cc": 39.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/categorical.py b/seaborn/categorical.py\nindex 3fa5a07..a31acf1 100644\n--- a/seaborn/categorical.py\n+++ b/seaborn/categorical.py\n@@ -1092,7 +1092,7 @@ class _CategoricalPlotter(VectorPlotter):\n             if inner is None:\n                 continue\n \n-            elif inner.startswith(\"point\"):\n+            def _plot_point(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws):\n                 pos = np.array([pos_dict[self.orient]] * len(obs))\n                 if split:\n                     pos += (-1 if right_side else 1) * pos_dict[\"width\"] / 2\n@@ -1106,7 +1106,7 @@ class _CategoricalPlotter(VectorPlotter):\n                 }\n                 ax.scatter(invx(x), invy(y), **kws)\n \n-            elif inner.startswith(\"stick\"):\n+            def _plot_stick(ax, obs, data, offsets, linecolor, linewidth, inner_kws):\n                 pos0 = np.interp(obs, data[value_var], data[self.orient] - offsets[0])\n                 pos1 = np.interp(obs, data[value_var], data[self.orient] + offsets[1])\n                 pos_pts = np.stack([inv_pos(pos0), inv_pos(pos1)])\n@@ -1122,7 +1122,7 @@ class _CategoricalPlotter(VectorPlotter):\n                 lines = mpl.collections.LineCollection(segments, **kws)\n                 ax.add_collection(lines, autolim=False)\n \n-            elif inner.startswith(\"quart\"):\n+            def _plot_quart(ax, obs, data, offsets, linecolor, linewidth, inner_kws):\n                 stats = np.percentile(obs, [25, 50, 75])\n                 pos0 = np.interp(stats, data[value_var], data[self.orient] - offsets[0])\n                 pos1 = np.interp(stats, data[value_var], data[self.orient] + offsets[1])\n@@ -1141,7 +1141,7 @@ class _CategoricalPlotter(VectorPlotter):\n                     }\n                     ax.plot(*segment, **kws)\n \n-            elif inner.startswith(\"box\"):\n+            def _plot_box(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws):\n                 stats = mpl.cbook.boxplot_stats(obs)[0]\n                 pos = np.array(pos_dict[self.orient])\n                 if split:\n@@ -1182,10 +1182,22 @@ class _CategoricalPlotter(VectorPlotter):\n                     **inner_kws,\n                     \"markeredgecolor\": \"w\",\n                     \"markerfacecolor\": \"w\",\n-                    \"color\": linecolor,  # simplify tests\n+                    \"color\": linecolor,\n                 }\n                 ax.plot(invx(x2), invy(y2), **dot_kws)\n \n+            strategies = {\n+                \"point\": lambda: _plot_point(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws),\n+                \"stick\": lambda: _plot_stick(ax, obs, data, offsets, linecolor, linewidth, inner_kws),\n+                \"quart\": lambda: _plot_quart(ax, obs, data, offsets, linecolor, linewidth, inner_kws),\n+                \"box\": lambda: _plot_box(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws),\n+            }\n+\n+            for key, func in strategies.items():\n+                if inner.startswith(key):\n+                    func()\n+                    break\n+\n         legend_artist = _get_patch_legend_artist(fill)\n         common_kws = {**plot_kws, \"linewidth\": linewidth, \"edgecolor\": linecolor}\n         self._configure_legend(ax, legend_artist, common_kws)\n",
+  "duration_ms": 19447.317838668823
+}

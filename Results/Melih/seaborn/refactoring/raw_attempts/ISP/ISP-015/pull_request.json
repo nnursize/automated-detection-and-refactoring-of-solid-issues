@@ -1,0 +1,100 @@
+{
+  "issue_id": "ISP-015",
+  "principle": "ISP",
+  "title": "Refactor ISP-015 (ISP): Class 'Identity' inherits from abstract base class 'Scale' but does not imple...",
+  "branch": "refactor/ISP-015",
+  "base": "main",
+  "head_commit": "bb02a5ee25829482ac5ad16f4a75c28ab2eb7293",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10773,
+    "completion_tokens": 229
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Identity",
+    "entity_type": "class",
+    "line_start": 139,
+    "line_end": 143,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Class 'Identity' inherits from abstract base class 'Scale' but does not implement any of its abstract methods.",
+    "reasoning": "The 'Scale' abstract base class (L55-L145) defines several abstract methods like 'tick', 'label', '_get_locators', '_get_formatter', and '_setup'. The 'Identity' class (L139-L143) inherits from 'Scale' but does not provide implementations for any of these abstract methods. This forces 'Identity' to depend on an interface it does not fully implement, violating ISP by failing to fulfill the contract of its base interface."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Implement abstract methods in Identity class to satisfy Scale interface",
+    "rationale": "The Identity class inherits from Scale but failed to implement the abstract _setup method. While it is a simple identity scale, it must fulfill the interface contract to avoid runtime errors and satisfy the Interface Segregation Principle.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def _setup(self, data, prop, axis=None):\n                return self",
+        "replace_text": "        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def _setup(self, data, prop, axis=None):\n                return self\n\n            def _finalize(self, p, axis):\n                pass",
+        "search_lines": 8,
+        "replace_lines": 11
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2294.368267059326,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.39s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 773,
+        "blank_lines": 246,
+        "comment_lines": 98,
+        "function_count": 85,
+        "avg_cc": 2.64,
+        "max_cc": 16.0,
+        "mi": 21.74
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 775,
+        "blank_lines": 247,
+        "comment_lines": 98,
+        "function_count": 86,
+        "avg_cc": 2.64,
+        "max_cc": 16.0,
+        "mi": 21.69
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex ecaa0ad..bbbfa96 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -117,6 +117,9 @@ class Scale:\n             def _setup(self, data, prop, axis=None):\n                 return self\n \n+            def _finalize(self, p, axis):\n+                pass\n+\n         return Identity()\n \n \n",
+  "duration_ms": 14159.850358963013
+}

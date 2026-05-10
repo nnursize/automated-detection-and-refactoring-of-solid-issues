@@ -1,0 +1,62 @@
+{
+  "scan_id": "seaborn-master_LSP_scan_01",
+  "repo_name": "seaborn-master",
+  "principle": "LSP",
+  "scan_number": 1,
+  "timestamp": "2026-04-18T13:52:40.585517",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses t...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale._identity\",\n      \"entity_type\": \"class\",\n      \"line_start\": 144,\n      \"line_end\": 153,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass nullifies a base class attribute required by a base class method.\",\n      \"reasoning\": \"The Identity subclass (defined within the _identity method) sets the _spacer attribute to None. However, the base class Scale defines a method _spacing that attempts to call self._spacer(x). This ensures that any instance of the Identity subclass will raise a TypeError when _spacing is invoked, violating the principle that a subclass should be substitutable for its base class without breaking base class functionality.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/properties.py\",\n      \"entity_name\": \"IntervalProperty.get_mapping\",\n      \"entity_type\": \"method\",\n      \"line_start\": 133,\n      \"line_end\": 158,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Method uses explicit type-checking to handle subclasses differently, violating the abstraction of the base class.\",\n      \"reasoning\": \"The get_mapping method in IntervalProperty uses isinstance to check for specific subclasses of Scale (Nominal and Boolean). This violates LSP as it indicates that the Property hierarchy is not truly decoupled from the Scale hierarchy; the base class contract of Scale is insufficient for IntervalProperty, which must instead rely on specific knowledge of Scale's subtypes to function correctly.\"\n    },\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"FacetGrid.ax\",\n      \"entity_type\": \"method\",\n      \"line_start\": 885,\n      \"line_end\": 893,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Property raises AttributeError based on internal state, subverting the expected behavior of attribute access.\",\n      \"reasoning\": \"The ax property in FacetGrid raises an AttributeError if the grid contains more than one subplot. This is an LSP violation because it makes the availability of a public property dependent on the internal state of the object. Furthermore, raising AttributeError for an attribute that is explicitly defined in the class interface subverts the standard contract of Python objects and breaks substitutability in polymorphic contexts.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter.data_variable\",\n      \"entity_type\": \"method\",\n      \"line_start\": 147,\n      \"line_end\": 152,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Property raises AttributeError based on internal state, violating the stability of the subtype contract.\",\n      \"reasoning\": \"The data_variable property in _DistributionPlotter raises an AttributeError if the plot is not univariate. This strengthens the preconditions for accessing the property in a way that is not present in the base class (VectorPlotter) or expected of a stable interface, making the subclass non-substitutable in contexts where the property is accessed on a distribution plotter instance.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale._identity",
+      "entity_type": "class",
+      "line_start": 144,
+      "line_end": 153,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass nullifies a base class attribute required by a base class method.",
+      "reasoning": "The Identity subclass (defined within the _identity method) sets the _spacer attribute to None. However, the base class Scale defines a method _spacing that attempts to call self._spacer(x). This ensures that any instance of the Identity subclass will raise a TypeError when _spacing is invoked, violating the principle that a subclass should be substitutable for its base class without breaking base class functionality."
+    },
+    {
+      "file_path": "seaborn/_core/properties.py",
+      "entity_name": "IntervalProperty.get_mapping",
+      "entity_type": "method",
+      "line_start": 133,
+      "line_end": 158,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Method uses explicit type-checking to handle subclasses differently, violating the abstraction of the base class.",
+      "reasoning": "The get_mapping method in IntervalProperty uses isinstance to check for specific subclasses of Scale (Nominal and Boolean). This violates LSP as it indicates that the Property hierarchy is not truly decoupled from the Scale hierarchy; the base class contract of Scale is insufficient for IntervalProperty, which must instead rely on specific knowledge of Scale's subtypes to function correctly."
+    },
+    {
+      "file_path": "seaborn/axisgrid.py",
+      "entity_name": "FacetGrid.ax",
+      "entity_type": "method",
+      "line_start": 885,
+      "line_end": 893,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Property raises AttributeError based on internal state, subverting the expected behavior of attribute access.",
+      "reasoning": "The ax property in FacetGrid raises an AttributeError if the grid contains more than one subplot. This is an LSP violation because it makes the availability of a public property dependent on the internal state of the object. Furthermore, raising AttributeError for an attribute that is explicitly defined in the class interface subverts the standard contract of Python objects and breaks substitutability in polymorphic contexts."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter.data_variable",
+      "entity_type": "method",
+      "line_start": 147,
+      "line_end": 152,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Property raises AttributeError based on internal state, violating the stability of the subtype contract.",
+      "reasoning": "The data_variable property in _DistributionPlotter raises an AttributeError if the plot is not univariate. This strengthens the preconditions for accessing the property in a way that is not present in the base class (VectorPlotter) or expected of a stable interface, making the subclass non-substitutable in contexts where the property is accessed on a distribution plotter instance."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 93583.49895477295,
+  "error": null
+}

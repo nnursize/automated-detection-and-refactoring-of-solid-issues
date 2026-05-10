@@ -1,0 +1,366 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-008
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `seaborn/_base.py`
+- **Entity**: `VariableType` (current lines L1451-L1468 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+VariableType strengthens pre-conditions and changes the contract of equality comparison inherited from UserString.
+
+### Reasoning
+VariableType inherits from collections.UserString. The base class equality contract allows comparison against any object, typically returning False for inequality. VariableType overrides __eq__ to 'assert' that the other operand must be one of three specific allowed strings. This strengthens the pre-condition of the method and causes a crash (AssertionError) for values that the base class would handle gracefully. This prevents VariableType from being a valid substitute for a standard string-like object in logic using equality checks.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/_base.py`
+```python
+# ... 1330 earlier lines elided ...
+
+    # XXX If the scale_* methods are going to modify the plot_data structure, they
+    # can't be called twice. That means that if they are called twice, they should
+    # raise. Alternatively, we could store an original version of plot_data and each
+    # time they are called they operate on the store, not the current state.
+
+    def scale_native(self, axis, *args, **kwargs):
+
+        # Default, defer to matplotlib
+
+        raise NotImplementedError
+
+    def scale_numeric(self, axis, *args, **kwargs):
+
+        # Feels needed to completeness, what should it do?
+        # Perhaps handle log scaling? Set the ticker/formatter/limits?
+
+        raise NotImplementedError
+
+    def scale_datetime(self, axis, *args, **kwargs):
+
+        # Use pd.to_datetime to convert strings or numbers to datetime objects
+        # Note, use day-resolution for numeric->datetime to match matplotlib
+
+        raise NotImplementedError
+
+    def scale_categorical(self, axis, order=None, formatter=None):
+        """
+        Enforce categorical (fixed-scale) rules for the data on given axis.
+
+        Parameters
+        ----------
+        axis : "x" or "y"
+            Axis of the plot to operate on.
+        order : list
+            Order that unique values should appear in.
+        formatter : callable
+            Function mapping values to a string representation.
+
+        Returns
+        -------
+        self
+
+        """
+        # This method both modifies the internal representation of the data
+        # (converting it to string) and sets some attributes on self. It might be
+        # a good idea to have a separate object attached to self that contains the
+        # information in those attributes (i.e. whether to enforce variable order
+        # across facets, the order to use) similar to the SemanticMapping objects
+        # we have for semantic variables. That object could also hold the converter
+        # objects that get used, if we can decouple those from an existing axis
+        # (cf. https://github.com/matplotlib/matplotlib/issues/19229).
+        # There are some interactions with faceting information that would need
+        # to be thought through, since the converts to use depend on facets.
+        # If we go that route, these methods could become "borrowed" methods similar
+        # to what happens with the alternate semantic mapper constructors, although
+        # that approach is kind of fussy and confusing.
+
+        # TODO this method could also set the grid state? Since we like to have no
+        # grid on the categorical axis by default. Again, a case where we'll need to
+        # store information until we use it, so best to have a way to collect the
+        # attributes that this method sets.
+
+        # TODO if we are going to set visual properties of the axes with these methods,
+        # then we could do the steps currently in CategoricalPlotter._adjust_cat_axis
+
+        # TODO another, and distinct idea, is to expose a cut= param here
+
+        _check_argument("axis", ["x", "y"], axis)
+
+        # Categorical plots can be "univariate" in which case they get an anonymous
+        # category label on the opposite axis.
+        if axis not in self.variables:
+            self.variables[axis] = None
+            self.var_types[axis] = "categorical"
+            self.plot_data[axis] = ""
+
+        # If the "categorical" variable has a numeric type, sort the rows so that
+        # the default result from categorical_order has those values sorted after
+        # they have been coerced to strings. The reason for this is so that later
+        # we can get facet-wise orders that are correct.
+        # XXX Should this also sort datetimes?
+        # It feels more consistent, but technically will be a default change
+        # If so, should also change categorical_order to behave that way
+        if self.var_types[axis] == "numeric":
+            self.plot_data = self.plot_data.sort_values(axis, kind="mergesort")
+
+        # Now get a reference to the categorical data vector and remove na values
+        cat_data = self.plot_data[axis].dropna()
+
+        # Get the initial categorical order, which we do before string
+        # conversion to respect the original types of the order list.
+        # Track whether the order is given explicitly so that we can know
+        # whether or not to use the order constructed here downstream
+        self._var_ordered[axis] = order is not None or cat_data.dtype.name == "category"
+        order = pd.Index(categorical_order(cat_data, order), name=axis)
+
+        # Then convert data to strings. This is because in matplotlib,
+        # "categorical" data really mean "string" data, so doing this artists
+        # will be drawn on the categorical axis with a fixed scale.
+        # TODO implement formatter here; check that it returns strings?
+        if formatter is not None:
+            cat_data = cat_data.map(formatter)
+            order = order.map(formatter)
+        else:
+            cat_data = cat_data.astype(str)
+            order = order.astype(str)
+
+        # Update the levels list with the type-converted order variable
+        self.var_levels[axis] = order
+
+        # Now ensure that seaborn will use categorical rules internally
+        self.var_types[axis] = "categorical"
+
+        # Put the string-typed categorical vector back into the plot_data structure
+        self.plot_data[axis] = cat_data
+
+        return self
+
+
+class VariableType(UserString):
+    """
+    Prevent comparisons elsewhere in the library from using the wrong name.
+
+    Errors are simple assertions because users should not be able to trigger
+    them. If that changes, they should be more verbose.
+
+    """
+    # TODO we can replace this with typing.Literal on Python 3.8+
+    allowed = "numeric", "datetime", "categorical"
+
+    def __init__(self, data):
+        assert data in self.allowed, data
+        super().__init__(data)
+
+    def __eq__(self, other):
+        assert other in self.allowed, other
+        return self.data == other
+
+
+def variable_type(vector, boolean_type="numeric"):
+    """
+    Determine whether a vector contains numeric, categorical, or datetime data.
+
+    This function differs from the pandas typing API in two ways:
+
+    - Python sequences or object-typed PyData objects are considered numeric if
+      all of their entries are numeric.
+    - String or mixed-type data are considered categorical even if not
+      explicitly represented as a :class:`pandas.api.types.CategoricalDtype`.
+
+    Parameters
+    ----------
+    vector : :func:`pandas.Series`, :func:`numpy.ndarray`, or Python sequence
+        Input data to test.
+    boolean_type : 'numeric' or 'categorical'
+        Type to use for vectors containing only 0s and 1s (and NAs).
+
+    Returns
+    -------
+    var_type : 'numeric', 'categorical', or 'datetime'
+        Name identifying the type of data in the vector.
+    """
+    vector = pd.Series(vector)
+
+    # If a categorical dtype is set, infer categorical
+    if isinstance(vector.dtype, pd.CategoricalDtype):
+        return VariableType("categorical")
+
+    # Special-case all-na data, which is always "numeric"
+    if pd.isna(vector).all():
+        return VariableType("numeric")
+
+    # At this point, drop nans to simplify further type inference
+    vector = vector.dropna()
+
+    # Special-case binary/boolean data, allow caller to determine
+    # This triggers a numpy warning when vector has strings/objects
+    # https://github.com/numpy/numpy/issues/6784
+    # Because we reduce with .all(), we are agnostic about whether the
+    # comparison returns a scalar or vector, so we will ignore the warning.
+    # It triggers a separate DeprecationWarning when the vector has datetimes:
+    # https://github.com/numpy/numpy/issues/13548
+    # This is considered a bug by numpy and will likely go away.
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            action='ignore', category=(FutureWarning, DeprecationWarning)
+        )
+        try:
+            if np.isin(vector, [0, 1]).all():
+                return VariableType(boolean_type)
+        except TypeError:
+            # .isin comparison is not guaranteed to be possible under NumPy
+            # casting rules, depending on the (unknown) dtype of 'vector'
+            pass
+
+    # Defer to positive pandas tests
+    if pd.api.types.is_numeric_dtype(vector):
+        return VariableType("numeric")
+
+    if pd.api.types.is_datetime64_dtype(vector):
+        return VariableType("datetime")
+
+    # --- If we get to here, we need to check the entries
+
+    # Check for a collection where everything is a number
+
+    def all_numeric(x):
+        for x_i in x:
+            if not isinstance(x_i, Number):
+                return False
+        return True
+
+    if all_numeric(vector):
+        return VariableType("numeric")
+
+    # Check for a collection where everything is a datetime
+
+    def all_datetime(x):
+        for x_i in x:
+            if not isinstance(x_i, (datetime, np.datetime64)):
+                return False
+        return True
+
+    if all_datetime(vector):
+        return VariableType("datetime")
+
+    # Otherwise, our final fallback is to consider things categorical
+
+    return VariableType("categorical")
+
+
+def infer_orient(x=None, y=None, orient=None, require_numeric=True):
+    """Determine how the plot should be oriented based on the data.
+
+    For historical reasons, the convention is to call a plot "horizontally"
+    or "vertically" oriented based on the axis representing its dependent
+    variable. Practically, this is used when determining the axis for
+    numerical aggregation.
+
+    Parameters
+    ----------
+    x, y : Vector data or None
+        Positional data vectors for the plot.
+    orient : string or None
+        Specified orientation. If not None, can be "x" or "y", or otherwise
+        must start with "v" or "h".
+    require_numeric : bool
+        If set, raise when the implied dependent variable is not numeric.
+
+    Returns
+    -------
+    orient : "x" or "y"
+
+    Raises
+    ------
+    ValueError: When `orient` is an unknown string.
+    TypeError: When dependent variable is not numeric, with `require_numeric`
+# ... 188 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

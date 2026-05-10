@@ -1,0 +1,41 @@
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index be3815a..d23bcda 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -407,7 +407,35 @@ class Nominal(Scale):
+ @dataclass
+ class Ordinal(Scale):
+     # Categorical (convert to strings), sortable, can skip ticklabels
+-    ...
++    values: tuple | str | list | dict | None = None
++    order: list | None = None
++
++    _priority: ClassVar[int] = 4
++
++    def _setup(
++        self, data: Series, prop: Property, axis: Axis | None = None,
++    ) -> Scale:
++        # Ordinal behaves like Nominal for setup
++        return Nominal(values=self.values, order=self.order)._setup(data, prop, axis)
++
++    def _finalize(self, p: Plot, axis: Axis) -> None:
++        return Nominal(values=self.values, order=self.order)._finalize(p, axis)
++
++    def tick(self, locator: Locator | None = None) -> Ordinal:
++        new = copy(self)
++        new._tick_params = {"locator": locator}
++        return new
++
++    def label(self, formatter: Formatter | None = None) -> Ordinal:
++        new = copy(self)
++        new._label_params = {"formatter": formatter}
++        return new
++
++    def _get_locators(self, locator):
++        return Nominal()._get_locators(locator)
++
++    def _get_formatter(self, locator, formatter):
++        return Nominal()._get_formatter(locator, formatter)
+ 
+ 
+ @dataclass
