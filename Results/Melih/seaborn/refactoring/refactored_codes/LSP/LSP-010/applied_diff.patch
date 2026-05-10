@@ -1,0 +1,61 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 8eed607..026cb33 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -575,33 +575,32 @@ class _CategoricalPlotter(VectorPlotter):
+             if not sub_data.empty:
+                 point_collections[(ax, sub_data[self.orient].iloc[0])] = points
+ 
++        class BeeswarmArtist(type(point_collections[next(iter(point_collections))])):
++            def __init__(self, collection, beeswarm, center, orient, var_types, ax):
++                self.__dict__.update(collection.__dict__)
++                self._beeswarm = beeswarm
++                self._center = center
++                self._orient = orient
++                self._var_types = var_types
++                self._ax = ax
++
++            def draw(self, renderer):
++                self._beeswarm(self, self._center)
++                if self._orient == "y":
++                    scalex, scaley = False, self._ax.get_autoscaley_on()
++                else:
++                    scalex, scaley = self._ax.get_autoscalex_on(), False
++                fixed_scale = self._var_types[self._orient] == "categorical"
++                self._ax.update_datalim(self.get_datalim(self._ax.transData))
++                if not fixed_scale and (scalex or scaley):
++                    self._ax.autoscale_view(scalex=scalex, scaley=scaley)
++                super().draw(renderer)
++
+         beeswarm = Beeswarm(width=width, orient=self.orient, warn_thresh=warn_thresh)
+         for (ax, center), points in point_collections.items():
+             if points.get_offsets().shape[0] > 1:
+-
+-                def draw(points, renderer, *, center=center):
+-
+-                    beeswarm(points, center)
+-
+-                    if self.orient == "y":
+-                        scalex = False
+-                        scaley = ax.get_autoscaley_on()
+-                    else:
+-                        scalex = ax.get_autoscalex_on()
+-                        scaley = False
+-
+-                    # This prevents us from undoing the nice categorical axis limits
+-                    # set in _adjust_cat_axis, because that method currently leave
+-                    # the autoscale flag in its original setting. It may be better
+-                    # to disable autoscaling there to avoid needing to do this.
+-                    fixed_scale = self.var_types[self.orient] == "categorical"
+-                    ax.update_datalim(points.get_datalim(ax.transData))
+-                    if not fixed_scale and (scalex or scaley):
+-                        ax.autoscale_view(scalex=scalex, scaley=scaley)
+-
+-                    super(points.__class__, points).draw(renderer)
+-
+-                points.draw = draw.__get__(points)
++                artist = BeeswarmArtist(points, beeswarm, center, self.orient, self.var_types, ax)
++                ax.collections[ax.collections.index(points)] = artist
+ 
+         _draw_figure(ax.figure)
+         self._configure_legend(ax, _scatter_legend_artist, plot_kws)

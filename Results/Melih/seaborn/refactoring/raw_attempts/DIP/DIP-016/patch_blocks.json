@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "def catplot(\n    data=None, *, x=None, y=None, hue=None, row=None, col=None, kind=\"strip\",\n    estimator=\"mean\", errorbar=(\"ci\", 95), n_boot=1000, seed=None, units=None,\n    weights=None, order=None, hue_order=None, row_order=None, col_order=None,\n    col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,\n    formatter=None, orient=None, color=None, palette=None, hue_norm=None,\n    legend=\"auto\", legend_out=True, sharex=True, sharey=True,\n    margin_titles=False, facet_kws=None, ci=deprecated, **kwargs\n):",
+    "replace_text": "def catplot(\n    data=None, *, x=None, y=None, hue=None, row=None, col=None, kind=\"strip\",\n    estimator=\"mean\", errorbar=(\"ci\", 95), n_boot=1000, seed=None, units=None,\n    weights=None, order=None, hue_order=None, row_order=None, col_order=None,\n    col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,\n    formatter=None, orient=None, color=None, palette=None, hue_norm=None,\n    legend=\"auto\", legend_out=True, sharex=True, sharey=True,\n    margin_titles=False, facet_kws=None, ci=deprecated, grid_class=None, **kwargs\n):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/categorical.py",
+    "search_text": "    if facet_kws is None:\n        facet_kws = {}\n\n    g = FacetGrid(\n        data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,\n        row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,\n        legend_out=legend_out, margin_titles=margin_titles,\n        height=height, aspect=aspect,\n        **facet_kws,\n    )",
+    "replace_text": "    if facet_kws is None:\n        facet_kws = {}\n\n    if grid_class is None:\n        grid_class = FacetGrid\n\n    g = grid_class(\n        data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,\n        row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,\n        legend_out=legend_out, margin_titles=margin_titles,\n        height=height, aspect=aspect,\n        **facet_kws,\n    )"
+  }
+]

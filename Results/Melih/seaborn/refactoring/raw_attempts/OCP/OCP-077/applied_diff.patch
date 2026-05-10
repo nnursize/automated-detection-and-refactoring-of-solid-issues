@@ -1,0 +1,25 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index ac13759..3fa5a07 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -3014,16 +3014,16 @@ def catplot(
+         p.plot_bars(aggregator=aggregator, dodge=dodge, width=width, gap=gap, color=color,
+                     fill=fill, capsize=0, err_kws={}, plot_kws=kwargs)
+ 
+-    dispatch = {
++    _catplot_dispatch = {
+         "strip": _plot_strip, "swarm": _plot_swarm, "box": _plot_box,
+         "violin": _plot_violin, "boxen": _plot_boxen, "point": _plot_point,
+         "bar": _plot_bar, "count": _plot_count
+     }
+ 
+-    if kind in dispatch:
+-        dispatch[kind](p, dodge, color, kwargs)
++    if kind in _catplot_dispatch:
++        _catplot_dispatch[kind](p, dodge, color, kwargs)
+     else:
+-        msg = (f"Invalid `kind`: {kind!r}. Options are {list(dispatch.keys())}.")
++        msg = (f"Invalid `kind`: {kind!r}. Options are {list(_catplot_dispatch.keys())}.")
+         raise ValueError(msg)
+ 
+     for ax in g.axes.flat:

@@ -1,0 +1,537 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-003
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `seaborn/distributions.py`
+- **Entity**: `displot` (current lines L2096-L2285 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+Long if/elif/else chain for dispatching plot kinds.
+
+### Reasoning
+The `displot` function uses a long `if/elif/else` chain based on the `kind` string parameter to dispatch to different plotting logic (hist, kde, ecdf). To introduce a new distribution plot type, this function would require modification to add a new `elif` branch, directly violating the Open/Closed Principle. A more OCP-compliant design would involve a registry or a strategy pattern where new plot kinds can be registered without modifying `displot`.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/distributions.py`
+```python
+# ... 1975 earlier lines elided ...
+    data=None, *, x=None, y=None, hue=None, height=.025, expand_margins=True,
+    palette=None, hue_order=None, hue_norm=None, legend=True, ax=None, **kwargs
+):
+
+    # A note: I think it would make sense to add multiple= to rugplot and allow
+    # rugs for different hue variables to be shifted orthogonal to the data axis
+    # But is this stacking, or dodging?
+
+    # A note: if we want to add a style semantic to rugplot,
+    # we could make an option that draws the rug using scatterplot
+
+    # A note, it would also be nice to offer some kind of histogram/density
+    # rugplot, since alpha blending doesn't work great in the large n regime
+
+    # --- Start with backwards compatability for versions < 0.11.0 ----------------
+
+    a = kwargs.pop("a", None)
+    axis = kwargs.pop("axis", None)
+
+    if a is not None:
+        data = a
+        msg = textwrap.dedent("""\n
+        The `a` parameter has been replaced; use `x`, `y`, and/or `data` instead.
+        Please update your code; This will become an error in seaborn v0.14.0.
+        """)
+        warnings.warn(msg, UserWarning, stacklevel=2)
+
+    if axis is not None:
+        if axis == "x":
+            x = data
+        elif axis == "y":
+            y = data
+        data = None
+        msg = textwrap.dedent(f"""\n
+        The `axis` parameter has been deprecated; use the `{axis}` parameter instead.
+        Please update your code; this will become an error in seaborn v0.14.0.
+        """)
+        warnings.warn(msg, UserWarning, stacklevel=2)
+
+    vertical = kwargs.pop("vertical", None)
+    if vertical is not None:
+        if vertical:
+            action_taken = "assigning data to `y`."
+            if x is None:
+                data, y = y, data
+            else:
+                x, y = y, x
+        else:
+            action_taken = "assigning data to `x`."
+        msg = textwrap.dedent(f"""\n
+        The `vertical` parameter is deprecated; {action_taken}
+        This will become an error in seaborn v0.14.0; please update your code.
+        """)
+        warnings.warn(msg, UserWarning, stacklevel=2)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    p = _DistributionPlotter(
+        data=data,
+        variables=dict(x=x, y=y, hue=hue),
+    )
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
+
+    if ax is None:
+        ax = plt.gca()
+
+    p._attach(ax)
+
+    color = kwargs.pop("color", kwargs.pop("c", None))
+    kwargs["color"] = _default_color(ax.plot, hue, color, kwargs)
+
+    if not p.has_xy_data:
+        return ax
+
+    p.plot_rug(height, expand_margins, legend, **kwargs)
+
+    return ax
+
+
+rugplot.__doc__ = """\
+Plot marginal distributions by drawing ticks along the x and y axes.
+
+This function is intended to complement other plots by showing the location
+of individual observations in an unobtrusive way.
+
+Parameters
+----------
+{params.core.data}
+{params.core.xy}
+{params.core.hue}
+height : float
+    Proportion of axes extent covered by each rug element. Can be negative.
+expand_margins : bool
+    If True, increase the axes margins by the height of the rug to avoid
+    overlap with other elements.
+{params.core.palette}
+{params.core.hue_order}
+{params.core.hue_norm}
+legend : bool
+    If False, do not add a legend for semantic variables.
+{params.core.ax}
+kwargs
+    Other keyword arguments are passed to
+    :meth:`matplotlib.collections.LineCollection`
+
+Returns
+-------
+{returns.ax}
+
+Examples
+--------
+
+.. include:: ../docstrings/rugplot.rst
+
+""".format(
+    params=_param_docs,
+    returns=_core_docs["returns"],
+)
+
+
+def displot(
+    data=None, *,
+    # Vector variables
+    x=None, y=None, hue=None, row=None, col=None, weights=None,
+    # Other plot parameters
+    kind="hist", rug=False, rug_kws=None, log_scale=None, legend=True,
+    # Hue-mapping parameters
+    palette=None, hue_order=None, hue_norm=None, color=None,
+    # Faceting parameters
+    col_wrap=None, row_order=None, col_order=None,
+    height=5, aspect=1, facet_kws=None,
+    **kwargs,
+):
+
+    p = _DistributionPlotter(
+        data=data,
+        variables=dict(x=x, y=y, hue=hue, weights=weights, row=row, col=col),
+    )
+
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
+
+    _check_argument("kind", ["hist", "kde", "ecdf"], kind)
+
+    # --- Initialize the FacetGrid object
+
+    # Check for attempt to plot onto specific axes and warn
+    if "ax" in kwargs:
+        msg = (
+            "`displot` is a figure-level function and does not accept "
+            "the ax= parameter. You may wish to try {}plot.".format(kind)
+        )
+        warnings.warn(msg, UserWarning)
+        kwargs.pop("ax")
+
+    for var in ["row", "col"]:
+        # Handle faceting variables that lack name information
+        if var in p.variables and p.variables[var] is None:
+            p.variables[var] = f"_{var}_"
+
+    # Adapt the plot_data dataframe for use with FacetGrid
+    grid_data = p.plot_data.rename(columns=p.variables)
+    grid_data = grid_data.loc[:, ~grid_data.columns.duplicated()]
+
+    col_name = p.variables.get("col")
+    row_name = p.variables.get("row")
+
+    if facet_kws is None:
+        facet_kws = {}
+
+    g = FacetGrid(
+        data=grid_data, row=row_name, col=col_name,
+        col_wrap=col_wrap, row_order=row_order,
+        col_order=col_order, height=height,
+        aspect=aspect,
+        **facet_kws,
+    )
+
+    # Now attach the axes object to the plotter object
+    if kind == "kde":
+        allowed_types = ["numeric", "datetime"]
+    else:
+        allowed_types = None
+    p._attach(g, allowed_types=allowed_types, log_scale=log_scale)
+
+    # Check for a specification that lacks x/y data and return early
+    if not p.has_xy_data:
+        return g
+
+    if color is None and hue is None:
+        color = "C0"
+    # XXX else warn if hue is not None?
+
+    kwargs["legend"] = legend
+
+    # --- Draw the plots
+
+    if kind == "hist":
+
+        hist_kws = kwargs.copy()
+
+        # Extract the parameters that will go directly to Histogram
+        estimate_defaults = {}
+        _assign_default_kwargs(estimate_defaults, Histogram.__init__, histplot)
+
+        estimate_kws = {}
+        for key, default_val in estimate_defaults.items():
+            estimate_kws[key] = hist_kws.pop(key, default_val)
+
+        # Handle derivative defaults
+        if estimate_kws["discrete"] is None:
+            estimate_kws["discrete"] = p._default_discrete()
+
+        hist_kws["estimate_kws"] = estimate_kws
+
+        hist_kws.setdefault("color", color)
+
+        if p.univariate:
+
+            _assign_default_kwargs(hist_kws, p.plot_univariate_histogram, histplot)
+            p.plot_univariate_histogram(**hist_kws)
+
+        else:
+
+            _assign_default_kwargs(hist_kws, p.plot_bivariate_histogram, histplot)
+            p.plot_bivariate_histogram(**hist_kws)
+
+    elif kind == "kde":
+
+        kde_kws = kwargs.copy()
+
+        # Extract the parameters that will go directly to KDE
+        estimate_defaults = {}
+        _assign_default_kwargs(estimate_defaults, KDE.__init__, kdeplot)
+
+        estimate_kws = {}
+        for key, default_val in estimate_defaults.items():
+            estimate_kws[key] = kde_kws.pop(key, default_val)
+
+        kde_kws["estimate_kws"] = estimate_kws
+        kde_kws["color"] = color
+
+        if p.univariate:
+
+            _assign_default_kwargs(kde_kws, p.plot_univariate_density, kdeplot)
+            p.plot_univariate_density(**kde_kws)
+
+        else:
+
+            _assign_default_kwargs(kde_kws, p.plot_bivariate_density, kdeplot)
+            p.plot_bivariate_density(**kde_kws)
+
+    elif kind == "ecdf":
+
+        ecdf_kws = kwargs.copy()
+
+        # Extract the parameters that will go directly to the estimator
+        estimate_kws = {}
+        estimate_defaults = {}
+        _assign_default_kwargs(estimate_defaults, ECDF.__init__, ecdfplot)
+        for key, default_val in estimate_defaults.items():
+            estimate_kws[key] = ecdf_kws.pop(key, default_val)
+
+        ecdf_kws["estimate_kws"] = estimate_kws
+        ecdf_kws["color"] = color
+
+        if p.univariate:
+
+            _assign_default_kwargs(ecdf_kws, p.plot_univariate_ecdf, ecdfplot)
+            p.plot_univariate_ecdf(**ecdf_kws)
+
+        else:
+
+            raise NotImplementedError("Bivariate ECDF plots are not implemented")
+
+    # All plot kinds can include a rug
+    if rug:
+        # TODO with expand_margins=True, each facet expands margins... annoying!
+        if rug_kws is None:
+            rug_kws = {}
+        _assign_default_kwargs(rug_kws, p.plot_rug, rugplot)
+        rug_kws["legend"] = False
+        if color is not None:
+            rug_kws["color"] = color
+        p.plot_rug(**rug_kws)
+
+    # Call FacetGrid annotation methods
+    # Note that the legend is currently set inside the plotting method
+    g.set_axis_labels(
+        x_var=p.variables.get("x", g.axes.flat[0].get_xlabel()),
+        y_var=p.variables.get("y", g.axes.flat[0].get_ylabel()),
+    )
+    g.set_titles()
+    g.tight_layout()
+
+    if data is not None and (x is not None or y is not None):
+        if not isinstance(data, pd.DataFrame):
+            data = pd.DataFrame(data)
+        g.data = pd.merge(
+            data,
+            g.data[g.data.columns.difference(data.columns)],
+            left_index=True,
+            right_index=True,
+        )
+    else:
+        wide_cols = {
+            k: f"_{k}_" if v is None else v for k, v in p.variables.items()
+        }
+        g.data = p.plot_data.rename(columns=wide_cols)
+
+    return g
+
+
+displot.__doc__ = """\
+Figure-level interface for drawing distribution plots onto a FacetGrid.
+
+This function provides access to several approaches for visualizing the
+univariate or bivariate distribution of data, including subsets of data
+defined by semantic mapping and faceting across multiple subplots. The
+``kind`` parameter selects the approach to use:
+
+- :func:`histplot` (with ``kind="hist"``; the default)
+- :func:`kdeplot` (with ``kind="kde"``)
+- :func:`ecdfplot` (with ``kind="ecdf"``; univariate-only)
+
+Additionally, a :func:`rugplot` can be added to any kind of plot to show
+individual observations.
+
+Extra keyword arguments are passed to the underlying function, so you should
+refer to the documentation for each to understand the complete set of options
+for making plots with this interface.
+
+See the :doc:`distribution plots tutorial <../tutorial/distributions>` for a more
+in-depth discussion of the relative strengths and weaknesses of each approach.
+The distinction between figure-level and axes-level functions is explained
+further in the :doc:`user guide <../tutorial/function_overview>`.
+
+Parameters
+----------
+{params.core.data}
+{params.core.xy}
+{params.core.hue}
+{params.facets.rowcol}
+weights : vector or key in ``data``
+    Observation weights used for computing the distribution function.
+kind : {{"hist", "kde", "ecdf"}}
+    Approach for visualizing the data. Selects the underlying plotting function
+    and determines the additional set of valid parameters.
+rug : bool
+    If True, show each observation with marginal ticks (as in :func:`rugplot`).
+rug_kws : dict
+    Parameters to control the appearance of the rug plot.
+{params.dist.log_scale}
+{params.dist.legend}
+{params.core.palette}
+{params.core.hue_order}
+{params.core.hue_norm}
+{params.core.color}
+{params.facets.col_wrap}
+{params.facets.rowcol_order}
+{params.facets.height}
+{params.facets.aspect}
+{params.facets.facet_kws}
+kwargs
+    Other keyword arguments are documented with the relevant axes-level function:
+
+    - :func:`histplot` (with ``kind="hist"``)
+    - :func:`kdeplot` (with ``kind="kde"``)
+    - :func:`ecdfplot` (with ``kind="ecdf"``)
+
+Returns
+-------
+{returns.facetgrid}
+
+See Also
+--------
+{seealso.histplot}
+{seealso.kdeplot}
+{seealso.rugplot}
+{seealso.ecdfplot}
+{seealso.jointplot}
+
+Examples
+--------
+
+See the API documentation for the axes-level functions for more details
+about the breadth of options available for each plot kind.
+
+.. include:: ../docstrings/displot.rst
+
+""".format(
+    params=_param_docs,
+    returns=_core_docs["returns"],
+    seealso=_core_docs["seealso"],
+)
+
+
+# =========================================================================== #
+# DEPRECATED FUNCTIONS LIVE BELOW HERE
+# =========================================================================== #
+
+
+def _freedman_diaconis_bins(a):
+    """Calculate number of hist bins using Freedman-Diaconis rule."""
+    # From https://stats.stackexchange.com/questions/798/
+    a = np.asarray(a)
+    if len(a) < 2:
+        return 1
+    iqr = np.subtract.reduce(np.nanpercentile(a, [75, 25]))
+    h = 2 * iqr / (len(a) ** (1 / 3))
+    # fall back to sqrt(a) bins if iqr is 0
+    if h == 0:
+        return int(np.sqrt(a.size))
+    else:
+        return int(np.ceil((a.max() - a.min()) / h))
+
+
+def distplot(a=None, bins=None, hist=True, kde=True, rug=False, fit=None,
+             hist_kws=None, kde_kws=None, rug_kws=None, fit_kws=None,
+             color=None, vertical=False, norm_hist=False, axlabel=None,
+             label=None, ax=None, x=None):
+    """
+    DEPRECATED
+
+    This function has been deprecated and will be removed in seaborn v0.14.0.
+    It has been replaced by :func:`histplot` and :func:`displot`, two functions
+    with a modern API and many more capabilities.
+
+    For a guide to updating, please see this notebook:
+
+    https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
+# ... 128 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

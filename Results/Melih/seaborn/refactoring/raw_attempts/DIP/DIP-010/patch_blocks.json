@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_base.py",
+    "search_text": "    def __init__(self, data=None, variables={}):\n\n        self._var_levels = {}\n        # var_ordered is relevant only for categorical axis variables, and may\n        # be better handled by an internal axis information object that tracks\n        # such information and is set up by the scale_* methods. The analogous\n        # information for numeric axes would be information about log scales.\n        self._var_ordered = {\"x\": False, \"y\": False}  # alt., used DefaultDict\n        self.assign_variables(data, variables)\n\n        # TODO Lots of tests assume that these are called to initialize the",
+    "replace_text": "    def __init__(self, data=None, variables={}, plot_data_cls=None):\n\n        self._var_levels = {}\n        # var_ordered is relevant only for categorical axis variables, and may\n        # be better handled by an internal axis information object that tracks\n        # such information and is set up by the scale_* methods. The analogous\n        # information for numeric axes would be information about log scales.\n        self._var_ordered = {\"x\": False, \"y\": False}  # alt., used DefaultDict\n        self.plot_data_cls = plot_data_cls or PlotData\n        self.assign_variables(data, variables)\n\n        # TODO Lots of tests assume that these are called to initialize the"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_base.py",
+    "search_text": "        else:\n            # When dealing with long-form input, use the newer PlotData\n            # object (internal but introduced for the objects interface)\n            # to centralize / standardize data consumption logic.\n            self.input_format = \"long\"\n            plot_data = PlotData(data, variables)\n            frame = plot_data.frame\n            names = plot_data.names",
+    "replace_text": "        else:\n            # When dealing with long-form input, use the newer PlotData\n            # object (internal but introduced for the objects interface)\n            # to centralize / standardize data consumption logic.\n            self.input_format = \"long\"\n            plot_data = self.plot_data_cls(data, variables)\n            frame = plot_data.frame\n            names = plot_data.names"
+  }
+]

@@ -1,0 +1,735 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-003
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `seaborn/categorical.py`
+- **Entity**: `catplot` (current lines L2761-L3148 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+This figure-level function acts as a 'god function' by dispatching to various plot kinds, handling faceting, managing parameters, and configuring legends.
+
+### Reasoning
+`catplot` orchestrates the creation of an entire figure, including: input validation, handling deprecations, selecting the appropriate plotter class based on `kind`, adapting data for `FacetGrid`, initializing `FacetGrid`, applying semantic mappings, dispatching to specific `plot_X` methods, and managing the legend. Any change to a plot kind's parameters, faceting logic, or legend behavior would require modifying this function, making it highly susceptible to change for many reasons.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/categorical.py`
+```python
+# ... 2640 earlier lines elided ...
+        raise TypeError("Cannot pass values for both `x` and `y`.")
+
+    p = _CategoricalAggPlotter(
+        data=data,
+        variables=dict(x=x, y=y, hue=hue),
+        order=order,
+        orient=orient,
+        color=color,
+        legend=legend,
+    )
+
+    if ax is None:
+        ax = plt.gca()
+
+    if p.plot_data.empty:
+        return ax
+
+    if dodge == "auto":
+        # Needs to be before scale_categorical changes the coordinate series dtype
+        dodge = p._dodge_needed()
+
+    if p.var_types.get(p.orient) == "categorical" or not native_scale:
+        p.scale_categorical(p.orient, order=order, formatter=formatter)
+
+    p._attach(ax, log_scale=log_scale)
+
+    # Deprecations to remove in v0.14.0.
+    hue_order = p._palette_without_hue_backcompat(palette, hue_order)
+    palette, hue_order = p._hue_backcompat(color, palette, hue_order)
+
+    saturation = saturation if fill else 1
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm, saturation=saturation)
+    color = _default_color(ax.bar, hue, color, kwargs, saturation)
+
+    count_axis = {"x": "y", "y": "x"}[p.orient]
+    if p.input_format == "wide":
+        p.plot_data[count_axis] = 1
+
+    _check_argument("stat", ["count", "percent", "probability", "proportion"], stat)
+    p.variables[count_axis] = stat
+    if stat != "count":
+        denom = 100 if stat == "percent" else 1
+        p.plot_data[count_axis] /= len(p.plot_data) / denom
+
+    aggregator = EstimateAggregator("sum", errorbar=None)
+
+    p.plot_bars(
+        aggregator=aggregator,
+        dodge=dodge,
+        width=width,
+        gap=gap,
+        color=color,
+        fill=fill,
+        capsize=0,
+        err_kws={},
+        plot_kws=kwargs,
+    )
+
+    p._add_axis_labels(ax)
+    p._adjust_cat_axis(ax, axis=p.orient)
+
+    return ax
+
+
+countplot.__doc__ = dedent("""\
+    Show the counts of observations in each categorical bin using bars.
+
+    A count plot can be thought of as a histogram across a categorical, instead
+    of quantitative, variable. The basic API and options are identical to those
+    for :func:`barplot`, so you can compare counts across nested variables.
+
+    Note that :func:`histplot` function offers similar functionality with additional
+    features (e.g. bar stacking), although its default behavior is somewhat different.
+
+    {categorical_narrative}
+
+    Parameters
+    ----------
+    {categorical_data}
+    {input_params}
+    {order_vars}
+    {orient}
+    {color}
+    {palette}
+    {saturation}
+    {fill}
+    {hue_norm}
+    stat : {{'count', 'percent', 'proportion', 'probability'}}
+        Statistic to compute; when not `'count'`, bar heights will be normalized so that
+        they sum to 100 (for `'percent'`) or 1 (otherwise) across the plot.
+
+        .. versionadded:: v0.13.0
+    {width}
+    {dodge}
+    {gap}
+    {log_scale}
+    {native_scale}
+    {formatter}
+    {legend}
+    {ax_in}
+    kwargs : key, value mappings
+        Other parameters are passed through to :class:`matplotlib.patches.Rectangle`.
+
+    Returns
+    -------
+    {ax_out}
+
+    See Also
+    --------
+    histplot : Bin and count observations with additional options.
+    {barplot}
+    {catplot}
+
+    Examples
+    --------
+    .. include:: ../docstrings/countplot.rst
+
+    """).format(**_categorical_docs)
+
+
+def catplot(
+    data=None, *, x=None, y=None, hue=None, row=None, col=None, kind="strip",
+    estimator="mean", errorbar=("ci", 95), n_boot=1000, seed=None, units=None,
+    weights=None, order=None, hue_order=None, row_order=None, col_order=None,
+    col_wrap=None, height=5, aspect=1, log_scale=None, native_scale=False,
+    formatter=None, orient=None, color=None, palette=None, hue_norm=None,
+    legend="auto", legend_out=True, sharex=True, sharey=True,
+    margin_titles=False, facet_kws=None, ci=deprecated, **kwargs
+):
+
+    # Check for attempt to plot onto specific axes and warn
+    if "ax" in kwargs:
+        msg = ("catplot is a figure-level function and does not accept "
+               f"target axes. You may wish to try {kind}plot")
+        warnings.warn(msg, UserWarning)
+        kwargs.pop("ax")
+
+    desaturated_kinds = ["bar", "count", "box", "violin", "boxen"]
+    undodged_kinds = ["strip", "swarm", "point"]
+
+    if kind in ["bar", "point", "count"]:
+        Plotter = _CategoricalAggPlotter
+    else:
+        Plotter = _CategoricalPlotter
+
+    if kind == "count":
+        if x is None and y is not None:
+            orient = "y"
+            x = 1
+        elif x is not None and y is None:
+            orient = "x"
+            y = 1
+        elif x is not None and y is not None:
+            raise ValueError("Cannot pass values for both `x` and `y`.")
+
+    p = Plotter(
+        data=data,
+        variables=dict(
+            x=x, y=y, hue=hue, row=row, col=col, units=units, weight=weights
+        ),
+        order=order,
+        orient=orient,
+        # Handle special backwards compatibility where pointplot originally
+        # did *not* default to multi-colored unless a palette was specified.
+        color="C0" if kind == "point" and palette is None and color is None else color,
+        legend=legend,
+    )
+
+    for var in ["row", "col"]:
+        # Handle faceting variables that lack name information
+        if var in p.variables and p.variables[var] is None:
+            p.variables[var] = f"_{var}_"
+
+    # Adapt the plot_data dataframe for use with FacetGrid
+    facet_data = p.plot_data.rename(columns=p.variables)
+    facet_data = facet_data.loc[:, ~facet_data.columns.duplicated()]
+
+    col_name = p.variables.get("col", None)
+    row_name = p.variables.get("row", None)
+
+    if facet_kws is None:
+        facet_kws = {}
+
+    g = FacetGrid(
+        data=facet_data, row=row_name, col=col_name, col_wrap=col_wrap,
+        row_order=row_order, col_order=col_order, sharex=sharex, sharey=sharey,
+        legend_out=legend_out, margin_titles=margin_titles,
+        height=height, aspect=aspect,
+        **facet_kws,
+    )
+
+    # Capture this here because scale_categorical is going to insert a (null)
+    # x variable even if it is empty. It's not clear whether that needs to
+    # happen or if disabling that is the cleaner solution.
+    has_xy_data = p.has_xy_data
+
+    if not native_scale or p.var_types[p.orient] == "categorical":
+        p.scale_categorical(p.orient, order=order, formatter=formatter)
+
+    p._attach(g, log_scale=log_scale)
+
+    if not has_xy_data:
+        return g
+
+    # Deprecations to remove in v0.14.0.
+    hue_order = p._palette_without_hue_backcompat(palette, hue_order)
+    palette, hue_order = p._hue_backcompat(color, palette, hue_order)
+
+    # Othe deprecations
+    errorbar = utils._deprecate_ci(errorbar, ci)
+
+    saturation = kwargs.pop(
+        "saturation",
+        0.75 if kind in desaturated_kinds and kwargs.get("fill", True) else 1
+    )
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm, saturation=saturation)
+
+    # Set a default color
+    # Otherwise each artist will be plotted separately and trip the color cycle
+    if hue is None:
+        color = "C0" if color is None else color
+        if saturation < 1:
+            color = desaturate(color, saturation)
+
+    if kind in ["strip", "swarm"]:
+        kwargs = normalize_kwargs(kwargs, mpl.collections.PathCollection)
+        kwargs["edgecolor"] = p._complement_color(
+            kwargs.pop("edgecolor", default), color, p._hue_map
+        )
+
+    width = kwargs.pop("width", 0.8)
+    dodge = kwargs.pop("dodge", False if kind in undodged_kinds else "auto")
+    if dodge == "auto":
+        dodge = p._dodge_needed()
+
+    if "weight" in p.plot_data:
+        if kind not in ["bar", "point"]:
+            msg = f"The `weights` parameter has no effect with kind={kind!r}."
+            warnings.warn(msg, stacklevel=2)
+        agg_cls = WeightedAggregator
+    else:
+        agg_cls = EstimateAggregator
+
+    if kind == "strip":
+
+        jitter = kwargs.pop("jitter", True)
+        plot_kws = kwargs.copy()
+        plot_kws.setdefault("zorder", 3)
+        plot_kws.setdefault("linewidth", 0)
+        if "s" not in plot_kws:
+            plot_kws["s"] = plot_kws.pop("size", 5) ** 2
+
+        p.plot_strips(
+            jitter=jitter,
+            dodge=dodge,
+            color=color,
+            plot_kws=plot_kws,
+        )
+
+    elif kind == "swarm":
+
+        warn_thresh = kwargs.pop("warn_thresh", .05)
+        plot_kws = kwargs.copy()
+        plot_kws.setdefault("zorder", 3)
+        if "s" not in plot_kws:
+            plot_kws["s"] = plot_kws.pop("size", 5) ** 2
+
+        if plot_kws.setdefault("linewidth", 0) is None:
+            plot_kws["linewidth"] = np.sqrt(plot_kws["s"]) / 10
+
+        p.plot_swarms(
+            dodge=dodge,
+            color=color,
+            warn_thresh=warn_thresh,
+            plot_kws=plot_kws,
+        )
+
+    elif kind == "box":
+
+        plot_kws = kwargs.copy()
+        gap = plot_kws.pop("gap", 0)
+        fill = plot_kws.pop("fill", True)
+        whis = plot_kws.pop("whis", 1.5)
+        linewidth = plot_kws.pop("linewidth", None)
+        fliersize = plot_kws.pop("fliersize", 5)
+        linecolor = p._complement_color(
+            plot_kws.pop("linecolor", "auto"), color, p._hue_map
+        )
+
+        p.plot_boxes(
+            width=width,
+            dodge=dodge,
+            gap=gap,
+            fill=fill,
+            whis=whis,
+            color=color,
+            linecolor=linecolor,
+            linewidth=linewidth,
+            fliersize=fliersize,
+            plot_kws=plot_kws,
+        )
+
+    elif kind == "violin":
+
+        plot_kws = kwargs.copy()
+        gap = plot_kws.pop("gap", 0)
+        fill = plot_kws.pop("fill", True)
+        split = plot_kws.pop("split", False)
+        inner = plot_kws.pop("inner", "box")
+        density_norm = plot_kws.pop("density_norm", "area")
+        common_norm = plot_kws.pop("common_norm", False)
+
+        scale = plot_kws.pop("scale", deprecated)
+        scale_hue = plot_kws.pop("scale_hue", deprecated)
+        density_norm, common_norm = p._violin_scale_backcompat(
+            scale, scale_hue, density_norm, common_norm,
+        )
+
+        bw_method = p._violin_bw_backcompat(
+            plot_kws.pop("bw", deprecated), plot_kws.pop("bw_method", "scott")
+        )
+        kde_kws = dict(
+            cut=plot_kws.pop("cut", 2),
+            gridsize=plot_kws.pop("gridsize", 100),
+            bw_adjust=plot_kws.pop("bw_adjust", 1),
+            bw_method=bw_method,
+        )
+
+        inner_kws = plot_kws.pop("inner_kws", {}).copy()
+        linewidth = plot_kws.pop("linewidth", None)
+        linecolor = plot_kws.pop("linecolor", "auto")
+        linecolor = p._complement_color(linecolor, color, p._hue_map)
+
+        p.plot_violins(
+            width=width,
+            dodge=dodge,
+            gap=gap,
+            split=split,
+            color=color,
+            fill=fill,
+            linecolor=linecolor,
+            linewidth=linewidth,
+            inner=inner,
+            density_norm=density_norm,
+            common_norm=common_norm,
+            kde_kws=kde_kws,
+            inner_kws=inner_kws,
+            plot_kws=plot_kws,
+        )
+
+    elif kind == "boxen":
+
+        plot_kws = kwargs.copy()
+        gap = plot_kws.pop("gap", 0)
+        fill = plot_kws.pop("fill", True)
+        linecolor = plot_kws.pop("linecolor", "auto")
+        linewidth = plot_kws.pop("linewidth", None)
+        k_depth = plot_kws.pop("k_depth", "tukey")
+        width_method = plot_kws.pop("width_method", "exponential")
+        outlier_prop = plot_kws.pop("outlier_prop", 0.007)
+        trust_alpha = plot_kws.pop("trust_alpha", 0.05)
+        showfliers = plot_kws.pop("showfliers", True)
+        box_kws = plot_kws.pop("box_kws", {})
+        flier_kws = plot_kws.pop("flier_kws", {})
+        line_kws = plot_kws.pop("line_kws", {})
+        if "scale" in plot_kws:
+            width_method = p._boxen_scale_backcompat(
+                plot_kws["scale"], width_method
+            )
+        linecolor = p._complement_color(linecolor, color, p._hue_map)
+
+        p.plot_boxens(
+            width=width,
+            dodge=dodge,
+            gap=gap,
+            fill=fill,
+            color=color,
+            linecolor=linecolor,
+            linewidth=linewidth,
+            width_method=width_method,
+            k_depth=k_depth,
+            outlier_prop=outlier_prop,
+            trust_alpha=trust_alpha,
+            showfliers=showfliers,
+            box_kws=box_kws,
+            flier_kws=flier_kws,
+            line_kws=line_kws,
+            plot_kws=plot_kws,
+        )
+
+    elif kind == "point":
+
+        aggregator = agg_cls(estimator, errorbar, n_boot=n_boot, seed=seed)
+
+        markers = kwargs.pop("markers", default)
+        linestyles = kwargs.pop("linestyles", default)
+
+        # Deprecations to remove in v0.15.0.
+        # TODO Uncomment when removing deprecation backcompat
+        # capsize = kwargs.pop("capsize", 0)
+        # err_kws = normalize_kwargs(kwargs.pop("err_kws", {}), mpl.lines.Line2D)
+        p._point_kwargs_backcompat(
+            kwargs.pop("scale", deprecated),
+            kwargs.pop("join", deprecated),
+            kwargs
+        )
+        err_kws, capsize = p._err_kws_backcompat(
+            normalize_kwargs(kwargs.pop("err_kws", {}), mpl.lines.Line2D),
+            None,
+            errwidth=kwargs.pop("errwidth", deprecated),
+            capsize=kwargs.pop("capsize", 0),
+        )
+
+        p.plot_points(
+            aggregator=aggregator,
+            markers=markers,
+            linestyles=linestyles,
+            dodge=dodge,
+            color=color,
+            capsize=capsize,
+            err_kws=err_kws,
+            plot_kws=kwargs,
+        )
+
+    elif kind == "bar":
+
+        aggregator = agg_cls(estimator, errorbar, n_boot=n_boot, seed=seed)
+
+        err_kws, capsize = p._err_kws_backcompat(
+            normalize_kwargs(kwargs.pop("err_kws", {}), mpl.lines.Line2D),
+            errcolor=kwargs.pop("errcolor", deprecated),
+            errwidth=kwargs.pop("errwidth", deprecated),
+            capsize=kwargs.pop("capsize", 0),
+        )
+        gap = kwargs.pop("gap", 0)
+        fill = kwargs.pop("fill", True)
+
+        p.plot_bars(
+            aggregator=aggregator,
+            dodge=dodge,
+            width=width,
+            gap=gap,
+            color=color,
+            fill=fill,
+            capsize=capsize,
+            err_kws=err_kws,
+            plot_kws=kwargs,
+        )
+
+    elif kind == "count":
+
+        aggregator = EstimateAggregator("sum", errorbar=None)
+
+        count_axis = {"x": "y", "y": "x"}[p.orient]
+        p.plot_data[count_axis] = 1
+
+        stat_options = ["count", "percent", "probability", "proportion"]
+        stat = _check_argument("stat", stat_options, kwargs.pop("stat", "count"))
+        p.variables[count_axis] = stat
+        if stat != "count":
+            denom = 100 if stat == "percent" else 1
+            p.plot_data[count_axis] /= len(p.plot_data) / denom
+
+        gap = kwargs.pop("gap", 0)
+        fill = kwargs.pop("fill", True)
+
+        p.plot_bars(
+            aggregator=aggregator,
+            dodge=dodge,
+            width=width,
+            gap=gap,
+            color=color,
+            fill=fill,
+            capsize=0,
+            err_kws={},
+            plot_kws=kwargs,
+        )
+
+    else:
+        msg = (
+            f"Invalid `kind`: {kind!r}. Options are 'strip', 'swarm', "
+            "'box', 'boxen', 'violin', 'bar', 'count', and 'point'."
+        )
+        raise ValueError(msg)
+
+    for ax in g.axes.flat:
+        p._adjust_cat_axis(ax, axis=p.orient)
+
+    g.set_axis_labels(p.variables.get("x"), p.variables.get("y"))
+    g.set_titles()
+    g.tight_layout()
+
+    for ax in g.axes.flat:
+        g._update_legend_data(ax)
+        ax.legend_ = None
+
+    if legend == "auto":
+        show_legend = not p._redundant_hue and p.input_format != "wide"
+    else:
+        show_legend = bool(legend)
+    if show_legend:
+        g.add_legend(title=p.variables.get("hue"), label_order=hue_order)
+
+    if data is not None:
+        # Replace the dataframe on the FacetGrid for any subsequent maps
+        g.data = data
+
+    return g
+
+
+catplot.__doc__ = dedent("""\
+    Figure-level interface for drawing categorical plots onto a FacetGrid.
+
+    This function provides access to several axes-level functions that
+    show the relationship between a numerical and one or more categorical
+    variables using one of several visual representations. The `kind`
+    parameter selects the underlying axes-level function to use.
+
+    Categorical scatterplots:
+
+    - :func:`stripplot` (with `kind="strip"`; the default)
+    - :func:`swarmplot` (with `kind="swarm"`)
+
+    Categorical distribution plots:
+
+    - :func:`boxplot` (with `kind="box"`)
+    - :func:`violinplot` (with `kind="violin"`)
+    - :func:`boxenplot` (with `kind="boxen"`)
+
+    Categorical estimate plots:
+
+    - :func:`pointplot` (with `kind="point"`)
+    - :func:`barplot` (with `kind="bar"`)
+    - :func:`countplot` (with `kind="count"`)
+
+    Extra keyword arguments are passed to the underlying function, so you
+    should refer to the documentation for each to see kind-specific options.
+
+    {categorical_narrative}
+
+    After plotting, the :class:`FacetGrid` with the plot is returned and can
+    be used directly to tweak supporting plot details or add other layers.
+
+    Parameters
+    ----------
+    {categorical_data}
+    {input_params}
+    row, col : names of variables in `data` or vector data
+        Categorical variables that will determine the faceting of the grid.
+    kind : str
+        The kind of plot to draw, corresponds to the name of a categorical
+        axes-level plotting function. Options are: "strip", "swarm", "box", "violin",
+        "boxen", "point", "bar", or "count".
+    {stat_api_params}
+    {order_vars}
+    row_order, col_order : lists of strings
+        Order to organize the rows and/or columns of the grid in; otherwise the
+        orders are inferred from the data objects.
+    {col_wrap}
+    {height}
+    {aspect}
+    {log_scale}
+    {native_scale}
+    {formatter}
+    {orient}
+    {color}
+    {palette}
+    {hue_norm}
+    {legend}
+    {legend_out}
+    {share_xy}
+    {margin_titles}
+    facet_kws : dict
+        Dictionary of other keyword arguments to pass to :class:`FacetGrid`.
+    kwargs : key, value pairings
+        Other keyword arguments are passed through to the underlying plotting
+        function.
+
+    Returns
+    -------
+    :class:`FacetGrid`
+        Returns the :class:`FacetGrid` object with the plot on it for further
+        tweaking.
+
+    Examples
+    --------
+    .. include:: ../docstrings/catplot.rst
+
+    """).format(**_categorical_docs)
+
+
+class Beeswarm:
+    """Modifies a scatterplot artist to show a beeswarm plot."""
+    def __init__(self, orient="x", width=0.8, warn_thresh=.05):
+
+        self.orient = orient
+        self.width = width
+        self.warn_thresh = warn_thresh
+
+    def __call__(self, points, center):
+        """Swarm `points`, a PathCollection, around the `center` position."""
+        # Convert from point size (area) to diameter
+
+        ax = points.axes
+        dpi = ax.figure.dpi
+
+        # Get the original positions of the points
+        orig_xy_data = points.get_offsets()
+
+        # Reset the categorical positions to the center line
+        cat_idx = 1 if self.orient == "y" else 0
+        orig_xy_data[:, cat_idx] = center
+
+        # Transform the data coordinates to point coordinates.
+        # We'll figure out the swarm positions in the latter
+        # and then convert back to data coordinates and replot
+        orig_x_data, orig_y_data = orig_xy_data.T
+        orig_xy = ax.transData.transform(orig_xy_data)
+
+        # Order the variables so that x is the categorical axis
+        if self.orient == "y":
+            orig_xy = orig_xy[:, [1, 0]]
+
+        # Add a column with each point's radius
+        sizes = points.get_sizes()
+        if sizes.size == 1:
+            sizes = np.repeat(sizes, orig_xy.shape[0])
+        edge = points.get_linewidth().item()
+# ... 203 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

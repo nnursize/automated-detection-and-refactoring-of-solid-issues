@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-013",
+  "principle": "OCP",
+  "title": "Refactor OCP-013 (OCP): Long if/elif chain for dispatching tick formatter strategies.",
+  "branch": "refactor/OCP-013",
+  "base": "main",
+  "head_commit": "901bc653086ead958014a9f54cb1288b89f798e3",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10358,
+    "completion_tokens": 667
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Continuous._get_formatter",
+    "entity_type": "method",
+    "line_start": 430,
+    "line_end": 459,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Long if/elif chain for dispatching tick formatter strategies.",
+    "reasoning": "The `_get_formatter` method uses a long `if/elif` chain to determine the appropriate `Formatter` based on various parameters (`formatter`, `like`, `base`, `unit`). Adding a new tick label formatting strategy would require modifying this method to add a new `elif` branch, directly violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor Continuous._get_formatter to use a registry-like dispatch pattern",
+    "rationale": "Replaced the if/elif chain with a strategy-based approach using a list of handlers. This allows new formatting strategies to be added without modifying the core logic of _get_formatter, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    def _get_formatter(self, locator, formatter, like, base, unit):\n\n        log_base, symlog_thresh = self._parse_for_log_params(self.trans)\n        if base is default:\n            if symlog_thresh:\n                log_base = 10\n            base = log_base\n\n        if formatter is not None:\n            return formatter\n\n        if like is not None:\n            if isinstance(like, str):\n                if \"{x\" in like or \"{pos\" in like:\n                    fmt = like\n                else:\n                    fmt = f\"{{x:{like}}}\"\n                formatter = StrMethodFormatter(fmt)\n            else:\n                formatter = FuncFormatter(like)\n\n        elif base is not None:\n            # We could add other log options if necessary\n            formatter = LogFormatterSciNotation(base)\n\n        elif unit is not None:\n            if isinstance(unit, tuple):\n                sep, unit = unit\n            elif not unit:\n                sep = \"\"\n            else:\n                sep = \" \"\n            formatter = EngFormatter(unit, sep=sep)\n\n        else:\n            formatter = ScalarFormatter()\n\n        return formatter",
+        "replace_text": "    def _get_formatter(self, locator, formatter, like, base, unit):\n\n        if formatter is not None:\n            return formatter\n\n        log_base, symlog_thresh = self._parse_for_log_params(self.trans)\n        if base is default:\n            base = 10 if symlog_thresh else log_base\n\n        handlers = [\n            (lambda: like is not None, self._format_like),\n            (lambda: base is not None, lambda: LogFormatterSciNotation(base)),\n            (lambda: unit is not None, lambda: self._format_unit(unit)),\n        ]\n\n        for condition, handler in handlers:\n            if condition():\n                return handler()\n\n        return ScalarFormatter()\n\n    def _format_like(self, like):\n        if isinstance(like, str):\n            fmt = like if (\"{x\" in like or \"{pos\" in like) else f\"{{x:{like}}}\"\n            return StrMethodFormatter(fmt)\n        return FuncFormatter(like)\n\n    def _format_unit(self, unit):\n        if isinstance(unit, tuple):\n            sep, unit = unit\n        else:\n            sep = \"\" if not unit else \" \"\n        return EngFormatter(unit, sep=sep)",
+        "search_lines": 38,
+        "replace_lines": 33
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2230.7324409484863,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.37s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 751,
+        "blank_lines": 235,
+        "comment_lines": 98,
+        "function_count": 75,
+        "avg_cc": 2.89,
+        "max_cc": 16.0,
+        "mi": 23.49
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 747,
+        "blank_lines": 235,
+        "comment_lines": 97,
+        "function_count": 77,
+        "avg_cc": 2.79,
+        "max_cc": 16.0,
+        "mi": 23.47
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex 429a1e5..fdfd6cb 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -714,42 +714,37 @@ class Continuous(ContinuousBase):\n \n     def _get_formatter(self, locator, formatter, like, base, unit):\n \n+        if formatter is not None:\n+            return formatter\n+\n         log_base, symlog_thresh = self._parse_for_log_params(self.trans)\n         if base is default:\n-            if symlog_thresh:\n-                log_base = 10\n-            base = log_base\n+            base = 10 if symlog_thresh else log_base\n \n-        if formatter is not None:\n-            return formatter\n+        handlers = [\n+            (lambda: like is not None, self._format_like),\n+            (lambda: base is not None, lambda: LogFormatterSciNotation(base)),\n+            (lambda: unit is not None, lambda: self._format_unit(unit)),\n+        ]\n \n-        if like is not None:\n-            if isinstance(like, str):\n-                if \"{x\" in like or \"{pos\" in like:\n-                    fmt = like\n-                else:\n-                    fmt = f\"{{x:{like}}}\"\n-                formatter = StrMethodFormatter(fmt)\n-            else:\n-                formatter = FuncFormatter(like)\n+        for condition, handler in handlers:\n+            if condition():\n+                return handler()\n \n-        elif base is not None:\n-            # We could add other log options if necessary\n-            formatter = LogFormatterSciNotation(base)\n+        return ScalarFormatter()\n \n-        elif unit is not None:\n-            if isinstance(unit, tuple):\n-                sep, unit = unit\n-            elif not unit:\n-                sep = \"\"\n-            else:\n-                sep = \" \"\n-            formatter = EngFormatter(unit, sep=sep)\n+    def _format_like(self, like):\n+        if isinstance(like, str):\n+            fmt = like if (\"{x\" in like or \"{pos\" in like) else f\"{{x:{like}}}\"\n+            return StrMethodFormatter(fmt)\n+        return FuncFormatter(like)\n \n+    def _format_unit(self, unit):\n+        if isinstance(unit, tuple):\n+            sep, unit = unit\n         else:\n-            formatter = ScalarFormatter()\n-\n-        return formatter\n+            sep = \"\" if not unit else \" \"\n+        return EngFormatter(unit, sep=sep)\n \n \n @dataclass\n",
+  "duration_ms": 21204.380750656128
+}

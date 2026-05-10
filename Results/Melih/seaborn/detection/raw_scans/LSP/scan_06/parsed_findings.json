@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter.data_variable",
+    "entity_type": "class",
+    "line_start": 120,
+    "line_end": 125,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Property raises AttributeError based on internal object state.",
+    "reasoning": "The 'Refused Bequest' smell is evident here. The data_variable property raises an AttributeError if the plot is not univariate. This violates LSP because a client holding a reference to a _DistributionPlotter cannot safely access this property without first checking the 'univariate' state, effectively breaking the contract of the base class property access which should be consistent across all instances of the type."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter._attach",
+    "entity_type": "method",
+    "line_start": 996,
+    "line_end": 1004,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Method uses explicit type checking to branch behavior for specific subclasses.",
+    "reasoning": "The 'Switch Statement on Type' smell violates LSP. By using isinstance(obj, FacetGrid), the VectorPlotter becomes tightly coupled to a specific subclass of Grid. This prevents other potentially valid grid-like subtypes from being used interchangeably, as the base class method explicitly requires knowledge of the concrete FacetGrid type to function correctly."
+  },
+  {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "IntervalProperty.get_mapping",
+    "entity_type": "method",
+    "line_start": 140,
+    "line_end": 144,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Property mapping logic depends on explicit type checks of the Scale hierarchy.",
+    "reasoning": "This is a 'Switch Statement' smell. The method branches logic using isinstance(scale, Nominal) and isinstance(scale, Boolean). This demonstrates that the Scale subclasses are not fully substitutable through a polymorphic interface. If a Scale subtype is passed, the Property class must manually inspect its type to decide how to generate a mapping, violating the principle that subtypes should be usable via their base interface without the consumer needing to downcast."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity",
+    "entity_type": "method",
+    "line_start": 125,
+    "line_end": 134,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Internal subclass fails to implement the contract defined by the parent class.",
+    "reasoning": "The 'Refused Bequest' smell is present in the Identity subclass created within the _identity factory. The base Scale class defines methods like tick() and label() which raise NotImplementedError. The Identity subclass does not implement these, meaning it cannot be substituted for a Scale object in any context where ticks or labels are processed, leading to runtime crashes."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter._add_legend",
+    "entity_type": "method",
+    "line_start": 148,
+    "line_end": 155,
+    "principle": "LSP",
+    "severity": "low",
+    "description": "Conditional logic based on whether an object is a specific Axes or Grid type.",
+    "reasoning": "Similar to the _attach method, this uses isinstance(ax_obj, mpl.axes.Axes) to decide whether to call .legend() or .add_legend(). This is a 'Switch on Type' smell that indicates a failure of polymorphism. Subtypes of the ax_obj (like FacetGrid) are not substitutable for a standard Axes object without this explicit branching logic."
+  }
+]

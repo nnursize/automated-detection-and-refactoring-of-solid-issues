@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale.tick",
+    "entity_type": "class",
+    "line_start": 72,
+    "line_end": 72,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclasses (Continuous, Temporal, Nominal) introduce incompatible method signatures for the 'tick' method.",
+    "reasoning": "The base 'Scale.tick' method is defined with no arguments. Subclasses like 'Continuous' (L538) and 'Temporal' (L780) add multiple specific parameters (upto, count, every, etc.). This signature expansion prevents callers from interacting with the 'Scale' interface polymorphically for tick configuration, violating the principle that subtypes should be substitutable for their base types without the caller needing to know the specific subclass."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale.label",
+    "entity_type": "class",
+    "line_start": 75,
+    "line_end": 75,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclasses implement the 'label' method with divergent and incompatible signatures.",
+    "reasoning": "Similar to 'tick', 'Scale.label' is overridden by 'Continuous' (L599) and 'Temporal' (L814) with different sets of parameters (e.g., 'concise' for Temporal vs 'base', 'unit' for Continuous). This divergence in the public API of the 'Scale' hierarchy prevents uniform interaction and forces clients to perform type-checking to determine which parameters are available."
+  },
+  {
+    "file_path": "seaborn/_marks/area.py",
+    "entity_name": "Band",
+    "entity_type": "class",
+    "line_start": 141,
+    "line_end": 170,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Class fails to implement the abstract '_postprocess_artist' method from its parent AreaBase.",
+    "reasoning": "The 'Band' class inherits from 'AreaBase', which defines '_postprocess_artist' (L56) as an abstract method. Unlike its sibling 'Area', 'Band' does not provide an implementation for this method. As a concrete 'Mark' intended for use in plots, 'Band' must fulfill the entire contract of its base classes; failure to do so results in a violation where the subtype cannot be safely substituted for the base type in the plotting lifecycle."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Hierarchy fails to implement abstract scaling methods defined in the VectorPlotter base class.",
+    "reasoning": "_CategoricalPlotter and its siblings (e.g., _DistributionPlotter in distributions.py) inherit from VectorPlotter but do not implement its abstract methods 'scale_native', 'scale_numeric', and 'scale_datetime' (L1337-1350). This creates a broken inheritance hierarchy where the base class defines a broad contract that primary subtypes only partially fulfill, specifically ignoring the numeric and datetime scaling requirements of the base plotter interface."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Boolean._get_locators",
+    "entity_type": "class",
+    "line_start": 230,
+    "line_end": 230,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass alters the parameter count of an internal abstract method contract.",
+    "reasoning": "The base class 'Scale' defines '_get_locators' (L78) with no arguments. The 'Boolean' subclass adds a mandatory 'locator' parameter (L230). This signature change breaks the internal template method pattern if the base class or other internal components try to call '_get_locators' polymorphically, as the subclass now requires an input the base contract did not specify."
+  }
+]

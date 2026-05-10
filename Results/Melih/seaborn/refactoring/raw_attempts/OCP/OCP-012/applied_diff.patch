@@ -1,0 +1,40 @@
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index 1e7bef8..429a1e5 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -668,16 +668,13 @@ class Continuous(ContinuousBase):
+ 
+         if locator is not None:
+             major_locator = locator
+-
+         elif upto is not None:
+             if log_base:
+                 major_locator = LogLocator(base=log_base, numticks=upto)
+             else:
+                 major_locator = MaxNLocator(upto, steps=[1, 1.5, 2, 2.5, 3, 5, 10])
+-
+         elif count is not None:
+             if between is None:
+-                # This is rarely useful (unless you are setting limits)
+                 major_locator = LinearLocator(count)
+             else:
+                 if log_base or symlog_thresh:
+@@ -687,7 +684,6 @@ class Continuous(ContinuousBase):
+                 else:
+                     ticks = np.linspace(*between, num=count)
+                 major_locator = FixedLocator(ticks)
+-
+         elif every is not None:
+             if between is None:
+                 major_locator = MultipleLocator(every)
+@@ -695,10 +691,8 @@ class Continuous(ContinuousBase):
+                 lo, hi = between
+                 ticks = np.arange(lo, hi + every, every)
+                 major_locator = FixedLocator(ticks)
+-
+         elif at is not None:
+             major_locator = FixedLocator(at)
+-
+         else:
+             if log_base:
+                 major_locator = LogLocator(log_base)

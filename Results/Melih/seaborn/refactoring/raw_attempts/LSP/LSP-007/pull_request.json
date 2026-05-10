@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-007",
+  "principle": "LSP",
+  "title": "Refactor LSP-007 (LSP): Subtype 'Identity' nullifies a required callable attribute '_spacer' used by...",
+  "branch": "refactor/LSP-007",
+  "base": "main",
+  "head_commit": "2572ce6e2a3f26be566723d77229e1e3fba2293d",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10418,
+    "completion_tokens": 216
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity",
+    "entity_type": "class",
+    "line_start": 122,
+    "line_end": 130,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Subtype 'Identity' nullifies a required callable attribute '_spacer' used by the base class.",
+    "reasoning": "The 'Identity' class (returned by the Scale._identity factory method) explicitly sets '_spacer = None'. However, the base class 'Scale' provides a concrete method '_spacing' (line 92) that executes 'self._spacer(x)'. Substituting an 'Identity' instance where a 'Scale' is expected and invoking the '_spacing' method will result in a TypeError. A subclass must not nullify or break the internal contract of a base class method that it inherits."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Fix LSP violation by providing a valid _spacer for the Identity scale",
+    "rationale": "The Identity scale nullified the '_spacer' attribute, which caused a TypeError when the base class '_spacing' method was called. By providing a default spacer that returns 1 (consistent with other scales), we satisfy the base class contract while maintaining the intended identity behavior.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = None\n            _legend = None\n            _matplotlib_scale = None\n\n        return Identity()",
+        "replace_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n        return Identity()",
+        "search_lines": 10,
+        "replace_lines": 10
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2223.3572006225586,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.37s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 747,
+        "blank_lines": 235,
+        "comment_lines": 97,
+        "function_count": 77,
+        "avg_cc": 2.79,
+        "max_cc": 16.0,
+        "mi": 23.47
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 747,
+        "blank_lines": 235,
+        "comment_lines": 97,
+        "function_count": 77,
+        "avg_cc": 2.79,
+        "max_cc": 16.0,
+        "mi": 23.47
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex fdfd6cb..e0d2051 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -138,7 +138,7 @@ class Scale:\n \n         class Identity(Scale):\n             _pipeline = []\n-            _spacer = None\n+            _spacer = _default_spacer\n             _legend = None\n             _matplotlib_scale = None\n \n",
+  "duration_ms": 10803.581237792969
+}

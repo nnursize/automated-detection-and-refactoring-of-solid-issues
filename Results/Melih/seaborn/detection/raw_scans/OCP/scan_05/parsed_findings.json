@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 789,
+    "line_end": 1002,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violates OCP by using a large if/elif/else chain to dispatch plotting logic based on the 'kind' parameter.",
+    "reasoning": "The `catplot` function contains an extensive `if/elif/else` block (lines 858-990) that explicitly checks the string value of the `kind` parameter ('strip', 'swarm', 'box', 'violin', 'boxen', 'point', 'bar', 'count') to select and call the appropriate plotting method. Adding a new categorical plot type would require modifying this existing function by adding a new `elif` branch, directly violating the Open/Closed Principle. This is a 'Divergent Change' smell as changes to plot types diverge into this function."
+  },
+  {
+    "file_path": "seaborn/relational.py",
+    "entity_name": "relplot",
+    "entity_type": "class",
+    "line_start": 380,
+    "line_end": 509,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violates OCP by using an if/elif chain to select plotting logic based on the 'kind' parameter.",
+    "reasoning": "Similar to `catplot`, the `relplot` function uses an `if/elif` statement (lines 380-394) to determine which underlying plotter (`_ScatterPlotter` or `_LinePlotter`) and function (`scatterplot` or `lineplot`) to use based on the `kind` string ('scatter' or 'line'). Introducing a new relational plot type would necessitate modifying this function to add a new `elif` branch, making it closed for extension. This also exhibits the 'Divergent Change' smell."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.fit_regression",
+    "entity_type": "method",
+    "line_start": 111,
+    "line_end": 137,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violates OCP by using an if/elif/else chain to dispatch to different regression fitting methods.",
+    "reasoning": "The `fit_regression` method contains a series of `if/elif` conditions (lines 124-133) that check `self.order`, `self.logistic`, `self.lowess`, `self.robust`, `self.logx` to decide which specific regression fitting method (`fit_poly`, `fit_statsmodels`, `fit_lowess`, `fit_fast`, `fit_logx`) to call. To introduce a new regression model or fitting strategy, this method would need to be modified with additional `elif` branches, violating OCP. This is a 'Switch Statements on type' or 'Divergent Change' smell, as new regression types require modifying this central dispatch."
+  },
+  {
+    "file_path": "seaborn/palettes.py",
+    "entity_name": "color_palette",
+    "entity_type": "class",
+    "line_start": 125,
+    "line_end": 189,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violates OCP by using a large if/elif/else chain to determine palette generation logic based on the palette name string.",
+    "reasoning": "The `color_palette` function has an extensive `if/elif/else` block (lines 142-178) that dispatches to different palette generation functions (e.g., `hls_palette`, `husl_palette`, `cubehelix_palette`, `light_palette`, `dark_palette`, `blend_palette`, `mpl_palette`) based on the string value of the `palette` argument. Adding support for a new named palette type would require modifying this function to add a new `elif` condition, violating OCP. This is a 'Switch Statements on type' smell."
+  },
+  {
+    "file_path": "seaborn/utils.py",
+    "entity_name": "_default_color",
+    "entity_type": "class",
+    "line_start": 59,
+    "line_end": 106,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violates OCP by using an if/elif chain to determine default color logic based on the plotting method's name.",
+    "reasoning": "The `_default_color` function contains an `if/elif` chain (lines 69-95) that checks `method.__name__` ('plot', 'scatter', 'bar', 'fill_between') to apply specific logic for obtaining a default color. If a new plotting method is introduced that requires a custom way to infer its default color from the Matplotlib property cycle, this function would need to be modified to add a new `elif` branch, violating OCP. This is a 'Switch Statements on type' smell."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "ContinuousBase._get_transform",
+    "entity_type": "method",
+    "line_start": 405,
+    "line_end": 433,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violates OCP by using an if/elif/else chain to select transformation functions based on a string name.",
+    "reasoning": "The `_get_transform` method uses an `if/elif/else` block (lines 409-430) to map string names ('ln', 'logit', 'log', 'symlog', 'pow', 'sqrt') to specific transformation functions (`_make_log_transforms`, `_make_logit_transforms`, etc.). To add a new data transformation, this method would need to be modified by adding a new `elif` condition, violating OCP. This is a 'Switch Statements on type' smell."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "infer_orient",
+    "entity_type": "class",
+    "line_start": 804,
+    "line_end": 850,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violates OCP by using a complex if/elif/else chain to infer plot orientation based on variable types and explicit 'orient' parameter.",
+    "reasoning": "The `infer_orient` function contains an extensive `if/elif/else` structure (lines 809-848) that determines the plot's orientation ('x' or 'y') by inspecting the types (`x_type`, `y_type`) of the input variables and the explicit `orient` parameter. If new variable types are introduced or new rules for orientation inference are needed, this function would require modification, violating OCP. This is a 'Switch Statements on type' smell, as it branches on multiple conditions related to data types and configuration."
+  }
+]

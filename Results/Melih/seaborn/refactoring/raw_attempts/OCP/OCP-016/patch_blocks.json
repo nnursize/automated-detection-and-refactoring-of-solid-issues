@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/properties.py",
+    "search_text": "    def default_scale(self, data: Series) -> Scale:\n        \"\"\"Given data, initialize appropriate scale class.\"\"\"\n\n        var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n        if var_type == \"numeric\":\n            return Continuous()\n        elif var_type == \"datetime\":\n            return Temporal()\n        elif var_type == \"boolean\":\n            return Boolean()\n        else:\n            return Nominal()",
+    "replace_text": "    _default_scale_map = {\n        \"numeric\": Continuous,\n        \"datetime\": Temporal,\n        \"boolean\": Boolean,\n    }\n\n    def default_scale(self, data: Series) -> Scale:\n        \"\"\"Given data, initialize appropriate scale class.\"\"\"\n        var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n        return self._default_scale_map.get(var_type, Nominal)()"
+  }
+]

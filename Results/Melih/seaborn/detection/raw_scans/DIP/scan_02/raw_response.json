@@ -1,0 +1,84 @@
+{
+  "scan_id": "seaborn-master_DIP_scan_02",
+  "repo_name": "seaborn-master",
+  "principle": "DIP",
+  "scan_number": 2,
+  "timestamp": "2026-04-18T14:55:07.712607",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Dependency Inversion Principle (DIP).\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.\n\n## What to Look For\n- Classes that directly instantiate their dependenc...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_boxens\",\n      \"entity_type\": \"method\",\n      \"line_start\": 601,\n      \"line_end\": 714,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of the LetterValues statistical estimator.\",\n      \"reasoning\": \"The plot_boxens method directly instantiates the concrete LetterValues class (line 613). This tightly couples the categorical plotting logic to a specific statistical implementation, preventing the use of alternative estimators or mock objects for testing without modifying the plotter class itself.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_violins\",\n      \"entity_type\": \"method\",\n      \"line_start\": 716,\n      \"line_end\": 908,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of the KDE statistical estimator.\",\n      \"reasoning\": \"The plot_violins method hard-codes a dependency on the KDE class by instantiating it directly (line 738). This violates DIP as a high-level plotting module is depending on a low-level implementation detail (Kernel Density Estimation) rather than an abstraction.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter._compute_univariate_density\",\n      \"entity_type\": \"method\",\n      \"line_start\": 224,\n      \"line_end\": 285,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Hard-coded dependency on concrete KDE estimator class.\",\n      \"reasoning\": \"The _compute_univariate_density method instantiates the KDE class (line 236) instead of receiving an estimator instance through dependency injection. This makes it difficult to substitute the density estimation algorithm.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter.plot_univariate_histogram\",\n      \"entity_type\": \"method\",\n      \"line_start\": 292,\n      \"line_end\": 555,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of the Hist counting estimator.\",\n      \"reasoning\": \"The method instantiates the Hist class directly (line 316). This couples the visualization logic for histograms to a specific counting implementation, violating the principle that high-level modules should depend on abstractions.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/plot.py\",\n      \"entity_name\": \"Plotter._setup_figure\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1032,\n      \"line_end\": 1121,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Direct instantiation of the Subplots layout manager.\",\n      \"reasoning\": \"The Plotter class directly instantiates the Subplots class (line 1046) to handle figure initialization. This creates a tight coupling between the core plotting engine and the specific subplot grid implementation, making it harder to extend or modify the layout logic independently.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"boxplot\",\n      \"entity_type\": \"function\",\n      \"line_start\": 1125,\n      \"line_end\": 1167,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"High-level API function instantiating a concrete plotter.\",\n      \"reasoning\": \"The boxplot function (and other similar functions like violinplot, barplot, etc.) directly instantiates _CategoricalPlotter. While these act as entry points, the tight coupling to concrete plotter classes prevents the injection of alternative plotting engines or the ability to unit test the parameter processing logic in isolation from the plotting implementation.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_boxens",
+      "entity_type": "method",
+      "line_start": 601,
+      "line_end": 714,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of the LetterValues statistical estimator.",
+      "reasoning": "The plot_boxens method directly instantiates the concrete LetterValues class (line 613). This tightly couples the categorical plotting logic to a specific statistical implementation, preventing the use of alternative estimators or mock objects for testing without modifying the plotter class itself."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_violins",
+      "entity_type": "method",
+      "line_start": 716,
+      "line_end": 908,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of the KDE statistical estimator.",
+      "reasoning": "The plot_violins method hard-codes a dependency on the KDE class by instantiating it directly (line 738). This violates DIP as a high-level plotting module is depending on a low-level implementation detail (Kernel Density Estimation) rather than an abstraction."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter._compute_univariate_density",
+      "entity_type": "method",
+      "line_start": 224,
+      "line_end": 285,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Hard-coded dependency on concrete KDE estimator class.",
+      "reasoning": "The _compute_univariate_density method instantiates the KDE class (line 236) instead of receiving an estimator instance through dependency injection. This makes it difficult to substitute the density estimation algorithm."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter.plot_univariate_histogram",
+      "entity_type": "method",
+      "line_start": 292,
+      "line_end": 555,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of the Hist counting estimator.",
+      "reasoning": "The method instantiates the Hist class directly (line 316). This couples the visualization logic for histograms to a specific counting implementation, violating the principle that high-level modules should depend on abstractions."
+    },
+    {
+      "file_path": "seaborn/_core/plot.py",
+      "entity_name": "Plotter._setup_figure",
+      "entity_type": "method",
+      "line_start": 1032,
+      "line_end": 1121,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Direct instantiation of the Subplots layout manager.",
+      "reasoning": "The Plotter class directly instantiates the Subplots class (line 1046) to handle figure initialization. This creates a tight coupling between the core plotting engine and the specific subplot grid implementation, making it harder to extend or modify the layout logic independently."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "boxplot",
+      "entity_type": "class",
+      "line_start": 1125,
+      "line_end": 1167,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "High-level API function instantiating a concrete plotter.",
+      "reasoning": "The boxplot function (and other similar functions like violinplot, barplot, etc.) directly instantiates _CategoricalPlotter. While these act as entry points, the tight coupling to concrete plotter classes prevents the injection of alternative plotting engines or the ability to unit test the parameter processing logic in isolation from the plotting implementation."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 16436.58757209778,
+  "error": null
+}

@@ -1,0 +1,75 @@
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index bbbfa96..1abc9f9 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -126,6 +126,13 @@ class Scale:
+ class AxisScale(Scale):
+     """Mixin for scales that interact with matplotlib axes."""
+ 
++    def _get_scale(self, name: str, forward: Callable, inverse: Callable):
++        return mpl.scale.FuncScale(name, (forward, inverse))
++
++
++class TickLabelScale(AxisScale):
++    """Mixin for scales that support tick and label configuration."""
++
+     def __post_init__(self):
+         super().__post_init__()
+         self._tick_params = None
+@@ -159,7 +166,7 @@ class AxisScale(Scale):
+ 
+ 
+ @dataclass
+-class Boolean(AxisScale):
++class Boolean(TickLabelScale):
+     """
+     A scale with a discrete domain of True and False values.
+ 
+@@ -252,7 +259,7 @@ class Boolean(AxisScale):
+ 
+ 
+ @dataclass
+-class Nominal(AxisScale):
++class Nominal(TickLabelScale):
+     """
+     A categorical scale without relative importance / magnitude.
+     """
+@@ -412,7 +419,7 @@ class Nominal(AxisScale):
+ 
+ 
+ @dataclass
+-class Ordinal(AxisScale):
++class Ordinal(TickLabelScale):
+     # Categorical (convert to strings), sortable, can skip ticklabels
+     values: tuple | str | list | dict | None = None
+     order: list | None = None
+@@ -462,11 +469,6 @@ class ContinuousBase(AxisScale):
+     ) -> Scale:
+ 
+         new = copy(self)
+-        if new._tick_params is None:
+-            new = new.tick()
+-        if new._label_params is None:
+-            new = new.label()
+-
+         forward, inverse = new._get_transform()
+ 
+         mpl_scale = new._get_scale(str(data.name), forward, inverse)
+@@ -564,7 +566,7 @@ class ContinuousBase(AxisScale):
+ 
+ 
+ @dataclass
+-class Continuous(ContinuousBase):
++class Continuous(ContinuousBase, TickLabelScale):
+     """
+     A numeric scale supporting norms and functional transforms.
+     """
+@@ -789,7 +791,7 @@ class Continuous(ContinuousBase):
+ 
+ 
+ @dataclass
+-class Temporal(ContinuousBase):
++class Temporal(ContinuousBase, TickLabelScale):
+     """
+     A scale for date/time data.
+     """

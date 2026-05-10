@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_violins",
+    "entity_type": "method",
+    "line_start": 847,
+    "line_end": 847,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of the KDE statistical engine.",
+    "reasoning": "The _CategoricalPlotter class directly instantiates the KDE class from seaborn._statistics. This couples the high-level plotting logic to a specific low-level statistical implementation, making it difficult to substitute the density estimation logic without modifying the plotter class."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_boxens",
+    "entity_type": "method",
+    "line_start": 734,
+    "line_end": 734,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of the LetterValues statistical engine.",
+    "reasoning": "The method directly creates a LetterValues object. High-level plotting modules should depend on statistical abstractions rather than concrete implementations like LetterValues, which limits the flexibility to use alternative estimators."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter.plot_univariate_histogram",
+    "entity_type": "method",
+    "line_start": 335,
+    "line_end": 335,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of the Hist estimator.",
+    "reasoning": "_DistributionPlotter is responsible for orchestrating the plot but directly instantiates the Hist class. This violates DIP as the plotter (high-level) depends on a concrete statistical detail (low-level) instead of an abstraction or receiving the estimator via dependency injection."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.fit_regression",
+    "entity_type": "method",
+    "line_start": 173,
+    "line_end": 185,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Hard-coded dependency on concrete statsmodels classes (GLM, RLM).",
+    "reasoning": "The fit_regression method directly imports and instantiates concrete classes from the statsmodels library (GLM, Binomial, RLM). This creates a tight coupling between seaborn's regression plotting and specific external implementation details, violating the principle that high-level logic should depend on abstractions."
+  },
+  {
+    "file_path": "seaborn/axisgrid.py",
+    "entity_name": "JointGrid.__init__",
+    "entity_type": "method",
+    "line_start": 1030,
+    "line_end": 1030,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of VectorPlotter dependency.",
+    "reasoning": "JointGrid, a high-level layout manager, directly instantiates VectorPlotter to handle variable assignment. This prevents the use of alternative data processing strategies and couples the grid layout logic to a specific data-handling implementation."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter._setup_figure",
+    "entity_type": "method",
+    "line_start": 955,
+    "line_end": 955,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Direct instantiation of Subplots manager.",
+    "reasoning": "The Plotter class directly instantiates the Subplots class. While both are internal to the new objects interface, this direct creation prevents the inversion of control that would allow different subplot strategies to be injected into the compilation engine."
+  }
+]

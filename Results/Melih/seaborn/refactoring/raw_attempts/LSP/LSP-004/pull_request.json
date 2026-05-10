@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-004",
+  "principle": "LSP",
+  "title": "Refactor LSP-004 (LSP): Property raises AttributeError based on internal state, violating the stabili...",
+  "branch": "refactor/LSP-004",
+  "base": "main",
+  "head_commit": "85a40ecc4cca16e0d4c8f88c2563005a8c139ec9",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3677,
+    "completion_tokens": 270
+  },
+  "detected_issue": {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter.data_variable",
+    "entity_type": "method",
+    "line_start": 147,
+    "line_end": 152,
+    "severity": "medium",
+    "scan_count": 6,
+    "description": "Property raises AttributeError based on internal state, violating the stability of the subtype contract.",
+    "reasoning": "The data_variable property in _DistributionPlotter raises an AttributeError if the plot is not univariate. This strengthens the preconditions for accessing the property in a way that is not present in the base class (VectorPlotter) or expected of a stable interface, making the subclass non-substitutable in contexts where the property is accessed on a distribution plotter instance."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove AttributeError from data_variable property to satisfy LSP",
+    "rationale": "The data_variable property was raising an AttributeError when the plot was not univariate, which violates the Liskov Substitution Principle by strengthening preconditions. Changing it to return None when the condition is not met makes the interface more predictable and consistent with typical property behavior.",
+    "files_touched": [
+      "seaborn/distributions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/distributions.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    @property\n    def data_variable(self):\n        \"\"\"Return the variable with data for univariate plots.\"\"\"\n        # TODO This could also be in core, but it should have a better name.\n        if not self.univariate:\n            raise AttributeError(\"This is not a univariate plot\")\n        return {\"x\", \"y\"}.intersection(self.variables).pop()",
+        "replace_text": "    @property\n    def data_variable(self):\n        \"\"\"Return the variable with data for univariate plots, or None.\"\"\"\n        # TODO This could also be in core, but it should have a better name.\n        if not self.univariate:\n            return None\n        return {\"x\", \"y\"}.intersection(self.variables).pop()",
+        "search_lines": 7,
+        "replace_lines": 7
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2221.2841510772705,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.37s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1823,
+        "blank_lines": 440,
+        "comment_lines": 245,
+        "function_count": 33,
+        "avg_cc": 11.2,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1823,
+        "blank_lines": 440,
+        "comment_lines": 245,
+        "function_count": 33,
+        "avg_cc": 11.2,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/distributions.py b/seaborn/distributions.py\nindex 605636f..6afbda7 100644\n--- a/seaborn/distributions.py\n+++ b/seaborn/distributions.py\n@@ -120,10 +120,10 @@ class _DistributionPlotter(VectorPlotter):\n \n     @property\n     def data_variable(self):\n-        \"\"\"Return the variable with data for univariate plots.\"\"\"\n+        \"\"\"Return the variable with data for univariate plots, or None.\"\"\"\n         # TODO This could also be in core, but it should have a better name.\n         if not self.univariate:\n-            raise AttributeError(\"This is not a univariate plot\")\n+            return None\n         return {\"x\", \"y\"}.intersection(self.variables).pop()\n \n     @property\n",
+  "duration_ms": 25144.24443244934
+}

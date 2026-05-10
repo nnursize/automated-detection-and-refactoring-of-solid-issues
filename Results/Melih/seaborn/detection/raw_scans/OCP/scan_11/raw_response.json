@@ -1,0 +1,40 @@
+{
+  "scan_id": "seaborn-master_OCP_scan_11",
+  "repo_name": "seaborn-master",
+  "principle": "OCP",
+  "scan_number": 11,
+  "timestamp": "2026-04-17T23:49:34.182658",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Class contains numerous specific 'plot_X' methods for different categorical plot types.\",\n      \"reasoning\": \"The _CategoricalPlotter class is responsible for orchestrating the drawing of many distinct categorical plot types (e.g., strips, swarms, boxes, violins, bars, points). Adding a new categorical plot type would require modifying this existing class by adding a new 'plot_X' method, thus violating the Open/Closed Principle. An OCP-compliant design would involve an abstract plotting interface and concrete strategy classes for each plot type, allowing new types to be added without modifying the core plotter.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Class contains numerous specific 'plot_X' methods for different distribution plot types.\",\n      \"reasoning\": \"Similar to _CategoricalPlotter, the _DistributionPlotter class is responsible for drawing various distribution plot types (e.g., univariate/bivariate histograms, densities, ECDFs, rugs). Adding a new distribution plot type would necessitate modifying this existing class by adding a new 'plot_X' method. This violates the Open/Closed Principle, as the class is not closed for modification when new behaviors are introduced. A more OCP-friendly approach would delegate specific plotting logic to polymorphic strategy objects.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Class contains numerous specific 'plot_X' methods for different categorical plot types.",
+      "reasoning": "The _CategoricalPlotter class is responsible for orchestrating the drawing of many distinct categorical plot types (e.g., strips, swarms, boxes, violins, bars, points). Adding a new categorical plot type would require modifying this existing class by adding a new 'plot_X' method, thus violating the Open/Closed Principle. An OCP-compliant design would involve an abstract plotting interface and concrete strategy classes for each plot type, allowing new types to be added without modifying the core plotter."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Class contains numerous specific 'plot_X' methods for different distribution plot types.",
+      "reasoning": "Similar to _CategoricalPlotter, the _DistributionPlotter class is responsible for drawing various distribution plot types (e.g., univariate/bivariate histograms, densities, ECDFs, rugs). Adding a new distribution plot type would necessitate modifying this existing class by adding a new 'plot_X' method. This violates the Open/Closed Principle, as the class is not closed for modification when new behaviors are introduced. A more OCP-friendly approach would delegate specific plotting logic to polymorphic strategy objects."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 23369.370222091675,
+  "error": null
+}

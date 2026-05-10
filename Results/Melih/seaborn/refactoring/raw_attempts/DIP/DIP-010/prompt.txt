@@ -1,0 +1,376 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-010
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/_base.py`
+- **Entity**: `VectorPlotter.assign_variables` (current lines L666-L693 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 7 independent scans
+
+### Description
+'VectorPlotter' directly instantiates 'PlotData' concrete dependency.
+
+### Reasoning
+The `VectorPlotter` is a base class for many plotting functionalities. Its `assign_variables` method directly instantiates `PlotData`, a concrete data abstraction. This couples a core plotting component to a specific data handling implementation, limiting the ability to inject different data processing strategies or data sources without modifying `VectorPlotter` itself.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/_base.py`
+```python
+# ... 545 earlier lines elided ...
+            markers = self._map_attributes(
+                markers, levels, unique_markers(len(levels)), "markers",
+            )
+            dashes = self._map_attributes(
+                dashes, levels, unique_dashes(len(levels)), "dashes",
+            )
+
+            # Build the paths matplotlib will use to draw the markers
+            paths = {}
+            filled_markers = []
+            for k, m in markers.items():
+                if not isinstance(m, mpl.markers.MarkerStyle):
+                    m = mpl.markers.MarkerStyle(m)
+                paths[k] = m.get_path().transformed(m.get_transform())
+                filled_markers.append(m.is_filled())
+
+            # Mixture of filled and unfilled markers will show line art markers
+            # in the edge color, which defaults to white. This can be handled,
+            # but there would be additional complexity with specifying the
+            # weight of the line art markers without overwhelming the filled
+            # ones with the edges. So for now, we will disallow mixtures.
+            if any(filled_markers) and not all(filled_markers):
+                err = "Filled and line art markers cannot be mixed"
+                raise ValueError(err)
+
+            lookup_table = {}
+            for key in levels:
+                lookup_table[key] = {}
+                if markers:
+                    lookup_table[key]["marker"] = markers[key]
+                    lookup_table[key]["path"] = paths[key]
+                if dashes:
+                    lookup_table[key]["dashes"] = dashes[key]
+
+            self.levels = levels
+            self.lookup_table = lookup_table
+
+    def _lookup_single(self, key, attr=None):
+        """Get attribute(s) for a given data point."""
+        if attr is None:
+            value = self.lookup_table[key]
+        else:
+            value = self.lookup_table[key][attr]
+        return value
+
+    def _map_attributes(self, arg, levels, defaults, attr):
+        """Handle the specification for a given style attribute."""
+        if arg is True:
+            lookup_table = dict(zip(levels, defaults))
+        elif isinstance(arg, dict):
+            missing = set(levels) - set(arg)
+            if missing:
+                err = f"These `{attr}` levels are missing values: {missing}"
+                raise ValueError(err)
+            lookup_table = arg
+        elif isinstance(arg, Sequence):
+            arg = self._check_list_length(levels, arg, attr)
+            lookup_table = dict(zip(levels, arg))
+        elif arg:
+            err = f"This `{attr}` argument was not understood: {arg}"
+            raise ValueError(err)
+        else:
+            lookup_table = {}
+
+        return lookup_table
+
+
+# =========================================================================== #
+
+
+class VectorPlotter:
+    """Base class for objects underlying *plot functions."""
+
+    wide_structure = {
+        "x": "@index", "y": "@values", "hue": "@columns", "style": "@columns",
+    }
+    flat_structure = {"x": "@index", "y": "@values"}
+
+    _default_size_range = 1, 2  # Unused but needed in tests, ugh
+
+    def __init__(self, data=None, variables={}):
+
+        self._var_levels = {}
+        # var_ordered is relevant only for categorical axis variables, and may
+        # be better handled by an internal axis information object that tracks
+        # such information and is set up by the scale_* methods. The analogous
+        # information for numeric axes would be information about log scales.
+        self._var_ordered = {"x": False, "y": False}  # alt., used DefaultDict
+        self.assign_variables(data, variables)
+
+        # TODO Lots of tests assume that these are called to initialize the
+        # mappings to default values on class initialization. I'd prefer to
+        # move away from that and only have a mapping when explicitly called.
+        for var in ["hue", "size", "style"]:
+            if var in variables:
+                getattr(self, f"map_{var}")()
+
+    @property
+    def has_xy_data(self):
+        """Return True at least one of x or y is defined."""
+        return bool({"x", "y"} & set(self.variables))
+
+    @property
+    def var_levels(self):
+        """Property interface to ordered list of variables levels.
+
+        Each time it's accessed, it updates the var_levels dictionary with the
+        list of levels in the current semantic mappers. But it also allows the
+        dictionary to persist, so it can be used to set levels by a key. This is
+        used to track the list of col/row levels using an attached FacetGrid
+        object, but it's kind of messy and ideally fixed by improving the
+        faceting logic so it interfaces better with the modern approach to
+        tracking plot variables.
+
+        """
+        for var in self.variables:
+            if (map_obj := getattr(self, f"_{var}_map", None)) is not None:
+                self._var_levels[var] = map_obj.levels
+        return self._var_levels
+
+    def assign_variables(self, data=None, variables={}):
+        """Define plot variables, optionally using lookup from `data`."""
+        x = variables.get("x", None)
+        y = variables.get("y", None)
+
+        if x is None and y is None:
+            self.input_format = "wide"
+            frame, names = self._assign_variables_wideform(data, **variables)
+        else:
+            # When dealing with long-form input, use the newer PlotData
+            # object (internal but introduced for the objects interface)
+            # to centralize / standardize data consumption logic.
+            self.input_format = "long"
+            plot_data = PlotData(data, variables)
+            frame = plot_data.frame
+            names = plot_data.names
+
+        self.plot_data = frame
+        self.variables = names
+        self.var_types = {
+            v: variable_type(
+                frame[v],
+                boolean_type="numeric" if v in "xy" else "categorical"
+            )
+            for v in names
+        }
+
+        return self
+
+    def _assign_variables_wideform(self, data=None, **kwargs):
+        """Define plot variables given wide-form data.
+
+        Parameters
+        ----------
+        data : flat vector or collection of vectors
+            Data can be a vector or mapping that is coerceable to a Series
+            or a sequence- or mapping-based collection of such vectors, or a
+            rectangular numpy array, or a Pandas DataFrame.
+        kwargs : variable -> data mappings
+            Behavior with keyword arguments is currently undefined.
+
+        Returns
+        -------
+        plot_data : :class:`pandas.DataFrame`
+            Long-form data object mapping seaborn variables (x, y, hue, ...)
+            to data vectors.
+        variables : dict
+            Keys are defined seaborn variables; values are names inferred from
+            the inputs (or None when no name can be determined).
+
+        """
+        # Raise if semantic or other variables are assigned in wide-form mode
+        assigned = [k for k, v in kwargs.items() if v is not None]
+        if any(assigned):
+            s = "s" if len(assigned) > 1 else ""
+            err = f"The following variable{s} cannot be assigned with wide-form data: "
+            err += ", ".join(f"`{v}`" for v in assigned)
+            raise ValueError(err)
+
+        # Determine if the data object actually has any data in it
+        empty = data is None or not len(data)
+
+        # Then, determine if we have "flat" data (a single vector)
+        if isinstance(data, dict):
+            values = data.values()
+        else:
+            values = np.atleast_1d(np.asarray(data, dtype=object))
+        flat = not any(
+            isinstance(v, Iterable) and not isinstance(v, (str, bytes))
+            for v in values
+        )
+
+        if empty:
+
+            # Make an object with the structure of plot_data, but empty
+            plot_data = pd.DataFrame()
+            variables = {}
+
+        elif flat:
+
+            # Handle flat data by converting to pandas Series and using the
+            # index and/or values to define x and/or y
+            # (Could be accomplished with a more general to_series() interface)
+            flat_data = pd.Series(data).copy()
+            names = {
+                "@values": flat_data.name,
+                "@index": flat_data.index.name
+            }
+
+            plot_data = {}
+            variables = {}
+
+            for var in ["x", "y"]:
+                if var in self.flat_structure:
+                    attr = self.flat_structure[var]
+                    plot_data[var] = getattr(flat_data, attr[1:])
+                    variables[var] = names[self.flat_structure[var]]
+
+            plot_data = pd.DataFrame(plot_data)
+
+        else:
+
+            # Otherwise assume we have some collection of vectors.
+
+            # Handle Python sequences such that entries end up in the columns,
+            # not in the rows, of the intermediate wide DataFrame.
+            # One way to accomplish this is to convert to a dict of Series.
+            if isinstance(data, Sequence):
+                data_dict = {}
+                for i, var in enumerate(data):
+                    key = getattr(var, "name", i)
+                    # TODO is there a safer/more generic way to ensure Series?
+                    # sort of like np.asarray, but for pandas?
+                    data_dict[key] = pd.Series(var)
+
+                data = data_dict
+
+            # Pandas requires that dict values either be Series objects
+            # or all have the same length, but we want to allow "ragged" inputs
+            if isinstance(data, Mapping):
+                data = {key: pd.Series(val) for key, val in data.items()}
+
+            # Otherwise, delegate to the pandas DataFrame constructor
+            # This is where we'd prefer to use a general interface that says
+            # "give me this data as a pandas DataFrame", so we can accept
+            # DataFrame objects from other libraries
+            wide_data = pd.DataFrame(data, copy=True)
+
+            # At this point we should reduce the dataframe to numeric cols
+            numeric_cols = [
+                k for k, v in wide_data.items() if variable_type(v) == "numeric"
+            ]
+            wide_data = wide_data[numeric_cols]
+
+            # Now melt the data to long form
+            melt_kws = {"var_name": "@columns", "value_name": "@values"}
+            use_index = "@index" in self.wide_structure.values()
+            if use_index:
+                melt_kws["id_vars"] = "@index"
+                try:
+                    orig_categories = wide_data.columns.categories
+                    orig_ordered = wide_data.columns.ordered
+                except AttributeError:
+                    category_columns = False
+                else:
+                    category_columns = True
+                wide_data["@index"] = wide_data.index.to_series()
+
+# ... 960 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

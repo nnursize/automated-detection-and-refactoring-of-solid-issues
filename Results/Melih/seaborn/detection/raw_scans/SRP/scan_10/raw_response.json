@@ -1,0 +1,84 @@
+{
+  "scan_id": "seaborn-master_SRP_scan_10",
+  "repo_name": "seaborn-master",
+  "principle": "SRP",
+  "scan_number": 10,
+  "timestamp": "2026-04-17T16:03:03.899375",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God class handling data processing, coordinate mapping, and rendering for multiple distinct plot types.\",\n      \"reasoning\": \"The class encapsulates the logic for boxplots, violin plots, bar plots, point plots, and more. It also handles data dodging, legend configuration, axis adjustment, and legacy parameter translation (backcompat methods). This violates SRP as it has many reasons to change, ranging from rendering logic for specific plot types to data transformation rules.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God class combining statistical computation and rendering for various distribution visualizations.\",\n      \"reasoning\": \"This class manages the lifecycle of histograms, KDEs, ECDFs, and rug plots. It handles both the statistical computation (e.g., _compute_univariate_density) and the complex rendering logic for both univariate and bivariate variations of these plots, mixing data analysis with visualization concerns.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/plot.py\",\n      \"entity_name\": \"Plotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 974,\n      \"line_end\": 1830,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Massive orchestrator handling data extraction, stat computation, scale resolution, and figure finalization.\",\n      \"reasoning\": \"This class acts as a central engine that performs data extraction, statistical processing (_compute_stats), scale resolution (_setup_scales), figure/subplot initialization, and legend construction. These are distinct responsibilities that should be delegated to specialized components to avoid a monolithic design.\"\n    },\n    {\n      \"file_path\": \"seaborn/regression.py\",\n      \"entity_name\": \"_RegressionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 70,\n      \"line_end\": 442,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Mixes statistical modeling/fitting with visual rendering logic.\",\n      \"reasoning\": \"It is responsible for both the statistical estimation (fitting linear models, polynomials, lowess, or calling statsmodels) and the rendering of the resulting lines and scatter points. Statistical logic (the 'what' of the data) should be separated from plotting logic (the 'how' of the display).\"\n    },\n    {\n      \"file_path\": \"seaborn/external/docscrape.py\",\n      \"entity_name\": \"NumpyDocString\",\n      \"entity_type\": \"class\",\n      \"line_start\": 136,\n      \"line_end\": 561,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Combines docstring parsing logic with string formatting/rendering logic.\",\n      \"reasoning\": \"The class is responsible for both parsing raw docstrings into an internal mapping structure and generating formatted string outputs (e.g., _str_header, _str_param_list). These are two distinct responsibilities: data ingestion/parsing and data presentation/formatting.\"\n    },\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"ClusterGrid\",\n      \"entity_type\": \"class\",\n      \"line_start\": 696,\n      \"line_end\": 1143,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Mixes data normalization and statistical linkage calculation with complex layout management.\",\n      \"reasoning\": \"It includes static methods for data transformation (z_score, standard_scale) and methods for calculating linkages, while also managing the complex multi-axis layout and rendering of the heatmap and dendrograms. Data preprocessing and layout management are separate concerns.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God class handling data processing, coordinate mapping, and rendering for multiple distinct plot types.",
+      "reasoning": "The class encapsulates the logic for boxplots, violin plots, bar plots, point plots, and more. It also handles data dodging, legend configuration, axis adjustment, and legacy parameter translation (backcompat methods). This violates SRP as it has many reasons to change, ranging from rendering logic for specific plot types to data transformation rules."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God class combining statistical computation and rendering for various distribution visualizations.",
+      "reasoning": "This class manages the lifecycle of histograms, KDEs, ECDFs, and rug plots. It handles both the statistical computation (e.g., _compute_univariate_density) and the complex rendering logic for both univariate and bivariate variations of these plots, mixing data analysis with visualization concerns."
+    },
+    {
+      "file_path": "seaborn/_core/plot.py",
+      "entity_name": "Plotter",
+      "entity_type": "class",
+      "line_start": 974,
+      "line_end": 1830,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Massive orchestrator handling data extraction, stat computation, scale resolution, and figure finalization.",
+      "reasoning": "This class acts as a central engine that performs data extraction, statistical processing (_compute_stats), scale resolution (_setup_scales), figure/subplot initialization, and legend construction. These are distinct responsibilities that should be delegated to specialized components to avoid a monolithic design."
+    },
+    {
+      "file_path": "seaborn/regression.py",
+      "entity_name": "_RegressionPlotter",
+      "entity_type": "class",
+      "line_start": 70,
+      "line_end": 442,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Mixes statistical modeling/fitting with visual rendering logic.",
+      "reasoning": "It is responsible for both the statistical estimation (fitting linear models, polynomials, lowess, or calling statsmodels) and the rendering of the resulting lines and scatter points. Statistical logic (the 'what' of the data) should be separated from plotting logic (the 'how' of the display)."
+    },
+    {
+      "file_path": "seaborn/external/docscrape.py",
+      "entity_name": "NumpyDocString",
+      "entity_type": "class",
+      "line_start": 136,
+      "line_end": 561,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Combines docstring parsing logic with string formatting/rendering logic.",
+      "reasoning": "The class is responsible for both parsing raw docstrings into an internal mapping structure and generating formatted string outputs (e.g., _str_header, _str_param_list). These are two distinct responsibilities: data ingestion/parsing and data presentation/formatting."
+    },
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "ClusterGrid",
+      "entity_type": "class",
+      "line_start": 696,
+      "line_end": 1143,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Mixes data normalization and statistical linkage calculation with complex layout management.",
+      "reasoning": "It includes static methods for data transformation (z_score, standard_scale) and methods for calculating linkages, while also managing the complex multi-axis layout and rendering of the heatmap and dendrograms. Data preprocessing and layout management are separate concerns."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27071.293592453003,
+  "error": null
+}

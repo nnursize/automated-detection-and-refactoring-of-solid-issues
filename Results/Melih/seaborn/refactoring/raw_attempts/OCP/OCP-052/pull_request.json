@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-052",
+  "principle": "OCP",
+  "title": "Refactor OCP-052 (OCP): Method dispatches scale type instantiation based on argument type and value.",
+  "branch": "refactor/OCP-052",
+  "base": "main",
+  "head_commit": "9c9e6990cf6306b3f3fac515399aa2c39b5980da",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8975,
+    "completion_tokens": 587
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Property.infer_scale",
+    "entity_type": "method",
+    "line_start": 66,
+    "line_end": 83,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Method dispatches scale type instantiation based on argument type and value.",
+    "reasoning": "This method uses an `if/elif/else` chain to determine which `Scale` subclass to instantiate based on the type of the `arg` parameter (`str` in this case) and string matching (`arg.startswith(k)`). Adding new 'magic' scale arguments or types would require modifying this method, violating OCP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor Property.infer_scale to use a registry for magic scale arguments.",
+    "rationale": "Replaced the hardcoded if/elif/else chain in Property.infer_scale with a registry-based approach. This allows new scale types to be registered without modifying the base Property class, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "seaborn/_core/properties.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/properties.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/properties.py",
+        "search_text": "    def infer_scale(self, arg: Any, data: Series) -> Scale:\n        \"\"\"Given data and a scaling argument, initialize appropriate scale class.\"\"\"\n        # TODO put these somewhere external for validation\n        # TODO putting this here won't pick it up if subclasses define infer_scale\n        # (e.g. color). How best to handle that? One option is to call super after\n        # handling property-specific possibilities (e.g. for color check that the\n        # arg is not a valid palette name) but that could get tricky.\n        trans_args = [\"log\", \"symlog\", \"logit\", \"pow\", \"sqrt\"]\n        if isinstance(arg, str):\n            if any(arg.startswith(k) for k in trans_args):\n                # TODO validate numeric type? That should happen centrally somewhere\n                return Continuous(trans=arg)\n            else:\n                msg = f\"Unknown magic arg for {self.variable} scale: '{arg}'.\"\n                raise ValueError(msg)\n        else:\n            arg_type = type(arg).__name__\n            msg = f\"Magic arg for {self.variable} scale must be str, not {arg_type}.\"\n            raise TypeError(msg)",
+        "replace_text": "    _magic_scales = {\n        \"log\": Continuous,\n        \"symlog\": Continuous,\n        \"logit\": Continuous,\n        \"pow\": Continuous,\n        \"sqrt\": Continuous,\n    }\n\n    def infer_scale(self, arg: Any, data: Series) -> Scale:\n        \"\"\"Given data and a scaling argument, initialize appropriate scale class.\"\"\"\n        if isinstance(arg, str):\n            for key, cls in self._magic_scales.items():\n                if arg.startswith(key):\n                    return cls(trans=arg)\n            msg = f\"Unknown magic arg for {self.variable} scale: '{arg}'.\"\n            raise ValueError(msg)\n        else:\n            arg_type = type(arg).__name__\n            msg = f\"Magic arg for {self.variable} scale must be str, not {arg_type}.\"\n            raise TypeError(msg)",
+        "search_lines": 19,
+        "replace_lines": 20
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2286.2906455993652,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.38s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/properties.py",
+        "loc": 586,
+        "blank_lines": 172,
+        "comment_lines": 76,
+        "function_count": 55,
+        "avg_cc": 2.94,
+        "max_cc": 12.0,
+        "mi": 23.93
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/properties.py",
+        "loc": 592,
+        "blank_lines": 173,
+        "comment_lines": 70,
+        "function_count": 55,
+        "avg_cc": 2.94,
+        "max_cc": 12.0,
+        "mi": 23.32
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/properties.py b/seaborn/_core/properties.py\nindex 4e2df91..b9cac72 100644\n--- a/seaborn/_core/properties.py\n+++ b/seaborn/_core/properties.py\n@@ -69,21 +69,22 @@ class Property:\n         else:\n             return Nominal()\n \n+    _magic_scales = {\n+        \"log\": Continuous,\n+        \"symlog\": Continuous,\n+        \"logit\": Continuous,\n+        \"pow\": Continuous,\n+        \"sqrt\": Continuous,\n+    }\n+\n     def infer_scale(self, arg: Any, data: Series) -> Scale:\n         \"\"\"Given data and a scaling argument, initialize appropriate scale class.\"\"\"\n-        # TODO put these somewhere external for validation\n-        # TODO putting this here won't pick it up if subclasses define infer_scale\n-        # (e.g. color). How best to handle that? One option is to call super after\n-        # handling property-specific possibilities (e.g. for color check that the\n-        # arg is not a valid palette name) but that could get tricky.\n-        trans_args = [\"log\", \"symlog\", \"logit\", \"pow\", \"sqrt\"]\n         if isinstance(arg, str):\n-            if any(arg.startswith(k) for k in trans_args):\n-                # TODO validate numeric type? That should happen centrally somewhere\n-                return Continuous(trans=arg)\n-            else:\n-                msg = f\"Unknown magic arg for {self.variable} scale: '{arg}'.\"\n-                raise ValueError(msg)\n+            for key, cls in self._magic_scales.items():\n+                if arg.startswith(key):\n+                    return cls(trans=arg)\n+            msg = f\"Unknown magic arg for {self.variable} scale: '{arg}'.\"\n+            raise ValueError(msg)\n         else:\n             arg_type = type(arg).__name__\n             msg = f\"Magic arg for {self.variable} scale must be str, not {arg_type}.\"\n",
+  "duration_ms": 4878.5107135772705
+}

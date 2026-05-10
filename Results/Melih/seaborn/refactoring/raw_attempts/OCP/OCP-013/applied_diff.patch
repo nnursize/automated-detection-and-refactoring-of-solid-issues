@@ -1,0 +1,70 @@
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index 429a1e5..fdfd6cb 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -714,42 +714,37 @@ class Continuous(ContinuousBase):
+ 
+     def _get_formatter(self, locator, formatter, like, base, unit):
+ 
++        if formatter is not None:
++            return formatter
++
+         log_base, symlog_thresh = self._parse_for_log_params(self.trans)
+         if base is default:
+-            if symlog_thresh:
+-                log_base = 10
+-            base = log_base
++            base = 10 if symlog_thresh else log_base
+ 
+-        if formatter is not None:
+-            return formatter
++        handlers = [
++            (lambda: like is not None, self._format_like),
++            (lambda: base is not None, lambda: LogFormatterSciNotation(base)),
++            (lambda: unit is not None, lambda: self._format_unit(unit)),
++        ]
+ 
+-        if like is not None:
+-            if isinstance(like, str):
+-                if "{x" in like or "{pos" in like:
+-                    fmt = like
+-                else:
+-                    fmt = f"{{x:{like}}}"
+-                formatter = StrMethodFormatter(fmt)
+-            else:
+-                formatter = FuncFormatter(like)
++        for condition, handler in handlers:
++            if condition():
++                return handler()
+ 
+-        elif base is not None:
+-            # We could add other log options if necessary
+-            formatter = LogFormatterSciNotation(base)
++        return ScalarFormatter()
+ 
+-        elif unit is not None:
+-            if isinstance(unit, tuple):
+-                sep, unit = unit
+-            elif not unit:
+-                sep = ""
+-            else:
+-                sep = " "
+-            formatter = EngFormatter(unit, sep=sep)
++    def _format_like(self, like):
++        if isinstance(like, str):
++            fmt = like if ("{x" in like or "{pos" in like) else f"{{x:{like}}}"
++            return StrMethodFormatter(fmt)
++        return FuncFormatter(like)
+ 
++    def _format_unit(self, unit):
++        if isinstance(unit, tuple):
++            sep, unit = unit
+         else:
+-            formatter = ScalarFormatter()
+-
+-        return formatter
++            sep = "" if not unit else " "
++        return EngFormatter(unit, sep=sep)
+ 
+ 
+ @dataclass

@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 743,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Handles data preparation, deprecated API compatibility, axis configuration, and plotting logic for multiple distinct categorical plot types.",
+    "reasoning": "This class exhibits the God Class smell, violating SRP because it has multiple reasons to change. It's responsible for: 1) Data preprocessing and variable assignment (e.g., `__init__`, `assign_variables`), 2) Extensive backwards compatibility logic for deprecated parameters (e.g., `_hue_backcompat`, `_point_kwargs_backcompat`), and 3) The specific plotting implementation for seven different categorical plot types (`plot_strips`, `plot_boxes`, `plot_violins`, etc.). A change in any of these distinct concerns would require modifying this single class. For example, updating the logic for box plots is unrelated to handling deprecated `scale` parameters for violin plots."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 1261,
+    "line_end": 1493,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Orchestrates FacetGrid setup and contains extensive conditional logic for dispatching to various categorical plot kinds.",
+    "reasoning": "The `catplot` function violates SRP by combining two distinct responsibilities: 1) Orchestrating the creation and configuration of a `FacetGrid` (a figure-level concern for arranging multiple subplots), and 2) Containing a large `if/elif` structure to handle the specific parameter extraction and delegation to the appropriate `_CategoricalPlotter.plot_*` method for each `kind` of categorical plot. This 'Switch Statements on type/kind' smell means that any change to FacetGrid's API or to the parameters/logic of a specific plot kind (e.g., `strip` vs. `box`) would require modifying this single function."
+  }
+]

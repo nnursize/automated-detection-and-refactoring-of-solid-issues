@@ -1,0 +1,99 @@
+{
+  "issue_id": "SRP-005",
+  "principle": "SRP",
+  "title": "Refactor SRP-005 (SRP): Mixes data normalization, statistical clustering, and complex layout management.",
+  "branch": "refactor/SRP-005",
+  "base": "main",
+  "head_commit": "11e83875a77e0bb4e9692f7d424a486dbeb007fc",
+  "status": "applied_failed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 13953,
+    "completion_tokens": 1227
+  },
+  "detected_issue": {
+    "file_path": "seaborn/matrix.py",
+    "entity_name": "ClusterGrid",
+    "entity_type": "class",
+    "line_start": 696,
+    "line_end": 1143,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Mixes data normalization, statistical clustering, and complex layout management.",
+    "reasoning": "The class handles data transformation (z-scoring, standard scaling), statistical clustering (dendrogram calculation via scipy), and complex multi-axes layout management. These are three distinct responsibilities: data engineering, statistical analysis, and UI layout, each of which could change independently."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract data transformation logic from ClusterGrid into a DataTransformer class.",
+    "rationale": "The ClusterGrid class was violating SRP by handling data normalization (z-score, standard scaling) alongside layout management. Extracting these methods into a dedicated DataTransformer class separates data engineering from UI layout concerns.",
+    "files_touched": [
+      "seaborn/matrix.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/matrix.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/matrix.py",
+        "search_text": "    def format_data(self, data, pivot_kws, z_score=None,\n                    standard_scale=None):\n        \"\"\"Extract variables from data or use directly.\"\"\"\n\n        # Either the data is already in 2d matrix format, or need to do a pivot\n        if pivot_kws is not None:\n            data2d = data.pivot(**pivot_kws)\n        else:\n            data2d = data\n\n        if z_score is not None and standard_scale is not None:\n            raise ValueError(\n                'Cannot perform both z-scoring and standard-scaling on data')\n\n        if z_score is not None:\n            data2d = self.z_score(data2d, z_score)\n        if standard_scale is not None:\n            data2d = self.standard_scale(data2d, standard_scale)\n        return data2d\n\n    @staticmethod\n    def z_score(data2d, axis=1):\n        \"\"\"Standarize the mean and variance of the data axis\n\n        Parameters\n        ----------\n        data2d : pandas.DataFrame\n            Data to normalize\n        axis : int\n            Which axis to normalize across. If 0, normalize across rows, if 1,\n            normalize across columns.\n\n        Returns\n        -------\n        normalized : pandas.DataFrame\n            Noramlized data with a mean of 0 and variance of 1 across the\n            specified axis.\n        \"\"\"\n        if axis == 1:\n            z_scored = data2d\n        else:\n            z_scored = data2d.T\n\n        z_scored = (z_scored - z_scored.mean()) / z_scored.std()\n\n        if axis == 1:\n            return z_scored\n        else:\n            return z_scored.T\n\n    @staticmethod\n    def standard_scale(data2d, axis=1):\n        \"\"\"Divide the data by the difference between the max and min\n\n        Parameters\n        ----------\n        data2d : pandas.DataFrame\n            Data to normalize\n        axis : int\n            Which axis to normalize across. If 0, normalize across rows, if 1,\n            normalize across columns.\n\n        Returns\n        -------\n        standardized : pandas.DataFrame\n            Noramlized data with a mean of 0 and variance of 1 across the\n            specified axis.\n\n        \"\"\"\n        # Normalize these values to range from 0 to 1\n        if axis == 1:\n            standardized = data2d\n        else:\n            standardized = data2d.T\n\n        subtract = standardized.min()\n        standardized = (standardized - subtract) / (\n            standardized.max() - standardized.min())\n\n        if axis == 1:\n            return standardized\n        else:\n            return standardized.T",
+        "replace_text": "class _DataTransformer:\n    \"\"\"Helper class to normalize and scale data for clustering.\"\"\"\n\n    @staticmethod\n    def z_score(data2d, axis=1):\n        \"\"\"Standarize the mean and variance of the data axis.\"\"\"\n        if axis == 1:\n            z_scored = data2d\n        else:\n            z_scored = data2d.T\n\n        z_scored = (z_scored - z_scored.mean()) / z_scored.std()\n\n        return z_scored if axis == 1 else z_scored.T\n\n    @staticmethod\n    def standard_scale(data2d, axis=1):\n        \"\"\"Divide the data by the difference between the max and min.\"\"\"\n        if axis == 1:\n            standardized = data2d\n        else:\n            standardized = data2d.T\n\n        subtract = standardized.min()\n        standardized = (standardized - subtract) / (\n            standardized.max() - standardized.min())\n\n        return standardized if axis == 1 else standardized.T\n\n    def transform(self, data, pivot_kws, z_score=None, standard_scale=None):\n        \"\"\"Extract variables from data and apply normalization.\"\"\"\n        if pivot_kws is not None:\n            data2d = data.pivot(**pivot_kws)\n        else:\n            data2d = data\n\n        if z_score is not None and standard_scale is not None:\n            raise ValueError(\n                'Cannot perform both z-scoring and standard-scaling on data')\n\n        if z_score is not None:\n            data2d = self.z_score(data2d, z_score)\n        if standard_scale is not None:\n            data2d = self.standard_scale(data2d, standard_scale)\n        return data2d",
+        "search_lines": 83,
+        "replace_lines": 45
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/matrix.py",
+        "search_text": "        self.data2d = self.format_data(self.data, pivot_kws, z_score,\n                                       standard_scale)",
+        "replace_text": "        self.data2d = _DataTransformer().transform(\n            self.data, pivot_kws, z_score, standard_scale\n        )",
+        "search_lines": 2,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": false,
+    "total": 176,
+    "passed_count": 169,
+    "failed_count": 1,
+    "skipped_count": 1,
+    "error_count": 0,
+    "duration_ms": 6245.3203201293945,
+    "timed_out": false,
+    "new_failures_count": 1,
+    "pre_existing_failures_count": 0,
+    "new_failures": [
+      "tests/_core/test_plot.py::TestPlotting::test_show"
+    ],
+    "pre_existing_failures": [],
+    "output_tail": "....................................s................................... [  3%]\n.................................x............x...x................x.x.. [  6%]\n...............................F\n================================== FAILURES ===================================\n___________________________ TestPlotting.test_show ____________________________\ntests\\_core\\test_plot.py:1060: in test_show\n    out = p.show(block=False)\n          ^^^^^^^^^^^^^^^^^^^\nseaborn\\_core\\plot.py:925: in show\n    self.plot(pyplot=True).show(**kwargs)\n    ^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\_core\\plot.py:932: in plot\n    return self._plot(pyplot)\n           ^^^^^^^^^^^^^^^^^^\nseaborn\\_core\\plot.py:943: in _plot\n    plotter._setup_figure(self, common, layers)\nseaborn\\_core\\plot.py:1127: in _setup_figure\n    self._figure = subplots.init_figure(\nseaborn\\_core\\subplots.py:185: in init_figure\n    figure = plt.figure(**figure_kws)\n             ^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\pyplot.py:1041: in figure\n    manager = new_figure_manager(\n.venv\\Lib\\site-packages\\matplotlib\\pyplot.py:551: in new_figure_manager\n    return _get_backend_mod().new_figure_manager(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backend_bases.py:3504: in new_figure_manager\n    return cls.new_figure_manager_given_figure(num, fig)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backend_bases.py:3509: in new_figure_manager_given_figure\n    return cls.FigureCanvas.new_manager(figure, num)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backend_bases.py:1785: in new_manager\n    return cls.manager_class.create_with_canvas(cls, figure, num)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.venv\\Lib\\site-packages\\matplotlib\\backends\\_backend_tk.py:535: in create_with_canvas\n    window = tk.Tk(className=\"matplotlib\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nC:\\Users\\User\\miniconda3\\Lib\\tkinter\\__init__.py:2326: in __init__\n    self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   _tkinter.TclError: Can't find a usable tk.tcl in the following directories: \nE       C:/Users/User/miniconda3/Library/lib/tcl8.6/tk8.6 C:/Users/User/miniconda3/Library/lib/tk8.6 C:/Users/User/lib/tk8.6 C:/Users/User/lib/tk8.6 C:/Users/lib/tk8.6 C:/Users/User/library\nE   \nE   C:/Users/User/miniconda3/Library/lib/tk8.6/tk.tcl: couldn't read file \"C:/Users/User/miniconda3/Library/lib/tk8.6/ttk/vistaTheme.tcl\": no such file or directory\nE   couldn't read file \"C:/Users/User/miniconda3/Library/lib/tk8.6/ttk/vistaTheme.tcl\": no such file or directory\nE       while executing\nE   \"source -encoding utf-8 C:/Users/User/miniconda3/Library/lib/tk8.6/ttk/vistaTheme.tcl\"\nE       (\"uplevel\" body line 1)\nE       invoked from within\nE   \"uplevel #0 [list source -encoding utf-8 [file join $library $script]]\"\nE       (procedure \"ttk::LoadThemes\" line 18)\nE       invoked from within\nE   \"ttk::LoadThemes\"\nE       (file \"C:/Users/User/miniconda3/Library/lib/tk8.6/ttk/ttk.tcl\" line 144)\nE       invoked from within\nE   \"source -encoding utf-8 C:/Users/User/miniconda3/Library/lib/tk8.6/ttk/ttk.tcl\"\nE       (\"uplevel\" body line 1)\nE       invoked from within\nE   \"uplevel \\#0 [list source -encoding utf-8 $::ttk::library/ttk.tcl]\"\nE       (file \"C:/Users/User/miniconda3/Library/lib/tk8.6/tk.tcl\" line 706)\nE       invoked from within\nE   \"source C:/Users/User/miniconda3/Library/lib/tk8.6/tk.tcl\"\nE       (\"uplevel\" body line 1)\nE       invoked from within\nE   \"uplevel #0 [list source $file]\"\nE   \nE   \nE   This probably means that tk wasn't installed properly.\n=========================== short test summary info ===========================\nFAILED tests/_core/test_plot.py::TestPlotting::test_show - _tkinter.TclError:...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 169 passed, 1 skipped, 5 xfailed in 5.20s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/matrix.py",
+        "loc": 978,
+        "blank_lines": 201,
+        "comment_lines": 83,
+        "function_count": 31,
+        "avg_cc": 5.76,
+        "max_cc": 22.0,
+        "mi": 20.95
+      }
+    ],
+    "after": null
+  },
+  "diff": "diff --git a/seaborn/matrix.py b/seaborn/matrix.py\nindex 4e96132..40b01ad 100644\n--- a/seaborn/matrix.py\n+++ b/seaborn/matrix.py\n@@ -707,8 +707,9 @@ class ClusterGrid(Grid):\n         else:\n             self.data = pd.DataFrame(data)\n \n-        self.data2d = self.format_data(self.data, pivot_kws, z_score,\n-                                       standard_scale)\n+        self.data2d = _DataTransformer().transform(\n+            self.data, pivot_kws, z_score, standard_scale\n+        )\n \n         self.mask = _matrix_mask(self.data2d, mask)\n \n@@ -813,44 +814,12 @@ class ClusterGrid(Grid):\n \n         return colors, labels\n \n-    def format_data(self, data, pivot_kws, z_score=None,\n-                    standard_scale=None):\n-        \"\"\"Extract variables from data or use directly.\"\"\"\n-\n-        # Either the data is already in 2d matrix format, or need to do a pivot\n-        if pivot_kws is not None:\n-            data2d = data.pivot(**pivot_kws)\n-        else:\n-            data2d = data\n-\n-        if z_score is not None and standard_scale is not None:\n-            raise ValueError(\n-                'Cannot perform both z-scoring and standard-scaling on data')\n-\n-        if z_score is not None:\n-            data2d = self.z_score(data2d, z_score)\n-        if standard_scale is not None:\n-            data2d = self.standard_scale(data2d, standard_scale)\n-        return data2d\n+class _DataTransformer:\n+    \"\"\"Helper class to normalize and scale data for clustering.\"\"\"\n \n     @staticmethod\n     def z_score(data2d, axis=1):\n-        \"\"\"Standarize the mean and variance of the data axis\n-\n-        Parameters\n-        ----------\n-        data2d : pandas.DataFrame\n-            Data to normalize\n-        axis : int\n-            Which axis to normalize across. If 0, normalize across rows, if 1,\n-            normalize across columns.\n-\n-        Returns\n-        -------\n-        normalized : pandas.DataFrame\n-            Noramlized data with a mean of 0 and variance of 1 across the\n-            specified axis.\n-        \"\"\"\n+        \"\"\"Standarize the mean and variance of the data axis.\"\"\"\n         if axis == 1:\n             z_scored = data2d\n         else:\n@@ -858,31 +827,11 @@ class ClusterGrid(Grid):\n \n         z_scored = (z_scored - z_scored.mean()) / z_scored.std()\n \n-        if axis == 1:\n-            return z_scored\n-        else:\n-            return z_scored.T\n+        return z_scored if axis == 1 else z_scored.T\n \n     @staticmethod\n     def standard_scale(data2d, axis=1):\n-        \"\"\"Divide the data by the difference between the max and min\n-\n-        Parameters\n-        ----------\n-        data2d : pandas.DataFrame\n-            Data to normalize\n-        axis : int\n-            Which axis to normalize across. If 0, normalize across rows, if 1,\n-            normalize across columns.\n-\n-        Returns\n-        -------\n-        standardized : pandas.DataFrame\n-            Noramlized data with a mean of 0 and variance of 1 across the\n-            specified axis.\n-\n-        \"\"\"\n-        # Normalize these values to range from 0 to 1\n+        \"\"\"Divide the data by the difference between the max and min.\"\"\"\n         if axis == 1:\n             standardized = data2d\n         else:\n@@ -892,10 +841,24 @@ class ClusterGrid(Grid):\n         standardized = (standardized - subtract) / (\n             standardized.max() - standardized.min())\n \n-        if axis == 1:\n-            return standardized\n+        return standardized if axis == 1 else standardized.T\n+\n+    def transform(self, data, pivot_kws, z_score=None, standard_scale=None):\n+        \"\"\"Extract variables from data and apply normalization.\"\"\"\n+        if pivot_kws is not None:\n+            data2d = data.pivot(**pivot_kws)\n         else:\n-            return standardized.T\n+            data2d = data\n+\n+        if z_score is not None and standard_scale is not None:\n+            raise ValueError(\n+                'Cannot perform both z-scoring and standard-scaling on data')\n+\n+        if z_score is not None:\n+            data2d = self.z_score(data2d, z_score)\n+        if standard_scale is not None:\n+            data2d = self.standard_scale(data2d, standard_scale)\n+        return data2d\n \n     def dim_ratios(self, colors, dendrogram_ratio, colors_ratio):\n         \"\"\"Get the proportions of the figure taken up by each axes.\"\"\"\n",
+  "duration_ms": 24717.34666824341
+}

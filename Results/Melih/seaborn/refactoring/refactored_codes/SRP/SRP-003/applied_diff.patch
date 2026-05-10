@@ -1,0 +1,63 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 017f0b8..79d59e8 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -2862,17 +2862,30 @@ def catplot(
+         if saturation < 1:
+             color = desaturate(color, saturation)
+ 
++    _plot_kind(
++        p, kind, kwargs, color, dodge, width,
++        estimator, errorbar, n_boot, seed,
++    )
++
++    for ax in g.axes.flat:
++        p._adjust_cat_axis(ax, axis=p.orient)
++
++    g.set_axis_labels(p.variables.get("x"), p.variables.get("y"))
++
++
++def _plot_kind(
++    p, kind, kwargs, color, dodge, width,
++    estimator, errorbar, n_boot, seed,
++):
++    """Dispatch to the appropriate plotter method."""
++    undodged_kinds = ["strip", "swarm", "point"]
++
+     if kind in ["strip", "swarm"]:
+         kwargs = normalize_kwargs(kwargs, mpl.collections.PathCollection)
+         kwargs["edgecolor"] = p._complement_color(
+             kwargs.pop("edgecolor", default), color, p._hue_map
+         )
+ 
+-    width = kwargs.pop("width", 0.8)
+-    dodge = kwargs.pop("dodge", False if kind in undodged_kinds else "auto")
+-    if dodge == "auto":
+-        dodge = p._dodge_needed()
+-
+     if "weight" in p.plot_data:
+         if kind not in ["bar", "point"]:
+             msg = f"The `weights` parameter has no effect with kind={kind!r}."
+@@ -3035,10 +3048,6 @@ def catplot(
+         markers = kwargs.pop("markers", default)
+         linestyles = kwargs.pop("linestyles", default)
+ 
+-        # Deprecations to remove in v0.15.0.
+-        # TODO Uncomment when removing deprecation backcompat
+-        # capsize = kwargs.pop("capsize", 0)
+-        # err_kws = normalize_kwargs(kwargs.pop("err_kws", {}), mpl.lines.Line2D)
+         p._point_kwargs_backcompat(
+             kwargs.pop("scale", deprecated),
+             kwargs.pop("join", deprecated),
+@@ -3122,11 +3131,6 @@ def catplot(
+             "'box', 'boxen', 'violin', 'bar', 'count', and 'point'."
+         )
+         raise ValueError(msg)
+-
+-    for ax in g.axes.flat:
+-        p._adjust_cat_axis(ax, axis=p.orient)
+-
+-    g.set_axis_labels(p.variables.get("x"), p.variables.get("y"))
+     g.set_titles()
+     g.tight_layout()
+ 

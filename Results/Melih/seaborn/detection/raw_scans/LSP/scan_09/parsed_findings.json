@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter.plot",
+    "entity_type": "class",
+    "line_start": 351,
+    "line_end": 383,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "The signature of the 'plot' method in '_RegressionPlotter' is incompatible with its base class '_LinearPlotter'.",
+    "reasoning": "The base class '_LinearPlotter' defines the method signature as 'plot(self, ax)', whereas the subclass '_RegressionPlotter' overrides it as 'plot(self, ax, scatter_kws, line_kws)'. This violates the Liskov Substitution Principle because the subclass cannot be used as a substitute for the base class; any code expecting the base class contract (calling 'plot' with a single argument) will fail with a TypeError if passed an instance of '_RegressionPlotter'."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "The subclass redefines the data interpretation contract of the base class 'VectorPlotter' for wide-form data.",
+    "reasoning": "The base class 'VectorPlotter' defines a contract for wide-form data where the independent variable 'x' is mapped from the data index ('@index'). '_CategoricalPlotter' redefines this contract by overriding the 'wide_structure' class attribute to map 'x' from the data columns ('@columns') instead. This change in the semantic interpretation of the input data structure makes the subclass non-substitutable for the base class in generic wide-form data processing contexts."
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "VectorPlotter defines abstract methods for scaling that force concrete implementations to handle specific axis types.",
+    "reasoning": "The VectorPlotter class defines abstract methods (scale_native, scale_numeric, scale_datetime) which forces subclasses to implement specific scaling logic for different data types. This couples the plotter to the scaling implementation details rather than relying on a decoupled strategy or abstraction for scaling operations."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 145,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Scale base class defines abstract methods that force subclasses to implement specific matplotlib-dependent logic.",
+    "reasoning": "The Scale base class defines abstract methods like _get_locators and _get_formatter which are tightly coupled to matplotlib's internal API. Subclasses are forced to implement these details, violating the principle that abstractions should not depend on low-level implementation details."
+  },
+  {
+    "file_path": "seaborn/_stats/base.py",
+    "entity_name": "Stat",
+    "entity_type": "class",
+    "line_start": 16,
+    "line_end": 65,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Stat base class forces concrete implementations to accept specific high-level objects like GroupBy and Scale.",
+    "reasoning": "The __call__ signature in the Stat base class forces all statistical transformations to depend on concrete high-level objects (GroupBy, Scale). This prevents the use of simpler, more generic data transformation functions and forces a rigid dependency structure on all statistical operations."
+  }
+]

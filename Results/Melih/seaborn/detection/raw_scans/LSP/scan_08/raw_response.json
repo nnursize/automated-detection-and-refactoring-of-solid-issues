@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_LSP_scan_08",
+  "repo_name": "seaborn-master",
+  "principle": "LSP",
+  "scan_number": 8,
+  "timestamp": "2026-04-18T14:04:22.404658",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Liskov Substitution Principle (LSP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/regression.py\",\n      \"entity_name\": \"_RegressionPlotter.plot\",\n      \"entity_type\": \"method\",\n      \"line_start\": 351,\n      \"line_end\": 384,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass method signature is incompatible with the base class method signature.\",\n      \"reasoning\": \"The base class _LinearPlotter defines the plot method with a single parameter 'ax' (line 66). The subclass _RegressionPlotter overrides this method but changes the signature to require three mandatory parameters: 'ax', 'scatter_kws', and 'line_kws' (line 351). This violates LSP because a caller holding a reference to the base type _LinearPlotter cannot substitute it with a _RegressionPlotter without the program failing due to a TypeError when calling plot(ax).\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass overrides configuration attributes in a way that breaks the base class contract for data ingestion.\",\n      \"reasoning\": \"VectorPlotter defines a contract for wide-form data via wide_structure where 'x' maps to the index ('@index'). _CategoricalPlotter overrides this (line 51) to map 'x' to columns ('@columns'), fundamentally changing how data is interpreted. It also removes 'x' from flat_structure (line 52). Furthermore, the __init__ method (lines 75-89) performs a post-initialization mutation by swapping 'x' and 'y' variables in self.plot_data and self.variables if orientation is horizontal, which invalidates the state established by the base class constructor and breaks the expectation that variable assignments are consistent across the VectorPlotter hierarchy.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass overrides class attributes defining data structures, violating the base class contract for data ingestion.\",\n      \"reasoning\": \"Similar to _CategoricalPlotter, _DistributionPlotter overrides wide_structure (line 101) and flat_structure (line 102). In wide_structure, it maps 'x' to '@values' instead of the base class's '@index'. In flat_structure, it removes the 'y' variable entirely. These changes alter the fundamental behavior of the assign_variables method inherited from VectorPlotter, meaning code expecting the standard data ingestion behavior of a VectorPlotter will receive incorrect or incomplete data when using this subclass.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/regression.py",
+      "entity_name": "_RegressionPlotter.plot",
+      "entity_type": "method",
+      "line_start": 351,
+      "line_end": 384,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass method signature is incompatible with the base class method signature.",
+      "reasoning": "The base class _LinearPlotter defines the plot method with a single parameter 'ax' (line 66). The subclass _RegressionPlotter overrides this method but changes the signature to require three mandatory parameters: 'ax', 'scatter_kws', and 'line_kws' (line 351). This violates LSP because a caller holding a reference to the base type _LinearPlotter cannot substitute it with a _RegressionPlotter without the program failing due to a TypeError when calling plot(ax)."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass overrides configuration attributes in a way that breaks the base class contract for data ingestion.",
+      "reasoning": "VectorPlotter defines a contract for wide-form data via wide_structure where 'x' maps to the index ('@index'). _CategoricalPlotter overrides this (line 51) to map 'x' to columns ('@columns'), fundamentally changing how data is interpreted. It also removes 'x' from flat_structure (line 52). Furthermore, the __init__ method (lines 75-89) performs a post-initialization mutation by swapping 'x' and 'y' variables in self.plot_data and self.variables if orientation is horizontal, which invalidates the state established by the base class constructor and breaks the expectation that variable assignments are consistent across the VectorPlotter hierarchy."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass overrides class attributes defining data structures, violating the base class contract for data ingestion.",
+      "reasoning": "Similar to _CategoricalPlotter, _DistributionPlotter overrides wide_structure (line 101) and flat_structure (line 102). In wide_structure, it maps 'x' to '@values' instead of the base class's '@index'. In flat_structure, it removes the 'y' variable entirely. These changes alter the fundamental behavior of the assign_variables method inherited from VectorPlotter, meaning code expecting the standard data ingestion behavior of a VectorPlotter will receive incorrect or incomplete data when using this subclass."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 62863.03997039795,
+  "error": null
+}

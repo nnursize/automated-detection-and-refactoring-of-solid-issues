@@ -1,0 +1,62 @@
+{
+  "scan_id": "seaborn-master_SRP_scan_02",
+  "repo_name": "seaborn-master",
+  "principle": "SRP",
+  "scan_number": 2,
+  "timestamp": "2026-04-17T17:31:16.824207",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persis...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 53,\n      \"line_end\": 894,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God class handling data management, legacy support, and multiple rendering strategies.\",\n      \"reasoning\": \"This class violates SRP by aggregating at least four distinct responsibilities: 1) Data management and categorical level tracking, 2) Geometric coordinate transformations (dodging, jittering, and scale inversion), 3) Extensive legacy compatibility logic for deprecated API parameters across multiple versions, and 4) Concrete rendering implementations for seven different plot types (strips, swarms, boxes, boxens, violins, points, and bars). A change in the statistical logic of a violin plot or a change in how Matplotlib handles legends would both require modifying this same class.\"\n    },\n    {\n      \"file_path\": \"seaborn/regression.py\",\n      \"entity_name\": \"_RegressionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 70,\n      \"line_end\": 366,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class mixing statistical model fitting with graphical rendering.\",\n      \"reasoning\": \"This class is responsible for both the business logic of statistical modeling (implementing polynomial, logistic, lowess, and robust regression fits) and the I/O responsibility of drawing those models onto Matplotlib Axes. The mathematical fitting logic (e.g., fit_fast, fit_poly, fit_statsmodels) is unrelated to the rendering logic (e.g., scatterplot, lineplot), meaning the class has multiple reasons to change.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 89,\n      \"line_end\": 846,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class orchestrating statistical estimation and multi-kind rendering.\",\n      \"reasoning\": \"Similar to the categorical plotter, this class mixes the orchestration of complex statistical computations (KDE support, histogram binning, ECDF calculation) with the specific rendering logic for univariate and bivariate variants of histograms, density plots, and rug plots. It also manages legend generation and visual attribute mapping, creating a tight coupling between data analysis and data visualization.\"\n    },\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"_DendrogramPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 254,\n      \"line_end\": 388,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Class coupling hierarchical clustering algorithms with tree rendering.\",\n      \"reasoning\": \"The class handles the logic for performing hierarchical clustering (including logic to choose between scipy and fastcluster based on matrix size) and the logic for calculating and drawing the dendrogram tree geometry. The algorithmic concern of how to cluster data is distinct from the graphical concern of how to represent a tree structure on a 2D plane.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 53,
+      "line_end": 894,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God class handling data management, legacy support, and multiple rendering strategies.",
+      "reasoning": "This class violates SRP by aggregating at least four distinct responsibilities: 1) Data management and categorical level tracking, 2) Geometric coordinate transformations (dodging, jittering, and scale inversion), 3) Extensive legacy compatibility logic for deprecated API parameters across multiple versions, and 4) Concrete rendering implementations for seven different plot types (strips, swarms, boxes, boxens, violins, points, and bars). A change in the statistical logic of a violin plot or a change in how Matplotlib handles legends would both require modifying this same class."
+    },
+    {
+      "file_path": "seaborn/regression.py",
+      "entity_name": "_RegressionPlotter",
+      "entity_type": "class",
+      "line_start": 70,
+      "line_end": 366,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class mixing statistical model fitting with graphical rendering.",
+      "reasoning": "This class is responsible for both the business logic of statistical modeling (implementing polynomial, logistic, lowess, and robust regression fits) and the I/O responsibility of drawing those models onto Matplotlib Axes. The mathematical fitting logic (e.g., fit_fast, fit_poly, fit_statsmodels) is unrelated to the rendering logic (e.g., scatterplot, lineplot), meaning the class has multiple reasons to change."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 89,
+      "line_end": 846,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class orchestrating statistical estimation and multi-kind rendering.",
+      "reasoning": "Similar to the categorical plotter, this class mixes the orchestration of complex statistical computations (KDE support, histogram binning, ECDF calculation) with the specific rendering logic for univariate and bivariate variants of histograms, density plots, and rug plots. It also manages legend generation and visual attribute mapping, creating a tight coupling between data analysis and data visualization."
+    },
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "_DendrogramPlotter",
+      "entity_type": "class",
+      "line_start": 254,
+      "line_end": 388,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Class coupling hierarchical clustering algorithms with tree rendering.",
+      "reasoning": "The class handles the logic for performing hierarchical clustering (including logic to choose between scipy and fastcluster based on matrix size) and the logic for calculating and drawing the dendrogram tree geometry. The algorithmic concern of how to cluster data is distinct from the graphical concern of how to represent a tree structure on a 2D plane."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 189702.8956413269,
+  "error": null
+}

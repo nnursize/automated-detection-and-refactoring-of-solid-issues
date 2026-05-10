@@ -1,0 +1,62 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_07",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 7,
+  "timestamp": "2026-04-18T15:30:33.521637",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interfac...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Class depends on unused scaling methods from its base interface.\",\n      \"reasoning\": \"The _CategoricalPlotter class inherits from VectorPlotter, which defines scale_native, scale_numeric, and scale_datetime methods that explicitly raise NotImplementedError in the base class. As a specialized categorical plotter, these numeric and datetime scaling methods are not relevant to _CategoricalPlotter's core responsibility, forcing it to depend on an interface (VectorPlotter) that is too broad for its specific needs, thus violating ISP.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Class depends on unused scaling methods from its base interface.\",\n      \"reasoning\": \"The _DistributionPlotter class inherits from VectorPlotter, which defines scale_native, scale_numeric, scale_datetime, and scale_categorical methods. _DistributionPlotter does not implement any of these scaling methods, and at least three of them (native, numeric, datetime) explicitly raise NotImplementedError in the base class. This forces _DistributionPlotter to depend on an interface (VectorPlotter) that includes methods it does not use or implement, violating ISP.\"\n    },\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 616,\n      \"line_end\": 1448,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Interface is 'fat' by defining methods that raise NotImplementedError.\",\n      \"reasoning\": \"The VectorPlotter class acts as an abstract interface by defining scale_native, scale_numeric, and scale_datetime methods that explicitly raise NotImplementedError. This design forces all concrete subclasses to inherit and acknowledge these methods, even if they are not relevant to the subclass's specific plotting domain (e.g., a purely categorical or distribution plotter). This makes VectorPlotter a 'fat interface' that could be segregated into smaller, more focused interfaces for different scaling types, thereby violating ISP.\"\n    },\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"ClusterGrid\",\n      \"entity_type\": \"class\",\n      \"line_start\": 696,\n      \"line_end\": 1143,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Class depends on unused legend and tick parameter management methods from its base interface.\",\n      \"reasoning\": \"The ClusterGrid class inherits from Grid, which provides methods for general legend management (e.g., add_legend, _update_legend_data, _get_palette, legend property) and tick parameter configuration (tick_params). ClusterGrid, being specialized for clustered heatmaps, handles its color processing and legend/colorbar (cbar) logic differently and does not utilize or override these inherited methods in a meaningful way. This forces ClusterGrid to depend on parts of the Grid interface that are not relevant to its specific responsibilities, violating ISP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Class depends on unused scaling methods from its base interface.",
+      "reasoning": "The _CategoricalPlotter class inherits from VectorPlotter, which defines scale_native, scale_numeric, and scale_datetime methods that explicitly raise NotImplementedError in the base class. As a specialized categorical plotter, these numeric and datetime scaling methods are not relevant to _CategoricalPlotter's core responsibility, forcing it to depend on an interface (VectorPlotter) that is too broad for its specific needs, thus violating ISP."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Class depends on unused scaling methods from its base interface.",
+      "reasoning": "The _DistributionPlotter class inherits from VectorPlotter, which defines scale_native, scale_numeric, scale_datetime, and scale_categorical methods. _DistributionPlotter does not implement any of these scaling methods, and at least three of them (native, numeric, datetime) explicitly raise NotImplementedError in the base class. This forces _DistributionPlotter to depend on an interface (VectorPlotter) that includes methods it does not use or implement, violating ISP."
+    },
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 616,
+      "line_end": 1448,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Interface is 'fat' by defining methods that raise NotImplementedError.",
+      "reasoning": "The VectorPlotter class acts as an abstract interface by defining scale_native, scale_numeric, and scale_datetime methods that explicitly raise NotImplementedError. This design forces all concrete subclasses to inherit and acknowledge these methods, even if they are not relevant to the subclass's specific plotting domain (e.g., a purely categorical or distribution plotter). This makes VectorPlotter a 'fat interface' that could be segregated into smaller, more focused interfaces for different scaling types, thereby violating ISP."
+    },
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "ClusterGrid",
+      "entity_type": "class",
+      "line_start": 696,
+      "line_end": 1143,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Class depends on unused legend and tick parameter management methods from its base interface.",
+      "reasoning": "The ClusterGrid class inherits from Grid, which provides methods for general legend management (e.g., add_legend, _update_legend_data, _get_palette, legend property) and tick parameter configuration (tick_params). ClusterGrid, being specialized for clustered heatmaps, handles its color processing and legend/colorbar (cbar) logic differently and does not utilize or override these inherited methods in a meaningful way. This forces ClusterGrid to depend on parts of the Grid interface that are not relevant to its specific responsibilities, violating ISP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 35128.90553474426,
+  "error": null
+}

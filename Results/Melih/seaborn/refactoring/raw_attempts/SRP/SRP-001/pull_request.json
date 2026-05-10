@@ -1,0 +1,72 @@
+{
+  "issue_id": "SRP-001",
+  "principle": "SRP",
+  "title": "Refactor SRP-001 (SRP): The constructor handles data reshaping, variable renaming, orientation infere...",
+  "branch": "refactor/SRP-001",
+  "base": "main",
+  "head_commit": "11e83875a77e0bb4e9692f7d424a486dbeb007fc",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in seaborn/categorical.py (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4017,
+    "completion_tokens": 1352
+  },
+  "detected_issue": {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.__init__",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 96,
+    "severity": "high",
+    "scan_count": 12,
+    "description": "The constructor handles data reshaping, variable renaming, orientation inference, legend initialization, and categorical level ordering.",
+    "reasoning": "This constructor bundles multiple responsibilities: data transformation (renaming x/y for wide data, adding anonymous category), configuration (inferring orient, setting legend), and data preparation (determining categorical levels). A change in wide-form data handling, orientation inference rules, or categorical ordering logic would all require modifying this method, indicating multiple reasons to change."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract data preparation logic from _CategoricalPlotter.__init__ into helper methods.",
+    "rationale": "The constructor was performing multiple distinct tasks (wide-form data reshaping, hue cleanup, and categorical level setup). Moving these into dedicated private methods improves readability and adheres to the Single Responsibility Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/categorical.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "        # For wide data, orient determines assignment to x/y differently from the\n        # default VectorPlotter rules. If we do decide to make orient part of the\n        # _base variable assignment, we'll want to figure out how to express that.\n        if self.input_format == \"wide\" and orient in [\"h\", \"y\"]:\n            self.plot_data = self.plot_data.rename(columns={\"x\": \"y\", \"y\": \"x\"})\n            orig_variables = set(self.variables)\n            orig_x = self.variables.pop(\"x\", None)\n            orig_y = self.variables.pop(\"y\", None)\n            orig_x_type = self.var_types.pop(\"x\", None)\n            orig_y_type = self.var_types.pop(\"y\", None)\n            if \"x\" in orig_variables:\n                self.variables[\"y\"] = orig_x\n                self.var_types[\"y\"] = orig_x_type\n            if \"y\" in orig_variables:\n                self.variables[\"x\"] = orig_y\n                self.var_types[\"x\"] = orig_x_type\n\n        # Initially there was more special code for wide-form data where plots were\n        # multi-colored by default and then either palette or color could be used.\n        # We want to provide backwards compatibility for this behavior in a relatively\n        # simply way, so we delete the hue information when color is specified.\n        if (\n            self.input_format == \"wide\"\n            and \"hue\" in self.variables\n            and color is not None\n        ):\n            self.plot_data.drop(\"hue\", axis=1)\n            self.variables.pop(\"hue\")\n\n        # The concept of an \"orientation\" is important to the original categorical\n        # plots, but there's no provision for it in VectorPlotter, so we need it here.\n        # Note that it could be useful for the other functions in at least two ways\n        # (orienting a univariate distribution plot from long-form data and selecting\n        # the aggregation axis in lineplot), so we may want to eventually refactor it.\n        self.orient = infer_orient(\n            x=self.plot_data.get(\"x\", None),\n            y=self.plot_data.get(\"y\", None),\n            orient=orient,\n            require_numeric=False,\n        )\n\n        self.legend = legend\n\n        # Short-circuit in the case of an empty plot\n        if not self.has_xy_data:\n            return\n\n        # Categorical plots can be \"univariate\" in which case they get an anonymous\n        # category label on the opposite axis. Note: this duplicates code in the core\n        # scale_categorical function. We need to do it here because of the next line.\n        if self.orient not in self.variables:\n            self.variables[self.orient] = None\n            self.var_types[self.orient] = \"categorical\"\n            self.plot_data[self.orient] = \"\"\n\n        # Categorical variables have discrete levels that we need to track\n        cat_levels = categorical_order(self.plot_data[self.orient], order)\n        self.var_levels[self.orient] = cat_levels",
+        "replace_text": "        self._handle_wide_data(orient, color)\n        self.orient = infer_orient(\n            x=self.plot_data.get(\"x\", None),\n            y=self.plot_data.get(\"y\", None),\n            orient=orient,\n            require_numeric=False,\n        )\n        self.legend = legend\n\n        if not self.has_xy_data:\n            return\n\n        self._setup_categorical_levels(order)\n\n    def _handle_wide_data(self, orient, color):\n        if self.input_format == \"wide\" and orient in [\"h\", \"y\"]:\n            self.plot_data = self.plot_data.rename(columns={\"x\": \"y\", \"y\": \"x\"})\n            orig_variables = set(self.variables)\n            orig_x = self.variables.pop(\"x\", None)\n            orig_y = self.variables.pop(\"y\", None)\n            orig_x_type = self.var_types.pop(\"x\", None)\n            orig_y_type = self.var_types.pop(\"y\", None)\n            if \"x\" in orig_variables:\n                self.variables[\"y\"] = orig_x\n                self.var_types[\"y\"] = orig_x_type\n            if \"y\" in orig_variables:\n                self.variables[\"x\"] = orig_y\n                self.var_types[\"x\"] = orig_y_type\n\n        if (\n            self.input_format == \"wide\"\n            and \"hue\" in self.variables\n            and color is not None\n        ):\n            self.plot_data.drop(\"hue\", axis=1)\n            self.variables.pop(\"hue\")\n\n    def _setup_categorical_levels(self, order):\n        if self.orient not in self.variables:\n            self.variables[self.orient] = None\n            self.var_types[self.orient] = \"categorical\"\n            self.plot_data[self.orient] = \"\"\n\n        cat_levels = categorical_order(self.plot_data[self.orient], order)\n        self.var_levels[self.orient] = cat_levels",
+        "search_lines": 58,
+        "replace_lines": 45
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2717,
+        "blank_lines": 593,
+        "comment_lines": 161,
+        "function_count": 53,
+        "avg_cc": 7.85,
+        "max_cc": 53.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 14550.752401351929
+}

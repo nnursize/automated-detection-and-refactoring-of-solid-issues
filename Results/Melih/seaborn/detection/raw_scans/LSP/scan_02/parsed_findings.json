@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity.<locals>.Identity",
+    "entity_type": "class",
+    "line_start": 132,
+    "line_end": 141,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass fails to implement the abstract contract of the base class.",
+    "reasoning": "The base class 'Scale' defines an interface where methods like '_setup', 'tick', and 'label' are expected to be implemented by subtypes (they raise NotImplementedError in the base). The 'Identity' subclass, created within the '_identity' static method, inherits from 'Scale' but does not implement these methods. Consequently, an 'Identity' instance cannot be substituted for a 'Scale' instance in any context that requires setting up the scale or configuring ticks/labels, leading to runtime crashes."
+  },
+  {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "IntervalProperty.infer_scale",
+    "entity_type": "method",
+    "line_start": 145,
+    "line_end": 161,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass override violates the behavioral contract of the parent method regarding string arguments.",
+    "reasoning": "The base class 'Property.infer_scale' defines a contract where specific string arguments are interpreted as data transformations (e.g., 'log', 'sqrt') and return a Continuous scale with that transformation. 'IntervalProperty' overrides this method but completely ignores the parent's logic for transformations. Instead, it treats the string argument as the 'values' parameter for the scale. This changes the expected behavior of the method such that a caller using the 'Property' abstraction would get unexpected results or incorrect scale configurations when passing transformation strings to an 'IntervalProperty'."
+  },
+  {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Color.infer_scale",
+    "entity_type": "method",
+    "line_start": 487,
+    "line_end": 515,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass override violates the behavioral contract of the parent method by ignoring transformation logic.",
+    "reasoning": "Similar to IntervalProperty, the 'Color' subclass overrides 'infer_scale' and fails to respect the base class contract for processing transformation strings. While the base class 'Property' is designed to handle 'log', 'pow', etc., 'Color.infer_scale' redirects string arguments to nominal palette lookups or other color-specific logic, breaking the substitutability of the Property interface for numeric-based color mappings."
+  }
+]

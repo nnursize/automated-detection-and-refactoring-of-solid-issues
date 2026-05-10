@@ -1,0 +1,73 @@
+{
+  "scan_id": "seaborn-master_LSP_scan_07",
+  "repo_name": "seaborn-master",
+  "principle": "LSP",
+  "scan_number": 7,
+  "timestamp": "2026-04-18T14:02:19.515846",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Liskov Substitution Principle (LSP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"ClusterGrid\",\n      \"entity_type\": \"class\",\n      \"line_start\": 696,\n      \"line_end\": 1143,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"ClusterGrid fails to call the base class constructor, breaking inherited methods.\",\n      \"reasoning\": \"ClusterGrid inherits from Grid, which defines an __init__ method that initializes critical attributes like _tight_layout_rect and _extract_legend_handles. Because ClusterGrid does not call super().__init__(), these attributes are never initialized. Consequently, calling inherited methods such as tight_layout() on a ClusterGrid instance will result in an AttributeError, violating the principle that a subclass should be substitutable for its base class.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass overrides class attributes to fundamentally change the behavior of inherited data processing methods.\",\n      \"reasoning\": \"The base class VectorPlotter defines a contract for wide-form data where 'x' is mapped to the data index (@index). _CategoricalPlotter overrides the wide_structure attribute to map 'x' to column names (@columns). This fundamentally changes the behavior of the inherited assign_variables method, meaning the same input data is interpreted in contradictory ways depending on whether the object is a VectorPlotter or a _CategoricalPlotter, breaking behavioral substitutability.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass overrides class attributes to fundamentally change the behavior of inherited data processing methods.\",\n      \"reasoning\": \"Similar to _CategoricalPlotter, _DistributionPlotter overrides wide_structure and flat_structure to change the mapping of 'x' from the index (@index) to values (@values). This alters the behavioral contract of the inherited assign_variables method, making the subclass non-substitutable for the base VectorPlotter when processing wide-form or flat data.\"\n    },\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"HueMapping._lookup_single\",\n      \"entity_type\": \"method\",\n      \"line_start\": 164,\n      \"line_end\": 194,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass method suppresses exceptions defined in the base class contract.\",\n      \"reasoning\": \"The base class SemanticMapping._lookup_single is designed to raise a KeyError if a key is missing from the lookup table. HueMapping overrides this to return a default 'transparent' color (0, 0, 0, 0) or perform interpolation when a key is missing. This changes the method's contract from 'error on missing data' to 'provide a default/interpolated value', which can lead to unexpected behavior in callers relying on the base class's error-handling contract.\"\n    },\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"SizeMapping._lookup_single\",\n      \"entity_type\": \"method\",\n      \"line_start\": 353,\n      \"line_end\": 361,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass method suppresses exceptions defined in the base class contract.\",\n      \"reasoning\": \"Like HueMapping, SizeMapping overrides _lookup_single to handle missing keys by calculating a value based on normalization rather than allowing a KeyError to propagate as defined in the SemanticMapping base class. This alters the behavioral contract of the mapping interface.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "ClusterGrid",
+      "entity_type": "class",
+      "line_start": 696,
+      "line_end": 1143,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "ClusterGrid fails to call the base class constructor, breaking inherited methods.",
+      "reasoning": "ClusterGrid inherits from Grid, which defines an __init__ method that initializes critical attributes like _tight_layout_rect and _extract_legend_handles. Because ClusterGrid does not call super().__init__(), these attributes are never initialized. Consequently, calling inherited methods such as tight_layout() on a ClusterGrid instance will result in an AttributeError, violating the principle that a subclass should be substitutable for its base class."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass overrides class attributes to fundamentally change the behavior of inherited data processing methods.",
+      "reasoning": "The base class VectorPlotter defines a contract for wide-form data where 'x' is mapped to the data index (@index). _CategoricalPlotter overrides the wide_structure attribute to map 'x' to column names (@columns). This fundamentally changes the behavior of the inherited assign_variables method, meaning the same input data is interpreted in contradictory ways depending on whether the object is a VectorPlotter or a _CategoricalPlotter, breaking behavioral substitutability."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass overrides class attributes to fundamentally change the behavior of inherited data processing methods.",
+      "reasoning": "Similar to _CategoricalPlotter, _DistributionPlotter overrides wide_structure and flat_structure to change the mapping of 'x' from the index (@index) to values (@values). This alters the behavioral contract of the inherited assign_variables method, making the subclass non-substitutable for the base VectorPlotter when processing wide-form or flat data."
+    },
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "HueMapping._lookup_single",
+      "entity_type": "method",
+      "line_start": 164,
+      "line_end": 194,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass method suppresses exceptions defined in the base class contract.",
+      "reasoning": "The base class SemanticMapping._lookup_single is designed to raise a KeyError if a key is missing from the lookup table. HueMapping overrides this to return a default 'transparent' color (0, 0, 0, 0) or perform interpolation when a key is missing. This changes the method's contract from 'error on missing data' to 'provide a default/interpolated value', which can lead to unexpected behavior in callers relying on the base class's error-handling contract."
+    },
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "SizeMapping._lookup_single",
+      "entity_type": "method",
+      "line_start": 353,
+      "line_end": 361,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass method suppresses exceptions defined in the base class contract.",
+      "reasoning": "Like HueMapping, SizeMapping overrides _lookup_single to handle missing keys by calculating a value based on normalization rather than allowing a KeyError to propagate as defined in the SemanticMapping base class. This alters the behavioral contract of the mapping interface."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 56249.09520149231,
+  "error": null
+}

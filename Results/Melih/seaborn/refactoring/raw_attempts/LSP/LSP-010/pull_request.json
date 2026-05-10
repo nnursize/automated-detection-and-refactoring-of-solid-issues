@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-010",
+  "principle": "LSP",
+  "title": "Refactor LSP-010 (LSP): Monkey-patching the 'draw' method of a base type instance alters its behavior...",
+  "branch": "refactor/LSP-010",
+  "base": "main",
+  "head_commit": "ad105e2a82653e5f63b1da3a15b0e28098338bae",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4595,
+    "completion_tokens": 795
+  },
+  "detected_issue": {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.plot_swarms",
+    "entity_type": "method",
+    "line_start": 466,
+    "line_end": 491,
+    "severity": "high",
+    "scan_count": 6,
+    "description": "Monkey-patching the 'draw' method of a base type instance alters its behavioral contract",
+    "reasoning": "Inappropriate Intimacy smell -> LSP violation because this method replaces the 'draw' method of a matplotlib.collections.PathCollection instance with a custom local function. This violates the behavioral contract of the matplotlib Artist hierarchy; any consumer expecting a standard PathCollection will now trigger Seaborn-specific beeswarm logic during the rendering pass, which is an unexpected side effect for that type."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace monkey-patched 'draw' method with a custom Artist subclass to avoid LSP violation.",
+    "rationale": "Monkey-patching the 'draw' method of a PathCollection violates the Liskov Substitution Principle by altering the behavior of a standard matplotlib object. By wrapping the collection in a custom Artist subclass that overrides 'draw', we maintain the expected interface while safely injecting the beeswarm logic.",
+    "files_touched": [
+      "seaborn/categorical.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/categorical.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "        beeswarm = Beeswarm(width=width, orient=self.orient, warn_thresh=warn_thresh)\n        for (ax, center), points in point_collections.items():\n            if points.get_offsets().shape[0] > 1:\n\n                def draw(points, renderer, *, center=center):\n\n                    beeswarm(points, center)\n\n                    if self.orient == \"y\":\n                        scalex = False\n                        scaley = ax.get_autoscaley_on()\n                    else:\n                        scalex = ax.get_autoscalex_on()\n                        scaley = False\n\n                    # This prevents us from undoing the nice categorical axis limits\n                    # set in _adjust_cat_axis, because that method currently leave\n                    # the autoscale flag in its original setting. It may be better\n                    # to disable autoscaling there to avoid needing to do this.\n                    fixed_scale = self.var_types[self.orient] == \"categorical\"\n                    ax.update_datalim(points.get_datalim(ax.transData))\n                    if not fixed_scale and (scalex or scaley):\n                        ax.autoscale_view(scalex=scalex, scaley=scaley)\n\n                    super(points.__class__, points).draw(renderer)\n\n                points.draw = draw.__get__(points)",
+        "replace_text": "        class BeeswarmArtist(type(point_collections[next(iter(point_collections))])):\n            def __init__(self, collection, beeswarm, center, orient, var_types, ax):\n                self.__dict__.update(collection.__dict__)\n                self._beeswarm = beeswarm\n                self._center = center\n                self._orient = orient\n                self._var_types = var_types\n                self._ax = ax\n\n            def draw(self, renderer):\n                self._beeswarm(self, self._center)\n                if self._orient == \"y\":\n                    scalex, scaley = False, self._ax.get_autoscaley_on()\n                else:\n                    scalex, scaley = self._ax.get_autoscalex_on(), False\n                fixed_scale = self._var_types[self._orient] == \"categorical\"\n                self._ax.update_datalim(self.get_datalim(self._ax.transData))\n                if not fixed_scale and (scalex or scaley):\n                    self._ax.autoscale_view(scalex=scalex, scaley=scaley)\n                super().draw(renderer)\n\n        beeswarm = Beeswarm(width=width, orient=self.orient, warn_thresh=warn_thresh)\n        for (ax, center), points in point_collections.items():\n            if points.get_offsets().shape[0] > 1:\n                artist = BeeswarmArtist(points, beeswarm, center, self.orient, self.var_types, ax)\n                ax.collections[ax.collections.index(points)] = artist",
+        "search_lines": 27,
+        "replace_lines": 26
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2280.9219360351562,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.40s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2599,
+        "blank_lines": 566,
+        "comment_lines": 157,
+        "function_count": 61,
+        "avg_cc": 7.0,
+        "max_cc": 39.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2606,
+        "blank_lines": 562,
+        "comment_lines": 153,
+        "function_count": 62,
+        "avg_cc": 7.0,
+        "max_cc": 39.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/categorical.py b/seaborn/categorical.py\nindex 8eed607..026cb33 100644\n--- a/seaborn/categorical.py\n+++ b/seaborn/categorical.py\n@@ -575,33 +575,32 @@ class _CategoricalPlotter(VectorPlotter):\n             if not sub_data.empty:\n                 point_collections[(ax, sub_data[self.orient].iloc[0])] = points\n \n+        class BeeswarmArtist(type(point_collections[next(iter(point_collections))])):\n+            def __init__(self, collection, beeswarm, center, orient, var_types, ax):\n+                self.__dict__.update(collection.__dict__)\n+                self._beeswarm = beeswarm\n+                self._center = center\n+                self._orient = orient\n+                self._var_types = var_types\n+                self._ax = ax\n+\n+            def draw(self, renderer):\n+                self._beeswarm(self, self._center)\n+                if self._orient == \"y\":\n+                    scalex, scaley = False, self._ax.get_autoscaley_on()\n+                else:\n+                    scalex, scaley = self._ax.get_autoscalex_on(), False\n+                fixed_scale = self._var_types[self._orient] == \"categorical\"\n+                self._ax.update_datalim(self.get_datalim(self._ax.transData))\n+                if not fixed_scale and (scalex or scaley):\n+                    self._ax.autoscale_view(scalex=scalex, scaley=scaley)\n+                super().draw(renderer)\n+\n         beeswarm = Beeswarm(width=width, orient=self.orient, warn_thresh=warn_thresh)\n         for (ax, center), points in point_collections.items():\n             if points.get_offsets().shape[0] > 1:\n-\n-                def draw(points, renderer, *, center=center):\n-\n-                    beeswarm(points, center)\n-\n-                    if self.orient == \"y\":\n-                        scalex = False\n-                        scaley = ax.get_autoscaley_on()\n-                    else:\n-                        scalex = ax.get_autoscalex_on()\n-                        scaley = False\n-\n-                    # This prevents us from undoing the nice categorical axis limits\n-                    # set in _adjust_cat_axis, because that method currently leave\n-                    # the autoscale flag in its original setting. It may be better\n-                    # to disable autoscaling there to avoid needing to do this.\n-                    fixed_scale = self.var_types[self.orient] == \"categorical\"\n-                    ax.update_datalim(points.get_datalim(ax.transData))\n-                    if not fixed_scale and (scalex or scaley):\n-                        ax.autoscale_view(scalex=scalex, scaley=scaley)\n-\n-                    super(points.__class__, points).draw(renderer)\n-\n-                points.draw = draw.__get__(points)\n+                artist = BeeswarmArtist(points, beeswarm, center, self.orient, self.var_types, ax)\n+                ax.collections[ax.collections.index(points)] = artist\n \n         _draw_figure(ax.figure)\n         self._configure_legend(ax, _scatter_legend_artist, plot_kws)\n",
+  "duration_ms": 8986.909866333008
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 1000,
+    "line_end": 1200,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The `catplot` function uses a long if/elif/else chain to dispatch plotting logic based on the 'kind' parameter.",
+    "reasoning": "This is a classic violation of the Open/Closed Principle. To introduce a new categorical plot type (e.g., a 'raincloud plot'), the `catplot` function would need to be modified by adding a new `elif` branch. This means the function is not closed for modification when new behavior is added. A more OCP-compliant design would use polymorphism, where each 'kind' is represented by a distinct object or strategy, and `catplot` would delegate to these objects without needing internal modification."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 740,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The `_CategoricalPlotter` class acts as a 'God Class' by directly implementing plotting logic for multiple distinct categorical plot types (strips, swarms, boxes, violins, boxens, points, bars).",
+    "reasoning": "This class violates the Open/Closed Principle because adding a new categorical plot type would require modifying this existing class to add a new `plot_X` method. This indicates a 'Divergent Change' smell. An OCP-compliant design would separate the plotting logic for each categorical plot type into its own class (e.g., `StripPlotter`, `BoxPlotter`), allowing new plot types to be added by extending the system with new classes, rather than modifying `_CategoricalPlotter`."
+  },
+  {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Color.infer_scale",
+    "entity_type": "method",
+    "line_start": 444,
+    "line_end": 477,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The `infer_scale` method in the `Color` property class uses a complex if/elif/else chain with `isinstance` and string checks to determine the appropriate scale type based on the argument and data type.",
+    "reasoning": "This method is not closed for modification. If new types of color scales (e.g., a new named palette, a custom callable scale, or a new way to specify a continuous gradient) or new variable types are introduced, this method would need to be modified to include new `elif` branches or `isinstance` checks. This makes the system brittle to extensions in how color scales are defined or inferred. A more OCP-compliant approach might involve a registry pattern or a more extensible factory for scale inference."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "HueMapping.infer_map_type",
+    "entity_type": "method",
+    "line_start": 170,
+    "line_end": 180,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "The `infer_map_type` method in `HueMapping` uses an if/elif/else chain to determine the mapping strategy based on palette type, normalization, input format, and variable type.",
+    "reasoning": "This method violates OCP because adding new ways to specify a hue mapping (e.g., a new type of palette, a different normalization object, or a new input data format that influences hue mapping) would require modifying this method. It is not open for extension without internal changes. This is a 'Divergent Change' smell, as changes to mapping strategies necessitate changes here."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter._attach",
+    "entity_type": "method",
+    "line_start": 600,
+    "line_end": 686,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "The `_attach` method uses `isinstance` checks to adapt its behavior based on whether the attached object is a `FacetGrid` or a raw `Axes` object.",
+    "reasoning": "This method violates OCP because if a new type of grid or axes manager (e.g., a `PairGrid` or a custom grid class) were introduced, this method would need to be modified to include additional `elif` branches or `isinstance` checks to handle the new type. The logic for handling `share_state` also uses conditional branches based on string values, which is another form of dispatch that is not open for extension."
+  }
+]

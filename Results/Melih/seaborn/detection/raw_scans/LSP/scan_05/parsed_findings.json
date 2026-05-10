@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity",
+    "entity_type": "method",
+    "line_start": 121,
+    "line_end": 131,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "The identity scale subtype nullifies attributes required by the base class logic.",
+    "reasoning": "The base class 'Scale' provides a concrete method '_spacing' (line 104) which calls 'self._spacer(x)'. However, the '_identity' method creates a subtype where '_spacer' is explicitly set to 'None'. Any client code or internal base class method calling '_spacing' on an identity scale will raise a TypeError. This is a Refused Bequest smell where a subtype fails to support the contract of the base class, breaking substitutability."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter.data_variable",
+    "entity_type": "method",
+    "line_start": 126,
+    "line_end": 131,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass property raises an exception for a state that is valid in the base class.",
+    "reasoning": "The '_DistributionPlotter' (subclass of VectorPlotter) defines a 'data_variable' property that raises an 'AttributeError' if the plotter is not in a 'univariate' state. Since the base class 'VectorPlotter' is designed to handle both univariate and bivariate data as valid states, this subclass restricts the behavior of the base type. A client holding a 'VectorPlotter' reference would not expect a standard metadata property to crash based on the data dimensions, violating the principle of least astonishment and substitutability."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Nominal.tick",
+    "entity_type": "method",
+    "line_start": 251,
+    "line_end": 271,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass method signature is incompatible with other siblings in the hierarchy.",
+    "reasoning": "While the base class 'Scale' defines 'tick' as an abstract method, the subclasses 'Continuous' and 'Nominal' implement it with fundamentally incompatible signatures. 'Continuous.tick' (line 450) accepts a wide array of keyword arguments (at, upto, count, every, between), whereas 'Nominal.tick' only accepts a 'locator'. This prevents polymorphic usage of 'Scale' objects because a client cannot pass standard tick parameters without knowing the specific concrete subtype, strengthening the preconditions for the 'Nominal' subtype."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter.__init__",
+    "entity_type": "method",
+    "line_start": 64,
+    "line_end": 128,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass constructor fundamentally alters data invariants established by the base class.",
+    "reasoning": "The '_CategoricalPlotter' overrides the 'VectorPlotter' constructor and introduces logic that renames and swaps 'x' and 'y' columns in 'self.plot_data' based on the 'orient' parameter. This violates the invariant expected by consumers of 'VectorPlotter' that the internal 'plot_data' structure maps consistently to the input variables. By mutating the base class's data representation in a way that depends on subclass-specific parameters, it breaks the contract of the base class initialization."
+  }
+]

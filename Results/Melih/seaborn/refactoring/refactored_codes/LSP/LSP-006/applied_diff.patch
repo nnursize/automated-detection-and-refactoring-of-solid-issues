@@ -1,0 +1,14 @@
+diff --git a/seaborn/_core/properties.py b/seaborn/_core/properties.py
+index 8bbddde..86bb33b 100644
+--- a/seaborn/_core/properties.py
++++ b/seaborn/_core/properties.py
+@@ -598,6 +598,9 @@ class Color(Property):
+             return Continuous(arg)
+ 
+         if isinstance(arg, str):
++            for key, cls in self._magic_scales.items():
++                if arg.startswith(key):
++                    return cls(trans=arg)
+             if arg in QUAL_PALETTES:
+                 return Nominal(arg)
+             if var_type == "numeric":

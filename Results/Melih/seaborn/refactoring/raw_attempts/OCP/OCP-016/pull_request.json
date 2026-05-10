@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-016",
+  "principle": "OCP",
+  "title": "Refactor OCP-016 (OCP): Conditional dispatch for default scale based on variable type.",
+  "branch": "refactor/OCP-016",
+  "base": "main",
+  "head_commit": "d8ae66d0225a36f8bf7a8c30d85d660ef983e8df",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8908,
+    "completion_tokens": 321
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/properties.py",
+    "entity_name": "Property.default_scale",
+    "entity_type": "method",
+    "line_start": 39,
+    "line_end": 49,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Conditional dispatch for default scale based on variable type.",
+    "reasoning": "The `default_scale` method uses an `if/elif/else` chain to return a specific `Scale` subclass based on the `var_type` ('numeric', 'datetime', 'boolean', or other). If new fundamental variable types are introduced, this method would need to be modified to add a new `elif` branch, directly violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace conditional dispatch in Property.default_scale with a registry-based mapping.",
+    "rationale": "The hardcoded if/elif/else chain in Property.default_scale violates the Open/Closed Principle. By introducing a class-level dictionary mapping variable types to scale classes, we allow for extension without modifying the base class logic.",
+    "files_touched": [
+      "seaborn/_core/properties.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/properties.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/properties.py",
+        "search_text": "    def default_scale(self, data: Series) -> Scale:\n        \"\"\"Given data, initialize appropriate scale class.\"\"\"\n\n        var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n        if var_type == \"numeric\":\n            return Continuous()\n        elif var_type == \"datetime\":\n            return Temporal()\n        elif var_type == \"boolean\":\n            return Boolean()\n        else:\n            return Nominal()",
+        "replace_text": "    _default_scale_map = {\n        \"numeric\": Continuous,\n        \"datetime\": Temporal,\n        \"boolean\": Boolean,\n    }\n\n    def default_scale(self, data: Series) -> Scale:\n        \"\"\"Given data, initialize appropriate scale class.\"\"\"\n        var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n        return self._default_scale_map.get(var_type, Nominal)()",
+        "search_lines": 12,
+        "replace_lines": 10
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2185.5146884918213,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.34s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/properties.py",
+        "loc": 592,
+        "blank_lines": 173,
+        "comment_lines": 70,
+        "function_count": 55,
+        "avg_cc": 2.94,
+        "max_cc": 12.0,
+        "mi": 23.32
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/properties.py",
+        "loc": 590,
+        "blank_lines": 173,
+        "comment_lines": 70,
+        "function_count": 55,
+        "avg_cc": 2.89,
+        "max_cc": 12.0,
+        "mi": 24.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/properties.py b/seaborn/_core/properties.py\nindex b9cac72..9de60f2 100644\n--- a/seaborn/_core/properties.py\n+++ b/seaborn/_core/properties.py\n@@ -56,18 +56,16 @@ class Property:\n             variable = self.__class__.__name__.lower()\n         self.variable = variable\n \n+    _default_scale_map = {\n+        \"numeric\": Continuous,\n+        \"datetime\": Temporal,\n+        \"boolean\": Boolean,\n+    }\n+\n     def default_scale(self, data: Series) -> Scale:\n         \"\"\"Given data, initialize appropriate scale class.\"\"\"\n-\n         var_type = variable_type(data, boolean_type=\"boolean\", strict_boolean=True)\n-        if var_type == \"numeric\":\n-            return Continuous()\n-        elif var_type == \"datetime\":\n-            return Temporal()\n-        elif var_type == \"boolean\":\n-            return Boolean()\n-        else:\n-            return Nominal()\n+        return self._default_scale_map.get(var_type, Nominal)()\n \n     _magic_scales = {\n         \"log\": Continuous,\n",
+  "duration_ms": 15056.56099319458
+}

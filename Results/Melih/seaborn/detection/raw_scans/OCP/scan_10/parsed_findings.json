@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 1360,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Bloated class responsible for plotting many distinct categorical plot types, violating OCP.",
+    "reasoning": "The `_CategoricalPlotter` class contains numerous methods like `plot_strips`, `plot_swarms`, `plot_boxes`, `plot_boxens`, `plot_violins`, `plot_points`, `plot_bars`, and `plot_errorbars`. This structure indicates that adding a new type of categorical plot would require modifying this existing class, rather than extending it through new classes or a strategy pattern. This directly violates the Open/Closed Principle, making the class fragile to new feature additions. Additionally, the presence of multiple `_backcompat` methods suggests modifications to accommodate older APIs rather than extending behavior."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 1351,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Bloated class responsible for plotting many distinct distribution plot types, violating OCP.",
+    "reasoning": "Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class includes methods such as `plot_univariate_histogram`, `plot_bivariate_histogram`, `plot_univariate_density`, `plot_bivariate_density`, `plot_univariate_ecdf`, and `plot_rug`. This design implies that introducing a new distribution plot type would necessitate modifying this class, which is a direct violation of the Open/Closed Principle. A more OCP-compliant design would involve delegating specific plot types to separate, extensible components."
+  },
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "catplot",
+    "entity_type": "class",
+    "line_start": 2761,
+    "line_end": 2788,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Top-level function with 'kind' parameter implies conditional logic, violating OCP.",
+    "reasoning": "The `catplot` function takes a `kind` parameter (e.g., `kind='strip'`). This strongly suggests that its internal implementation uses conditional logic (e.g., `if kind == 'strip': ... elif kind == 'box': ...`) to dispatch to different plotting functions or classes. To add support for a new 'kind' of categorical plot, the `catplot` function itself would need to be modified, which is a classic violation of the Open/Closed Principle. A more OCP-compliant approach would use a factory pattern or a registry to dynamically select the appropriate plotting strategy based on the `kind` parameter."
+  }
+]

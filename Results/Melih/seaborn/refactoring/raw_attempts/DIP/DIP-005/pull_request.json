@@ -1,0 +1,80 @@
+{
+  "issue_id": "DIP-005",
+  "principle": "DIP",
+  "title": "Refactor DIP-005 (DIP): Direct instantiation of Subplots manager.",
+  "branch": "refactor/DIP-005",
+  "base": "main",
+  "head_commit": "a2f681d99ab0fe40df9069b65c343785c681bb96",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in seaborn/_core/plot.py (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4502,
+    "completion_tokens": 373
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter._setup_figure",
+    "entity_type": "method",
+    "line_start": 955,
+    "line_end": 955,
+    "severity": "low",
+    "scan_count": 3,
+    "description": "Direct instantiation of Subplots manager.",
+    "reasoning": "The Plotter class directly instantiates the Subplots class. While both are internal to the new objects interface, this direct creation prevents the inversion of control that would allow different subplot strategies to be injected into the compilation engine."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject Subplots factory into Plotter to decouple from concrete Subplots class.",
+    "rationale": "By allowing the Subplots manager to be provided (or defaulting to the concrete class), we remove the hard-coded dependency in Plotter._setup_figure, adhering to the Dependency Inversion Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/plot.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/plot.py",
+        "search_text": "    def __init__(self, pyplot=None, theme=None):\n        if pyplot is None:\n            import matplotlib.pyplot as plt\n            pyplot = plt\n        if theme is None:\n            from seaborn._core.rules import theme_context\n            theme = {}\n\n        self._pyplot = pyplot\n        self._theme = theme",
+        "replace_text": "    def __init__(self, pyplot=None, theme=None, subplots_cls=None):\n        if pyplot is None:\n            import matplotlib.pyplot as plt\n            pyplot = plt\n        if theme is None:\n            from seaborn._core.rules import theme_context\n            theme = {}\n        if subplots_cls is None:\n            from seaborn._core.subplots import Subplots\n            subplots_cls = Subplots\n\n        self._pyplot = pyplot\n        self._theme = theme\n        self._subplots_cls = subplots_cls",
+        "search_lines": 10,
+        "replace_lines": 14
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/plot.py",
+        "search_text": "        self._subplots = subplots = Subplots(subplot_spec, facet_spec, pair_spec)\n\n        # --- Figure initialization",
+        "replace_text": "        self._subplots = subplots = self._subplots_cls(subplot_spec, facet_spec, pair_spec)\n\n        # --- Figure initialization",
+        "search_lines": 3,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/plot.py",
+        "loc": 1292,
+        "blank_lines": 348,
+        "comment_lines": 135,
+        "function_count": 58,
+        "avg_cc": 5.22,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 10909.955501556396
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity",
+    "entity_type": "class",
+    "line_start": 122,
+    "line_end": 130,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype 'Identity' nullifies a required callable attribute '_spacer' used by the base class.",
+    "reasoning": "The 'Identity' class (returned by the Scale._identity factory method) explicitly sets '_spacer = None'. However, the base class 'Scale' provides a concrete method '_spacing' (line 92) that executes 'self._spacer(x)'. Substituting an 'Identity' instance where a 'Scale' is expected and invoking the '_spacing' method will result in a TypeError. A subclass must not nullify or break the internal contract of a base class method that it inherits."
+  },
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VariableType",
+    "entity_type": "class",
+    "line_start": 1047,
+    "line_end": 1061,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "VariableType strengthens pre-conditions and changes the contract of equality comparison inherited from UserString.",
+    "reasoning": "VariableType inherits from collections.UserString. The base class equality contract allows comparison against any object, typically returning False for inequality. VariableType overrides __eq__ to 'assert' that the other operand must be one of three specific allowed strings. This strengthens the pre-condition of the method and causes a crash (AssertionError) for values that the base class would handle gracefully. This prevents VariableType from being a valid substitute for a standard string-like object in logic using equality checks."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale._identity",
+    "entity_type": "class",
+    "line_start": 122,
+    "line_end": 130,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "The Identity subclass fails to implement abstract-style methods defined in the Scale base class.",
+    "reasoning": "The Scale base class defines 'tick' and 'label' as methods that raise NotImplementedError, indicating they are required interface components for concrete subtypes. The 'Identity' subclass is treated as a concrete subtype within the library's plotting engine, yet it fails to implement these methods. This breaks the substitutability of the Scale type, as generic code calling '.tick()' or '.label()' on a Scale object will fail if the object happens to be an Identity instance."
+  }
+]

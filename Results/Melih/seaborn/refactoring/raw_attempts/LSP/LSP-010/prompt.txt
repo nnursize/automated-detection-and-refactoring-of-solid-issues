@@ -1,0 +1,421 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-010
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `seaborn/categorical.py`
+- **Entity**: `_CategoricalPlotter.plot_swarms` (current lines L535-L607 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 6 independent scans
+
+### Description
+Monkey-patching the 'draw' method of a base type instance alters its behavioral contract
+
+### Reasoning
+Inappropriate Intimacy smell -> LSP violation because this method replaces the 'draw' method of a matplotlib.collections.PathCollection instance with a custom local function. This violates the behavioral contract of the matplotlib Artist hierarchy; any consumer expecting a standard PathCollection will now trigger Seaborn-specific beeswarm logic during the rendering pass, which is an unexpected side effect for that type.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/categorical.py`
+```python
+# ... 414 earlier lines elided ...
+                data["edge"] = inv(data[var] - hw)
+                data["width"] = inv(data[var] + hw) - data["edge"].to_numpy()
+            for suf in ["", "min", "max"]:
+                if (col := f"{var}{suf}") in data:
+                    data[col] = inv(data[col])
+
+    def _configure_legend(self, ax, func, common_kws=None, semantic_kws=None):
+        if self.legend == "auto":
+            show_legend = not self._redundant_hue and self.input_format != "wide"
+        else:
+            show_legend = bool(self.legend)
+        if show_legend:
+            self.add_legend_data(ax, func, common_kws, semantic_kws=semantic_kws)
+            handles, _ = ax.get_legend_handles_labels()
+            if handles:
+                ax.legend(title=self.legend_title)
+
+    @property
+    def _native_width(self):
+        """Return unit of width separating categories on native numeric scale."""
+        # Categorical data always have a unit width
+        if self.var_types[self.orient] == "categorical":
+            return 1
+
+        # Otherwise, define the width as the smallest space between observations
+        unique_values = np.unique(self.comp_data[self.orient])
+        if len(unique_values) > 1:
+            native_width = np.nanmin(np.diff(unique_values))
+        else:
+            native_width = 1
+        return native_width
+
+    def _nested_offsets(self, width, dodge):
+        """Return offsets for each hue level for dodged plots."""
+        offsets = None
+        if "hue" in self.variables and self._hue_map.levels is not None:
+            n_levels = len(self._hue_map.levels)
+            if dodge:
+                each_width = width / n_levels
+                offsets = np.linspace(0, width - each_width, n_levels)
+                offsets -= offsets.mean()
+            else:
+                offsets = np.zeros(n_levels)
+        return offsets
+
+    # Note that the plotting methods here aim (in most cases) to produce the
+    # exact same artists as the original (pre 0.12) version of the code, so
+    # there is some weirdness that might not otherwise be clean or make sense in
+    # this context, such as adding empty artists for combinations of variables
+    # with no observations
+
+    _plot_methods = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._plot_methods = {}
+
+    @classmethod
+    def register_plot(cls, name):
+        def decorator(func):
+            cls._plot_methods[name] = func
+            return func
+        return decorator
+
+    def plot(self, name, *args, **kwargs):
+        return self._plot_methods[name](self, *args, **kwargs)
+
+    @register_plot("strips")
+    def plot_strips(
+        self,
+        jitter,
+        dodge,
+        color,
+        plot_kws,
+    ):
+
+        width = .8 * self._native_width
+        offsets = self._nested_offsets(width, dodge)
+
+        if jitter is True:
+            jlim = 0.1
+        else:
+            jlim = float(jitter)
+        if "hue" in self.variables and dodge and self._hue_map.levels is not None:
+            jlim /= len(self._hue_map.levels)
+        jlim *= self._native_width
+        jitterer = partial(np.random.uniform, low=-jlim, high=+jlim)
+
+        iter_vars = [self.orient]
+        if dodge:
+            iter_vars.append("hue")
+
+        ax = self.ax
+        dodge_move = jitter_move = 0
+
+        if "marker" in plot_kws and not MarkerStyle(plot_kws["marker"]).is_filled():
+            plot_kws.pop("edgecolor", None)
+
+        for sub_vars, sub_data in self.iter_data(iter_vars,
+                                                 from_comp_data=True,
+                                                 allow_empty=True):
+
+            ax = self._get_axes(sub_vars)
+
+            if offsets is not None and (offsets != 0).any():
+                dodge_move = offsets[sub_data["hue"].map(self._hue_map.levels.index)]
+
+            jitter_move = jitterer(size=len(sub_data)) if len(sub_data) > 1 else 0
+
+            adjusted_data = sub_data[self.orient] + dodge_move + jitter_move
+            sub_data[self.orient] = adjusted_data
+            self._invert_scale(ax, sub_data)
+
+            points = ax.scatter(sub_data["x"], sub_data["y"], color=color, **plot_kws)
+            if "hue" in self.variables:
+                points.set_facecolors(self._hue_map(sub_data["hue"]))
+
+        self._configure_legend(ax, _scatter_legend_artist, common_kws=plot_kws)
+
+    @register_plot("swarms")
+    def plot_swarms(
+        self,
+        dodge,
+        color,
+        warn_thresh,
+        plot_kws,
+    ):
+
+        width = .8 * self._native_width
+        offsets = self._nested_offsets(width, dodge)
+
+        iter_vars = [self.orient]
+        if dodge:
+            iter_vars.append("hue")
+
+        ax = self.ax
+        point_collections = {}
+        dodge_move = 0
+
+        if "marker" in plot_kws and not MarkerStyle(plot_kws["marker"]).is_filled():
+            plot_kws.pop("edgecolor", None)
+
+        for sub_vars, sub_data in self.iter_data(iter_vars,
+                                                 from_comp_data=True,
+                                                 allow_empty=True):
+
+            ax = self._get_axes(sub_vars)
+
+            if offsets is not None:
+                dodge_move = offsets[sub_data["hue"].map(self._hue_map.levels.index)]
+
+            if not sub_data.empty:
+                sub_data[self.orient] = sub_data[self.orient] + dodge_move
+
+            self._invert_scale(ax, sub_data)
+
+            points = ax.scatter(sub_data["x"], sub_data["y"], color=color, **plot_kws)
+            if "hue" in self.variables:
+                points.set_facecolors(self._hue_map(sub_data["hue"]))
+
+            if not sub_data.empty:
+                point_collections[(ax, sub_data[self.orient].iloc[0])] = points
+
+        beeswarm = Beeswarm(width=width, orient=self.orient, warn_thresh=warn_thresh)
+        for (ax, center), points in point_collections.items():
+            if points.get_offsets().shape[0] > 1:
+
+                def draw(points, renderer, *, center=center):
+
+                    beeswarm(points, center)
+
+                    if self.orient == "y":
+                        scalex = False
+                        scaley = ax.get_autoscaley_on()
+                    else:
+                        scalex = ax.get_autoscalex_on()
+                        scaley = False
+
+                    # This prevents us from undoing the nice categorical axis limits
+                    # set in _adjust_cat_axis, because that method currently leave
+                    # the autoscale flag in its original setting. It may be better
+                    # to disable autoscaling there to avoid needing to do this.
+                    fixed_scale = self.var_types[self.orient] == "categorical"
+                    ax.update_datalim(points.get_datalim(ax.transData))
+                    if not fixed_scale and (scalex or scaley):
+                        ax.autoscale_view(scalex=scalex, scaley=scaley)
+
+                    super(points.__class__, points).draw(renderer)
+
+                points.draw = draw.__get__(points)
+
+        _draw_figure(ax.figure)
+        self._configure_legend(ax, _scatter_legend_artist, plot_kws)
+
+    @register_plot("boxes")
+    def plot_boxes(
+        self,
+        width,
+        dodge,
+        gap,
+        fill,
+        whis,
+        color,
+        linecolor,
+        linewidth,
+        fliersize,
+        plot_kws,  # TODO rename user_kws?
+    ):
+
+        iter_vars = ["hue"]
+        value_var = {"x": "y", "y": "x"}[self.orient]
+
+        def get_props(element, artist=mpl.lines.Line2D):
+            return normalize_kwargs(plot_kws.pop(f"{element}props", {}), artist)
+
+        if not fill and linewidth is None:
+            linewidth = mpl.rcParams["lines.linewidth"]
+        bootstrap = plot_kws.pop("bootstrap", mpl.rcParams["boxplot.bootstrap"])
+        plot_kws.setdefault("shownotches", plot_kws.pop("notch", False))
+
+        box_artist = mpl.patches.Rectangle if fill else mpl.lines.Line2D
+        props = {
+            "box": get_props("box", box_artist),
+            "median": get_props("median"),
+            "whisker": get_props("whisker"),
+            "flier": get_props("flier"),
+            "cap": get_props("cap"),
+        }
+
+        props["median"].setdefault("solid_capstyle", "butt")
+        props["whisker"].setdefault("solid_capstyle", "butt")
+        props["flier"].setdefault("markersize", fliersize)
+
+        orientation = {"x": "vertical", "y": "horizontal"}[self.orient]
+
+        ax = self.ax
+
+        for sub_vars, sub_data in self.iter_data(iter_vars,
+                                                 from_comp_data=True,
+                                                 allow_empty=False):
+
+            ax = self._get_axes(sub_vars)
+
+            grouped = sub_data.groupby(self.orient)[value_var]
+            positions = sorted(sub_data[self.orient].unique().astype(float))
+            value_data = [x.to_numpy() for _, x in grouped]
+            stats = pd.DataFrame(mpl.cbook.boxplot_stats(value_data, whis=whis,
+                                                         bootstrap=bootstrap))
+
+            orig_width = width * self._native_width
+            data = pd.DataFrame({self.orient: positions, "width": orig_width})
+            if dodge:
+                self._dodge(sub_vars, data)
+            if gap:
+                data["width"] *= 1 - gap
+            capwidth = plot_kws.get("capwidths", 0.5 * data["width"])
+
+            self._invert_scale(ax, data)
+            _, inv = _get_transform_functions(ax, value_var)
+            for stat in ["mean", "med", "q1", "q3", "cilo", "cihi", "whislo", "whishi"]:
+                stats[stat] = inv(stats[stat])
+            stats["fliers"] = stats["fliers"].map(inv)
+
+            linear_orient_scale = getattr(ax, f"get_{self.orient}scale")() == "linear"
+
+            maincolor = self._hue_map(sub_vars["hue"]) if "hue" in sub_vars else color
+            if fill:
+                boxprops = {
+                    "facecolor": maincolor, "edgecolor": linecolor, **props["box"]
+                }
+                medianprops = {"color": linecolor, **props["median"]}
+                whiskerprops = {"color": linecolor, **props["whisker"]}
+                flierprops = {"markeredgecolor": linecolor, **props["flier"]}
+                capprops = {"color": linecolor, **props["cap"]}
+            else:
+                boxprops = {"color": maincolor, **props["box"]}
+                medianprops = {"color": maincolor, **props["median"]}
+                whiskerprops = {"color": maincolor, **props["whisker"]}
+                flierprops = {"markeredgecolor": maincolor, **props["flier"]}
+                capprops = {"color": maincolor, **props["cap"]}
+
+            if linewidth is not None:
+                for prop_dict in [boxprops, medianprops, whiskerprops, capprops]:
+                    prop_dict.setdefault("linewidth", linewidth)
+
+            default_kws = dict(
+                bxpstats=stats.to_dict("records"),
+                positions=data[self.orient],
+                # Set width to 0 to avoid going out of domain
+                widths=data["width"] if linear_orient_scale else 0,
+                patch_artist=fill,
+                manage_ticks=False,
+                boxprops=boxprops,
+                medianprops=medianprops,
+                whiskerprops=whiskerprops,
+                flierprops=flierprops,
+                capprops=capprops,
+                # Added in matplotlib 3.10; see below
+                # orientation=orientation
+                **(
+                    {"vert": orientation == "vertical"}
+                    if _version_predates(mpl, "3.10.0")
+                    else {"orientation": orientation}
+                ),
+                # added in matplotlib 3.6.0; see below
+                # capwidths=capwidth,
+                **(
+                    {} if _version_predates(mpl, "3.6.0")
+                    else {"capwidths": capwidth}
+                )
+            )
+            boxplot_kws = {**default_kws, **plot_kws}
+            artists = ax.bxp(**boxplot_kws)
+# ... 2595 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

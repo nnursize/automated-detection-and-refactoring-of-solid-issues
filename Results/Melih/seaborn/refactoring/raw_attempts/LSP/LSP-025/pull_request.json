@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-025",
+  "principle": "LSP",
+  "title": "Refactor LSP-025 (LSP): Concrete class inherits abstract methods from Scale but does not implement them.",
+  "branch": "refactor/LSP-025",
+  "base": "main",
+  "head_commit": "0ce1c94396acbe45e7cb52f58d4e3bccabc765a7",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10379,
+    "completion_tokens": 267
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Identity",
+    "entity_type": "class",
+    "line_start": 139,
+    "line_end": 143,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Concrete class inherits abstract methods from Scale but does not implement them.",
+    "reasoning": "The Identity class inherits from Scale, which defines abstract methods (tick, label, _get_locators, _get_formatter, _setup). Identity does not implement any of these abstract methods. As a concrete class, it violates LSP because it cannot fulfill the contract of its base class, making it not fully substitutable."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Implement abstract methods in the Identity scale class",
+    "rationale": "The Identity class was inheriting from Scale but failing to implement the required abstract methods, violating the Liskov Substitution Principle. By providing minimal implementations for these methods, the class now fulfills the Scale contract.",
+    "files_touched": [
+      "seaborn/_core/scales.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/scales.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/scales.py",
+        "search_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n        return Identity()",
+        "replace_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def tick(self): return self\n            def label(self): return self\n            def _get_locators(self): return None, None\n            def _get_formatter(self, locator=None): return None\n            def _setup(self, data, prop, axis=None): return self\n\n        return Identity()",
+        "search_lines": 10,
+        "replace_lines": 16
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2231.8835258483887,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:460: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.36s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 747,
+        "blank_lines": 235,
+        "comment_lines": 97,
+        "function_count": 77,
+        "avg_cc": 2.79,
+        "max_cc": 16.0,
+        "mi": 23.47
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/scales.py",
+        "loc": 752,
+        "blank_lines": 236,
+        "comment_lines": 97,
+        "function_count": 82,
+        "avg_cc": 2.79,
+        "max_cc": 16.0,
+        "mi": 23.27
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex e0d2051..be3815a 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -142,6 +142,12 @@ class Scale:\n             _legend = None\n             _matplotlib_scale = None\n \n+            def tick(self): return self\n+            def label(self): return self\n+            def _get_locators(self): return None, None\n+            def _get_formatter(self, locator=None): return None\n+            def _setup(self, data, prop, axis=None): return self\n+\n         return Identity()\n \n \n",
+  "duration_ms": 5767.89116859436
+}

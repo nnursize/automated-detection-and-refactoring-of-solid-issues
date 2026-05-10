@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 990,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class mixes core data/variable setup with extensive backwards compatibility management and rendering logic for multiple distinct plot types.",
+    "reasoning": "The `_CategoricalPlotter` class has multiple reasons to change. It handles initial data processing and variable assignment (`__init__`), manages numerous deprecated API parameters across several `_backcompat` methods (e.g., `_hue_backcompat`, `_violin_scale_backcompat`), and directly implements the rendering logic for seven distinct categorical plot types (e.g., `plot_strips`, `plot_boxes`, `plot_violins`, `plot_bars`). A change to how boxplots are rendered is a different reason to change than removing a deprecated `hue` parameter, or changing how violin plots are drawn. This is a clear 'God Class' smell, violating SRP by encapsulating too many unrelated responsibilities."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 800,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class mixes data preparation and multi-group resolution logic with rendering logic for multiple distinct distribution plot types.",
+    "reasoning": "The `_DistributionPlotter` class is responsible for plotting distributions, but it directly implements the rendering logic for several distinct types of distribution plots (histograms, KDEs, ECDFs, rug plots), each with univariate and/or bivariate variants (e.g., `plot_univariate_histogram`, `plot_bivariate_density`, `plot_univariate_ecdf`). Furthermore, it contains complex logic in `_resolve_multiple` for handling how multiple distributions are displayed (stack, fill, dodge). A change to how histograms are rendered is a different reason to change than how stacking of densities is calculated, or how KDEs are plotted. This indicates multiple responsibilities, leading to a 'God Class' smell."
+  }
+]

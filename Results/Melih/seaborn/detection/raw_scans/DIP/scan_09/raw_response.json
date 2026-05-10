@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_DIP_scan_09",
+  "repo_name": "seaborn-master",
+  "principle": "DIP",
+  "scan_number": 9,
+  "timestamp": "2026-04-18T20:29:25.254255",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstraction...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"FacetGrid.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 368,\n      \"line_end\": 551,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded instantiation of matplotlib figure inside the constructor.\",\n      \"reasoning\": \"The constructor directly calls `plt.figure()`, creating a hard dependency on the global matplotlib pyplot state. This violates DIP as the class should ideally accept an existing figure or be injected with a factory to create one, facilitating testing and avoiding dependency on global state.\"\n    },\n    {\n      \"file_path\": \"seaborn/axisgrid.py\",\n      \"entity_name\": \"JointGrid.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1679,\n      \"line_end\": 1756,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded instantiation of matplotlib figure and grid spec inside the constructor.\",\n      \"reasoning\": \"The constructor directly calls `plt.figure()` and `plt.GridSpec()`. These are low-level details of matplotlib that the class is tightly coupled to, preventing the injection of different figure-creation strategies or mock objects for testing.\"\n    },\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"ClusterGrid.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 696,\n      \"line_end\": 757,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded instantiation of matplotlib figure inside the constructor.\",\n      \"reasoning\": \"The constructor directly calls `plt.figure()`, creating a hard dependency on matplotlib's global state. This makes the class difficult to test in isolation and restricts its ability to work with externally managed figure objects.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/axisgrid.py",
+      "entity_name": "FacetGrid.__init__",
+      "entity_type": "class",
+      "line_start": 368,
+      "line_end": 551,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded instantiation of matplotlib figure inside the constructor.",
+      "reasoning": "The constructor directly calls `plt.figure()`, creating a hard dependency on the global matplotlib pyplot state. This violates DIP as the class should ideally accept an existing figure or be injected with a factory to create one, facilitating testing and avoiding dependency on global state."
+    },
+    {
+      "file_path": "seaborn/axisgrid.py",
+      "entity_name": "JointGrid.__init__",
+      "entity_type": "class",
+      "line_start": 1679,
+      "line_end": 1756,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded instantiation of matplotlib figure and grid spec inside the constructor.",
+      "reasoning": "The constructor directly calls `plt.figure()` and `plt.GridSpec()`. These are low-level details of matplotlib that the class is tightly coupled to, preventing the injection of different figure-creation strategies or mock objects for testing."
+    },
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "ClusterGrid.__init__",
+      "entity_type": "class",
+      "line_start": 696,
+      "line_end": 757,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded instantiation of matplotlib figure inside the constructor.",
+      "reasoning": "The constructor directly calls `plt.figure()`, creating a hard dependency on matplotlib's global state. This makes the class difficult to test in isolation and restricts its ability to work with externally managed figure objects."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 2878.7682056427,
+  "error": null
+}

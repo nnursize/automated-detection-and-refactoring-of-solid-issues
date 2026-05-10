@@ -1,0 +1,369 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-007
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/_core/plot.py`
+- **Entity**: `Plot.__init__` (current lines L291-L320 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+High-level 'Plot' class directly instantiates 'PlotData' concrete dependency.
+
+### Reasoning
+The `Plot` class is designed as a high-level declarative interface. It directly instantiates `PlotData`, a concrete implementation of a data handling mechanism. This couples the `Plot` class to a specific data structure implementation rather than depending on a data abstraction that could be injected, making it harder to substitute data sources or test different data handling strategies in isolation.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/_core/plot.py`
+```python
+# ... 170 earlier lines elided ...
+
+    def update(self, other: dict[str, Any] | None = None, /, **kwds):
+        """Update the theme with a dictionary or keyword arguments of rc parameters."""
+        if other is not None:
+            theme = self._filter_params(other)
+        else:
+            theme = {}
+        theme.update(kwds)
+        super().update(theme)
+
+    def _filter_params(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Restruct to thematic rc params."""
+        return {
+            k: v for k, v in params.items()
+            if any(k.startswith(p) for p in self.THEME_GROUPS)
+        }
+
+    def _html_table(self, params: dict[str, Any]) -> list[str]:
+
+        lines = ["<table>"]
+        for k, v in params.items():
+            row = f"<tr><td>{k}:</td><td style='text-align:left'>{v!r}</td></tr>"
+            lines.append(row)
+        lines.append("</table>")
+        return lines
+
+    def _repr_html_(self) -> str:
+
+        repr = [
+            "<div style='height: 300px'>",
+            "<div style='border-style: inset; border-width: 2px'>",
+            *self._html_table(self),
+            "</div>",
+            "</div>",
+        ]
+        return "\n".join(repr)
+
+
+class DisplayConfig(TypedDict):
+    """Configuration for IPython's rich display hooks."""
+    format: Literal["png", "svg"]
+    scaling: float
+    hidpi: bool
+
+
+class PlotConfig:
+    """Configuration for default behavior / appearance of class:`Plot` instances."""
+    def __init__(self):
+
+        self._theme = ThemeConfig()
+        self._display = {"format": "png", "scaling": .85, "hidpi": True}
+
+    @property
+    def theme(self) -> dict[str, Any]:
+        """
+        Dictionary of base theme parameters for :class:`Plot`.
+
+        Keys and values correspond to matplotlib rc params, as documented here:
+        https://matplotlib.org/stable/tutorials/introductory/customizing.html
+
+        """
+        return self._theme
+
+    @property
+    def display(self) -> DisplayConfig:
+        """
+        Dictionary of parameters for rich display in Jupyter notebook.
+
+        Valid parameters:
+
+        - format ("png" or "svg"): Image format to produce
+        - scaling (float): Relative scaling of embedded image
+        - hidpi (bool): When True, double the DPI while preserving the size
+
+        """
+        return self._display
+
+
+# ---- The main interface for declarative plotting --------------------------------- #
+
+
+@build_plot_signature
+class Plot:
+    """
+    An interface for declaratively specifying statistical graphics.
+
+    Plots are constructed by initializing this class and adding one or more
+    layers, comprising a `Mark` and optional `Stat` or `Move`.  Additionally,
+    faceting variables or variable pairings may be defined to divide the space
+    into multiple subplots. The mappings from data values to visual properties
+    can be parametrized using scales, although the plot will try to infer good
+    defaults when scales are not explicitly defined.
+
+    The constructor accepts a data source (a :class:`pandas.DataFrame` or
+    dictionary with columnar values) and variable assignments. Variables can be
+    passed as keys to the data source or directly as data vectors.  If multiple
+    data-containing objects are provided, they will be index-aligned.
+
+    The data source and variables defined in the constructor will be used for
+    all layers in the plot, unless overridden or disabled when adding a layer.
+
+    The following variables can be defined in the constructor:
+        {known_properties}
+
+    The `data`, `x`, and `y` variables can be passed as positional arguments or
+    using keywords. Whether the first positional argument is interpreted as a
+    data source or `x` variable depends on its type.
+
+    The methods of this class return a copy of the instance; use chaining to
+    build up a plot through multiple calls. Methods can be called in any order.
+
+    Most methods only add information to the plot spec; no actual processing
+    happens until the plot is shown or saved. It is also possible to compile
+    the plot without rendering it to access the lower-level representation.
+
+    """
+    config = PlotConfig()
+
+    _spec: dict[str, Any]
+
+    def __init__(
+        self,
+        *args: DataSource | VariableSpec,
+        data: DataSource = None,
+        **variables: VariableSpec,
+    ):
+
+        if args:
+            data, variables = self._resolve_positionals(args, data, variables)
+
+        unknown = [x for x in variables if x not in PROPERTIES]
+        if unknown:
+            err = f"Plot() got unexpected keyword argument(s): {', '.join(unknown)}"
+            raise TypeError(err)
+
+        self._spec = {
+            "data": PlotData(data, variables),
+            "layers": [],
+            "scales": {},
+            "shares": {},
+            "limits": {},
+            "labels": {},
+            "theme": {},
+            "facet": {},
+            "pair": {},
+            "figure": {},
+            "subplot": {},
+            "layout": {},
+            "target": None,
+        }
+
+    def _resolve_positionals(
+        self,
+        args: tuple[DataSource | VariableSpec, ...],
+        data: DataSource,
+        variables: dict[str, VariableSpec],
+    ) -> tuple[DataSource, dict[str, VariableSpec]]:
+        """Handle positional arguments, which may contain data / x / y."""
+        if len(args) > 3:
+            err = "Plot() accepts no more than 3 positional arguments (data, x, y)."
+            raise TypeError(err)
+
+        if (
+            isinstance(args[0], (abc.Mapping, pd.DataFrame))
+            or hasattr(args[0], "to_pandas")
+        ):
+            if data is not None:
+                raise TypeError("`data` given by both name and position.")
+            data, args = args[0], args[1:]
+
+        if len(args) == 2:
+            x, y = args
+        elif len(args) == 1:
+            x, y = *args, None
+        else:
+            x = y = None
+
+        for name, var in zip("yx", (y, x)):
+            if var is not None:
+                if name in variables:
+                    raise TypeError(f"`{name}` given by both name and position.")
+                # Keep coordinates at the front of the variables dict
+                # Cast type because we know this isn't a DataSource at this point
+                variables = {name: cast(VariableSpec, var), **variables}
+
+        return data, variables
+
+    def __add__(self, other):
+
+        if isinstance(other, Mark) or isinstance(other, Stat):
+            raise TypeError("Sorry, this isn't ggplot! Perhaps try Plot.add?")
+
+        other_type = other.__class__.__name__
+        raise TypeError(f"Unsupported operand type(s) for +: 'Plot' and '{other_type}")
+
+    def _repr_png_(self) -> tuple[bytes, dict[str, float]] | None:
+
+        if Plot.config.display["format"] != "png":
+            return None
+        return self.plot()._repr_png_()
+
+    def _repr_svg_(self) -> str | None:
+
+        if Plot.config.display["format"] != "svg":
+            return None
+        return self.plot()._repr_svg_()
+
+    def _clone(self) -> Plot:
+        """Generate a new object with the same information as the current spec."""
+        new = Plot()
+        new._spec = {k: v.copy() if hasattr(v, "copy") else v for k, v in self._spec.items()}
+        return new
+
+    def _theme_with_defaults(self) -> dict[str, Any]:
+
+        theme = self.config.theme.copy()
+        theme.update(self._spec["theme"])
+        return theme
+
+    @property
+    def _variables(self) -> list[str]:
+
+        variables = (
+            list(self._spec["data"].frame)
+            + list(self._spec["pair"].get("variables", []))
+            + list(self._spec["facet"].get("variables", []))
+        )
+        for layer in self._spec["layers"]:
+            variables.extend(v for v in layer["vars"] if v not in variables)
+
+        # Coerce to str in return to appease mypy; we know these will only
+        # ever be strings but I don't think we can type a DataFrame that way yet
+        return [str(v) for v in variables]
+
+    def on(self, target: Axes | SubFigure | Figure) -> Plot:
+        """
+        Provide existing Matplotlib figure or axes for drawing the plot.
+
+        When using this method, you will also need to explicitly call a method that
+        triggers compilation, such as :meth:`Plot.show` or :meth:`Plot.save`. If you
+        want to postprocess using matplotlib, you'd need to call :meth:`Plot.plot`
+        first to compile the plot without rendering it.
+
+        Parameters
+        ----------
+        target : Axes, SubFigure, or Figure
+            Matplotlib object to use. Passing :class:`matplotlib.axes.Axes` will add
+            artists without otherwise modifying the figure. Otherwise, subplots will be
+            created within the space of the given :class:`matplotlib.figure.Figure` or
+            :class:`matplotlib.figure.SubFigure`.
+
+        Examples
+        --------
+        .. include:: ../docstrings/objects.Plot.on.rst
+
+        """
+        accepted_types: tuple  # Allow tuple of various length
+        accepted_types = (
+            mpl.axes.Axes, mpl.figure.SubFigure, mpl.figure.Figure
+        )
+        accepted_types_str = (
+            f"{mpl.axes.Axes}, {mpl.figure.SubFigure}, or {mpl.figure.Figure}"
+        )
+
+        if not isinstance(target, accepted_types):
+            err = (
+                f"The `Plot.on` target must be an instance of {accepted_types_str}. "
+                f"You passed an instance of {target.__class__} instead."
+            )
+            raise TypeError(err)
+# ... 1335 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/_core/__init__.py`
+- `seaborn/_core/data.py`
+- `seaborn/_core/exceptions.py`
+- `seaborn/_core/groupby.py`
+- `seaborn/_core/moves.py`
+- `seaborn/_core/properties.py`
+- `seaborn/_core/rules.py`
+- `seaborn/_core/scales.py`
+- `seaborn/_core/subplots.py`
+- `seaborn/_core/typing.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

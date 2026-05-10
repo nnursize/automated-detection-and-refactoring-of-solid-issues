@@ -1,0 +1,358 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-001
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `seaborn/categorical.py`
+- **Entity**: `_CategoricalPlotter.__init__` (current lines L56-L132 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 12 independent scans
+
+### Description
+The constructor handles data reshaping, variable renaming, orientation inference, legend initialization, and categorical level ordering.
+
+### Reasoning
+This constructor bundles multiple responsibilities: data transformation (renaming x/y for wide data, adding anonymous category), configuration (inferring orient, setting legend), and data preparation (determining categorical levels). A change in wide-form data handling, orientation inference rules, or categorical ordering logic would all require modifying this method, indicating multiple reasons to change.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/categorical.py`
+```python
+from collections import namedtuple
+from textwrap import dedent
+import warnings
+from colorsys import rgb_to_hls
+from functools import partial
+
+import numpy as np
+import pandas as pd
+
+import matplotlib as mpl
+from matplotlib.cbook import normalize_kwargs
+from matplotlib.collections import PatchCollection
+from matplotlib.markers import MarkerStyle
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+
+from seaborn._core.typing import default, deprecated
+from seaborn._base import VectorPlotter, infer_orient, categorical_order
+from seaborn._stats.density import KDE
+from seaborn import utils
+from seaborn.utils import (
+    desaturate,
+    _check_argument,
+    _draw_figure,
+    _default_color,
+    _get_patch_legend_artist,
+    _get_transform_functions,
+    _scatter_legend_artist,
+    _version_predates,
+)
+from seaborn._compat import groupby_apply_include_groups
+from seaborn._statistics import (
+    EstimateAggregator,
+    LetterValues,
+    WeightedAggregator,
+)
+from seaborn.palettes import light_palette
+from seaborn.axisgrid import FacetGrid, _facet_docs
+
+
+__all__ = [
+    "catplot",
+    "stripplot", "swarmplot",
+    "boxplot", "violinplot", "boxenplot",
+    "pointplot", "barplot", "countplot",
+]
+
+
+class _CategoricalPlotter(VectorPlotter):
+
+    wide_structure = {"x": "@columns", "y": "@values", "hue": "@columns"}
+    flat_structure = {"y": "@values"}
+
+    _legend_attributes = ["color"]
+
+    def __init__(
+        self,
+        data=None,
+        variables={},
+        order=None,
+        orient=None,
+        require_numeric=False,
+        color=None,
+        legend="auto",
+    ):
+
+        super().__init__(data=data, variables=variables)
+
+        # This method takes care of some bookkeeping that is necessary because the
+        # original categorical plots (prior to the 2021 refactor) had some rules that
+        # don't fit exactly into VectorPlotter logic. It may be wise to have a second
+        # round of refactoring that moves the logic deeper, but this will keep things
+        # relatively sensible for now.
+
+        # For wide data, orient determines assignment to x/y differently from the
+        # default VectorPlotter rules. If we do decide to make orient part of the
+        # _base variable assignment, we'll want to figure out how to express that.
+        if self.input_format == "wide" and orient in ["h", "y"]:
+            self.plot_data = self.plot_data.rename(columns={"x": "y", "y": "x"})
+            orig_variables = set(self.variables)
+            orig_x = self.variables.pop("x", None)
+            orig_y = self.variables.pop("y", None)
+            orig_x_type = self.var_types.pop("x", None)
+            orig_y_type = self.var_types.pop("y", None)
+            if "x" in orig_variables:
+                self.variables["y"] = orig_x
+                self.var_types["y"] = orig_x_type
+            if "y" in orig_variables:
+                self.variables["x"] = orig_y
+                self.var_types["x"] = orig_y_type
+
+        # Initially there was more special code for wide-form data where plots were
+        # multi-colored by default and then either palette or color could be used.
+        # We want to provide backwards compatibility for this behavior in a relatively
+        # simply way, so we delete the hue information when color is specified.
+        if (
+            self.input_format == "wide"
+            and "hue" in self.variables
+            and color is not None
+        ):
+            self.plot_data.drop("hue", axis=1)
+            self.variables.pop("hue")
+
+        # The concept of an "orientation" is important to the original categorical
+        # plots, but there's no provision for it in VectorPlotter, so we need it here.
+        # Note that it could be useful for the other functions in at least two ways
+        # (orienting a univariate distribution plot from long-form data and selecting
+        # the aggregation axis in lineplot), so we may want to eventually refactor it.
+        self.orient = infer_orient(
+            x=self.plot_data.get("x", None),
+            y=self.plot_data.get("y", None),
+            orient=orient,
+            require_numeric=False,
+        )
+
+        self.legend = legend
+
+        # Short-circuit in the case of an empty plot
+        if not self.has_xy_data:
+            return
+
+        # Categorical plots can be "univariate" in which case they get an anonymous
+        # category label on the opposite axis. Note: this duplicates code in the core
+        # scale_categorical function. We need to do it here because of the next line.
+        if self.orient not in self.variables:
+            self.variables[self.orient] = None
+            self.var_types[self.orient] = "categorical"
+            self.plot_data[self.orient] = ""
+
+        # Categorical variables have discrete levels that we need to track
+        cat_levels = categorical_order(self.plot_data[self.orient], order)
+        self.var_levels[self.orient] = cat_levels
+
+    def _hue_backcompat(self, color, palette, hue_order, force_hue=False):
+        """Implement backwards compatibility for hue parametrization.
+
+        Note: the force_hue parameter is used so that functions can be shown to
+        pass existing tests during refactoring and then tested for new behavior.
+        It can be removed after completion of the work.
+
+        """
+        # The original categorical functions applied a palette to the categorical axis
+        # by default. We want to require an explicit hue mapping, to be more consistent
+        # with how things work elsewhere now. I don't think there's any good way to
+        # do this gently -- because it's triggered by the default value of hue=None,
+        # users would always get a warning, unless we introduce some sentinel "default"
+        # argument for this change. That's possible, but asking users to set `hue=None`
+        # on every call is annoying.
+        # We are keeping the logic for implementing the old behavior in with the current
+        # system so that (a) we can punt on that decision and (b) we can ensure that
+        # refactored code passes old tests.
+        default_behavior = color is None or palette is not None
+        if force_hue and "hue" not in self.variables and default_behavior:
+            self._redundant_hue = True
+            self.plot_data["hue"] = self.plot_data[self.orient]
+            self.variables["hue"] = self.variables[self.orient]
+            self.var_types["hue"] = "categorical"
+            hue_order = self.var_levels[self.orient]
+
+            # Because we convert the categorical axis variable to string,
+            # we need to update a dictionary palette too
+            if isinstance(palette, dict):
+                palette = {str(k): v for k, v in palette.items()}
+
+        else:
+            if "hue" in self.variables:
+                redundant = (self.plot_data["hue"] == self.plot_data[self.orient]).all()
+            else:
+                redundant = False
+            self._redundant_hue = redundant
+
+        # Previously, categorical plots had a trick where color= could seed the palette.
+        # Because that's an explicit parameterization, we are going to give it one
+        # release cycle with a warning before removing.
+        if "hue" in self.variables and palette is None and color is not None:
+            if not isinstance(color, str):
+                color = mpl.colors.to_hex(color)
+            palette = f"dark:{color}"
+            msg = (
+                "\n\nSetting a gradient palette using color= is deprecated and will be "
+                f"removed in v0.14.0. Set `palette='{palette}'` for the same effect.\n"
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=3)
+
+        return palette, hue_order
+
+    def _palette_without_hue_backcompat(self, palette, hue_order):
+        """Provide one cycle where palette= implies hue= when not provided"""
+        if "hue" not in self.variables and palette is not None:
+            msg = (
+                "\n\nPassing `palette` without assigning `hue` is deprecated "
+                f"and will be removed in v0.14.0. Assign the `{self.orient}` variable "
+                "to `hue` and set `legend=False` for the same effect.\n"
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=3)
+
+            self.legend = False
+            self.plot_data["hue"] = self.plot_data[self.orient]
+            self.variables["hue"] = self.variables.get(self.orient)
+            self.var_types["hue"] = self.var_types.get(self.orient)
+
+            hue_order = self.var_levels.get(self.orient)
+            self._var_levels.pop("hue", None)
+
+        return hue_order
+
+    def _point_kwargs_backcompat(self, scale, join, kwargs):
+        """Provide two cycles where scale= and join= work, but redirect to kwargs."""
+        if scale is not deprecated:
+            lw = mpl.rcParams["lines.linewidth"] * 1.8 * scale
+            mew = lw * .75
+            ms = lw * 2
+
+            msg = (
+                "\n\n"
+                "The `scale` parameter is deprecated and will be removed in v0.15.0. "
+                "You can now control the size of each plot element using matplotlib "
+                "`Line2D` parameters (e.g., `linewidth`, `markersize`, etc.)."
+                "\n"
+            )
+            warnings.warn(msg, stacklevel=3)
+            kwargs.update(linewidth=lw, markeredgewidth=mew, markersize=ms)
+
+        if join is not deprecated:
+            msg = (
+                "\n\n"
+                "The `join` parameter is deprecated and will be removed in v0.15.0."
+            )
+            if not join:
+                msg += (
+                    " You can remove the line between points with `linestyle='none'`."
+                )
+                kwargs.update(linestyle="")
+            msg += "\n"
+            warnings.warn(msg, stacklevel=3)
+
+    def _err_kws_backcompat(self, err_kws, errcolor, errwidth, capsize):
+        """Provide two cycles where existing signature-level err_kws are handled."""
+        def deprecate_err_param(name, key, val):
+            if val is deprecated:
+                return
+            suggest = f"err_kws={{'{key}': {val!r}}}"
+            msg = (
+                f"\n\nThe `{name}` parameter is deprecated. And will be removed "
+                f"in v0.15.0. Pass `{suggest}` instead.\n"
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=4)
+            err_kws[key] = val
+
+        if errcolor is not None:
+            deprecate_err_param("errcolor", "color", errcolor)
+        deprecate_err_param("errwidth", "linewidth", errwidth)
+# ... 3219 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/cm.py`
+- `seaborn/distributions.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

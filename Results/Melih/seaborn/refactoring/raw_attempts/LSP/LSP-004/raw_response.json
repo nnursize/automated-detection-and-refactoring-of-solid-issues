@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 22303.034782409668,
+  "prompt_tokens": 3677,
+  "completion_tokens": 270,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove AttributeError from data_variable property to satisfy LSP\",\n  \"rationale\": \"The data_variable property was raising an AttributeError when the plot was not univariate, which violates the Liskov Substitution Principle by strengthening preconditions. Changing it to return None when the condition is not met makes the interface more predictable and consistent with typical property behavior.\",\n  \"files_touched\": [\"seaborn/distributions.py\"]\n}\n```\n\n<<<<<<< SEARCH\n    @property\n    def data_variable(self):\n        \"\"\"Return the variable with data for univariate plots.\"\"\"\n        # TODO This could also be in core, but it should have a better name.\n        if not self.univariate:\n            raise AttributeError(\"This is not a univariate plot\")\n        return {\"x\", \"y\"}.intersection(self.variables).pop()\n=======\n    @property\n    def data_variable(self):\n        \"\"\"Return the variable with data for univariate plots, or None.\"\"\"\n        # TODO This could also be in core, but it should have a better name.\n        if not self.univariate:\n            return None\n        return {\"x\", \"y\"}.intersection(self.variables).pop()\n>>>>>>> REPLACE"
+}

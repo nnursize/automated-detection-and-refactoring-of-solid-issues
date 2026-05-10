@@ -1,0 +1,440 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-008
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `seaborn/distributions.py`
+- **Entity**: `histplot` (current lines L1399-L1490 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+High-level 'histplot' function directly instantiates '_DistributionPlotter' concrete dependency.
+
+### Reasoning
+Similar to `boxplot`, `histplot` is a high-level public API function that directly instantiates `_DistributionPlotter`, a concrete class implementing the distribution plotting logic. This represents a dependency of a high-level module on a low-level, concrete implementation, which is a direct violation of DIP.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/distributions.py`
+```python
+# ... 1278 earlier lines elided ...
+            _, inv = _get_transform_functions(ax, self.data_variable)
+            vals = inv(vals)
+
+            # Manually set the minimum value on a "log" scale
+            if isinstance(inv.__self__, mpl.scale.LogTransform):
+                vals[0] = -np.inf
+
+            # Work out the orientation of the plot
+            if self.data_variable == "x":
+                plot_args = vals, stat
+                stat_variable = "y"
+            else:
+                plot_args = stat, vals
+                stat_variable = "x"
+
+            if estimator.stat == "count":
+                top_edge = len(observations)
+            else:
+                top_edge = 1
+
+            # Draw the line for this subset
+            artist, = ax.plot(*plot_args, **artist_kws)
+            sticky_edges = getattr(artist.sticky_edges, stat_variable)
+            sticky_edges[:] = 0, top_edge
+
+        # --- Finalize the plot ----
+        ax = self.ax if self.ax is not None else self.facets.axes.flat[0]
+        stat = estimator.stat.capitalize()
+        default_x = default_y = ""
+        if self.data_variable == "x":
+            default_y = stat
+        if self.data_variable == "y":
+            default_x = stat
+        self._add_axis_labels(ax, default_x, default_y)
+
+        if "hue" in self.variables and legend:
+            artist = partial(mpl.lines.Line2D, [], [])
+            alpha = plot_kws.get("alpha", 1)
+            ax_obj = self.ax if self.ax is not None else self.facets
+            self._add_legend(
+                ax_obj, artist, False, False, None, alpha, plot_kws, {},
+            )
+
+    def plot_rug(self, height, expand_margins, legend, **kws):
+
+        for sub_vars, sub_data, in self.iter_data(from_comp_data=True):
+
+            ax = self._get_axes(sub_vars)
+
+            kws.setdefault("linewidth", 1)
+
+            if expand_margins:
+                xmarg, ymarg = ax.margins()
+                if "x" in self.variables:
+                    ymarg += height * 2
+                if "y" in self.variables:
+                    xmarg += height * 2
+                ax.margins(x=xmarg, y=ymarg)
+
+            if "hue" in self.variables:
+                kws.pop("c", None)
+                kws.pop("color", None)
+
+            if "x" in self.variables:
+                self._plot_single_rug(sub_data, "x", height, ax, kws)
+            if "y" in self.variables:
+                self._plot_single_rug(sub_data, "y", height, ax, kws)
+
+            # --- Finalize the plot
+            self._add_axis_labels(ax)
+            if "hue" in self.variables and legend:
+                # TODO ideally i'd like the legend artist to look like a rug
+                legend_artist = partial(mpl.lines.Line2D, [], [])
+                self._add_legend(
+                    ax, legend_artist, False, False, None, 1, {}, {},
+                )
+
+    def _plot_single_rug(self, sub_data, var, height, ax, kws):
+        """Draw a rugplot along one axis of the plot."""
+        vector = sub_data[var]
+        n = len(vector)
+
+        # Return data to linear domain
+        _, inv = _get_transform_functions(ax, var)
+        vector = inv(vector)
+
+        # We'll always add a single collection with varying colors
+        if "hue" in self.variables:
+            colors = self._hue_map(sub_data["hue"])
+        else:
+            colors = None
+
+        # Build the array of values for the LineCollection
+        if var == "x":
+
+            trans = tx.blended_transform_factory(ax.transData, ax.transAxes)
+            xy_pairs = np.column_stack([
+                np.repeat(vector, 2), np.tile([0, height], n)
+            ])
+
+        if var == "y":
+
+            trans = tx.blended_transform_factory(ax.transAxes, ax.transData)
+            xy_pairs = np.column_stack([
+                np.tile([0, height], n), np.repeat(vector, 2)
+            ])
+
+        # Draw the lines on the plot
+        line_segs = xy_pairs.reshape([n, 2, 2])
+        ax.add_collection(LineCollection(
+            line_segs, transform=trans, colors=colors, **kws
+        ))
+
+        ax.autoscale_view(scalex=var == "x", scaley=var == "y")
+
+
+# ==================================================================================== #
+# External API
+# ==================================================================================== #
+
+def histplot(
+    data=None, *,
+    # Vector variables
+    x=None, y=None, hue=None, weights=None,
+    # Histogram computation parameters
+    stat="count", bins="auto", binwidth=None, binrange=None,
+    discrete=None, cumulative=False, common_bins=True, common_norm=True,
+    # Histogram appearance parameters
+    multiple="layer", element="bars", fill=True, shrink=1,
+    # Histogram smoothing with a kernel density estimate
+    kde=False, kde_kws=None, line_kws=None,
+    # Bivariate histogram parameters
+    thresh=0, pthresh=None, pmax=None, cbar=False, cbar_ax=None, cbar_kws=None,
+    # Hue mapping parameters
+    palette=None, hue_order=None, hue_norm=None, color=None,
+    # Axes information
+    log_scale=None, legend=True, ax=None,
+    # Other appearance keywords
+    **kwargs,
+):
+
+    p = _DistributionPlotter(
+        data=data,
+        variables=dict(x=x, y=y, hue=hue, weights=weights),
+    )
+
+    p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
+
+    if ax is None:
+        ax = plt.gca()
+
+    p._attach(ax, log_scale=log_scale)
+
+    if p.univariate:  # Note, bivariate plots won't cycle
+        if fill:
+            method = ax.bar if element == "bars" else ax.fill_between
+        else:
+            method = ax.plot
+        color = _default_color(method, hue, color, kwargs)
+
+    if not p.has_xy_data:
+        return ax
+
+    # Default to discrete bins for categorical variables
+    if discrete is None:
+        discrete = p._default_discrete()
+
+    estimate_kws = dict(
+        stat=stat,
+        bins=bins,
+        binwidth=binwidth,
+        binrange=binrange,
+        discrete=discrete,
+        cumulative=cumulative,
+    )
+
+    if p.univariate:
+
+        p.plot_univariate_histogram(
+            multiple=multiple,
+            element=element,
+            fill=fill,
+            shrink=shrink,
+            common_norm=common_norm,
+            common_bins=common_bins,
+            kde=kde,
+            kde_kws=kde_kws,
+            color=color,
+            legend=legend,
+            estimate_kws=estimate_kws,
+            line_kws=line_kws,
+            **kwargs,
+        )
+
+    else:
+
+        p.plot_bivariate_histogram(
+            common_bins=common_bins,
+            common_norm=common_norm,
+            thresh=thresh,
+            pthresh=pthresh,
+            pmax=pmax,
+            color=color,
+            legend=legend,
+            cbar=cbar,
+            cbar_ax=cbar_ax,
+            cbar_kws=cbar_kws,
+            estimate_kws=estimate_kws,
+            **kwargs,
+        )
+
+    return ax
+
+
+histplot.__doc__ = """\
+Plot univariate or bivariate histograms to show distributions of datasets.
+
+A histogram is a classic visualization tool that represents the distribution
+of one or more variables by counting the number of observations that fall within
+discrete bins.
+
+This function can normalize the statistic computed within each bin to estimate
+frequency, density or probability mass, and it can add a smooth curve obtained
+using a kernel density estimate, similar to :func:`kdeplot`.
+
+More information is provided in the :ref:`user guide <tutorial_hist>`.
+
+Parameters
+----------
+{params.core.data}
+{params.core.xy}
+{params.core.hue}
+weights : vector or key in ``data``
+    If provided, weight the contribution of the corresponding data points
+    towards the count in each bin by these factors.
+{params.hist.stat}
+{params.hist.bins}
+{params.hist.binwidth}
+{params.hist.binrange}
+discrete : bool
+    If True, default to ``binwidth=1`` and draw the bars so that they are
+    centered on their corresponding data points. This avoids "gaps" that may
+    otherwise appear when using discrete (integer) data.
+cumulative : bool
+    If True, plot the cumulative counts as bins increase.
+common_bins : bool
+    If True, use the same bins when semantic variables produce multiple
+    plots. If using a reference rule to determine the bins, it will be computed
+    with the full dataset.
+common_norm : bool
+    If True and using a normalized statistic, the normalization will apply over
+    the full dataset. Otherwise, normalize each histogram independently.
+multiple : {{"layer", "dodge", "stack", "fill"}}
+    Approach to resolving multiple elements when semantic mapping creates subsets.
+    Only relevant with univariate data.
+element : {{"bars", "step", "poly"}}
+    Visual representation of the histogram statistic.
+    Only relevant with univariate data.
+fill : bool
+    If True, fill in the space under the histogram.
+    Only relevant with univariate data.
+shrink : number
+    Scale the width of each bar relative to the binwidth by this factor.
+    Only relevant with univariate data.
+kde : bool
+    If True, compute a kernel density estimate to smooth the distribution
+    and show on the plot as (one or more) line(s).
+    Only relevant with univariate data.
+kde_kws : dict
+    Parameters that control the KDE computation, as in :func:`kdeplot`.
+line_kws : dict
+    Parameters that control the KDE visualization, passed to
+    :meth:`matplotlib.axes.Axes.plot`.
+thresh : number or None
+    Cells with a statistic less than or equal to this value will be transparent.
+    Only relevant with bivariate data.
+pthresh : number or None
+    Like ``thresh``, but a value in [0, 1] such that cells with aggregate counts
+    (or other statistics, when used) up to this proportion of the total will be
+    transparent.
+pmax : number or None
+    A value in [0, 1] that sets that saturation point for the colormap at a value
+    such that cells below constitute this proportion of the total count (or
+    other statistic, when used).
+{params.dist.cbar}
+{params.dist.cbar_ax}
+{params.dist.cbar_kws}
+{params.core.palette}
+{params.core.hue_order}
+{params.core.hue_norm}
+{params.core.color}
+{params.dist.log_scale}
+{params.dist.legend}
+{params.core.ax}
+kwargs
+    Other keyword arguments are passed to one of the following matplotlib
+    functions:
+
+    - :meth:`matplotlib.axes.Axes.bar` (univariate, element="bars")
+    - :meth:`matplotlib.axes.Axes.fill_between` (univariate, other element, fill=True)
+    - :meth:`matplotlib.axes.Axes.plot` (univariate, other element, fill=False)
+    - :meth:`matplotlib.axes.Axes.pcolormesh` (bivariate)
+
+Returns
+-------
+{returns.ax}
+
+See Also
+--------
+{seealso.displot}
+{seealso.kdeplot}
+{seealso.rugplot}
+{seealso.ecdfplot}
+{seealso.jointplot}
+
+Notes
+-----
+
+The choice of bins for computing and plotting a histogram can exert
+substantial influence on the insights that one is able to draw from the
+visualization. If the bins are too large, they may erase important features.
+On the other hand, bins that are too small may be dominated by random
+variability, obscuring the shape of the true underlying distribution. The
+default bin size is determined using a reference rule that depends on the
+sample size and variance. This works well in many cases, (i.e., with
+"well-behaved" data) but it fails in others. It is always a good to try
+different bin sizes to be sure that you are not missing something important.
+This function allows you to specify bins in several different ways, such as
+by setting the total number of bins to use, the width of each bin, or the
+specific locations where the bins should break.
+
+Examples
+# ... 937 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

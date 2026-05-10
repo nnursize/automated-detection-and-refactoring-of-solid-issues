@@ -1,0 +1,73 @@
+{
+  "scan_id": "seaborn-master_LSP_scan_04",
+  "repo_name": "seaborn-master",
+  "principle": "LSP",
+  "scan_number": 4,
+  "timestamp": "2026-04-18T13:57:46.309645",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Liskov Substitution Principle (LSP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these int...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/matrix.py\",\n      \"entity_name\": \"ClusterGrid\",\n      \"entity_type\": \"class\",\n      \"line_start\": 638,\n      \"line_end\": 705,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass fails to provide the 'axes' attribute required by base class methods\",\n      \"reasoning\": \"Refused Bequest smell -> LSP violation because ClusterGrid inherits from Grid (axisgrid.py), but its __init__ method fails to define the 'axes' attribute. The base class method Grid.add_legend (axisgrid.py, line 150) explicitly relies on self.axes.flat[0]. Consequently, ClusterGrid is not substitutable for Grid, as calling add_legend on a ClusterGrid instance will result in an AttributeError.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_swarms\",\n      \"entity_type\": \"method\",\n      \"line_start\": 466,\n      \"line_end\": 491,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Monkey-patching the 'draw' method of a base type instance alters its behavioral contract\",\n      \"reasoning\": \"Inappropriate Intimacy smell -> LSP violation because this method replaces the 'draw' method of a matplotlib.collections.PathCollection instance with a custom local function. This violates the behavioral contract of the matplotlib Artist hierarchy; any consumer expecting a standard PathCollection will now trigger Seaborn-specific beeswarm logic during the rendering pass, which is an unexpected side effect for that type.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter._add_legend\",\n      \"entity_type\": \"method\",\n      \"line_start\": 144,\n      \"line_end\": 155,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking (isinstance) used to branch logic instead of polymorphic dispatch\",\n      \"reasoning\": \"Switch Statements on type smell -> LSP violation because the method uses isinstance(ax_obj, mpl.axes.Axes) to determine how to add a legend. This breaks polymorphism; if a new subtype of a grid or axes is introduced that doesn't inherit from the specific classes checked, the logic fails or defaults to an incorrect assumption (the 'else' block assuming FacetGrid API).\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalAggPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1032,\n      \"line_end\": 1034,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass overrides class attributes used for data mapping, changing base class contract\",\n      \"reasoning\": \"Refused Bequest smell -> LSP violation because _CategoricalAggPlotter overrides the 'flat_structure' attribute defined in _CategoricalPlotter. This attribute is used by the base class VectorPlotter to define how data is assigned to variables. By changing this mapping from {'y': '@values'} to {'x': '@index', 'y': '@values'}, the subclass alters the fundamental data-handling contract of the base type.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.__init__\",\n      \"entity_type\": \"method\",\n      \"line_start\": 73,\n      \"line_end\": 110,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass mutates base class state and structure in a way that breaks mapping invariants\",\n      \"reasoning\": \"Inappropriate Intimacy smell -> LSP violation because the subclass constructor mutates the 'plot_data' and 'variables' state established by the base class VectorPlotter. Specifically, it renames columns (line 80) and injects dummy data (line 104) to force categorical rules. This breaks the post-conditions of the base class initialization, as the resulting object no longer adheres to the standard variable mapping contract expected by other VectorPlotter methods.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/matrix.py",
+      "entity_name": "ClusterGrid",
+      "entity_type": "class",
+      "line_start": 638,
+      "line_end": 705,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass fails to provide the 'axes' attribute required by base class methods",
+      "reasoning": "Refused Bequest smell -> LSP violation because ClusterGrid inherits from Grid (axisgrid.py), but its __init__ method fails to define the 'axes' attribute. The base class method Grid.add_legend (axisgrid.py, line 150) explicitly relies on self.axes.flat[0]. Consequently, ClusterGrid is not substitutable for Grid, as calling add_legend on a ClusterGrid instance will result in an AttributeError."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_swarms",
+      "entity_type": "method",
+      "line_start": 466,
+      "line_end": 491,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Monkey-patching the 'draw' method of a base type instance alters its behavioral contract",
+      "reasoning": "Inappropriate Intimacy smell -> LSP violation because this method replaces the 'draw' method of a matplotlib.collections.PathCollection instance with a custom local function. This violates the behavioral contract of the matplotlib Artist hierarchy; any consumer expecting a standard PathCollection will now trigger Seaborn-specific beeswarm logic during the rendering pass, which is an unexpected side effect for that type."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter._add_legend",
+      "entity_type": "method",
+      "line_start": 144,
+      "line_end": 155,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Type-checking (isinstance) used to branch logic instead of polymorphic dispatch",
+      "reasoning": "Switch Statements on type smell -> LSP violation because the method uses isinstance(ax_obj, mpl.axes.Axes) to determine how to add a legend. This breaks polymorphism; if a new subtype of a grid or axes is introduced that doesn't inherit from the specific classes checked, the logic fails or defaults to an incorrect assumption (the 'else' block assuming FacetGrid API)."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalAggPlotter",
+      "entity_type": "class",
+      "line_start": 1032,
+      "line_end": 1034,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass overrides class attributes used for data mapping, changing base class contract",
+      "reasoning": "Refused Bequest smell -> LSP violation because _CategoricalAggPlotter overrides the 'flat_structure' attribute defined in _CategoricalPlotter. This attribute is used by the base class VectorPlotter to define how data is assigned to variables. By changing this mapping from {'y': '@values'} to {'x': '@index', 'y': '@values'}, the subclass alters the fundamental data-handling contract of the base type."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.__init__",
+      "entity_type": "method",
+      "line_start": 73,
+      "line_end": 110,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass mutates base class state and structure in a way that breaks mapping invariants",
+      "reasoning": "Inappropriate Intimacy smell -> LSP violation because the subclass constructor mutates the 'plot_data' and 'variables' state established by the base class VectorPlotter. Specifically, it renames columns (line 80) and injects dummy data (line 104) to force categorical rules. This breaks the post-conditions of the base class initialization, as the resulting object no longer adheres to the standard variable mapping contract expected by other VectorPlotter methods."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 42999.34411048889,
+  "error": null
+}

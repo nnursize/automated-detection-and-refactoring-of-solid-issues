@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/axisgrid.py",
+    "search_text": "    def __init__(\n        self, data=None, *,\n        x=None, y=None, hue=None,\n        height=6, ratio=5, space=.2,\n        palette=None, hue_order=None, hue_norm=None,\n        dropna=False, xlim=None, ylim=None, marginal_ticks=False,\n    ):\n\n        # Set up the subplot grid",
+    "replace_text": "    def __init__(\n        self, data=None, *,\n        x=None, y=None, hue=None,\n        height=6, ratio=5, space=.2,\n        palette=None, hue_order=None, hue_norm=None,\n        dropna=False, xlim=None, ylim=None, marginal_ticks=False,\n        plotter_class=None,\n    ):\n\n        # Set up the subplot grid"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/axisgrid.py",
+    "search_text": "        # Process the input variables\n        p = VectorPlotter(data=data, variables=dict(x=x, y=y, hue=hue))\n        plot_data = p.plot_data.loc[:, p.plot_data.notna().any()]",
+    "replace_text": "        # Process the input variables\n        if plotter_class is None:\n            plotter_class = VectorPlotter\n        p = plotter_class(data=data, variables=dict(x=x, y=y, hue=hue))\n        plot_data = p.plot_data.loc[:, p.plot_data.notna().any()]"
+  }
+]

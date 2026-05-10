@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-003",
+  "principle": "OCP",
+  "title": "Refactor OCP-003 (OCP): Long if/elif/else chain for dispatching plot kinds.",
+  "branch": "refactor/OCP-003",
+  "base": "main",
+  "head_commit": "3e666832ed27fe2d24707683ab73edea351767eb",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5332,
+    "completion_tokens": 1541
+  },
+  "detected_issue": {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "displot",
+    "entity_type": "class",
+    "line_start": 1111,
+    "line_end": 1200,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Long if/elif/else chain for dispatching plot kinds.",
+    "reasoning": "The `displot` function uses a long `if/elif/else` chain based on the `kind` string parameter to dispatch to different plotting logic (hist, kde, ecdf). To introduce a new distribution plot type, this function would require modification to add a new `elif` branch, directly violating the Open/Closed Principle. A more OCP-compliant design would involve a registry or a strategy pattern where new plot kinds can be registered without modifying `displot`."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor displot to use a dispatch dictionary for plot kinds.",
+    "rationale": "Replaced the if/elif/else chain with a registry dictionary mapping 'kind' strings to handler functions. This allows adding new plot types by updating the registry rather than modifying the core logic of displot, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "seaborn/distributions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/distributions.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/distributions.py",
+        "search_text": "    # --- Draw the plots\n\n    if kind == \"hist\":\n\n        hist_kws = kwargs.copy()\n\n        # Extract the parameters that will go directly to Histogram\n        estimate_defaults = {}\n        _assign_default_kwargs(estimate_defaults, Histogram.__init__, histplot)\n\n        estimate_kws = {}\n        for key, default_val in estimate_defaults.items():\n            estimate_kws[key] = hist_kws.pop(key, default_val)\n\n        # Handle derivative defaults\n        if estimate_kws[\"discrete\"] is None:\n            estimate_kws[\"discrete\"] = p._default_discrete()\n\n        hist_kws[\"estimate_kws\"] = estimate_kws\n\n        hist_kws.setdefault(\"color\", color)\n\n        if p.univariate:\n\n            _assign_default_kwargs(hist_kws, p.plot_univariate_histogram, histplot)\n            p.plot_univariate_histogram(**hist_kws)\n\n        else:\n\n            _assign_default_kwargs(hist_kws, p.plot_bivariate_histogram, histplot)\n            p.plot_bivariate_histogram(**hist_kws)\n\n    elif kind == \"kde\":\n\n        kde_kws = kwargs.copy()\n\n        # Extract the parameters that will go directly to KDE\n        estimate_defaults = {}\n        _assign_default_kwargs(estimate_defaults, KDE.__init__, kdeplot)\n\n        estimate_kws = {}\n        for key, default_val in estimate_defaults.items():\n            estimate_kws[key] = kde_kws.pop(key, default_val)\n\n        kde_kws[\"estimate_kws\"] = estimate_kws\n        kde_kws[\"color\"] = color\n\n        if p.univariate:\n\n            _assign_default_kwargs(kde_kws, p.plot_univariate_density, kdeplot)\n            p.plot_univariate_density(**kde_kws)\n\n        else:\n\n            _assign_default_kwargs(kde_kws, p.plot_bivariate_density, kdeplot)\n            p.plot_bivariate_density(**kde_kws)\n\n    elif kind == \"ecdf\":\n\n        ecdf_kws = kwargs.copy()\n\n        # Extract the parameters that will go directly to the estimator\n        estimate_kws = {}\n        estimate_defaults = {}\n        _assign_default_kwargs(estimate_defaults, ECDF.__init__, ecdfplot)\n        for key, default_val in estimate_defaults.items():\n            estimate_kws[key] = ecdf_kws.pop(key, default_val)\n\n        ecdf_kws[\"estimate_kws\"] = estimate_kws\n        ecdf_kws[\"color\"] = color\n\n        if p.univariate:\n\n            _assign_default_kwargs(ecdf_kws, p.plot_univariate_ecdf, ecdfplot)\n            p.plot_univariate_ecdf(**ecdf_kws)\n\n        else:\n\n            raise NotImplementedError(\"Bivariate ECDF plots are not implemented\")",
+        "replace_text": "    # --- Draw the plots\n\n    def _plot_hist(p, color, **kwargs):\n        hist_kws = kwargs.copy()\n        estimate_defaults = {}\n        _assign_default_kwargs(estimate_defaults, Histogram.__init__, histplot)\n        estimate_kws = {k: hist_kws.pop(k, v) for k, v in estimate_defaults.items()}\n        if estimate_kws[\"discrete\"] is None:\n            estimate_kws[\"discrete\"] = p._default_discrete()\n        hist_kws[\"estimate_kws\"] = estimate_kws\n        hist_kws.setdefault(\"color\", color)\n        if p.univariate:\n            _assign_default_kwargs(hist_kws, p.plot_univariate_histogram, histplot)\n            p.plot_univariate_histogram(**hist_kws)\n        else:\n            _assign_default_kwargs(hist_kws, p.plot_bivariate_histogram, histplot)\n            p.plot_bivariate_histogram(**hist_kws)\n\n    def _plot_kde(p, color, **kwargs):\n        kde_kws = kwargs.copy()\n        estimate_defaults = {}\n        _assign_default_kwargs(estimate_defaults, KDE.__init__, kdeplot)\n        estimate_kws = {k: kde_kws.pop(k, v) for k, v in estimate_defaults.items()}\n        kde_kws[\"estimate_kws\"] = estimate_kws\n        kde_kws[\"color\"] = color\n        if p.univariate:\n            _assign_default_kwargs(kde_kws, p.plot_univariate_density, kdeplot)\n            p.plot_univariate_density(**kde_kws)\n        else:\n            _assign_default_kwargs(kde_kws, p.plot_bivariate_density, kdeplot)\n            p.plot_bivariate_density(**kde_kws)\n\n    def _plot_ecdf(p, color, **kwargs):\n        ecdf_kws = kwargs.copy()\n        estimate_kws = {}\n        estimate_defaults = {}\n        _assign_default_kwargs(estimate_defaults, ECDF.__init__, ecdfplot)\n        for k, v in estimate_defaults.items():\n            estimate_kws[k] = ecdf_kws.pop(k, v)\n        ecdf_kws[\"estimate_kws\"] = estimate_kws\n        ecdf_kws[\"color\"] = color\n        if p.univariate:\n            _assign_default_kwargs(ecdf_kws, p.plot_univariate_ecdf, ecdfplot)\n            p.plot_univariate_ecdf(**ecdf_kws)\n        else:\n            raise NotImplementedError(\"Bivariate ECDF plots are not implemented\")\n\n    plot_dispatch = {\n        \"hist\": _plot_hist,\n        \"kde\": _plot_kde,\n        \"ecdf\": _plot_ecdf,\n    }\n\n    plot_dispatch[kind](p, color, **kwargs)",
+        "search_lines": 79,
+        "replace_lines": 54
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2225.673198699951,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.36s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1821,
+        "blank_lines": 463,
+        "comment_lines": 249,
+        "function_count": 30,
+        "avg_cc": 11.53,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/distributions.py",
+        "loc": 1823,
+        "blank_lines": 440,
+        "comment_lines": 245,
+        "function_count": 33,
+        "avg_cc": 11.2,
+        "max_cc": 64.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/distributions.py b/seaborn/distributions.py\nindex 99ee5df..605636f 100644\n--- a/seaborn/distributions.py\n+++ b/seaborn/distributions.py\n@@ -2169,84 +2169,59 @@ def displot(\n \n     # --- Draw the plots\n \n-    if kind == \"hist\":\n-\n+    def _plot_hist(p, color, **kwargs):\n         hist_kws = kwargs.copy()\n-\n-        # Extract the parameters that will go directly to Histogram\n         estimate_defaults = {}\n         _assign_default_kwargs(estimate_defaults, Histogram.__init__, histplot)\n-\n-        estimate_kws = {}\n-        for key, default_val in estimate_defaults.items():\n-            estimate_kws[key] = hist_kws.pop(key, default_val)\n-\n-        # Handle derivative defaults\n+        estimate_kws = {k: hist_kws.pop(k, v) for k, v in estimate_defaults.items()}\n         if estimate_kws[\"discrete\"] is None:\n             estimate_kws[\"discrete\"] = p._default_discrete()\n-\n         hist_kws[\"estimate_kws\"] = estimate_kws\n-\n         hist_kws.setdefault(\"color\", color)\n-\n         if p.univariate:\n-\n             _assign_default_kwargs(hist_kws, p.plot_univariate_histogram, histplot)\n             p.plot_univariate_histogram(**hist_kws)\n-\n         else:\n-\n             _assign_default_kwargs(hist_kws, p.plot_bivariate_histogram, histplot)\n             p.plot_bivariate_histogram(**hist_kws)\n \n-    elif kind == \"kde\":\n-\n+    def _plot_kde(p, color, **kwargs):\n         kde_kws = kwargs.copy()\n-\n-        # Extract the parameters that will go directly to KDE\n         estimate_defaults = {}\n         _assign_default_kwargs(estimate_defaults, KDE.__init__, kdeplot)\n-\n-        estimate_kws = {}\n-        for key, default_val in estimate_defaults.items():\n-            estimate_kws[key] = kde_kws.pop(key, default_val)\n-\n+        estimate_kws = {k: kde_kws.pop(k, v) for k, v in estimate_defaults.items()}\n         kde_kws[\"estimate_kws\"] = estimate_kws\n         kde_kws[\"color\"] = color\n-\n         if p.univariate:\n-\n             _assign_default_kwargs(kde_kws, p.plot_univariate_density, kdeplot)\n             p.plot_univariate_density(**kde_kws)\n-\n         else:\n-\n             _assign_default_kwargs(kde_kws, p.plot_bivariate_density, kdeplot)\n             p.plot_bivariate_density(**kde_kws)\n \n-    elif kind == \"ecdf\":\n-\n+    def _plot_ecdf(p, color, **kwargs):\n         ecdf_kws = kwargs.copy()\n-\n-        # Extract the parameters that will go directly to the estimator\n         estimate_kws = {}\n         estimate_defaults = {}\n         _assign_default_kwargs(estimate_defaults, ECDF.__init__, ecdfplot)\n-        for key, default_val in estimate_defaults.items():\n-            estimate_kws[key] = ecdf_kws.pop(key, default_val)\n-\n+        for k, v in estimate_defaults.items():\n+            estimate_kws[k] = ecdf_kws.pop(k, v)\n         ecdf_kws[\"estimate_kws\"] = estimate_kws\n         ecdf_kws[\"color\"] = color\n-\n         if p.univariate:\n-\n             _assign_default_kwargs(ecdf_kws, p.plot_univariate_ecdf, ecdfplot)\n             p.plot_univariate_ecdf(**ecdf_kws)\n-\n         else:\n-\n             raise NotImplementedError(\"Bivariate ECDF plots are not implemented\")\n \n+    plot_dispatch = {\n+        \"hist\": _plot_hist,\n+        \"kde\": _plot_kde,\n+        \"ecdf\": _plot_ecdf,\n+    }\n+\n+    plot_dispatch[kind](p, color, **kwargs)\n+\n     # All plot kinds can include a rug\n     if rug:\n         # TODO with expand_margins=True, each facet expands margins... annoying!\n",
+  "duration_ms": 9037.368774414062
+}

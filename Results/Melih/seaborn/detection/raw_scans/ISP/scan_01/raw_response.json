@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_01",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 1,
+  "timestamp": "2026-04-18T14:23:51.919125",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Interface Segregation Principle (ISP).\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.\n\n## What to Look For\n- Abstract base classes or interfaces with too many methods\n- Clas...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale\",\n      \"entity_type\": \"class\",\n      \"line_start\": 38,\n      \"line_end\": 100,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat interface bundling data transformation with axis-specific UI logic\",\n      \"reasoning\": \"The Scale interface combines data transformation logic (__call__) with axis-specific UI logic (tick, label, _get_locators). This forces semantic scales (like color or size) to implement or mock axis-specific methods. The Identity scale subclass (lines 91-100) is forced to inherit these methods but cannot fulfill them, leading to NotImplementedError crashes if called.\"\n    },\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1042,\n      \"line_end\": 1110,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"Fat interface for scaling different data types\",\n      \"reasoning\": \"VectorPlotter defines a broad scaling interface (scale_native, scale_numeric, scale_datetime, scale_categorical). Subclasses like _CategoricalPlotter are forced to inherit and carry methods for data types they do not support, leaving them as the default NotImplementedError. This forces subclasses to depend on methods they do not use.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 51,\n      \"line_end\": 930,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat interface bundling logic for all categorical plot types\",\n      \"reasoning\": \"The class acts as a monolithic interface for all categorical plot types (strips, swarms, boxes, violins, etc.). Individual axes-level functions like boxplot or violinplot only require a small subset of the class's functionality (e.g., plot_boxes), but are forced to depend on a fat interface containing logic for every other unrelated categorical plot type.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 77,\n      \"line_end\": 580,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat interface bundling logic for all distribution plot types\",\n      \"reasoning\":",
+  "findings": [
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale",
+      "entity_type": "class",
+      "line_start": 38,
+      "line_end": 100,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Fat interface bundling data transformation with axis-specific UI logic",
+      "reasoning": "The Scale interface combines data transformation logic (__call__) with axis-specific UI logic (tick, label, _get_locators). This forces semantic scales (like color or size) to implement or mock axis-specific methods. The Identity scale subclass (lines 91-100) is forced to inherit these methods but cannot fulfill them, leading to NotImplementedError crashes if called."
+    },
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 1042,
+      "line_end": 1110,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "Fat interface for scaling different data types",
+      "reasoning": "VectorPlotter defines a broad scaling interface (scale_native, scale_numeric, scale_datetime, scale_categorical). Subclasses like _CategoricalPlotter are forced to inherit and carry methods for data types they do not support, leaving them as the default NotImplementedError. This forces subclasses to depend on methods they do not use."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 51,
+      "line_end": 930,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Fat interface bundling logic for all categorical plot types",
+      "reasoning": "The class acts as a monolithic interface for all categorical plot types (strips, swarms, boxes, violins, etc.). Individual axes-level functions like boxplot or violinplot only require a small subset of the class's functionality (e.g., plot_boxes), but are forced to depend on a fat interface containing logic for every other unrelated categorical plot type."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 109363.10291290283,
+  "error": null
+}

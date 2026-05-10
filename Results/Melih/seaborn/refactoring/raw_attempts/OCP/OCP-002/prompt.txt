@@ -1,0 +1,413 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-002
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `seaborn/distributions.py`
+- **Entity**: `_DistributionPlotter._resolve_multiple` (current lines L227-L292 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 6 independent scans
+
+### Description
+Conditional logic for handling different 'multiple' strategies.
+
+### Reasoning
+The `_resolve_multiple` method contains `if multiple in ('stack', 'fill'):` and `if multiple == 'dodge':` blocks to apply different data transformation logic based on the `multiple` parameter. If a new strategy for handling multiple distributions is introduced, this method would need to be modified to add a new conditional branch, violating OCP.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `seaborn/distributions.py`
+```python
+# ... 106 earlier lines elided ...
+        variables={},
+    ):
+
+        super().__init__(data=data, variables=variables)
+
+    @property
+    def univariate(self):
+        """Return True if only x or y are used."""
+        # TODO this could go down to core, but putting it here now.
+        # We'd want to be conceptually clear that univariate only applies
+        # to x/y and not to other semantics, which can exist.
+        # We haven't settled on a good conceptual name for x/y.
+        return bool({"x", "y"} - set(self.variables))
+
+    @property
+    def data_variable(self):
+        """Return the variable with data for univariate plots."""
+        # TODO This could also be in core, but it should have a better name.
+        if not self.univariate:
+            raise AttributeError("This is not a univariate plot")
+        return {"x", "y"}.intersection(self.variables).pop()
+
+    @property
+    def has_xy_data(self):
+        """Return True at least one of x or y is defined."""
+        # TODO see above points about where this should go
+        return bool({"x", "y"} & set(self.variables))
+
+    def _add_legend(
+        self,
+        ax_obj, artist, fill, element, multiple, alpha, artist_kws, legend_kws,
+    ):
+        """Add artists that reflect semantic mappings and put then in a legend."""
+        # TODO note that this doesn't handle numeric mappings like the relational plots
+        handles = []
+        labels = []
+        for level in self._hue_map.levels:
+            color = self._hue_map(level)
+
+            kws = self._artist_kws(
+                artist_kws, fill, element, multiple, color, alpha
+            )
+
+            # color gets added to the kws to workaround an issue with barplot's color
+            # cycle integration but it causes problems in this context where we are
+            # setting artist properties directly, so pop it off here
+            if "facecolor" in kws:
+                kws.pop("color", None)
+
+            handles.append(artist(**kws))
+            labels.append(level)
+
+        if isinstance(ax_obj, mpl.axes.Axes):
+            ax_obj.legend(handles, labels, title=self.variables["hue"], **legend_kws)
+        else:  # i.e. a FacetGrid. TODO make this better
+            legend_data = dict(zip(labels, handles))
+            ax_obj.add_legend(
+                legend_data,
+                title=self.variables["hue"],
+                label_order=self.var_levels["hue"],
+                **legend_kws
+            )
+
+    def _artist_kws(self, kws, fill, element, multiple, color, alpha):
+        """Handle differences between artists in filled/unfilled plots."""
+        kws = kws.copy()
+        if fill:
+            kws = normalize_kwargs(kws, mpl.collections.PolyCollection)
+            kws.setdefault("facecolor", to_rgba(color, alpha))
+
+            if element == "bars":
+                # Make bar() interface with property cycle correctly
+                # https://github.com/matplotlib/matplotlib/issues/19385
+                kws["color"] = "none"
+
+            if multiple in ["stack", "fill"] or element == "bars":
+                kws.setdefault("edgecolor", mpl.rcParams["patch.edgecolor"])
+            else:
+                kws.setdefault("edgecolor", to_rgba(color, 1))
+        elif element == "bars":
+            kws["facecolor"] = "none"
+            kws["edgecolor"] = to_rgba(color, alpha)
+        else:
+            kws["color"] = to_rgba(color, alpha)
+        return kws
+
+    def _quantile_to_level(self, data, quantile):
+        """Return data levels corresponding to quantile cuts of mass."""
+        isoprop = np.asarray(quantile)
+        values = np.ravel(data)
+        sorted_values = np.sort(values)[::-1]
+        normalized_values = np.cumsum(sorted_values) / values.sum()
+        idx = np.searchsorted(normalized_values, 1 - isoprop)
+        levels = np.take(sorted_values, idx, mode="clip")
+        return levels
+
+    def _cmap_from_color(self, color):
+        """Return a sequential colormap given a color seed."""
+        # Like so much else here, this is broadly useful, but keeping it
+        # in this class to signify that I haven't thought overly hard about it...
+        r, g, b, _ = to_rgba(color)
+        h, s, _ = husl.rgb_to_husl(r, g, b)
+        xx = np.linspace(-1, 1, int(1.15 * 256))[:256]
+        ramp = np.zeros((256, 3))
+        ramp[:, 0] = h
+        ramp[:, 1] = s * np.cos(xx)
+        ramp[:, 2] = np.linspace(35, 80, 256)
+        colors = np.clip([husl.husl_to_rgb(*hsl) for hsl in ramp], 0, 1)
+        return mpl.colors.ListedColormap(colors[::-1])
+
+    def _default_discrete(self):
+        """Find default values for discrete hist estimation based on variable type."""
+        if self.univariate:
+            discrete = self.var_types[self.data_variable] == "categorical"
+        else:
+            discrete_x = self.var_types["x"] == "categorical"
+            discrete_y = self.var_types["y"] == "categorical"
+            discrete = discrete_x, discrete_y
+        return discrete
+
+    def _resolve_multiple(self, curves, multiple):
+        """Modify the density data structure to handle multiple densities."""
+
+        # Default baselines have all densities starting at 0
+        baselines = {k: np.zeros_like(v) for k, v in curves.items()}
+
+        # TODO we should have some central clearinghouse for checking if any
+        # "grouping" (terminnology?) semantics have been assigned
+        if "hue" not in self.variables:
+            return curves, baselines
+
+        if multiple in ("stack", "fill"):
+
+            # Setting stack or fill means that the curves share a
+            # support grid / set of bin edges, so we can make a dataframe
+            # Reverse the column order to plot from top to bottom
+            curves = pd.DataFrame(curves).iloc[:, ::-1]
+
+            # Find column groups that are nested within col/row variables
+            column_groups = {}
+            for i, keyd in enumerate(map(dict, curves.columns)):
+                facet_key = keyd.get("col", None), keyd.get("row", None)
+                column_groups.setdefault(facet_key, [])
+                column_groups[facet_key].append(i)
+
+            baselines = curves.copy()
+
+            for col_idxs in column_groups.values():
+                cols = curves.columns[col_idxs]
+
+                norm_constant = curves[cols].sum(axis="columns")
+
+                # Take the cumulative sum to stack
+                curves[cols] = curves[cols].cumsum(axis="columns")
+
+                # Normalize by row sum to fill
+                if multiple == "fill":
+                    curves[cols] = curves[cols].div(norm_constant, axis="index")
+
+                # Define where each segment starts
+                baselines[cols] = curves[cols].shift(1, axis=1).fillna(0)
+
+        if multiple == "dodge":
+
+            # Account for the unique semantic (non-faceting) levels
+            # This will require rethiniking if we add other semantics!
+            hue_levels = self.var_levels["hue"]
+            n = len(hue_levels)
+            f_fwd, f_inv = self._get_scale_transforms(self.data_variable)
+            for key in curves:
+
+                level = dict(key)["hue"]
+                hist = curves[key].reset_index(name="heights")
+                level_idx = hue_levels.index(level)
+
+                a = f_fwd(hist["edges"])
+                b = f_fwd(hist["edges"] + hist["widths"])
+                w = (b - a) / n
+                new_min = f_inv(a + level_idx * w)
+                new_max = f_inv(a + (level_idx + 1) * w)
+                hist["widths"] = new_max - new_min
+                hist["edges"] = new_min
+
+                curves[key] = hist.set_index(["edges", "widths"])["heights"]
+
+        return curves, baselines
+
+    # -------------------------------------------------------------------------------- #
+    # Computation
+    # -------------------------------------------------------------------------------- #
+
+    def _compute_univariate_density(
+        self,
+        data_variable,
+        common_norm,
+        common_grid,
+        estimate_kws,
+        warn_singular=True,
+    ):
+
+        # Initialize the estimator object
+        estimator = KDE(**estimate_kws)
+
+        if set(self.variables) - {"x", "y"}:
+            if common_grid:
+                all_observations = self.comp_data.dropna()
+                estimator.define_support(all_observations[data_variable])
+        else:
+            common_norm = False
+
+        all_data = self.plot_data.dropna()
+        if common_norm and "weights" in all_data:
+            whole_weight = all_data["weights"].sum()
+        else:
+            whole_weight = len(all_data)
+
+        densities = {}
+
+        for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
+
+            # Extract the data points from this sub set and remove nulls
+            observations = sub_data[data_variable]
+
+            # Extract the weights for this subset of observations
+            if "weights" in self.variables:
+                weights = sub_data["weights"]
+                part_weight = weights.sum()
+            else:
+                weights = None
+                part_weight = len(sub_data)
+
+            # Estimate the density of observations at this level
+            variance = np.nan_to_num(observations.var())
+            singular = len(observations) < 2 or math.isclose(variance, 0)
+            try:
+                if not singular:
+                    # Convoluted approach needed because numerical failures
+                    # can manifest in a few different ways.
+                    density, support = estimator(observations, weights=weights)
+            except np.linalg.LinAlgError:
+                singular = True
+
+            if singular:
+                msg = (
+                    "Dataset has 0 variance; skipping density estimate. "
+                    "Pass `warn_singular=False` to disable this warning."
+                )
+                if warn_singular:
+                    warnings.warn(msg, UserWarning, stacklevel=4)
+                continue
+
+            # Invert the scaling of the support points
+            _, f_inv = self._get_scale_transforms(self.data_variable)
+            support = f_inv(support)
+
+            # Apply a scaling factor so that the integral over all subsets is 1
+            if common_norm:
+                density *= part_weight / whole_weight
+
+            # Store the density for this level
+            key = tuple(sub_vars.items())
+            densities[key] = pd.Series(density, index=support)
+
+        return densities
+
+    # -------------------------------------------------------------------------------- #
+    # Plotting
+    # -------------------------------------------------------------------------------- #
+
+    def plot_univariate_histogram(
+        self,
+        multiple,
+        element,
+        fill,
+        common_norm,
+        common_bins,
+        shrink,
+        kde,
+        kde_kws,
+        color,
+        legend,
+        line_kws,
+        estimate_kws,
+        **plot_kws,
+    ):
+
+        # -- Default keyword dicts
+        kde_kws = {} if kde_kws is None else kde_kws.copy()
+        line_kws = {} if line_kws is None else line_kws.copy()
+        estimate_kws = {} if estimate_kws is None else estimate_kws.copy()
+
+        # --  Input checking
+        _check_argument("multiple", ["layer", "stack", "fill", "dodge"], multiple)
+        _check_argument("element", ["bars", "step", "poly"], element)
+
+        auto_bins_with_weights = (
+            "weights" in self.variables
+            and estimate_kws["bins"] == "auto"
+            and estimate_kws["binwidth"] is None
+            and not estimate_kws["discrete"]
+        )
+        if auto_bins_with_weights:
+            msg = (
+                "`bins` cannot be 'auto' when using weights. "
+                "Setting `bins=10`, but you will likely want to adjust."
+            )
+# ... 2119 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `seaborn/__init__.py`
+- `seaborn/_base.py`
+- `seaborn/_compat.py`
+- `seaborn/_docstrings.py`
+- `seaborn/_statistics.py`
+- `seaborn/_testing.py`
+- `seaborn/algorithms.py`
+- `seaborn/axisgrid.py`
+- `seaborn/categorical.py`
+- `seaborn/cm.py`
+- `seaborn/matrix.py`
+- `seaborn/miscplot.py`
+- `seaborn/objects.py`
+- `seaborn/palettes.py`
+- `seaborn/rcmod.py`
+- `seaborn/regression.py`
+- `seaborn/relational.py`
+- `seaborn/utils.py`
+- `seaborn/widgets.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

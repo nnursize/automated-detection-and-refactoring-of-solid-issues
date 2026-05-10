@@ -1,0 +1,30 @@
+diff --git a/seaborn/_base.py b/seaborn/_base.py
+index 0d9f010..93ee868 100644
+--- a/seaborn/_base.py
++++ b/seaborn/_base.py
+@@ -623,7 +623,7 @@ class VectorPlotter:
+ 
+     _default_size_range = 1, 2  # Unused but needed in tests, ugh
+ 
+-    def __init__(self, data=None, variables={}):
++    def __init__(self, data=None, variables={}, plot_data_cls=None):
+ 
+         self._var_levels = {}
+         # var_ordered is relevant only for categorical axis variables, and may
+@@ -631,6 +631,7 @@ class VectorPlotter:
+         # such information and is set up by the scale_* methods. The analogous
+         # information for numeric axes would be information about log scales.
+         self._var_ordered = {"x": False, "y": False}  # alt., used DefaultDict
++        self.plot_data_cls = plot_data_cls or PlotData
+         self.assign_variables(data, variables)
+ 
+         # TODO Lots of tests assume that these are called to initialize the
+@@ -676,7 +677,7 @@ class VectorPlotter:
+             # object (internal but introduced for the objects interface)
+             # to centralize / standardize data consumption logic.
+             self.input_format = "long"
+-            plot_data = PlotData(data, variables)
++            plot_data = self.plot_data_cls(data, variables)
+             frame = plot_data.frame
+             names = plot_data.names
+ 

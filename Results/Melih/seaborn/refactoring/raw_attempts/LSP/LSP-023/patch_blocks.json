@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "@dataclass\nclass Ordinal(Scale):\n    # Categorical (convert to strings), sortable, can skip ticklabels\n    ...",
+    "replace_text": "@dataclass\nclass Ordinal(Scale):\n    # Categorical (convert to strings), sortable, can skip ticklabels\n    values: tuple | str | list | dict | None = None\n    order: list | None = None\n\n    _priority: ClassVar[int] = 4\n\n    def _setup(\n        self, data: Series, prop: Property, axis: Axis | None = None,\n    ) -> Scale:\n        # Ordinal behaves like Nominal for setup\n        return Nominal(values=self.values, order=self.order)._setup(data, prop, axis)\n\n    def _finalize(self, p: Plot, axis: Axis) -> None:\n        return Nominal(values=self.values, order=self.order)._finalize(p, axis)\n\n    def tick(self, locator: Locator | None = None) -> Ordinal:\n        new = copy(self)\n        new._tick_params = {\"locator\": locator}\n        return new\n\n    def label(self, formatter: Formatter | None = None) -> Ordinal:\n        new = copy(self)\n        new._label_params = {\"formatter\": formatter}\n        return new\n\n    def _get_locators(self, locator):\n        return Nominal()._get_locators(locator)\n\n    def _get_formatter(self, locator, formatter):\n        return Nominal()._get_formatter(locator, formatter)"
+  }
+]

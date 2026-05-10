@@ -1,0 +1,108 @@
+{
+  "issue_id": "ISP-010",
+  "principle": "ISP",
+  "title": "Refactor ISP-010 (ISP): Bloated class responsible for diverse plotting execution and rendering concerns.",
+  "branch": "refactor/ISP-010",
+  "base": "main",
+  "head_commit": "ca21f7d408709b2310eba3f8a41c16039778d12b",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11054,
+    "completion_tokens": 1447
+  },
+  "detected_issue": {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter",
+    "entity_type": "class",
+    "line_start": 974,
+    "line_end": 1830,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Bloated class responsible for diverse plotting execution and rendering concerns.",
+    "reasoning": "The `Plotter` class handles a wide range of responsibilities related to plot execution, including data extraction, label resolution, figure setup, statistics computation, scale setup, layer plotting, coordinate unscaling, pairing generation, subplot filtering, and legend management. This broad interface forces clients to depend on many unrelated functionalities, making it a fat interface and violating ISP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor Plotter to separate legend management into a dedicated class",
+    "rationale": "The Plotter class is bloated with legend-specific logic. Moving this to a LegendManager class improves cohesion and reduces the size of the Plotter interface, adhering to the Interface Segregation Principle.",
+    "files_touched": [
+      "seaborn/_core/plot.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/_core/plot.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/plot.py",
+        "search_text": "    def _make_legend(self, p: Plot) -> None:\n        \"\"\"Create the legend artist(s) and add onto the figure.\"\"\"\n        # Combine artists representing same information across layers\n        # Input list has an entry for each distinct variable in each layer\n        # Output dict has an entry for each distinct variable\n        merged_contents: dict[\n            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],\n        ] = {}\n        for key, new_artists, labels in self._legend_contents:\n            # Key is (name, id); we need the id to resolve variable uniqueness,\n            # but will need the name in the next step to title the legend\n            if key not in merged_contents:\n                # Matplotlib accepts a tuple of artists and will overlay them\n                new_artist_tuples = [tuple([a]) for a in new_artists]\n                merged_contents[key] = new_artist_tuples, labels\n            else:\n                existing_artists = merged_contents[key][0]\n                for i, new_artist in enumerate(new_artists):\n                    existing_artists[i] += tuple([new_artist])\n\n        # When using pyplot, an \"external\" legend won't be shown, so this\n        # keeps it inside the axes (though still attached to the figure)\n        # This is necessary because matplotlib layout engines currently don't\n        # support figure legends \u2014 ideally this will change.\n        loc = \"center right\" if self._pyplot else \"center left\"\n\n        base_legend = None\n        for (name, _), (handles, labels) in merged_contents.items():\n\n            legend = mpl.legend.Legend(\n                self._figure,\n                handles,  # type: ignore  # matplotlib/issues/26639\n                labels,\n                title=name,\n                loc=loc,\n                bbox_to_anchor=(.98, .55),\n            )\n\n            if base_legend:\n                # Matplotlib has no public API for this so it is a bit of a hack.\n                # Ideally we'd define our own legend class with more flexibility,\n                # but that is a lot of work!\n                base_legend_box = base_legend.get_children()[0]\n                this_legend_box = legend.get_children()[0]\n                base_legend_box.get_children().extend(this_legend_box.get_children())\n            else:\n                base_legend = legend\n                self._figure.legends.append(legend)",
+        "replace_text": "    def _make_legend(self, p: Plot) -> None:\n        \"\"\"Create the legend artist(s) and add onto the figure.\"\"\"\n        LegendManager().make_legend(self, p)",
+        "search_lines": 48,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/_core/plot.py",
+        "search_text": "class Plotter:\n    \"\"\"\n    Engine for compiling a :class:`Plot` spec into a Matplotlib figure.\n\n    This class is not intended to be instantiated directly by users.\n\n    \"\"\"\n    # TODO decide if we ever want these (Plot.plot(debug=True))?\n    _data: PlotData\n    _layers: list[Layer]\n    _figure: Figure\n\n    def __init__(self, pyplot: bool, theme: dict[str, Any]):\n\n        self._pyplot = pyplot\n        self._theme = theme\n        self._legend_contents: list[tuple[\n            tuple[str, str | int], list[Artist], list[str],\n        ]] = []\n        self._scales: dict[str, Scale] = {}",
+        "replace_text": "class LegendManager:\n    def make_legend(self, plotter: \"Plotter\", p: Plot) -> None:\n        \"\"\"Combine artists representing same information across layers.\"\"\"\n        merged_contents: dict[\n            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],\n        ] = {}\n        for key, new_artists, labels in plotter._legend_contents:\n            if key not in merged_contents:\n                new_artist_tuples = [tuple([a]) for a in new_artists]\n                merged_contents[key] = new_artist_tuples, labels\n            else:\n                existing_artists = merged_contents[key][0]\n                for i, new_artist in enumerate(new_artists):\n                    existing_artists[i] += tuple([new_artist])\n\n        loc = \"center right\" if plotter._pyplot else \"center left\"\n        base_legend = None\n        for (name, _), (handles, labels) in merged_contents.items():\n            legend = mpl.legend.Legend(\n                plotter._figure,\n                handles,\n                labels,\n                title=name,\n                loc=loc,\n                bbox_to_anchor=(.98, .55),\n            )\n            if base_legend:\n                base_legend_box = base_legend.get_children()[0]\n                this_legend_box = legend.get_children()[0]\n                base_legend_box.get_children().extend(this_legend_box.get_children())\n            else:\n                base_legend = legend\n                plotter._figure.legends.append(legend)\n\n\nclass Plotter:\n    \"\"\"\n    Engine for compiling a :class:`Plot` spec into a Matplotlib figure.\n\n    This class is not intended to be instantiated directly by users.\n\n    \"\"\"\n    # TODO decide if we ever want these (Plot.plot(debug=True))?\n    _data: PlotData\n    _layers: list[Layer]\n    _figure: Figure\n\n    def __init__(self, pyplot: bool, theme: dict[str, Any]):\n\n        self._pyplot = pyplot\n        self._theme = theme\n        self._legend_contents: list[tuple[\n            tuple[str, str | int], list[Artist], list[str],\n        ]] = []\n        self._scales: dict[str, Scale] = {}",
+        "search_lines": 20,
+        "replace_lines": 55
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2222.6123809814453,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:460: in <module>\n    class _StripPlotter(_CategoricalPlotter):\nseaborn\\categorical.py:461: in _StripPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^\nE   NameError: name 'register_plot' is not defined\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - NameError: name 'register_plot' is not defined\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.37s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/_core/plot.py",
+        "loc": 1288,
+        "blank_lines": 349,
+        "comment_lines": 148,
+        "function_count": 57,
+        "avg_cc": 5.22,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/_core/plot.py",
+        "loc": 1292,
+        "blank_lines": 348,
+        "comment_lines": 135,
+        "function_count": 58,
+        "avg_cc": 5.22,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py\nindex 004727b..36e8d40 100644\n--- a/seaborn/_core/plot.py\n+++ b/seaborn/_core/plot.py\n@@ -926,6 +926,41 @@ class Plot:\n # ---- The plot compilation engine ---------------------------------------------- #\n \n \n+class LegendManager:\n+    def make_legend(self, plotter: \"Plotter\", p: Plot) -> None:\n+        \"\"\"Combine artists representing same information across layers.\"\"\"\n+        merged_contents: dict[\n+            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],\n+        ] = {}\n+        for key, new_artists, labels in plotter._legend_contents:\n+            if key not in merged_contents:\n+                new_artist_tuples = [tuple([a]) for a in new_artists]\n+                merged_contents[key] = new_artist_tuples, labels\n+            else:\n+                existing_artists = merged_contents[key][0]\n+                for i, new_artist in enumerate(new_artists):\n+                    existing_artists[i] += tuple([new_artist])\n+\n+        loc = \"center right\" if plotter._pyplot else \"center left\"\n+        base_legend = None\n+        for (name, _), (handles, labels) in merged_contents.items():\n+            legend = mpl.legend.Legend(\n+                plotter._figure,\n+                handles,\n+                labels,\n+                title=name,\n+                loc=loc,\n+                bbox_to_anchor=(.98, .55),\n+            )\n+            if base_legend:\n+                base_legend_box = base_legend.get_children()[0]\n+                this_legend_box = legend.get_children()[0]\n+                base_legend_box.get_children().extend(this_legend_box.get_children())\n+            else:\n+                base_legend = legend\n+                plotter._figure.legends.append(legend)\n+\n+\n class Plotter:\n     \"\"\"\n     Engine for compiling a :class:`Plot` spec into a Matplotlib figure.\n@@ -1684,52 +1719,7 @@ class Plotter:\n \n     def _make_legend(self, p: Plot) -> None:\n         \"\"\"Create the legend artist(s) and add onto the figure.\"\"\"\n-        # Combine artists representing same information across layers\n-        # Input list has an entry for each distinct variable in each layer\n-        # Output dict has an entry for each distinct variable\n-        merged_contents: dict[\n-            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],\n-        ] = {}\n-        for key, new_artists, labels in self._legend_contents:\n-            # Key is (name, id); we need the id to resolve variable uniqueness,\n-            # but will need the name in the next step to title the legend\n-            if key not in merged_contents:\n-                # Matplotlib accepts a tuple of artists and will overlay them\n-                new_artist_tuples = [tuple([a]) for a in new_artists]\n-                merged_contents[key] = new_artist_tuples, labels\n-            else:\n-                existing_artists = merged_contents[key][0]\n-                for i, new_artist in enumerate(new_artists):\n-                    existing_artists[i] += tuple([new_artist])\n-\n-        # When using pyplot, an \"external\" legend won't be shown, so this\n-        # keeps it inside the axes (though still attached to the figure)\n-        # This is necessary because matplotlib layout engines currently don't\n-        # support figure legends \u00e2\u20ac\u201d ideally this will change.\n-        loc = \"center right\" if self._pyplot else \"center left\"\n-\n-        base_legend = None\n-        for (name, _), (handles, labels) in merged_contents.items():\n-\n-            legend = mpl.legend.Legend(\n-                self._figure,\n-                handles,  # type: ignore  # matplotlib/issues/26639\n-                labels,\n-                title=name,\n-                loc=loc,\n-                bbox_to_anchor=(.98, .55),\n-            )\n-\n-            if base_legend:\n-                # Matplotlib has no public API for this so it is a bit of a hack.\n-                # Ideally we'd define our own legend class with more flexibility,\n-                # but that is a lot of work!\n-                base_legend_box = base_legend.get_children()[0]\n-                this_legend_box = legend.get_children()[0]\n-                base_legend_box.get_children().extend(this_legend_box.get_children())\n-            else:\n-                base_legend = legend\n-                self._figure.legends.append(legend)\n+        LegendManager().make_legend(self, p)\n \n     def _finalize_figure(self, p: Plot) -> None:\n \n",
+  "duration_ms": 13828.741788864136
+}

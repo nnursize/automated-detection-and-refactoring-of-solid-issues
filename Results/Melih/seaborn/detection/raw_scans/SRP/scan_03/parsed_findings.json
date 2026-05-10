@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 1234,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class handles data structure transformation, orientation inference, and rendering for multiple distinct plot types.",
+    "reasoning": "The _CategoricalPlotter class is a 'God Object' for categorical visualizations. It encapsulates unrelated responsibilities: 1) Data munging (wide-form to long-form conversion), 2) Orientation and axis scaling logic, 3) Backward compatibility management for deprecated parameters, and 4) Specific rendering logic for highly diverse plot types including box plots, violin plots, bar plots, and swarm plots. Changes to the statistical logic of a box plot or the rendering details of a swarm plot both require modifications to this single class."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_RegressionPlotter",
+    "entity_type": "class",
+    "line_start": 59,
+    "line_end": 366,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class mixes complex statistical modeling with low-level Matplotlib rendering.",
+    "reasoning": "The _RegressionPlotter violates SRP by combining two distinct concerns: business logic (fitting various statistical models like OLS, Logistic, and Lowess) and UI/Rendering logic (interacting with Matplotlib to draw scatter points and regression lines). If the interface for statsmodels changes, this class must change; if the visual style of error bands changes, this class must also change."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 83,
+    "line_end": 1025,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class manages statistical distribution estimation and complex multi-layered rendering.",
+    "reasoning": "This class is responsible for managing the lifecycle of distribution plots. It handles the configuration of statistical estimators (KDE, ECDF, Histogram), performs the data aggregation, manages the coordinate system transformations for log scales, and executes the rendering for both univariate and bivariate cases. It serves as both a data processor and a renderer, making it fragile to changes in either the statistical math or the plotting backend."
+  },
+  {
+    "file_path": "seaborn/_core/plot.py",
+    "entity_name": "Plotter",
+    "entity_type": "class",
+    "line_start": 1111,
+    "line_end": 1643,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Orchestration class that handles figure initialization, scale setup, stat computation, and legend generation.",
+    "reasoning": "While intended to act as a compiler for the declarative API, the Plotter class ends up knowing too much about every stage of the pipeline. It contains logic for figure annotation, scale transformation, statistical execution, and complex legend merging. It acts as a central hub that must be updated whenever any part of the plotting pipeline (scales, stats, marks, or layout) evolves."
+  }
+]

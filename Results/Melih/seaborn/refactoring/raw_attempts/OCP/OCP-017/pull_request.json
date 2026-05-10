@@ -1,0 +1,156 @@
+{
+  "issue_id": "OCP-017",
+  "principle": "OCP",
+  "title": "Refactor OCP-017 (OCP): Adding new categorical plot types requires modifying this class by adding new...",
+  "branch": "refactor/OCP-017",
+  "base": "main",
+  "head_commit": "da52b6909eeb2ec1e3b66752c15792b16978b3f8",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 17427,
+    "completion_tokens": 1412
+  },
+  "detected_issue": {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 169,
+    "line_end": 741,
+    "severity": "medium",
+    "scan_count": 7,
+    "description": "Adding new categorical plot types requires modifying this class by adding new plot_X methods.",
+    "reasoning": "The _CategoricalPlotter class contains distinct methods for each specific plot type (e.g., plot_strips, plot_swarms, plot_boxes). To introduce a new categorical plot, a new method (e.g., plot_newplot) would need to be added to this class. This means the class is open for modification when new behaviors (plot types) are introduced, violating OCP. A more OCP-compliant design might involve a registry or factory pattern where new plot types are registered externally without modifying the base plotter."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor _CategoricalPlotter to use a registry for plot types to improve OCP compliance.",
+    "rationale": "By introducing a registry mechanism, we decouple the plotter class from specific plot implementations, allowing new plot types to be added without modifying the base class.",
+    "files_touched": [
+      "seaborn/categorical.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "seaborn/categorical.py"
+    ],
+    "patch_blocks_count": 8,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    # Note that the plotting methods here aim (in most cases) to produce the\n    # exact same artists as the original (pre 0.12) version of the code, so\n    # there is some weirdness that might not otherwise be clean or make sense in\n    # this context, such as adding empty artists for combinations of variables\n    # with no observations\n\n    def plot_strips(",
+        "replace_text": "    # Note that the plotting methods here aim (in most cases) to produce the\n    # exact same artists as the original (pre 0.12) version of the code, so\n    # there is some weirdness that might not otherwise be clean or make sense in\n    # this context, such as adding empty artists for combinations of variables\n    # with no observations\n\n    _plot_methods = {}\n\n    def __init_subclass__(cls, **kwargs):\n        super().__init_subclass__(**kwargs)\n        cls._plot_methods = {}\n\n    @classmethod\n    def register_plot(cls, name):\n        def decorator(func):\n            cls._plot_methods[name] = func\n            return func\n        return decorator\n\n    def plot(self, name, *args, **kwargs):\n        return self._plot_methods[name](self, *args, **kwargs)\n\n    @register_plot(\"strips\")\n    def plot_strips(",
+        "search_lines": 7,
+        "replace_lines": 24
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_strips(\n        self,\n        jitter,\n        dodge,\n        color,\n        plot_kws,\n    ):",
+        "replace_text": "    def plot_strips(\n        self,\n        jitter,\n        dodge,\n        color,\n        plot_kws,\n    ):",
+        "search_lines": 7,
+        "replace_lines": 7
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_swarms(\n        self,\n        dodge,\n        color,\n        warn_thresh,\n        plot_kws,\n    ):",
+        "replace_text": "    @register_plot(\"swarms\")\n    def plot_swarms(\n        self,\n        dodge,\n        color,\n        warn_thresh,\n        plot_kws,\n    ):",
+        "search_lines": 7,
+        "replace_lines": 8
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_boxes(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        whis,\n        color,\n        linecolor,\n        linewidth,\n        fliersize,\n        plot_kws,  # TODO rename user_kws?\n    ):",
+        "replace_text": "    @register_plot(\"boxes\")\n    def plot_boxes(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        whis,\n        color,\n        linecolor,\n        linewidth,\n        fliersize,\n        plot_kws,  # TODO rename user_kws?\n    ):",
+        "search_lines": 13,
+        "replace_lines": 14
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_boxens(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        color,\n        linecolor,\n        linewidth,\n        width_method,\n        k_depth,\n        outlier_prop,\n        trust_alpha,\n        showfliers,\n        box_kws,\n        flier_kws,\n        line_kws,\n        plot_kws,\n    ):",
+        "replace_text": "    @register_plot(\"boxens\")\n    def plot_boxens(\n        self,\n        width,\n        dodge,\n        gap,\n        fill,\n        color,\n        linecolor,\n        linewidth,\n        width_method,\n        k_depth,\n        outlier_prop,\n        trust_alpha,\n        showfliers,\n        box_kws,\n        flier_kws,\n        line_kws,\n        plot_kws,\n    ):",
+        "search_lines": 19,
+        "replace_lines": 20
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_violins(\n        self,\n        width,\n        dodge,\n        gap,\n        split,\n        color,\n        fill,\n        linecolor,\n        linewidth,\n        inner,\n        density_norm,\n        common_norm,\n        kde_kws,\n        inner_kws,\n        plot_kws,\n    ):",
+        "replace_text": "    @register_plot(\"violins\")\n    def plot_violins(\n        self,\n        width,\n        dodge,\n        gap,\n        split,\n        color,\n        fill,\n        linecolor,\n        linewidth,\n        inner,\n        density_norm,\n        common_norm,\n        kde_kws,\n        inner_kws,\n        plot_kws,\n    ):",
+        "search_lines": 17,
+        "replace_lines": 18
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_points(\n        self,\n        aggregator,\n        markers,\n        linestyles,\n        dodge,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):",
+        "replace_text": "    @register_plot(\"points\")\n    def plot_points(\n        self,\n        aggregator,\n        markers,\n        linestyles,\n        dodge,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):",
+        "search_lines": 11,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "seaborn/categorical.py",
+        "search_text": "    def plot_bars(\n        self,\n        aggregator,\n        dodge,\n        gap,\n        width,\n        fill,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):",
+        "replace_text": "    @register_plot(\"bars\")\n    def plot_bars(\n        self,\n        aggregator,\n        dodge,\n        gap,\n        width,\n        fill,\n        color,\n        capsize,\n        err_kws,\n        plot_kws,\n    ):",
+        "search_lines": 12,
+        "replace_lines": 13
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\seaborn-master\\.pytest_report.json",
+    "passed": true,
+    "total": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 2296.109437942505,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "\n=================================== ERRORS ====================================\n__________________ ERROR collecting tests/_core/test_data.py __________________\ntests\\_core\\test_data.py:9: in <module>\n    from seaborn._core.data import PlotData\nseaborn\\__init__.py:7: in <module>\n    from .categorical import *  # noqa: F401,F403\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^\nseaborn\\categorical.py:49: in <module>\n    class _CategoricalPlotter(VectorPlotter):\nseaborn\\categorical.py:482: in _CategoricalPlotter\n    @register_plot(\"strips\")\n     ^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: 'classmethod' object is not callable\n=========================== short test summary info ===========================\nERROR tests/_core/test_data.py - TypeError: 'classmethod' object is not callable\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 1.41s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2717,
+        "blank_lines": 593,
+        "comment_lines": 161,
+        "function_count": 53,
+        "avg_cc": 7.85,
+        "max_cc": 53.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "seaborn/categorical.py",
+        "loc": 2736,
+        "blank_lines": 597,
+        "comment_lines": 161,
+        "function_count": 57,
+        "avg_cc": 7.46,
+        "max_cc": 53.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/seaborn/categorical.py b/seaborn/categorical.py\nindex 017f0b8..dcbddc2 100644\n--- a/seaborn/categorical.py\n+++ b/seaborn/categorical.py\n@@ -463,6 +463,23 @@ class _CategoricalPlotter(VectorPlotter):\n     # this context, such as adding empty artists for combinations of variables\n     # with no observations\n \n+    _plot_methods = {}\n+\n+    def __init_subclass__(cls, **kwargs):\n+        super().__init_subclass__(**kwargs)\n+        cls._plot_methods = {}\n+\n+    @classmethod\n+    def register_plot(cls, name):\n+        def decorator(func):\n+            cls._plot_methods[name] = func\n+            return func\n+        return decorator\n+\n+    def plot(self, name, *args, **kwargs):\n+        return self._plot_methods[name](self, *args, **kwargs)\n+\n+    @register_plot(\"strips\")\n     def plot_strips(\n         self,\n         jitter,\n@@ -514,6 +531,7 @@ class _CategoricalPlotter(VectorPlotter):\n \n         self._configure_legend(ax, _scatter_legend_artist, common_kws=plot_kws)\n \n+    @register_plot(\"swarms\")\n     def plot_swarms(\n         self,\n         dodge,\n@@ -588,6 +606,7 @@ class _CategoricalPlotter(VectorPlotter):\n         _draw_figure(ax.figure)\n         self._configure_legend(ax, _scatter_legend_artist, plot_kws)\n \n+    @register_plot(\"boxes\")\n     def plot_boxes(\n         self,\n         width,\n@@ -752,6 +771,7 @@ class _CategoricalPlotter(VectorPlotter):\n         legend_artist = _get_patch_legend_artist(fill)\n         self._configure_legend(ax, legend_artist, boxprops)\n \n+    @register_plot(\"boxens\")\n     def plot_boxens(\n         self,\n         width,\n@@ -893,6 +913,7 @@ class _CategoricalPlotter(VectorPlotter):\n         common_kws = {**box_kws, \"linewidth\": linewidth, \"edgecolor\": linecolor}\n         self._configure_legend(ax, legend_artist, common_kws)\n \n+    @register_plot(\"violins\")\n     def plot_violins(\n         self,\n         width,\n@@ -1169,6 +1190,7 @@ class _CategoricalPlotter(VectorPlotter):\n         common_kws = {**plot_kws, \"linewidth\": linewidth, \"edgecolor\": linecolor}\n         self._configure_legend(ax, legend_artist, common_kws)\n \n+    @register_plot(\"points\")\n     def plot_points(\n         self,\n         aggregator,\n@@ -1249,6 +1271,7 @@ class _CategoricalPlotter(VectorPlotter):\n         semantic_kws = {\"hue\": {\"marker\": markers, \"linestyle\": linestyles}}\n         self._configure_legend(ax, legend_artist, sub_kws, semantic_kws)\n \n+    @register_plot(\"bars\")\n     def plot_bars(\n         self,\n         aggregator,\n",
+  "duration_ms": 24617.033004760742
+}

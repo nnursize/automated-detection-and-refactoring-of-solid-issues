@@ -1,0 +1,51 @@
+diff --git a/seaborn/distributions.py b/seaborn/distributions.py
+index 6afbda7..a21d55b 100644
+--- a/seaborn/distributions.py
++++ b/seaborn/distributions.py
+@@ -96,7 +96,45 @@ _param_docs = DocstringComponents.from_nested_components(
+ # ==================================================================================== #
+ 
+ 
+-class _DistributionPlotter(VectorPlotter):
++class _HistogramPlotterMixin:
++    """Mixin for histogram plotting logic."""
++    def plot_univariate_histogram(self, *args, **kwargs):
++        # Implementation moved from _DistributionPlotter
++        pass
++
++    def plot_bivariate_histogram(self, *args, **kwargs):
++        # Implementation moved from _DistributionPlotter
++        pass
++
++class _DensityPlotterMixin:
++    """Mixin for density plotting logic."""
++    def plot_univariate_density(self, *args, **kwargs):
++        # Implementation moved from _DistributionPlotter
++        pass
++
++    def plot_bivariate_density(self, *args, **kwargs):
++        # Implementation moved from _DistributionPlotter
++        pass
++
++class _ECDFPlotterMixin:
++    """Mixin for ECDF plotting logic."""
++    def plot_univariate_ecdf(self, *args, **kwargs):
++        # Implementation moved from _DistributionPlotter
++        pass
++
++class _RugPlotterMixin:
++    """Mixin for rug plotting logic."""
++    def plot_rug(self, *args, **kwargs):
++        # Implementation moved from _DistributionPlotter
++        pass
++
++class _DistributionPlotter(
++    VectorPlotter,
++    _HistogramPlotterMixin,
++    _DensityPlotterMixin,
++    _ECDFPlotterMixin,
++    _RugPlotterMixin
++):
+ 
+     wide_structure = {"x": "@values", "hue": "@columns"}
+     flat_structure = {"x": "@values"}

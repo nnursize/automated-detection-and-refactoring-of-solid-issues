@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/distributions.py",
+    "search_text": "def histplot(\n    data=None, *,\n    # Vector variables\n    x=None, y=None, hue=None, weights=None,\n    # Histogram computation parameters\n    stat=\"count\", bins=\"auto\", binwidth=None, binrange=None,\n    discrete=None, cumulative=False, common_bins=True, common_norm=True,\n    # Histogram appearance parameters\n    multiple=\"layer\", element=\"bars\", fill=True, shrink=1,\n    # Histogram smoothing with a kernel density estimate\n    kde=False, kde_kws=None, line_kws=None,\n    # Bivariate histogram parameters\n    thresh=0, pthresh=None, pmax=None, cbar=False, cbar_ax=None, cbar_kws=None,\n    # Hue mapping parameters\n    palette=None, hue_order=None, hue_norm=None, color=None,\n    # Axes information\n    log_scale=None, legend=True, ax=None,\n    # Other appearance keywords\n    **kwargs,\n):\n\n    p = _DistributionPlotter(\n        data=data,\n        variables=dict(x=x, y=y, hue=hue, weights=weights),\n    )",
+    "replace_text": "def histplot(\n    data=None, *,\n    # Vector variables\n    x=None, y=None, hue=None, weights=None,\n    # Histogram computation parameters\n    stat=\"count\", bins=\"auto\", binwidth=None, binrange=None,\n    discrete=None, cumulative=False, common_bins=True, common_norm=True,\n    # Histogram appearance parameters\n    multiple=\"layer\", element=\"bars\", fill=True, shrink=1,\n    # Histogram smoothing with a kernel density estimate\n    kde=False, kde_kws=None, line_kws=None,\n    # Bivariate histogram parameters\n    thresh=0, pthresh=None, pmax=None, cbar=False, cbar_ax=None, cbar_kws=None,\n    # Hue mapping parameters\n    palette=None, hue_order=None, hue_norm=None, color=None,\n    # Axes information\n    log_scale=None, legend=True, ax=None,\n    # Other appearance keywords\n    **kwargs,\n):\n\n    p = _DistributionPlotter.from_data(\n        data=data,\n        variables=dict(x=x, y=y, hue=hue, weights=weights),\n    )"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/distributions.py",
+    "search_text": "# ==================================================================================== #\n# External API\n# ==================================================================================== #\n\ndef histplot(",
+    "replace_text": "# ==================================================================================== #\n# External API\n# ==================================================================================== #\n\nclass _DistributionPlotter(object):\n    # ... (existing implementation of _DistributionPlotter) ...\n    @classmethod\n    def from_data(cls, data, variables):\n        return cls(data=data, variables=variables)\n\ndef histplot("
+  }
+]

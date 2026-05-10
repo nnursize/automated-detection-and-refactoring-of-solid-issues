@@ -1,0 +1,73 @@
+{
+  "scan_id": "seaborn-master_OCP_scan_07",
+  "repo_name": "seaborn-master",
+  "principle": "OCP",
+  "scan_number": 7,
+  "timestamp": "2026-04-18T15:20:47.746607",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modif...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_boxens\",\n      \"entity_type\": \"method\",\n      \"line_start\": 660,\n      \"line_end\": 819,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Logic branches on `width_method` string, requiring modification for new methods.\",\n      \"reasoning\": \"The method contains an `if/elif/else` chain (`if width_method == 'linear'`, `elif width_method == 'exponential'`, `elif width_method == 'area'`) to determine relative widths. Adding a new `width_method` would require modifying this existing method, violating OCP. This logic should be encapsulated using a strategy pattern or polymorphic objects.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter.plot_violins\",\n      \"entity_type\": \"method\",\n      \"line_start\": 821,\n      \"line_end\": 1190,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Logic branches on `inner` and `density_norm` strings, requiring modification for new types.\",\n      \"reasoning\": \"This method contains multiple `if/elif` chains: one for `inner` (`if inner is None`, `elif inner.startswith('point')`, etc.) and another for `density_norm` (`if density_norm == 'area'`, `elif density_norm == 'count'`, etc.). Introducing new 'inner' plot types or 'density_norm' methods would necessitate modifying these existing conditional blocks, which violates OCP. These behaviors should be implemented polymorphically.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter._add_legend\",\n      \"entity_type\": \"method\",\n      \"line_start\": 124,\n      \"line_end\": 147,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Logic branches on `ax_obj` type, requiring modification for new Axes types.\",\n      \"reasoning\": \"The method uses an `isinstance` check (`if isinstance(ax_obj, mpl.axes.Axes)`) to determine how to add the legend. If new types of `ax_obj` (e.g., custom Matplotlib Axes subclasses or other grid objects) are introduced that require different legend handling, this method would need to be modified, violating OCP. A more extensible approach would use polymorphism or a strategy pattern for legend management.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter._artist_kws\",\n      \"entity_type\": \"method\",\n      \"line_start\": 149,\n      \"line_end\": 172,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Logic branches on `element` string, requiring modification for new element types.\",\n      \"reasoning\": \"The method contains `if/elif/else` statements that branch logic based on the `element` string value (`elif element == 'bars'`). If new plot elements are introduced, this method would need to be modified to include new conditional branches, violating OCP. This behavior could be abstracted using a dictionary mapping element names to keyword-generating functions or by making `element` a polymorphic object.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter._resolve_multiple\",\n      \"entity_type\": \"method\",\n      \"line_start\": 209,\n      \"line_end\": 269,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Logic branches on `multiple` string, requiring modification for new strategies.\",\n      \"reasoning\": \"The method uses `if multiple in ('stack', 'fill')` and `if multiple == 'dodge'` to apply different density data modifications. If new strategies for handling multiple distributions are introduced, this method would require modification, violating OCP. This is a classic case for applying the Strategy pattern, where each 'multiple' strategy is encapsulated in its own object.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter.plot_univariate_histogram\",\n      \"entity_type\": \"method\",\n      \"line_start\": 314,\n      \"line_end\": 536,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Logic branches on `",
+  "findings": [
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_boxens",
+      "entity_type": "method",
+      "line_start": 660,
+      "line_end": 819,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Logic branches on `width_method` string, requiring modification for new methods.",
+      "reasoning": "The method contains an `if/elif/else` chain (`if width_method == 'linear'`, `elif width_method == 'exponential'`, `elif width_method == 'area'`) to determine relative widths. Adding a new `width_method` would require modifying this existing method, violating OCP. This logic should be encapsulated using a strategy pattern or polymorphic objects."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter.plot_violins",
+      "entity_type": "method",
+      "line_start": 821,
+      "line_end": 1190,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Logic branches on `inner` and `density_norm` strings, requiring modification for new types.",
+      "reasoning": "This method contains multiple `if/elif` chains: one for `inner` (`if inner is None`, `elif inner.startswith('point')`, etc.) and another for `density_norm` (`if density_norm == 'area'`, `elif density_norm == 'count'`, etc.). Introducing new 'inner' plot types or 'density_norm' methods would necessitate modifying these existing conditional blocks, which violates OCP. These behaviors should be implemented polymorphically."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter._add_legend",
+      "entity_type": "method",
+      "line_start": 124,
+      "line_end": 147,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Logic branches on `ax_obj` type, requiring modification for new Axes types.",
+      "reasoning": "The method uses an `isinstance` check (`if isinstance(ax_obj, mpl.axes.Axes)`) to determine how to add the legend. If new types of `ax_obj` (e.g., custom Matplotlib Axes subclasses or other grid objects) are introduced that require different legend handling, this method would need to be modified, violating OCP. A more extensible approach would use polymorphism or a strategy pattern for legend management."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter._artist_kws",
+      "entity_type": "method",
+      "line_start": 149,
+      "line_end": 172,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Logic branches on `element` string, requiring modification for new element types.",
+      "reasoning": "The method contains `if/elif/else` statements that branch logic based on the `element` string value (`elif element == 'bars'`). If new plot elements are introduced, this method would need to be modified to include new conditional branches, violating OCP. This behavior could be abstracted using a dictionary mapping element names to keyword-generating functions or by making `element` a polymorphic object."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter._resolve_multiple",
+      "entity_type": "method",
+      "line_start": 209,
+      "line_end": 269,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Logic branches on `multiple` string, requiring modification for new strategies.",
+      "reasoning": "The method uses `if multiple in ('stack', 'fill')` and `if multiple == 'dodge'` to apply different density data modifications. If new strategies for handling multiple distributions are introduced, this method would require modification, violating OCP. This is a classic case for applying the Strategy pattern, where each 'multiple' strategy is encapsulated in its own object."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 77199.7458934784,
+  "error": null
+}

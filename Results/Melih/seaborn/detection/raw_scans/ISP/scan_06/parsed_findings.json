@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/categorical.py",
+    "entity_name": "_CategoricalPlotter",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 979,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Fat Interface grouping unrelated plotting logic for diverse categorical plot types",
+    "reasoning": "The God Class smell in `_CategoricalPlotter` leads to an ISP violation because it defines a monolithic interface for all categorical plot types (strips, swarms, boxes, violins, bars, etc.). Subclasses like `_CategoricalAggPlotter` (used for bar and point plots) are forced to inherit and depend on numerous specialized plotting methods (e.g., `plot_violins`, `plot_boxens`) that are entirely irrelevant to their functionality."
+  },
+  {
+    "file_path": "seaborn/distributions.py",
+    "entity_name": "_DistributionPlotter",
+    "entity_type": "class",
+    "line_start": 112,
+    "line_end": 1111,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Monolithic interface bundling histogram, KDE, ECDF, and rug plot logic",
+    "reasoning": "The Large Class smell in `_DistributionPlotter` creates a fat interface for distribution-based visualizations. Plotting functions like `histplot`, `kdeplot`, and `ecdfplot` all instantiate this same plotter class. Consequently, a client object created for a simple rug plot (`rugplot`) is forced to depend on and carry the weight of complex, unrelated logic for bivariate histograms and kernel density estimation."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 46,
+    "line_end": 105,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Scale interface forces implementation of axis-specific methods on non-axis scales",
+    "reasoning": "The `Scale` base class defines a broad interface including methods for axis tick and label configuration (`tick`, `label`, `_get_locators`). This violates ISP because not all scales (such as the internal `Identity` scale produced by `_identity()`) require or support these behaviors. The `Identity` subclass represents a 'Refused Bequest' smell, as it is forced to inherit an interface where it cannot provide meaningful implementations for most methods."
+  }
+]

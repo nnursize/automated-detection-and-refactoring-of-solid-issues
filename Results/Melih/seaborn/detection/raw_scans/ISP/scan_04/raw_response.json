@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_04",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 4,
+  "timestamp": "2026-04-18T14:30:18.857438",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Interface Segregation Principle (ISP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these i...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1058,\n      \"line_end\": 1076,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"Fat interface for scaling logic forces subclasses to inherit unsupported methods.\",\n      \"reasoning\": \"The 'Fat Interface' smell in VectorPlotter is a violation of ISP because it defines several specific scaling methods (scale_native, scale_numeric, scale_datetime) that raise NotImplementedError. This forces all subclasses, regardless of their specific data handling needs, to inherit and depend on an interface that includes methods they do not implement or support. For example, a categorical plotter is forced to carry the interface for numeric and datetime scaling.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 58,\n      \"line_end\": 1100,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"God Class bundles unrelated plotting methods, creating a fat interface for clients and subclasses.\",\n      \"reasoning\": \"The 'God Class' smell in _CategoricalPlotter leads to an ISP violation. It bundles plotting logic for many distinct types (boxes, violins, bars, etc.) into a single interface. Clients like the 'boxplot' function are forced to depend on the entire class despite only using one method (plot_boxes). Furthermore, subclasses like _CategoricalAggPlotter are forced to inherit numerous plotting methods (like plot_violins or plot_boxens) that are irrelevant to their purpose, violating the principle that classes should not depend on methods they do not use.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 105,\n      \"line_end\": 840,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"God Class bundles univariate and bivariate logic, forcing clients to depend on unused functionality.\",\n      \"reasoning\": \"The 'God Class' smell in _DistributionPlotter violates ISP by combining disparate plotting logic for histograms, KDEs, and ECDFs in both univariate and bivariate forms. This creates a fat interface where clients (e.g., kdeplot) and potential subclasses are forced to depend on a large set of methods they do not use (e.g., bivariate histogram logic when only doing univariate KDEs). This violates the principle that clients should not be forced to depend on interfaces they do not use.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 1058,
+      "line_end": 1076,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "Fat interface for scaling logic forces subclasses to inherit unsupported methods.",
+      "reasoning": "The 'Fat Interface' smell in VectorPlotter is a violation of ISP because it defines several specific scaling methods (scale_native, scale_numeric, scale_datetime) that raise NotImplementedError. This forces all subclasses, regardless of their specific data handling needs, to inherit and depend on an interface that includes methods they do not implement or support. For example, a categorical plotter is forced to carry the interface for numeric and datetime scaling."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 58,
+      "line_end": 1100,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "God Class bundles unrelated plotting methods, creating a fat interface for clients and subclasses.",
+      "reasoning": "The 'God Class' smell in _CategoricalPlotter leads to an ISP violation. It bundles plotting logic for many distinct types (boxes, violins, bars, etc.) into a single interface. Clients like the 'boxplot' function are forced to depend on the entire class despite only using one method (plot_boxes). Furthermore, subclasses like _CategoricalAggPlotter are forced to inherit numerous plotting methods (like plot_violins or plot_boxens) that are irrelevant to their purpose, violating the principle that classes should not depend on methods they do not use."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 105,
+      "line_end": 840,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "God Class bundles univariate and bivariate logic, forcing clients to depend on unused functionality.",
+      "reasoning": "The 'God Class' smell in _DistributionPlotter violates ISP by combining disparate plotting logic for histograms, KDEs, and ECDFs in both univariate and bivariate forms. This creates a fat interface where clients (e.g., kdeplot) and potential subclasses are forced to depend on a large set of methods they do not use (e.g., bivariate histogram logic when only doing univariate KDEs). This violates the principle that clients should not be forced to depend on interfaces they do not use."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 79077.54111289978,
+  "error": null
+}

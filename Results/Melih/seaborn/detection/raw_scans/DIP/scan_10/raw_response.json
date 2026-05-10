@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_DIP_scan_10",
+  "repo_name": "seaborn-master",
+  "principle": "DIP",
+  "scan_number": 10,
+  "timestamp": "2026-04-18T20:30:28.147287",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad A...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 616,\n      \"line_end\": 1448,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"VectorPlotter defines abstract methods for scaling that force concrete implementations to handle specific axis types.\",\n      \"reasoning\": \"The VectorPlotter class defines abstract methods (scale_native, scale_numeric, scale_datetime) which forces subclasses to implement specific scaling logic for different data types. This couples the plotter to the scaling implementation details rather than relying on a decoupled strategy or abstraction for scaling operations.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 145,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Scale base class defines abstract methods that force subclasses to implement specific matplotlib-dependent logic.\",\n      \"reasoning\": \"The Scale base class defines abstract methods like _get_locators and _get_formatter which are tightly coupled to matplotlib's internal API. Subclasses are forced to implement these details, violating the principle that abstractions should not depend on low-level implementation details.\"\n    },\n    {\n      \"file_path\": \"seaborn/_stats/base.py\",\n      \"entity_name\": \"Stat\",\n      \"entity_type\": \"class\",\n      \"line_start\": 16,\n      \"line_end\": 65,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Stat base class forces concrete implementations to accept specific high-level objects like GroupBy and Scale.\",\n      \"reasoning\": \"The __call__ signature in the Stat base class forces all statistical transformations to depend on concrete high-level objects (GroupBy, Scale). This prevents the use of simpler, more generic data transformation functions and forces a rigid dependency structure on all statistical operations.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 616,
+      "line_end": 1448,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "VectorPlotter defines abstract methods for scaling that force concrete implementations to handle specific axis types.",
+      "reasoning": "The VectorPlotter class defines abstract methods (scale_native, scale_numeric, scale_datetime) which forces subclasses to implement specific scaling logic for different data types. This couples the plotter to the scaling implementation details rather than relying on a decoupled strategy or abstraction for scaling operations."
+    },
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 145,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Scale base class defines abstract methods that force subclasses to implement specific matplotlib-dependent logic.",
+      "reasoning": "The Scale base class defines abstract methods like _get_locators and _get_formatter which are tightly coupled to matplotlib's internal API. Subclasses are forced to implement these details, violating the principle that abstractions should not depend on low-level implementation details."
+    },
+    {
+      "file_path": "seaborn/_stats/base.py",
+      "entity_name": "Stat",
+      "entity_type": "class",
+      "line_start": 16,
+      "line_end": 65,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Stat base class forces concrete implementations to accept specific high-level objects like GroupBy and Scale.",
+      "reasoning": "The __call__ signature in the Stat base class forces all statistical transformations to depend on concrete high-level objects (GroupBy, Scale). This prevents the use of simpler, more generic data transformation functions and forces a rigid dependency structure on all statistical operations."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 2850.2249717712402,
+  "error": null
+}

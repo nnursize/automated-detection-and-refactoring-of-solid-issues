@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 3570.4665184020996,
+  "prompt_tokens": 5324,
+  "completion_tokens": 494,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Inject figure creation into FacetGrid to decouple from matplotlib.pyplot\",\n  \"rationale\": \"By allowing an optional 'figure' argument, FacetGrid can now be initialized with an existing figure or a custom factory, reducing direct dependency on the global matplotlib.pyplot state.\",\n  \"files_touched\": [\"seaborn/axisgrid.py\"]\n}\n```\n\n<<<<<<< SEARCH\n    def __init__(\n        self, data, *,\n        row=None, col=None, hue=None, col_wrap=None,\n        sharex=True, sharey=True, height=3, aspect=1, palette=None,\n        row_order=None, col_order=None, hue_order=None, hue_kws=None,\n        dropna=False, legend_out=True, despine=True,\n        margin_titles=False, xlim=None, ylim=None, subplot_kws=None,\n        gridspec_kws=None,\n    ):\n\n        super().__init__()\n=======\n    def __init__(\n        self, data, *,\n        row=None, col=None, hue=None, col_wrap=None,\n        sharex=True, sharey=True, height=3, aspect=1, palette=None,\n        row_order=None, col_order=None, hue_order=None, hue_kws=None,\n        dropna=False, legend_out=True, despine=True,\n        margin_titles=False, xlim=None, ylim=None, subplot_kws=None,\n        gridspec_kws=None, figure=None,\n    ):\n\n        super().__init__()\n>>>>>>> REPLACE\n<<<<<<< SEARCH\n        # --- Initialize the subplot grid\n\n        with _disable_autolayout():\n            fig = plt.figure(figsize=figsize)\n\n        if col_wrap is None:\n=======\n        # --- Initialize the subplot grid\n\n        if figure is None:\n            with _disable_autolayout():\n                fig = plt.figure(figsize=figsize)\n        else:\n            fig = figure\n\n        if col_wrap is None:\n>>>>>>> REPLACE"
+}

@@ -1,0 +1,64 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 3fa5a07..a31acf1 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -1092,7 +1092,7 @@ class _CategoricalPlotter(VectorPlotter):
+             if inner is None:
+                 continue
+ 
+-            elif inner.startswith("point"):
++            def _plot_point(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws):
+                 pos = np.array([pos_dict[self.orient]] * len(obs))
+                 if split:
+                     pos += (-1 if right_side else 1) * pos_dict["width"] / 2
+@@ -1106,7 +1106,7 @@ class _CategoricalPlotter(VectorPlotter):
+                 }
+                 ax.scatter(invx(x), invy(y), **kws)
+ 
+-            elif inner.startswith("stick"):
++            def _plot_stick(ax, obs, data, offsets, linecolor, linewidth, inner_kws):
+                 pos0 = np.interp(obs, data[value_var], data[self.orient] - offsets[0])
+                 pos1 = np.interp(obs, data[value_var], data[self.orient] + offsets[1])
+                 pos_pts = np.stack([inv_pos(pos0), inv_pos(pos1)])
+@@ -1122,7 +1122,7 @@ class _CategoricalPlotter(VectorPlotter):
+                 lines = mpl.collections.LineCollection(segments, **kws)
+                 ax.add_collection(lines, autolim=False)
+ 
+-            elif inner.startswith("quart"):
++            def _plot_quart(ax, obs, data, offsets, linecolor, linewidth, inner_kws):
+                 stats = np.percentile(obs, [25, 50, 75])
+                 pos0 = np.interp(stats, data[value_var], data[self.orient] - offsets[0])
+                 pos1 = np.interp(stats, data[value_var], data[self.orient] + offsets[1])
+@@ -1141,7 +1141,7 @@ class _CategoricalPlotter(VectorPlotter):
+                     }
+                     ax.plot(*segment, **kws)
+ 
+-            elif inner.startswith("box"):
++            def _plot_box(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws):
+                 stats = mpl.cbook.boxplot_stats(obs)[0]
+                 pos = np.array(pos_dict[self.orient])
+                 if split:
+@@ -1182,10 +1182,22 @@ class _CategoricalPlotter(VectorPlotter):
+                     **inner_kws,
+                     "markeredgecolor": "w",
+                     "markerfacecolor": "w",
+-                    "color": linecolor,  # simplify tests
++                    "color": linecolor,
+                 }
+                 ax.plot(invx(x2), invy(y2), **dot_kws)
+ 
++            strategies = {
++                "point": lambda: _plot_point(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws),
++                "stick": lambda: _plot_stick(ax, obs, data, offsets, linecolor, linewidth, inner_kws),
++                "quart": lambda: _plot_quart(ax, obs, data, offsets, linecolor, linewidth, inner_kws),
++                "box": lambda: _plot_box(ax, obs, pos_dict, right_side, split, linecolor, linewidth, inner_kws),
++            }
++
++            for key, func in strategies.items():
++                if inner.startswith(key):
++                    func()
++                    break
++
+         legend_artist = _get_patch_legend_artist(fill)
+         common_kws = {**plot_kws, "linewidth": linewidth, "edgecolor": linecolor}
+         self._configure_legend(ax, legend_artist, common_kws)

@@ -1,0 +1,62 @@
+{
+  "scan_id": "seaborn-master_ISP_scan_11",
+  "repo_name": "seaborn-master",
+  "principle": "ISP",
+  "scan_number": 11,
+  "timestamp": "2026-04-18T15:36:25.317259",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 616,\n      \"line_end\": 1448,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Abstract methods in VectorPlotter are not implemented by its concrete subclasses, forcing them to depend on unused interfaces.\",\n      \"reasoning\": \"The `VectorPlotter` class defines `scale_native`, `scale_numeric`, and `scale_datetime` as abstract methods (L1337, L1343, L1350). Its concrete subclasses, `_CategoricalPlotter` (seaborn/categorical.py) and `_DistributionPlotter` (seaborn/distributions.py), do not provide implementations for these abstract methods in the provided skeleton. This forces these subclasses to inherit an interface they do not fully use or implement, violating ISP.\"\n    },\n    {\n      \"file_path\": \"seaborn/categorical.py\",\n      \"entity_name\": \"_CategoricalPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 49,\n      \"line_end\": 1360,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"This class is a fat interface, combining many unrelated categorical plotting functionalities.\",\n      \"reasoning\": \"The `_CategoricalPlotter` class contains a large number of `plot_` methods (e.g., `plot_strips`, `plot_swarms`, `plot_boxes`, `plot_violins`, `plot_points`, `plot_bars`) and several `_backcompat` methods. This suggests a bloated interface responsible for too many distinct concerns. Clients (or subclasses like `_CategoricalAggPlotter`) are forced to depend on the entire interface, even if they only need a subset of the plotting capabilities, violating ISP. This interface could be segregated into smaller, role-specific interfaces or use composition.\"\n    },\n    {\n      \"file_path\": \"seaborn/distributions.py\",\n      \"entity_name\": \"_DistributionPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 1351,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"This class is a fat interface, combining many unrelated distribution plotting functionalities.\",\n      \"reasoning\": \"Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class includes numerous `plot_` methods for different distribution types (e.g., `plot_univariate_histogram`, `plot_bivariate_histogram`, `plot_univariate_density`, `plot_bivariate_density`, `plot_univariate_ecdf`, `plot_rug`). This broad interface forces clients to depend on methods they may not use, indicating a violation of ISP. The interface could be split into more focused interfaces.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 145,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Abstract methods in Scale are not implemented by its concrete subclasses Identity, Ordinal, and Discrete, forcing them to depend on unused interfaces.\",\n      \"reasoning\": \"The `Scale` class defines `tick`, `label`, `_get_locators`, `_get_formatter`, and `_setup` as abstract methods (L72, L75, L78, L81, L106). Its concrete subclasses `Identity` (L139-L143), `Ordinal` (L402-L404), and `Discrete` (L408-L410) do not provide implementations for these abstract methods in the provided skeleton. This forces these subclasses to inherit an interface they do not fully use or implement, violating ISP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 616,
+      "line_end": 1448,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Abstract methods in VectorPlotter are not implemented by its concrete subclasses, forcing them to depend on unused interfaces.",
+      "reasoning": "The `VectorPlotter` class defines `scale_native`, `scale_numeric`, and `scale_datetime` as abstract methods (L1337, L1343, L1350). Its concrete subclasses, `_CategoricalPlotter` (seaborn/categorical.py) and `_DistributionPlotter` (seaborn/distributions.py), do not provide implementations for these abstract methods in the provided skeleton. This forces these subclasses to inherit an interface they do not fully use or implement, violating ISP."
+    },
+    {
+      "file_path": "seaborn/categorical.py",
+      "entity_name": "_CategoricalPlotter",
+      "entity_type": "class",
+      "line_start": 49,
+      "line_end": 1360,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "This class is a fat interface, combining many unrelated categorical plotting functionalities.",
+      "reasoning": "The `_CategoricalPlotter` class contains a large number of `plot_` methods (e.g., `plot_strips`, `plot_swarms`, `plot_boxes`, `plot_violins`, `plot_points`, `plot_bars`) and several `_backcompat` methods. This suggests a bloated interface responsible for too many distinct concerns. Clients (or subclasses like `_CategoricalAggPlotter`) are forced to depend on the entire interface, even if they only need a subset of the plotting capabilities, violating ISP. This interface could be segregated into smaller, role-specific interfaces or use composition."
+    },
+    {
+      "file_path": "seaborn/distributions.py",
+      "entity_name": "_DistributionPlotter",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 1351,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "This class is a fat interface, combining many unrelated distribution plotting functionalities.",
+      "reasoning": "Similar to `_CategoricalPlotter`, the `_DistributionPlotter` class includes numerous `plot_` methods for different distribution types (e.g., `plot_univariate_histogram`, `plot_bivariate_histogram`, `plot_univariate_density`, `plot_bivariate_density`, `plot_univariate_ecdf`, `plot_rug`). This broad interface forces clients to depend on methods they may not use, indicating a violation of ISP. The interface could be split into more focused interfaces."
+    },
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 145,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Abstract methods in Scale are not implemented by its concrete subclasses Identity, Ordinal, and Discrete, forcing them to depend on unused interfaces.",
+      "reasoning": "The `Scale` class defines `tick`, `label`, `_get_locators`, `_get_formatter`, and `_setup` as abstract methods (L72, L75, L78, L81, L106). Its concrete subclasses `Identity` (L139-L143), `Ordinal` (L402-L404), and `Discrete` (L408-L410) do not provide implementations for these abstract methods in the provided skeleton. This forces these subclasses to inherit an interface they do not fully use or implement, violating ISP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 22505.875825881958,
+  "error": null
+}

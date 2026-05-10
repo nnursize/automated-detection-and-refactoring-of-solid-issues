@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "class Scale:\n    \"\"\"Base class for objects that map data values to visual properties.\"\"\"\n\n    values: tuple | str | list | dict | None\n\n    _priority: ClassVar[int]\n    _pipeline: Pipeline\n    _matplotlib_scale: ScaleBase\n    _spacer: staticmethod\n    _legend: tuple[list[Any], list[str]] | None\n\n    def __post_init__(self):\n\n        self._tick_params = None\n        self._label_params = None\n        self._legend = None\n\n    def tick(self):\n        raise NotImplementedError()\n\n    def label(self):\n        raise NotImplementedError()\n\n    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))\n\n    def _spacing(self, x: Series) -> float:",
+    "replace_text": "class Scale:\n    \"\"\"Base class for objects that map data values to visual properties.\"\"\"\n\n    values: tuple | str | list | dict | None\n\n    _priority: ClassVar[int]\n    _pipeline: Pipeline\n    _matplotlib_scale: ScaleBase\n    _spacer: staticmethod\n    _legend: tuple[list[Any], list[str]] | None\n\n    def __post_init__(self):\n\n        self._legend = None\n\n    def _spacing(self, x: Series) -> float:"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def tick(self): return self\n            def label(self): return self\n            def _get_locators(self): return None, None\n            def _get_formatter(self, locator=None): return None\n            def _setup(self, data, prop, axis=None): return self\n\n        return Identity()",
+    "replace_text": "    @staticmethod\n    def _identity():\n\n        class Identity(Scale):\n            _pipeline = []\n            _spacer = _default_spacer\n            _legend = None\n            _matplotlib_scale = None\n\n            def _setup(self, data, prop, axis=None): return self\n\n        return Identity()\n\n\nclass AxisScale(Scale):\n    \"\"\"Mixin for scales that interact with matplotlib axes.\"\"\"\n\n    def __post_init__(self):\n        super().__post_init__()\n        self._tick_params = None\n        self._label_params = None\n\n    def tick(self):\n        raise NotImplementedError()\n\n    def label(self):\n        raise NotImplementedError()\n\n    def _get_locators(self):\n        raise NotImplementedError()\n\n    def _get_formatter(self, locator: Locator | None = None):\n        raise NotImplementedError()\n\n    def _get_scale(self, name: str, forward: Callable, inverse: Callable):\n\n        major_locator, minor_locator = self._get_locators(**self._tick_params)\n        major_formatter = self._get_formatter(major_locator, **self._label_params)\n\n        class InternalScale(mpl.scale.FuncScale):\n            def set_default_locators_and_formatters(self, axis):\n                axis.set_major_locator(major_locator)\n                if minor_locator is not None:\n                    axis.set_minor_locator(minor_locator)\n                axis.set_major_formatter(major_formatter)\n\n        return InternalScale(name, (forward, inverse))"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "@dataclass\nclass Boolean(Scale):",
+    "replace_text": "@dataclass\nclass Boolean(AxisScale):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "@dataclass\nclass Nominal(Scale):",
+    "replace_text": "@dataclass\nclass Nominal(AxisScale):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "@dataclass\nclass Ordinal(Scale):",
+    "replace_text": "@dataclass\nclass Ordinal(AxisScale):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "@dataclass\nclass ContinuousBase(Scale):",
+    "replace_text": "@dataclass\nclass ContinuousBase(AxisScale):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "seaborn/_core/scales.py",
+    "search_text": "@dataclass\nclass Temporal(ContinuousBase):",
+    "replace_text": "@dataclass\nclass Temporal(ContinuousBase):"
+  }
+]

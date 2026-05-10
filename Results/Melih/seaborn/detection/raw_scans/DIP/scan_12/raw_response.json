@@ -1,0 +1,51 @@
+{
+  "scan_id": "seaborn-master_DIP_scan_12",
+  "repo_name": "seaborn-master",
+  "principle": "DIP",
+  "scan_number": 12,
+  "timestamp": "2026-04-18T20:32:35.630179",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad A...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"seaborn/_base.py\",\n      \"entity_name\": \"VectorPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 616,\n      \"line_end\": 1448,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level VectorPlotter class relies on abstract methods that are not strictly enforced through a formal abstract interface.\",\n      \"reasoning\": \"The VectorPlotter class defines several methods as 'abstract' using comments (L1337-L1350) rather than utilizing the 'abc' module. This allows concrete subclasses to potentially omit these implementations without a runtime enforcement mechanism, violating the requirement that high-level modules depend on well-defined abstractions.\"\n    },\n    {\n      \"file_path\": \"seaborn/_core/scales.py\",\n      \"entity_name\": \"Scale\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 145,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Scale base class uses comments to denote abstract methods instead of the @abstractmethod decorator.\",\n      \"reasoning\": \"The methods 'tick', 'label', '_get_locators', '_get_formatter', and '_setup' are labeled with '# abstract' (L72-L106) instead of using Python's 'abc.abstractmethod'. This fails to enforce the contract at the structural level, allowing subclasses to instantiate without implementing necessary behavior, which is a violation of the Dependency Inversion Principle.\"\n    },\n    {\n      \"file_path\": \"seaborn/regression.py\",\n      \"entity_name\": \"_LinearPlotter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 25,\n      \"line_end\": 67,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Abstract method definition via comment rather than standard enforcement.\",\n      \"reasoning\": \"The '_LinearPlotter' class specifies an abstract method 'plot' via a comment (L66). Relying on documentation rather than formal language-level abstractions (abc.ABC) means the dependency contract between the base class and subclasses is not structurally enforced, making the design fragile.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "seaborn/_base.py",
+      "entity_name": "VectorPlotter",
+      "entity_type": "class",
+      "line_start": 616,
+      "line_end": 1448,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level VectorPlotter class relies on abstract methods that are not strictly enforced through a formal abstract interface.",
+      "reasoning": "The VectorPlotter class defines several methods as 'abstract' using comments (L1337-L1350) rather than utilizing the 'abc' module. This allows concrete subclasses to potentially omit these implementations without a runtime enforcement mechanism, violating the requirement that high-level modules depend on well-defined abstractions."
+    },
+    {
+      "file_path": "seaborn/_core/scales.py",
+      "entity_name": "Scale",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 145,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "The Scale base class uses comments to denote abstract methods instead of the @abstractmethod decorator.",
+      "reasoning": "The methods 'tick', 'label', '_get_locators', '_get_formatter', and '_setup' are labeled with '# abstract' (L72-L106) instead of using Python's 'abc.abstractmethod'. This fails to enforce the contract at the structural level, allowing subclasses to instantiate without implementing necessary behavior, which is a violation of the Dependency Inversion Principle."
+    },
+    {
+      "file_path": "seaborn/regression.py",
+      "entity_name": "_LinearPlotter",
+      "entity_type": "class",
+      "line_start": 25,
+      "line_end": 67,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Abstract method definition via comment rather than standard enforcement.",
+      "reasoning": "The '_LinearPlotter' class specifies an abstract method 'plot' via a comment (L66). Relying on documentation rather than formal language-level abstractions (abc.ABC) means the dependency contract between the base class and subclasses is not structurally enforced, making the design fragile."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3099.2178916931152,
+  "error": null
+}

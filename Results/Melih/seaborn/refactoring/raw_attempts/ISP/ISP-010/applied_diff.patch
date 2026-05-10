@@ -1,0 +1,100 @@
+diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py
+index 004727b..36e8d40 100644
+--- a/seaborn/_core/plot.py
++++ b/seaborn/_core/plot.py
+@@ -926,6 +926,41 @@ class Plot:
+ # ---- The plot compilation engine ---------------------------------------------- #
+ 
+ 
++class LegendManager:
++    def make_legend(self, plotter: "Plotter", p: Plot) -> None:
++        """Combine artists representing same information across layers."""
++        merged_contents: dict[
++            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],
++        ] = {}
++        for key, new_artists, labels in plotter._legend_contents:
++            if key not in merged_contents:
++                new_artist_tuples = [tuple([a]) for a in new_artists]
++                merged_contents[key] = new_artist_tuples, labels
++            else:
++                existing_artists = merged_contents[key][0]
++                for i, new_artist in enumerate(new_artists):
++                    existing_artists[i] += tuple([new_artist])
++
++        loc = "center right" if plotter._pyplot else "center left"
++        base_legend = None
++        for (name, _), (handles, labels) in merged_contents.items():
++            legend = mpl.legend.Legend(
++                plotter._figure,
++                handles,
++                labels,
++                title=name,
++                loc=loc,
++                bbox_to_anchor=(.98, .55),
++            )
++            if base_legend:
++                base_legend_box = base_legend.get_children()[0]
++                this_legend_box = legend.get_children()[0]
++                base_legend_box.get_children().extend(this_legend_box.get_children())
++            else:
++                base_legend = legend
++                plotter._figure.legends.append(legend)
++
++
+ class Plotter:
+     """
+     Engine for compiling a :class:`Plot` spec into a Matplotlib figure.
+@@ -1684,52 +1719,7 @@ class Plotter:
+ 
+     def _make_legend(self, p: Plot) -> None:
+         """Create the legend artist(s) and add onto the figure."""
+-        # Combine artists representing same information across layers
+-        # Input list has an entry for each distinct variable in each layer
+-        # Output dict has an entry for each distinct variable
+-        merged_contents: dict[
+-            tuple[str, str | int], tuple[list[tuple[Artist, ...]], list[str]],
+-        ] = {}
+-        for key, new_artists, labels in self._legend_contents:
+-            # Key is (name, id); we need the id to resolve variable uniqueness,
+-            # but will need the name in the next step to title the legend
+-            if key not in merged_contents:
+-                # Matplotlib accepts a tuple of artists and will overlay them
+-                new_artist_tuples = [tuple([a]) for a in new_artists]
+-                merged_contents[key] = new_artist_tuples, labels
+-            else:
+-                existing_artists = merged_contents[key][0]
+-                for i, new_artist in enumerate(new_artists):
+-                    existing_artists[i] += tuple([new_artist])
+-
+-        # When using pyplot, an "external" legend won't be shown, so this
+-        # keeps it inside the axes (though still attached to the figure)
+-        # This is necessary because matplotlib layout engines currently don't
+-        # support figure legends â€” ideally this will change.
+-        loc = "center right" if self._pyplot else "center left"
+-
+-        base_legend = None
+-        for (name, _), (handles, labels) in merged_contents.items():
+-
+-            legend = mpl.legend.Legend(
+-                self._figure,
+-                handles,  # type: ignore  # matplotlib/issues/26639
+-                labels,
+-                title=name,
+-                loc=loc,
+-                bbox_to_anchor=(.98, .55),
+-            )
+-
+-            if base_legend:
+-                # Matplotlib has no public API for this so it is a bit of a hack.
+-                # Ideally we'd define our own legend class with more flexibility,
+-                # but that is a lot of work!
+-                base_legend_box = base_legend.get_children()[0]
+-                this_legend_box = legend.get_children()[0]
+-                base_legend_box.get_children().extend(this_legend_box.get_children())
+-            else:
+-                base_legend = legend
+-                self._figure.legends.append(legend)
++        LegendManager().make_legend(self, p)
+ 
+     def _finalize_figure(self, p: Plot) -> None:
+ 

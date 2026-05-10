@@ -1,0 +1,30 @@
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 4a9cae1..5d95e05 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -1614,10 +1614,10 @@ def boxplot(
+     orient=None, color=None, palette=None, saturation=.75, fill=True,
+     dodge="auto", width=.8, gap=0, whis=1.5, linecolor="auto", linewidth=None,
+     fliersize=None, hue_norm=None, native_scale=False, log_scale=None, formatter=None,
+-    legend="auto", ax=None, **kwargs
++    legend="auto", ax=None, plotter_cls=_CategoricalPlotter, **kwargs
+ ):
+ 
+-    p = _CategoricalPlotter(
++    p = plotter_cls(
+         data=data,
+         variables=dict(x=x, y=y, hue=hue),
+         order=order,
+@@ -1742,10 +1742,10 @@ def violinplot(
+     bw_method="scott", bw_adjust=1, density_norm="area", common_norm=False,
+     hue_norm=None, formatter=None, log_scale=None, native_scale=False,
+     legend="auto", scale=deprecated, scale_hue=deprecated, bw=deprecated,
+-    inner_kws=None, ax=None, **kwargs,
++    inner_kws=None, ax=None, plotter_cls=_CategoricalPlotter, **kwargs,
+ ):
+ 
+-    p = _CategoricalPlotter(
++    p = plotter_cls(
+         data=data,
+         variables=dict(x=x, y=y, hue=hue),
+         order=order,

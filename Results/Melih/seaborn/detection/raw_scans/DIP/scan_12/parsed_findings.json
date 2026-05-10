@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "seaborn/_base.py",
+    "entity_name": "VectorPlotter",
+    "entity_type": "class",
+    "line_start": 616,
+    "line_end": 1448,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level VectorPlotter class relies on abstract methods that are not strictly enforced through a formal abstract interface.",
+    "reasoning": "The VectorPlotter class defines several methods as 'abstract' using comments (L1337-L1350) rather than utilizing the 'abc' module. This allows concrete subclasses to potentially omit these implementations without a runtime enforcement mechanism, violating the requirement that high-level modules depend on well-defined abstractions."
+  },
+  {
+    "file_path": "seaborn/_core/scales.py",
+    "entity_name": "Scale",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 145,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "The Scale base class uses comments to denote abstract methods instead of the @abstractmethod decorator.",
+    "reasoning": "The methods 'tick', 'label', '_get_locators', '_get_formatter', and '_setup' are labeled with '# abstract' (L72-L106) instead of using Python's 'abc.abstractmethod'. This fails to enforce the contract at the structural level, allowing subclasses to instantiate without implementing necessary behavior, which is a violation of the Dependency Inversion Principle."
+  },
+  {
+    "file_path": "seaborn/regression.py",
+    "entity_name": "_LinearPlotter",
+    "entity_type": "class",
+    "line_start": 25,
+    "line_end": 67,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstract method definition via comment rather than standard enforcement.",
+    "reasoning": "The '_LinearPlotter' class specifies an abstract method 'plot' via a comment (L66). Relying on documentation rather than formal language-level abstractions (abc.ABC) means the dependency contract between the base class and subclasses is not structurally enforced, making the design fragile."
+  }
+]
