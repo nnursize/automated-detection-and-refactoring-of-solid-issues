@@ -1,0 +1,51 @@
+{
+  "scan_id": "gson_DIP_scan_11",
+  "repo_name": "gson",
+  "principle": "DIP",
+  "scan_number": 11,
+  "timestamp": "2026-05-02T16:58:28.951550",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/Gson.java\",\n      \"entity_name\": \"Gson\",\n      \"entity_type\": \"class\",\n      \"line_start\": 225,\n      \"line_end\": 253,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The Gson class directly instantiates its internal dependency ConstructorConstructor.\",\n      \"reasoning\": \"High-level modules like Gson should depend on abstractions rather than low-level implementation details. By directly calling 'new ConstructorConstructor(...)' in its constructor (L253), Gson becomes tightly coupled to a specific internal utility for object creation, violating the Dependency Inversion Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/GsonBuilder.java\",\n      \"entity_name\": \"GsonBuilder.setDateFormat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 638,\n      \"line_end\": 644,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"The setDateFormat method directly instantiates the concrete SimpleDateFormat class.\",\n      \"reasoning\": \"This method hard-codes a dependency on the concrete SimpleDateFormat implementation (L641) instead of depending on the DateFormat abstraction. This limits flexibility and makes it difficult to swap the formatting implementation without modifying the high-level builder logic.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java\",\n      \"entity_name\": \"JsonAdapterAnnotationTypeAdapterFactory.create\",\n      \"entity_type\": \"method\",\n      \"line_start\": 77,\n      \"line_end\": 142,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"The create method directly instantiates the concrete TreeTypeAdapter class.\",\n      \"reasoning\": \"The factory method creates a hard-coded dependency on the concrete TreeTypeAdapter implementation (L142) instead of using an abstraction or a provider/factory for TypeAdapters. This violates DIP by having a high-level factory module depend on a specific low-level implementation detail.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+      "entity_name": "Gson",
+      "entity_type": "class",
+      "line_start": 225,
+      "line_end": 253,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The Gson class directly instantiates its internal dependency ConstructorConstructor.",
+      "reasoning": "High-level modules like Gson should depend on abstractions rather than low-level implementation details. By directly calling 'new ConstructorConstructor(...)' in its constructor (L253), Gson becomes tightly coupled to a specific internal utility for object creation, violating the Dependency Inversion Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+      "entity_name": "GsonBuilder.setDateFormat",
+      "entity_type": "method",
+      "line_start": 638,
+      "line_end": 644,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "The setDateFormat method directly instantiates the concrete SimpleDateFormat class.",
+      "reasoning": "This method hard-codes a dependency on the concrete SimpleDateFormat implementation (L641) instead of depending on the DateFormat abstraction. This limits flexibility and makes it difficult to swap the formatting implementation without modifying the high-level builder logic."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+      "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.create",
+      "entity_type": "method",
+      "line_start": 77,
+      "line_end": 142,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "The create method directly instantiates the concrete TreeTypeAdapter class.",
+      "reasoning": "The factory method creates a hard-coded dependency on the concrete TreeTypeAdapter implementation (L142) instead of using an abstraction or a provider/factory for TypeAdapters. This violates DIP by having a high-level factory module depend on a specific low-level implementation detail."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 75583.68039131165,
+  "error": null
+}

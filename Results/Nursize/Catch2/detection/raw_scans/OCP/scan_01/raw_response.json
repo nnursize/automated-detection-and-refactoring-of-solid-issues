@@ -1,0 +1,29 @@
+{
+  "scan_id": "Catch2_OCP_scan_01",
+  "repo_name": "Catch2",
+  "principle": "OCP",
+  "scan_number": 1,
+  "timestamp": "2026-05-02T11:15:11.237512",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following c++ source code repository for violations of the Open/Closed Principle (OCP).\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.\n\n## What to Look For\n- Long if/elif/else or switch chains that would need modification to add new types\n- Functions with type-checking logic (isinstance checks) to h...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Platform/Compiler Detection Macros\",\n      \"entity_type\": \"macro\",\n      \"line_start\": 50,\n      \"line_end\": 250,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Platform and compiler detection logic uses chained preprocessor directives.\",\n      \"reasoning\": \"The extensive use of `#if`/`#elif`/`#else` preprocessor directives for platform and compiler detection (e.g., `CATCH_PLATFORM_MAC`, `CATCH_PLATFORM_LINUX`, `CATCH_PLATFORM_WINDOWS`, and various compiler-specific blocks) means that adding support for a new operating system or compiler would require modifying these existing conditional chains. This involves adding new `#elif` branches to existing code, which is a direct modification to extend functionality, thus violating the Open/Closed Principle. While this pattern is common and often necessary for low-level, cross-platform library configuration, it is technically a violation.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Platform/Compiler Detection Macros",
+      "entity_type": "class",
+      "line_start": 50,
+      "line_end": 250,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Platform and compiler detection logic uses chained preprocessor directives.",
+      "reasoning": "The extensive use of `#if`/`#elif`/`#else` preprocessor directives for platform and compiler detection (e.g., `CATCH_PLATFORM_MAC`, `CATCH_PLATFORM_LINUX`, `CATCH_PLATFORM_WINDOWS`, and various compiler-specific blocks) means that adding support for a new operating system or compiler would require modifying these existing conditional chains. This involves adding new `#elif` branches to existing code, which is a direct modification to extend functionality, thus violating the Open/Closed Principle. While this pattern is common and often necessary for low-level, cross-platform library configuration, it is technically a violation."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27689.51392173767,
+  "error": null
+}

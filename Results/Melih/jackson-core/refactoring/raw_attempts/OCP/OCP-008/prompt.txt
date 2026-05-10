@@ -1,0 +1,348 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-008
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+- **Entity**: `UTF8StreamJsonParser.nextNameMatch` (current lines L958-L958 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Switch statement on character input requires modification to handle new value types
+
+### Reasoning
+The nextNameMatch method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types would require modifying this switch block, violating the Open/Closed Principle.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+```java
+# ... 837 earlier lines elided ...
+            i = _skipWS();
+            // Was that a trailing comma?
+            if ((_formatReadFeatures & FEAT_MASK_TRAILING_COMMA) != 0) {
+                if ((i == INT_RBRACKET) || (i == INT_RCURLY)) {
+                    _closeScope(i);
+                    return null;
+                }
+            }
+        }
+
+        if (!_streamReadContext.inObject()) {
+            _updateLocation();
+            _nextTokenNotInObject(i);
+            return null;
+        }
+
+        _updateNameLocation();
+        final String nameStr = _parseName(i);
+        _streamReadContext.setCurrentName(nameStr);
+        _updateToken(JsonToken.PROPERTY_NAME);
+
+        i = _skipColon();
+        _updateLocation();
+        if (i == INT_QUOTE) {
+            _tokenIncomplete = true;
+            _nextToken = JsonToken.VALUE_STRING;
+            return nameStr;
+        }
+        JsonToken t = _parseValueToken(i);
+        _nextToken = t;
+        return nameStr;
+    }
+
+    @Override
+    public boolean nextName(SerializableString str) throws JacksonException
+    {
+        // // // Note: most of code below is copied from nextToken()
+        _numTypesValid = NR_UNKNOWN;
+        if (_currToken == JsonToken.PROPERTY_NAME) { // can't have name right after name
+            _nextAfterName();
+            return false;
+        }
+        if (_tokenIncomplete) {
+            _skipString();
+        }
+        int i = _skipWSOrEnd();
+        if (i < 0) { // end-of-input
+            close();
+            _updateTokenToNull();
+            return false;
+        }
+        _binaryValue = null;
+
+        // Closing scope?
+        if (i == INT_RBRACKET) {
+            _closeArrayScope();
+            _updateToken(JsonToken.END_ARRAY);
+            return false;
+        }
+        if (i == INT_RCURLY) {
+            _closeObjectScope();
+            _updateToken(JsonToken.END_OBJECT);
+            return false;
+        }
+
+        // Nope: do we then expect a comma?
+        if (_streamReadContext.expectComma()) {
+            if (i != INT_COMMA) {
+                return _reportUnexpectedChar(i, "was expecting comma to separate "+_streamReadContext.typeDesc()+" entries");
+            }
+            i = _skipWS();
+
+            // Was that a trailing comma?
+            if ((_formatReadFeatures & FEAT_MASK_TRAILING_COMMA) != 0) {
+                if ((i == INT_RBRACKET) || (i == INT_RCURLY)) {
+                    _closeScope(i);
+                    return false;
+                }
+            }
+        }
+        if (!_streamReadContext.inObject()) {
+            _updateLocation();
+            _nextTokenNotInObject(i);
+            return false;
+        }
+
+        // // // This part differs, name parsing
+        _updateNameLocation();
+        if (i == INT_QUOTE) {
+            // when doing literal match, must consider escaping:
+            byte[] nameBytes = str.asQuotedUTF8();
+            final int len = nameBytes.length;
+            // 22-May-2014, tatu: Actually, let's require 4 more bytes for faster skipping
+            //    of colon that follows name
+            if ((_inputPtr + len + 4) < _inputEnd) { // maybe...
+                // first check length match by
+                final int end = _inputPtr+len;
+                if (_inputBuffer[end] == INT_QUOTE) {
+                    int offset = 0;
+                    int ptr = _inputPtr;
+                    while (true) {
+                        if (ptr == end) { // yes, match!
+                            _streamReadContext.setCurrentName(str.getValue());
+                            i = _skipColonFast(ptr+1);
+                            _isNextTokenNameYes(i);
+                            return true;
+                        }
+                        if (nameBytes[offset] != _inputBuffer[ptr]) {
+                            break;
+                        }
+                        ++offset;
+                        ++ptr;
+                    }
+                }
+            }
+        }
+        return _isNextTokenNameMaybe(i, str);
+    }
+
+    @Override
+    public int nextNameMatch(PropertyNameMatcher matcher) throws JacksonException
+    {
+        // // // Note: this is almost a verbatim copy of nextToken()
+        _numTypesValid = NR_UNKNOWN;
+        if (_currToken == JsonToken.PROPERTY_NAME) {
+            _nextAfterName();
+            return PropertyNameMatcher.MATCH_ODD_TOKEN;
+        }
+        if (_tokenIncomplete) {
+            _skipString();
+        }
+        int i = _skipWSOrEnd();
+        if (i < 0) {
+            close();
+            _updateTokenToNull();
+            return PropertyNameMatcher.MATCH_ODD_TOKEN;
+        }
+        _binaryValue = null;
+
+        if (i == INT_RBRACKET) {
+            _closeArrayScope();
+            _updateToken(JsonToken.END_ARRAY);
+            return PropertyNameMatcher.MATCH_ODD_TOKEN;
+        }
+        if (i == INT_RCURLY) {
+            _closeObjectScope();
+            _updateToken(JsonToken.END_OBJECT);
+            return PropertyNameMatcher.MATCH_END_OBJECT;
+        }
+
+        // Nope: do we then expect a comma?
+        if (_streamReadContext.expectComma()) {
+            if (i != INT_COMMA) {
+                return _reportUnexpectedChar(i, "was expecting comma to separate "+_streamReadContext.typeDesc()+" entries");
+            }
+            i = _skipWS();
+            // Was that a trailing comma?
+            if ((_formatReadFeatures & FEAT_MASK_TRAILING_COMMA) != 0) {
+                boolean isEndObject = (i == INT_RCURLY);
+                if (isEndObject || (i == INT_RBRACKET)) {
+                    _closeScope(i);
+                    return isEndObject ? PropertyNameMatcher.MATCH_END_OBJECT : PropertyNameMatcher.MATCH_ODD_TOKEN;
+                }
+            }
+        }
+
+        if (!_streamReadContext.inObject()) {
+            _updateLocation();
+            _nextTokenNotInObject(i);
+            return PropertyNameMatcher.MATCH_ODD_TOKEN;
+        }
+
+        _updateNameLocation();
+
+        String name;
+        int match = _matchName(matcher, i);
+        if (match >= 0) { // gotcha! (expected case)
+            _inputPtr = _quadPtr;
+            name = matcher.nameLookup()[match];
+        } else {
+            // !!! TODO 12-Dec-2017, tatu: Should probably try to use symbol table
+            //   for cases where quads were decoded ok, but no match?
+            /*
+            if (match == PropertyNameMatcher.MATCH_UNKNOWN_NAME) {
+                throw new RuntimeException("No name match!");
+            }
+            */
+            name = _parseName(i);
+            match = matcher.matchName(name);
+        }
+
+        _streamReadContext.setCurrentName(name);
+        _updateToken(JsonToken.PROPERTY_NAME);
+        // Otherwise, try again...
+
+        i = _skipColon();
+        _updateLocation();
+        if (i == INT_QUOTE) { // optimize commonest case, String value
+            _tokenIncomplete = true;
+            _nextToken = JsonToken.VALUE_STRING;
+            return match;
+        }
+        JsonToken t;
+        switch (i) {
+        case '-':
+            t = _parseSignedNumber(true);
+            break;
+        case '+':
+            if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {
+                t = _parseSignedNumber(false);
+            } else {
+                t = _handleUnexpectedValue(i);
+            }
+            break;
+        case '.': // [core#611]:
+            t = _parseFloatThatStartsWithPeriod(false, false);
+            break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            t = _parseUnsignedNumber(i);
+            break;
+        case 'f':
+            _matchFalse();
+             t = JsonToken.VALUE_FALSE;
+            break;
+        case 'n':
+            _matchNull();
+            t = JsonToken.VALUE_NULL;
+            break;
+        case 't':
+            _matchTrue();
+            t = JsonToken.VALUE_TRUE;
+            break;
+# ... 3012 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/json/Base64CharInput.java`
+- `src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java`
+- `src/main/java/tools/jackson/core/json/CharOutputTarget.java`
+- `src/main/java/tools/jackson/core/json/DupDetector.java`
+- `src/main/java/tools/jackson/core/json/JsonFactory.java`
+- `src/main/java/tools/jackson/core/json/JsonFactoryBuilder.java`
+- `src/main/java/tools/jackson/core/json/JsonGeneratorBase.java`
+- `src/main/java/tools/jackson/core/json/JsonParserBase.java`
+- `src/main/java/tools/jackson/core/json/JsonReadContext.java`
+- `src/main/java/tools/jackson/core/json/JsonReadFeature.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteContext.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteFeature.java`
+- `src/main/java/tools/jackson/core/json/package-info.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedBase64StreamDecoder.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8Base64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedBase64Encoder.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

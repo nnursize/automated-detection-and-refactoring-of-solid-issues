@@ -1,0 +1,44 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index e517e65..6435ff7 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -570,7 +570,19 @@ namespace Catch {
+     class IRuntimeConfig;
+     class IConfig;
+ 
+-    class Context {
++    class IResultCaptureProvider {
++    public:
++        virtual ~IResultCaptureProvider() = default;
++        virtual IResultCapture* getResultCapture() const = 0;
++    };
++
++    class IConfigProvider {
++    public:
++        virtual ~IConfigProvider() = default;
++        virtual IConfig const* getConfig() const = 0;
++    };
++
++    class Context : public IResultCaptureProvider, public IConfigProvider {
+         IConfig const* m_config = nullptr;
+         IResultCapture* m_resultCapture = nullptr;
+ 
+@@ -579,14 +591,14 @@ namespace Catch {
+         friend Context const& getCurrentContext();
+ 
+     public:
+-        constexpr IResultCapture* getResultCapture() const {
++        IResultCapture* getResultCapture() const override {
+             return m_resultCapture;
+         }
+-        constexpr IConfig const* getConfig() const { return m_config; }
+-        constexpr void setResultCapture( IResultCapture* resultCapture ) {
++        IConfig const* getConfig() const override { return m_config; }
++        void setResultCapture( IResultCapture* resultCapture ) {
+             m_resultCapture = resultCapture;
+         }
+-        constexpr void setConfig( IConfig const* config ) { m_config = config; }
++        void setConfig( IConfig const* config ) { m_config = config; }
+     };
+ 
+     class ITestConfig {

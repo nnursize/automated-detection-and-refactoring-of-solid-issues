@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "requests/src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 18,
+    "line_end": 50,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level API function directly instantiates a concrete Session object.",
+    "reasoning": "The top-level `request` function, which represents a high-level operation for sending HTTP requests, directly instantiates `sessions.Session()`. This violates DIP because a high-level module (the API) depends on a concrete low-level module (`Session` implementation) rather than an abstraction. This makes it difficult to substitute the session implementation without modifying the API."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session.__init__",
+    "entity_type": "method",
+    "line_start": 201,
+    "line_end": 240,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Session directly instantiates concrete HTTPAdapter and RequestsCookieJar.",
+    "reasoning": "The `Session` class, a high-level orchestrator for HTTP requests, directly creates instances of `HTTPAdapter` and `RequestsCookieJar` (via `cookiejar_from_dict`) in its constructor. This hard-codes dependencies on concrete implementations of transport adapters and cookie management, violating DIP. The `Session` should depend on abstractions (e.g., `IAdapter`, `ICookieJar`) and receive concrete implementations via dependency injection, allowing for easier testing and replacement of underlying components."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_auth",
+    "entity_type": "method",
+    "line_start": 351,
+    "line_end": 365,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "PreparedRequest directly instantiates a concrete HTTPBasicAuth handler.",
+    "reasoning": "The `prepare_auth` method within the `PreparedRequest` (a high-level request preparation module) directly instantiates `HTTPBasicAuth` if the `auth` parameter is `None` or a tuple. This creates a direct dependency on a concrete authentication mechanism rather than relying on an abstraction (e.g., `AuthBase`) or a factory that produces an abstract authentication handler. This limits flexibility in how basic authentication is provided or extended."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.__init__",
+    "entity_type": "method",
+    "line_start": 115,
+    "line_end": 131,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "HTTPAdapter directly instantiates urllib3's PoolManager and Retry logic.",
+    "reasoning": "The `HTTPAdapter`, which acts as a bridge to `urllib3`, directly instantiates `urllib3.poolmanager.PoolManager` and `urllib3.util.retry.Retry` in its constructor. While `HTTPAdapter` is expected to deal with low-level transport, it still *creates* these concrete components rather than receiving them through injection. This tightly couples the adapter to specific `urllib3` implementations, making it harder to swap out underlying HTTP client details or custom retry logic without modifying the adapter itself. The 'Long Method' smell contributes to this by centralizing too many responsibilities within the constructor."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "method",
+    "line_start": 163,
+    "line_end": 190,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "HTTPAdapter directly instantiates concrete SOCKSProxyManager or ProxyManager.",
+    "reasoning": "The `proxy_manager_for` method directly instantiates either `SOCKSProxyManager` or `urllib3.poolmanager.ProxyManager` based on the proxy scheme. This hard-codes the creation of specific proxy management implementations, violating DIP. The adapter depends on these concrete types rather than an abstraction for proxy management, limiting the ability to introduce alternative proxy handlers without modifying this method."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.cert_verify",
+    "entity_type": "method",
+    "line_start": 192,
+    "line_end": 230,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "HTTPAdapter depends on concrete file system operations and a specific CA bundle path.",
+    "reasoning": "The `cert_verify` method directly uses `os.path.isdir`, `os.path.exists` (concrete file system operations) and relies on `DEFAULT_CA_BUNDLE_PATH` (a concrete constant derived from `requests.certs.where()`). This means the high-level `HTTPAdapter` depends on low-level details about how CA bundles are located and verified on the file system, rather than an abstraction that provides trusted certificates. This tight coupling makes it harder to change the certificate verification mechanism or source without modifying the adapter."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_auth",
+    "entity_type": "method",
+    "line_start": 166,
+    "line_end": 180,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Redirect logic depends on concrete utility for netrc authentication.",
+    "reasoning": "The `rebuild_auth` method, part of the high-level redirect logic in `SessionRedirectMixin`, calls the utility function `get_netrc_auth`. This means a high-level component depends on a specific low-level implementation detail (`get_netrc_auth`'s concrete method of retrieving authentication from `.netrc` files and its direct `netrc` dependency). This could be abstracted by an `IAuthSource` interface."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.handle_401",
+    "entity_type": "method",
+    "line_start": 191,
+    "line_end": 230,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "HTTPDigestAuth directly interacts with concrete connection object.",
+    "reasoning": "The `handle_401` method in `HTTPDigestAuth` directly accesses and calls the `send` method on `r.connection`, which is a concrete `HTTPAdapter` instance. While `HTTPAdapter` implements `BaseAdapter` (an abstraction), `HTTPDigestAuth`'s reliance on `r.connection` (the specific connection object rather than an injected 'sender' abstraction) creates a direct dependency on the concrete implementation's specific methods, limiting flexibility if the underlying connection object type were to change."
+  }
+]

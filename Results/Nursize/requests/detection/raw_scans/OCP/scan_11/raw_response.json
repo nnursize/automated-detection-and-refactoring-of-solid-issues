@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_OCP_scan_11",
+  "repo_name": "requests",
+  "principle": "OCP",
+  "scan_number": 11,
+  "timestamp": "2026-05-03T01:15:55.667338",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_body\",\n      \"entity_type\": \"method\",\n      \"line_start\": 496,\n      \"line_end\": 496,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Hardcoded parameters for specific data formats (data, files, json) prevent extension for new formats.\",\n      \"reasoning\": \"The method signature explicitly defines parameters for specific content types. Adding support for a new serialization format (e.g., XML, Protobuf) would require modifying the method signature and its internal logic, violating the principle that the class should be closed for modification.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.request\",\n      \"entity_type\": \"method\",\n      \"line_start\": 501,\n      \"line_end\": 501,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Bloated method signature with hardcoded parameters for every request feature.\",\n      \"reasoning\": \"The request method uses a fixed set of named arguments for features like auth, proxies, and hooks. Adding any new request configuration or feature requires modifying this signature and the corresponding logic in Session, rather than using a more extensible configuration or plugin architecture.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 357,\n      \"line_end\": 817,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded convenience methods for specific HTTP verbs (get, post, etc.).\",\n      \"reasoning\": \"The class defines explicit methods for a subset of HTTP verbs. Supporting a new HTTP verb (e.g., WebDAV methods) with the same convenience requires modifying the Session class to add new methods, indicating the class is not closed to modification for new protocol features.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response\",\n      \"entity_type\": \"class\",\n      \"line_start\": 642,\n      \"line_end\": 1041,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Fat interface incorporating specific parsing logic for various content types.\",\n      \"reasoning\": \"The Response class includes methods like .json() and .links() directly. This design requires modifying the Response class to support new content-type specific parsing or helper properties, rather than providing an extension point for external parsers.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_body",
+      "entity_type": "method",
+      "line_start": 496,
+      "line_end": 496,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Hardcoded parameters for specific data formats (data, files, json) prevent extension for new formats.",
+      "reasoning": "The method signature explicitly defines parameters for specific content types. Adding support for a new serialization format (e.g., XML, Protobuf) would require modifying the method signature and its internal logic, violating the principle that the class should be closed for modification."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.request",
+      "entity_type": "method",
+      "line_start": 501,
+      "line_end": 501,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Bloated method signature with hardcoded parameters for every request feature.",
+      "reasoning": "The request method uses a fixed set of named arguments for features like auth, proxies, and hooks. Adding any new request configuration or feature requires modifying this signature and the corresponding logic in Session, rather than using a more extensible configuration or plugin architecture."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session",
+      "entity_type": "class",
+      "line_start": 357,
+      "line_end": 817,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded convenience methods for specific HTTP verbs (get, post, etc.).",
+      "reasoning": "The class defines explicit methods for a subset of HTTP verbs. Supporting a new HTTP verb (e.g., WebDAV methods) with the same convenience requires modifying the Session class to add new methods, indicating the class is not closed to modification for new protocol features."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Response",
+      "entity_type": "class",
+      "line_start": 642,
+      "line_end": 1041,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Fat interface incorporating specific parsing logic for various content types.",
+      "reasoning": "The Response class includes methods like .json() and .links() directly. This design requires modifying the Response class to support new content-type specific parsing or helper properties, rather than providing an extension point for external parsers."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 23603.264331817627,
+  "error": null
+}

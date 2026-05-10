@@ -1,0 +1,73 @@
+{
+  "scan_id": "jackson-core_DIP_scan_07",
+  "repo_name": "jackson-core",
+  "principle": "DIP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T20:39:57.798850",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._createContext\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1310,\n      \"line_end\": 1340,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Direct instantiation of concrete IOContext\",\n      \"reasoning\": \"The high-level TokenStreamFactory directly instantiates the concrete IOContext class. According to DIP, high-level modules should depend on abstractions, and dependencies should be injected rather than hard-coded through direct instantiation.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._createDataOutputWrapper\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1356,\n      \"line_end\": 1358,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Direct instantiation of concrete DataOutputAsStream wrapper\",\n      \"reasoning\": \"The factory method hard-codes the instantiation of DataOutputAsStream, a specific implementation detail for wrapping DataOutput, instead of using an abstraction or a configurable provider.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory\",\n      \"entity_type\": \"class\",\n      \"line_start\": 210,\n      \"line_end\": 220,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded dependency on concrete JsonRecyclerPools\",\n      \"reasoning\": \"The constructor hard-codes a dependency on JsonRecyclerPools.defaultPool() for the _recyclerPool field. This couples the high-level factory to a specific low-level implementation of buffer recycling.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/JsonParserBase.java\",\n      \"entity_name\": \"JsonParserBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 81,\n      \"line_end\": 88,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Direct instantiation of concrete JsonReadContext\",\n      \"reasoning\": \"The abstract base class JsonParserBase directly instantiates a concrete JsonReadContext via a static factory method in its constructor. This couples the parser abstraction to a specific implementation of the stream context.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/JsonGeneratorBase.java\",\n      \"entity_name\": \"JsonGeneratorBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 141,\n      \"line_end\": 163,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Direct instantiation of concrete JsonWriteContext\",\n      \"reasoning\": \"The abstract base class JsonGeneratorBase directly instantiates a concrete JsonWriteContext via a static factory method in its constructor, violating the principle that abstractions should not depend on details.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._createContext",
+      "entity_type": "method",
+      "line_start": 1310,
+      "line_end": 1340,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Direct instantiation of concrete IOContext",
+      "reasoning": "The high-level TokenStreamFactory directly instantiates the concrete IOContext class. According to DIP, high-level modules should depend on abstractions, and dependencies should be injected rather than hard-coded through direct instantiation."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._createDataOutputWrapper",
+      "entity_type": "method",
+      "line_start": 1356,
+      "line_end": 1358,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Direct instantiation of concrete DataOutputAsStream wrapper",
+      "reasoning": "The factory method hard-codes the instantiation of DataOutputAsStream, a specific implementation detail for wrapping DataOutput, instead of using an abstraction or a configurable provider."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory",
+      "entity_type": "class",
+      "line_start": 210,
+      "line_end": 220,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded dependency on concrete JsonRecyclerPools",
+      "reasoning": "The constructor hard-codes a dependency on JsonRecyclerPools.defaultPool() for the _recyclerPool field. This couples the high-level factory to a specific low-level implementation of buffer recycling."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/JsonParserBase.java",
+      "entity_name": "JsonParserBase",
+      "entity_type": "class",
+      "line_start": 81,
+      "line_end": 88,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Direct instantiation of concrete JsonReadContext",
+      "reasoning": "The abstract base class JsonParserBase directly instantiates a concrete JsonReadContext via a static factory method in its constructor. This couples the parser abstraction to a specific implementation of the stream context."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/JsonGeneratorBase.java",
+      "entity_name": "JsonGeneratorBase",
+      "entity_type": "class",
+      "line_start": 141,
+      "line_end": 163,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Direct instantiation of concrete JsonWriteContext",
+      "reasoning": "The abstract base class JsonGeneratorBase directly instantiates a concrete JsonWriteContext via a static factory method in its constructor, violating the principle that abstractions should not depend on details."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 135753.43465805054,
+  "error": null
+}

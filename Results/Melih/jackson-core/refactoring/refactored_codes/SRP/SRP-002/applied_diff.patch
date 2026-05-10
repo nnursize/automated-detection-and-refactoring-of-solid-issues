@@ -1,0 +1,667 @@
+diff --git a/src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java b/src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java
+index ee43b0e..4617bf2 100644
+--- a/src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java
++++ b/src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java
+@@ -24,8 +24,6 @@ public abstract class NonBlockingUtf8JsonParserBase
+     private final static int FEAT_MASK_ALLOW_MISSING = JsonReadFeature.ALLOW_MISSING_VALUES.getMask();
+     private final static int FEAT_MASK_ALLOW_SINGLE_QUOTES = JsonReadFeature.ALLOW_SINGLE_QUOTES.getMask();
+     private final static int FEAT_MASK_ALLOW_UNQUOTED_NAMES = JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES.getMask();
+-    private final static int FEAT_MASK_ALLOW_JAVA_COMMENTS = JsonReadFeature.ALLOW_JAVA_COMMENTS.getMask();
+-    private final static int FEAT_MASK_ALLOW_YAML_COMMENTS = JsonReadFeature.ALLOW_YAML_COMMENTS.getMask();
+ 
+     // This is the main input-code lookup table, fetched eagerly
+     private final static int[] _icUTF8 = CharTypes.getInputCodeUtf8();
+@@ -48,6 +46,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+      */
+     protected int _origBufferLen;
+ 
++    /**
++     * Helper object for handling comment and whitespace skipping logic.
++     */
++    protected NonBlockingCommentSkipper _commentSkipper;
++
+     /*
+     /**********************************************************************
+     /* Life-cycle
+@@ -58,6 +61,7 @@ public abstract class NonBlockingUtf8JsonParserBase
+             int stdFeatures, int formatFeatures, ByteQuadsCanonicalizer sym)
+     {
+         super(readCtxt, ctxt, stdFeatures, formatFeatures, sym);
++        _commentSkipper = new NonBlockingCommentSkipper(this);
+     }
+ 
+     /*
+@@ -299,15 +303,15 @@ public abstract class NonBlockingUtf8JsonParserBase
+         // Comments
+ 
+         case MINOR_COMMENT_LEADING_SLASH:
+-            return _startSlashComment(_pending32);
++            return _commentSkipper.startSlashComment(_pending32);
+         case MINOR_COMMENT_CLOSING_ASTERISK:
+-            return _finishCComment(_pending32, true);
++            return _commentSkipper.finishCComment(_pending32, true);
+         case MINOR_COMMENT_C:
+-            return _finishCComment(_pending32, false);
++            return _commentSkipper.finishCComment(_pending32, false);
+         case MINOR_COMMENT_CPP:
+-            return _finishCppComment(_pending32);
++            return _commentSkipper.finishCppComment(_pending32);
+         case MINOR_COMMENT_YAML:
+-            return _finishHashComment(_pending32);
++            return _commentSkipper.finishHashComment(_pending32);
+         }
+         VersionUtil.throwInternal();
+         return null;
+@@ -401,7 +405,7 @@ public abstract class NonBlockingUtf8JsonParserBase
+     /**********************************************************************
+      */
+ 
+-    private final JsonToken _startDocument(int ch) throws JacksonException
++    protected final JsonToken _startDocument(int ch) throws JacksonException
+     {
+         ch &= 0xFF;
+ 
+@@ -481,11 +485,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+      * Method that handles initial token type recognition for token
+      * that has to be either PROPERTY_NAME or END_OBJECT.
+      */
+-    private final JsonToken _startName(int ch) throws JacksonException
++    protected final JsonToken _startName(int ch) throws JacksonException
+     {
+         // First: any leading white space?
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch);
++            ch = _commentSkipper.skipWS(ch);
+             if (ch <= 0) {
+                 _minorState = MINOR_PROPERTY_LEADING_WS;
+                 return _currToken;
+@@ -508,11 +512,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+         return _parseEscapedName(0, 0, 0);
+     }
+ 
+-    private final JsonToken _startNameAfterComma(int ch) throws JacksonException
++    protected final JsonToken _startNameAfterComma(int ch) throws JacksonException
+     {
+         // First: any leading white space?
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch); // will skip through all available ws (and comments)
++            ch = _commentSkipper.skipWS(ch); // will skip through all available ws (and comments)
+             if (ch <= 0) {
+                 _minorState = MINOR_PROPERTY_LEADING_COMMA;
+                 return _currToken;
+@@ -523,10 +527,10 @@ public abstract class NonBlockingUtf8JsonParserBase
+                 return _closeObjectScope();
+             }
+             if (ch == INT_HASH) {
+-                return _finishHashComment(MINOR_PROPERTY_LEADING_COMMA);
++                return _commentSkipper.finishHashComment(MINOR_PROPERTY_LEADING_COMMA);
+             }
+             if (ch == INT_SLASH) {
+-                return _startSlashComment(MINOR_PROPERTY_LEADING_COMMA);
++                return _commentSkipper.startSlashComment(MINOR_PROPERTY_LEADING_COMMA);
+             }
+             _reportUnexpectedChar(ch, "was expecting comma to separate "+_streamReadContext.typeDesc()+" entries");
+         }
+@@ -538,7 +542,7 @@ public abstract class NonBlockingUtf8JsonParserBase
+         ch = getByteFromBuffer(ptr);
+         _inputPtr = ptr+1;
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch);
++            ch = _commentSkipper.skipWS(ch);
+             if (ch <= 0) {
+                 _minorState = MINOR_PROPERTY_LEADING_WS;
+                 return _currToken;
+@@ -574,11 +578,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+      * decode it if contained in input buffer.
+      * Value may be preceded by leading white-space, but no separator (comma).
+      */
+-    private final JsonToken _startValue(int ch) throws JacksonException
++    protected final JsonToken _startValue(int ch) throws JacksonException
+     {
+         // First: any leading white space?
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch);
++            ch = _commentSkipper.skipWS(ch);
+             if (ch <= 0) {
+                 _minorState = MINOR_VALUE_LEADING_WS;
+                 return _currToken;
+@@ -593,13 +597,13 @@ public abstract class NonBlockingUtf8JsonParserBase
+         }
+         switch (ch) {
+         case '#':
+-            return _finishHashComment(MINOR_VALUE_LEADING_WS);
++            return _commentSkipper.finishHashComment(MINOR_VALUE_LEADING_WS);
+         case '+':
+             return _startPositiveNumber();
+         case '-':
+             return _startNegativeNumber();
+         case '/': // c/c++ comments
+-            return _startSlashComment(MINOR_VALUE_LEADING_WS);
++            return _commentSkipper.startSlashComment(MINOR_VALUE_LEADING_WS);
+ 
+         // Should we have separate handling for plus? Although
+         // it is not allowed per se, it may be erroneously used,
+@@ -644,11 +648,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+ 
+     // Helper method called to parse token that is either a value token in array
+     // or end-array marker
+-    private final JsonToken _startValueExpectComma(int ch) throws JacksonException
++    protected final JsonToken _startValueExpectComma(int ch) throws JacksonException
+     {
+         // First: any leading white space?
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch); // will skip through all available ws (and comments)
++            ch = _commentSkipper.skipWS(ch); // will skip through all available ws (and comments)
+             if (ch <= 0) {
+                 _minorState = MINOR_VALUE_EXPECTING_COMMA;
+                 return _currToken;
+@@ -662,10 +666,10 @@ public abstract class NonBlockingUtf8JsonParserBase
+                 return _closeObjectScope();
+             }
+             if (ch == INT_SLASH) {
+-                return _startSlashComment(MINOR_VALUE_EXPECTING_COMMA);
++                return _commentSkipper.startSlashComment(MINOR_VALUE_EXPECTING_COMMA);
+             }
+             if (ch == INT_HASH) {
+-                return _finishHashComment(MINOR_VALUE_EXPECTING_COMMA);
++                return _commentSkipper.finishHashComment(MINOR_VALUE_EXPECTING_COMMA);
+             }
+             _reportUnexpectedChar(ch, "was expecting comma to separate "+_streamReadContext.typeDesc()+" entries");
+         }
+@@ -681,7 +685,7 @@ public abstract class NonBlockingUtf8JsonParserBase
+         ch = getByteFromBuffer(ptr);
+         _inputPtr = ptr+1;
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch);
++            ch = _commentSkipper.skipWS(ch);
+             if (ch <= 0) {
+                 _minorState = MINOR_VALUE_WS_AFTER_COMMA;
+                 return _currToken;
+@@ -693,13 +697,13 @@ public abstract class NonBlockingUtf8JsonParserBase
+         }
+         switch (ch) {
+         case '#':
+-            return _finishHashComment(MINOR_VALUE_WS_AFTER_COMMA);
++            return _commentSkipper.finishHashComment(MINOR_VALUE_WS_AFTER_COMMA);
+         case '+':
+             return _startPositiveNumber();
+         case '-':
+             return _startNegativeNumber();
+         case '/':
+-            return _startSlashComment(MINOR_VALUE_WS_AFTER_COMMA);
++            return _commentSkipper.startSlashComment(MINOR_VALUE_WS_AFTER_COMMA);
+ 
+         // Should we have separate handling for plus? Although
+         // it is not allowed per se, it may be erroneously used,
+@@ -743,11 +747,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+     // Helper method called to detect type of a value token (at any level), and possibly
+     // decode it if contained in input buffer.
+     // Value MUST be preceded by a semi-colon (which may be surrounded by white-space)
+-    private final JsonToken _startValueExpectColon(int ch) throws JacksonException
++    protected final JsonToken _startValueExpectColon(int ch) throws JacksonException
+     {
+         // First: any leading white space?
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch); // will skip through all available ws (and comments)
++            ch = _commentSkipper.skipWS(ch); // will skip through all available ws (and comments)
+             if (ch <= 0) {
+                 _minorState = MINOR_VALUE_EXPECTING_COLON;
+                 return _currToken;
+@@ -755,10 +759,10 @@ public abstract class NonBlockingUtf8JsonParserBase
+         }
+         if (ch != INT_COLON) {
+             if (ch == INT_SLASH) {
+-                return _startSlashComment(MINOR_VALUE_EXPECTING_COLON);
++                return _commentSkipper.startSlashComment(MINOR_VALUE_EXPECTING_COLON);
+             }
+             if (ch == INT_HASH) {
+-                return _finishHashComment(MINOR_VALUE_EXPECTING_COLON);
++                return _commentSkipper.finishHashComment(MINOR_VALUE_EXPECTING_COLON);
+             }
+             // cannot omit colon here
+             _reportUnexpectedChar(ch, "was expecting a colon to separate field name and value");
+@@ -771,7 +775,7 @@ public abstract class NonBlockingUtf8JsonParserBase
+         ch = getByteFromBuffer(ptr);
+         _inputPtr = ptr+1;
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch); // will skip through all available ws (and comments)
++            ch = _commentSkipper.skipWS(ch); // will skip through all available ws (and comments)
+             if (ch <= 0) {
+                 _minorState = MINOR_VALUE_LEADING_WS;
+                 return _currToken;
+@@ -783,13 +787,13 @@ public abstract class NonBlockingUtf8JsonParserBase
+         }
+         switch (ch) {
+         case '#':
+-            return _finishHashComment(MINOR_VALUE_LEADING_WS);
++            return _commentSkipper.finishHashComment(MINOR_VALUE_LEADING_WS);
+         case '+':
+             return _startPositiveNumber();
+         case '-':
+             return _startNegativeNumber();
+         case '/':
+-            return _startSlashComment(MINOR_VALUE_LEADING_WS);
++            return _commentSkipper.startSlashComment(MINOR_VALUE_LEADING_WS);
+ 
+         // Should we have separate handling for plus? Although
+         // it is not allowed per se, it may be erroneously used,
+@@ -819,11 +823,11 @@ public abstract class NonBlockingUtf8JsonParserBase
+     }
+ 
+     // Method called when we have already gotten a comma (i.e. not the first value)
+-    private final JsonToken _startValueAfterComma(int ch) throws JacksonException
++    protected final JsonToken _startValueAfterComma(int ch) throws JacksonException
+     {
+         // First: any leading white space?
+         if (ch <= 0x0020) {
+-            ch = _skipWS(ch);
++            ch = _commentSkipper.skipWS(ch);
+             if (ch <= 0) {
+                 _minorState = MINOR_VALUE_WS_AFTER_COMMA;
+                 return _currToken;
+@@ -835,13 +839,13 @@ public abstract class NonBlockingUtf8JsonParserBase
+         }
+         switch (ch) {
+         case '#':
+-            return _finishHashComment(MINOR_VALUE_WS_AFTER_COMMA);
++            return _commentSkipper.finishHashComment(MINOR_VALUE_WS_AFTER_COMMA);
+         case '+':
+             return _startPositiveNumber();
+         case '-':
+             return _startNegativeNumber();
+         case '/':
+-            return _startSlashComment(MINOR_VALUE_WS_AFTER_COMMA);
++            return _commentSkipper.startSlashComment(MINOR_VALUE_WS_AFTER_COMMA);
+ 
+         // Should we have separate handling for plus? Although
+         // it is not allowed per se, it may be erroneously used,
+@@ -885,7 +889,7 @@ public abstract class NonBlockingUtf8JsonParserBase
+         return _startUnexpectedValue(true, ch);
+     }
+ 
+-    protected JsonToken _startUnexpectedValue(boolean leadingComma, int ch) throws JacksonException
++    protected final JsonToken _startUnexpectedValue(boolean leadingComma, int ch) throws JacksonException
+     {
+         switch (ch) {
+         case INT_RBRACKET:
+@@ -926,173 +930,6 @@ public abstract class NonBlockingUtf8JsonParserBase
+         return null;
+     }
+ 
+-    /*
+-    /**********************************************************************
+-    /* Second-level decoding, skipping white-space, comments
+-    /**********************************************************************
+-     */
+-
+-    private final int _skipWS(int ch) throws JacksonException
+-    {
+-        do {
+-            if (ch != INT_SPACE) {
+-                if (ch == INT_LF) {
+-                    ++_currInputRow;
+-                    _currInputRowStart = _inputPtr;
+-                } else if (ch == INT_CR) {
+-                    ++_currInputRowAlt;
+-                    _currInputRowStart = _inputPtr;
+-                } else if (ch != INT_TAB && !_isAllowedCtrlCharRS(ch)) {
+-                    _reportInvalidSpace(ch);
+-                }
+-            }
+-            if (_inputPtr >= _inputEnd) {
+-                _updateTokenToNA();
+-                return 0;
+-            }
+-            ch = getNextUnsignedByteFromBuffer();
+-        } while (ch <= 0x0020);
+-        return ch;
+-    }
+-
+-    private final JsonToken _startSlashComment(int fromMinorState) throws JacksonException
+-    {
+-        if ((_formatReadFeatures & FEAT_MASK_ALLOW_JAVA_COMMENTS) == 0) {
+-            _reportUnexpectedChar('/', "maybe a (non-standard) comment? (not recognized as one since Feature 'ALLOW_COMMENTS' not enabled for parser)");
+-        }
+-
+-        // After that, need to verify if we have c/c++ comment
+-        if (_inputPtr >= _inputEnd) {
+-            _pending32 = fromMinorState;
+-            _minorState = MINOR_COMMENT_LEADING_SLASH;
+-            return _updateTokenToNA();
+-        }
+-        int ch = getNextSignedByteFromBuffer();
+-        if (ch == INT_ASTERISK) { // c-style
+-            return _finishCComment(fromMinorState, false);
+-        }
+-        if (ch == INT_SLASH) { // c++-style
+-            return _finishCppComment(fromMinorState);
+-        }
+-        _reportUnexpectedChar(ch & 0xFF, "was expecting either '*' or '/' for a comment");
+-        return null;
+-    }
+-
+-    private final JsonToken _finishHashComment(int fromMinorState) throws JacksonException
+-    {
+-        // Could by-pass this check by refactoring, but for now simplest way...
+-        if ((_formatReadFeatures & FEAT_MASK_ALLOW_YAML_COMMENTS) == 0) {
+-            _reportUnexpectedChar('#', "maybe a (non-standard) comment? (not recognized as one since Feature 'ALLOW_YAML_COMMENTS' not enabled for parser)");
+-        }
+-        while (true) {
+-            if (_inputPtr >= _inputEnd) {
+-                _minorState = MINOR_COMMENT_YAML;
+-                _pending32 = fromMinorState;
+-                return _updateTokenToNA();
+-            }
+-            int ch = getNextUnsignedByteFromBuffer();
+-            if (ch < 0x020) {
+-                if (ch == INT_LF) {
+-                    ++_currInputRow;
+-                    _currInputRowStart = _inputPtr;
+-                    break;
+-                } else if (ch == INT_CR) {
+-                    ++_currInputRowAlt;
+-                    _currInputRowStart = _inputPtr;
+-                    break;
+-                } else if (ch != INT_TAB) {
+-                    _reportInvalidSpace(ch);
+-                }
+-            }
+-        }
+-        return _startAfterComment(fromMinorState);
+-    }
+-
+-    private final JsonToken _finishCppComment(int fromMinorState) throws JacksonException
+-    {
+-        while (true) {
+-            if (_inputPtr >= _inputEnd) {
+-                _minorState = MINOR_COMMENT_CPP;
+-                _pending32 = fromMinorState;
+-                return _updateTokenToNA();
+-            }
+-            int ch = getNextUnsignedByteFromBuffer();
+-            if (ch < 0x020) {
+-                if (ch == INT_LF) {
+-                    ++_currInputRow;
+-                    _currInputRowStart = _inputPtr;
+-                    break;
+-                } else if (ch == INT_CR) {
+-                    ++_currInputRowAlt;
+-                    _currInputRowStart = _inputPtr;
+-                    break;
+-                } else if (ch != INT_TAB) {
+-                    _reportInvalidSpace(ch);
+-                }
+-            }
+-        }
+-        return _startAfterComment(fromMinorState);
+-    }
+-
+-    private final JsonToken _finishCComment(int fromMinorState, boolean gotStar) throws JacksonException
+-    {
+-        while (true) {
+-            if (_inputPtr >= _inputEnd) {
+-                _minorState = gotStar ? MINOR_COMMENT_CLOSING_ASTERISK : MINOR_COMMENT_C;
+-                _pending32 = fromMinorState;
+-                return _updateTokenToNA();
+-            }
+-            int ch = getNextUnsignedByteFromBuffer();
+-            if (ch < 0x020) {
+-                if (ch == INT_LF) {
+-                    ++_currInputRow;
+-                    _currInputRowStart = _inputPtr;
+-                } else if (ch == INT_CR) {
+-                    ++_currInputRowAlt;
+-                    _currInputRowStart = _inputPtr;
+-                } else if (ch != INT_TAB) {
+-                    _reportInvalidSpace(ch);
+-                }
+-            } else if (ch == INT_ASTERISK) {
+-                gotStar = true;
+-                continue;
+-            } else if (ch == INT_SLASH) {
+-                if (gotStar) {
+-                    break;
+-                }
+-            }
+-            gotStar = false;
+-        }
+-        return _startAfterComment(fromMinorState);
+-    }
+-
+-    private final JsonToken _startAfterComment(int fromMinorState) throws JacksonException
+-    {
+-        // Ok, then, need one more character...
+-        if (_inputPtr >= _inputEnd) {
+-            _minorState = fromMinorState;
+-            return _updateTokenToNA();
+-        }
+-        int ch = getNextUnsignedByteFromBuffer();
+-        switch (fromMinorState) {
+-        case MINOR_PROPERTY_LEADING_WS:
+-            return _startName(ch);
+-        case MINOR_PROPERTY_LEADING_COMMA:
+-            return _startNameAfterComma(ch);
+-        case MINOR_VALUE_LEADING_WS:
+-            return _startValue(ch);
+-        case MINOR_VALUE_EXPECTING_COMMA:
+-            return _startValueExpectComma(ch);
+-        case MINOR_VALUE_EXPECTING_COLON:
+-            return _startValueExpectColon(ch);
+-        case MINOR_VALUE_WS_AFTER_COMMA:
+-            return _startValueAfterComma(ch);
+-        default:
+-        }
+-        VersionUtil.throwInternal();
+-        return null;
+-    }
+-
+     /*
+     /**********************************************************************
+     /* Tertiary decoding, simple tokens
+diff --git a/src/main/java/tools/jackson/core/json/async/NonBlockingCommentSkipper.java b/src/main/java/tools/jackson/core/json/async/NonBlockingCommentSkipper.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/json/async/NonBlockingCommentSkipper.java
+@@ -0,0 +1,200 @@
++package tools.jackson.core.json.async;
++
++import tools.jackson.core.JacksonException;
++import tools.jackson.core.JsonToken;
++import tools.jackson.core.json.JsonReadFeature;
++import tools.jackson.core.util.VersionUtil;
++
++/**
++ * Helper class for {@link NonBlockingUtf8JsonParserBase} to encapsulate
++ * non-blocking comment and whitespace skipping logic.
++ * This class is package-private and has direct access to the parser's
++ * protected members for state manipulation and delegation.
++ */
++class NonBlockingCommentSkipper {
++    protected final NonBlockingUtf8JsonParserBase _parser;
++
++    // Constants from NonBlockingJsonParserBase
++    private final static int INT_SPACE = NonBlockingJsonParserBase.INT_SPACE;
++    private final static int INT_LF = NonBlockingJsonParserBase.INT_LF;
++    private final static int INT_CR = NonBlockingJsonParserBase.INT_CR;
++    private final static int INT_TAB = NonBlockingJsonParserBase.INT_TAB;
++    private final static int INT_SLASH = NonBlockingJsonParserBase.INT_SLASH;
++    private final static int INT_ASTERISK = NonBlockingJsonParserBase.INT_ASTERISK;
++    private final static int INT_HASH = NonBlockingJsonParserBase.INT_HASH;
++
++    // Feature masks from JsonReadFeature
++    private final static int FEAT_MASK_ALLOW_JAVA_COMMENTS = JsonReadFeature.ALLOW_JAVA_COMMENTS.getMask();
++    private final static int FEAT_MASK_ALLOW_YAML_COMMENTS = JsonReadFeature.ALLOW_YAML_COMMENTS.getMask();
++
++    // Minor states from NonBlockingJsonParserBase
++    private final static int MINOR_COMMENT_LEADING_SLASH = NonBlockingJsonParserBase.MINOR_COMMENT_LEADING_SLASH;
++    private final static int MINOR_COMMENT_CLOSING_ASTERISK = NonBlockingJsonParserBase.MINOR_COMMENT_CLOSING_ASTERISK;
++    private final static int MINOR_COMMENT_C = NonBlockingJsonParserBase.MINOR_COMMENT_C;
++    private final static int MINOR_COMMENT_CPP = NonBlockingJsonParserBase.MINOR_COMMENT_CPP;
++    private final static int MINOR_COMMENT_YAML = NonBlockingJsonParserBase.MINOR_COMMENT_YAML;
++
++    private final static int MINOR_PROPERTY_LEADING_WS = NonBlockingJsonParserBase.MINOR_PROPERTY_LEADING_WS;
++    private final static int MINOR_PROPERTY_LEADING_COMMA = NonBlockingJsonParserBase.MINOR_PROPERTY_LEADING_COMMA;
++    private final static int MINOR_VALUE_LEADING_WS = NonBlockingJsonParserBase.MINOR_VALUE_LEADING_WS;
++    private final static int MINOR_VALUE_EXPECTING_COMMA = NonBlockingJsonParserBase.MINOR_VALUE_EXPECTING_COMMA;
++    private final static int MINOR_VALUE_EXPECTING_COLON = NonBlockingJsonParserBase.MINOR_VALUE_EXPECTING_COLON;
++    private final static int MINOR_VALUE_WS_AFTER_COMMA = NonBlockingJsonParserBase.MINOR_VALUE_WS_AFTER_COMMA;
++
++
++    public NonBlockingCommentSkipper(NonBlockingUtf8JsonParserBase parser) {
++        this._parser = parser;
++    }
++
++    public final int skipWS(int ch) throws JacksonException {
++        do {
++            if (ch != INT_SPACE) {
++                if (ch == INT_LF) {
++                    _parser._currInputRow++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                } else if (ch == INT_CR) {
++                    _parser._currInputRowAlt++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                } else if (ch != INT_TAB && !_parser._isAllowedCtrlCharRS(ch)) {
++                    _parser._reportInvalidSpace(ch);
++                }
++            }
++            if (_parser._inputPtr >= _parser._inputEnd) {
++                _parser._updateTokenToNA();
++                return 0;
++            }
++            ch = _parser.getNextUnsignedByteFromBuffer();
++        } while (ch <= INT_SPACE);
++        return ch;
++    }
++
++    public final JsonToken startSlashComment(int fromMinorState) throws JacksonException {
++        if ((_parser._formatReadFeatures & FEAT_MASK_ALLOW_JAVA_COMMENTS) == 0) {
++            _parser._reportUnexpectedChar('/', "maybe a (non-standard) comment? (not recognized as one since Feature 'ALLOW_COMMENTS' not enabled for parser)");
++        }
++
++        if (_parser._inputPtr >= _parser._getInputEnd()) {
++            _parser._pending32 = fromMinorState;
++            _parser._minorState = MINOR_COMMENT_LEADING_SLASH;
++            return _parser._updateTokenToNA();
++        }
++        int ch = _parser.getNextSignedByteFromBuffer();
++        if (ch == INT_ASTERISK) { // c-style
++            return finishCComment(fromMinorState, false);
++        }
++        if (ch == INT_SLASH) { // c++-style
++            return finishCppComment(fromMinorState);
++        }
++        _parser._reportUnexpectedChar(ch & 0xFF, "was expecting either '*' or '/' for a comment");
++        return null;
++    }
++
++    public final JsonToken finishHashComment(int fromMinorState) throws JacksonException {
++        if ((_parser._formatReadFeatures & FEAT_MASK_ALLOW_YAML_COMMENTS) == 0) {
++            _parser._reportUnexpectedChar('#', "maybe a (non-standard) comment? (not recognized as one since Feature 'ALLOW_YAML_COMMENTS' not enabled for parser)");
++        }
++        while (true) {
++            if (_parser._inputPtr >= _parser._getInputEnd()) {
++                _parser._minorState = MINOR_COMMENT_YAML;
++                _parser._pending32 = fromMinorState;
++                return _parser._updateTokenToNA();
++            }
++            int ch = _parser.getNextUnsignedByteFromBuffer();
++            if (ch < INT_SPACE) {
++                if (ch == INT_LF) {
++                    _parser._currInputRow++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                    break;
++                } else if (ch == INT_CR) {
++                    _parser._currInputRowAlt++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                    break;
++                } else if (ch != INT_TAB) {
++                    _parser._reportInvalidSpace(ch);
++                }
++            }
++        }
++        return startAfterComment(fromMinorState);
++    }
++
++    public final JsonToken finishCppComment(int fromMinorState) throws JacksonException {
++        while (true) {
++            if (_parser._inputPtr >= _parser._getInputEnd()) {
++                _parser._minorState = MINOR_COMMENT_CPP;
++                _parser._pending32 = fromMinorState;
++                return _parser._updateTokenToNA();
++            }
++            int ch = _parser.getNextUnsignedByteFromBuffer();
++            if (ch < INT_SPACE) {
++                if (ch == INT_LF) {
++                    _parser._currInputRow++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                    break;
++                } else if (ch == INT_CR) {
++                    _parser._currInputRowAlt++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                    break;
++                } else if (ch != INT_TAB) {
++                    _parser._reportInvalidSpace(ch);
++                }
++            }
++        }
++        return startAfterComment(fromMinorState);
++    }
++
++    public final JsonToken finishCComment(int fromMinorState, boolean gotStar) throws JacksonException {
++        while (true) {
++            if (_parser._inputPtr >= _parser._getInputEnd()) {
++                _parser._minorState = gotStar ? MINOR_COMMENT_CLOSING_ASTERISK : MINOR_COMMENT_C;
++                _parser._pending32 = fromMinorState;
++                return _parser._updateTokenToNA();
++            }
++            int ch = _parser.getNextUnsignedByteFromBuffer();
++            if (ch < INT_SPACE) {
++                if (ch == INT_LF) {
++                    _parser._currInputRow++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                } else if (ch == INT_CR) {
++                    _parser._currInputRowAlt++;
++                    _parser._currInputRowStart = _parser._inputPtr;
++                } else if (ch != INT_TAB) {
++                    _parser._reportInvalidSpace(ch);
++                }
++            } else if (ch == INT_ASTERISK) {
++                gotStar = true;
++                continue;
++            } else if (ch == INT_SLASH) {
++                if (gotStar) {
++                    break;
++                }
++            }
++            gotStar = false;
++        }
++        return startAfterComment(fromMinorState);
++    }
++
++    public final JsonToken startAfterComment(int fromMinorState) throws JacksonException {
++        if (_parser._inputPtr >= _parser._getInputEnd()) {
++            _parser._minorState = fromMinorState;
++            return _parser._updateTokenToNA();
++        }
++        int ch = _parser.getNextUnsignedByteFromBuffer();
++        switch (fromMinorState) {
++        case MINOR_PROPERTY_LEADING_WS:
++            return _parser._startName(ch);
++        case MINOR_PROPERTY_LEADING_COMMA:
++            return _parser._startNameAfterComma(ch);
++        case MINOR_VALUE_LEADING_WS:
++            return _parser._startValue(ch);
++        case MINOR_VALUE_EXPECTING_COMMA:
++            return _parser._startValueExpectComma(ch);
++        case MINOR_VALUE_EXPECTING_COLON:
++            return _parser._startValueExpectColon(ch);
++        case MINOR_VALUE_WS_AFTER_COMMA:
++            return _parser._startValueAfterComma(ch);
++        default:
++        }
++        VersionUtil.throwInternal();
++        return null;
++    }
++}
+\ No newline at end of file

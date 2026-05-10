@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "import tools.jackson.core.util.TextBuffer;",
+    "replace_text": "import tools.jackson.core.util.TextBuffer;\n\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.function.Function;"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "public class UTF8StreamJsonParser extends JsonParserBase\n{\n    /*\n    /**********************************************************\n    /* Configuration\n    /**********************************************************\n     */",
+    "replace_text": "public class UTF8StreamJsonParser extends JsonParserBase\n{\n    private static final Map<Integer, Function<UTF8StreamJsonParser, char[]>> CHARACTER_PROVIDERS;\n\n    static {\n        CHARACTER_PROVIDERS = new HashMap<>();\n        CHARACTER_PROVIDERS.put(JsonToken.ID_PROPERTY_NAME, parser -> parser.currentNameInBuffer());\n        CHARACTER_PROVIDERS.put(JsonToken.ID_STRING, parser -> {\n            if (parser._tokenIncomplete) {\n                parser._tokenIncomplete = false;\n                parser._finishString();\n            }\n            return parser._textBuffer.getTextBuffer();\n        });\n        CHARACTER_PROVIDERS.put(JsonToken.ID_NUMBER_INT, parser -> parser._textBuffer.getTextBuffer());\n        CHARACTER_PROVIDERS.put(JsonToken.ID_NUMBER_FLOAT, parser -> parser._textBuffer.getTextBuffer());\n    }\n\n    /*\n    /**********************************************************\n    /* Configuration\n    /**********************************************************\n     */"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "    @Override\n    public char[] getStringCharacters() throws JacksonException\n    {\n        if (_currToken != null) { // null only before/after document\n            switch (_currToken.id()) {\n\n            case ID_PROPERTY_NAME:\n                return currentNameInBuffer();\n            case ID_STRING:\n                if (_tokenIncomplete) {\n                    _tokenIncomplete = false;\n                    _finishString(); // only strings can be incomplete\n                }\n                // fall through\n            case ID_NUMBER_INT:\n            case ID_NUMBER_FLOAT:\n                return _textBuffer.getTextBuffer();\n\n            default:\n                return _currToken.asCharArray();\n            }\n        }\n        return null;\n    }",
+    "replace_text": "    @Override\n    public char[] getStringCharacters() throws JacksonException\n    {\n        if (_currToken == null) { // null only before/after document\n            return null;\n        }\n        Function<UTF8StreamJsonParser, char[]> provider = CHARACTER_PROVIDERS.get(_currToken.id());\n        if (provider != null) {\n            return provider.apply(this);\n        }\n        return _currToken.asCharArray();\n    }"
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_LSP_scan_10",
+  "repo_name": "requests",
+  "principle": "LSP",
+  "scan_number": 10,
+  "timestamp": "2026-05-03T01:36:05.781383",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/auth.py\",\n      \"entity_name\": \"HTTPProxyAuth\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 104,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPProxyAuth inherits from HTTPBasicAuth but changes the target of the authentication header.\",\n      \"reasoning\": \"HTTPProxyAuth inherits from HTTPBasicAuth, implying it is a behavioral substitute. However, it overrides the __call__ method to set the 'Proxy-Authorization' header instead of the 'Authorization' header. A client expecting an HTTPBasicAuth instance to authenticate with an origin server will find the program's correctness altered if an HTTPProxyAuth instance is substituted, as the origin server will not receive the required credentials.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"RequestsCookieJar\",\n      \"entity_type\": \"class\",\n      \"line_start\": 176,\n      \"line_end\": 437,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"RequestsCookieJar implements MutableMapping but introduces non-standard exceptions in __getitem__.\",\n      \"reasoning\": \"By inheriting from MutableMapping, RequestsCookieJar is expected to adhere to the standard mapping contract where __getitem__ returns a value or raises a KeyError. However, RequestsCookieJar can raise a CookieConflictError if multiple cookies with the same name exist across different domains/paths. This violates the expectations of any client using the object through the MutableMapping interface.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/auth.py\",\n      \"entity_name\": \"HTTPDigestAuth\",\n      \"entity_type\": \"class\",\n      \"line_start\": 107,\n      \"line_end\": 314,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"HTTPDigestAuth requires specific method handling (handle_401) not present in the AuthBase interface.\",\n      \"reasoning\": \"HTTPDigestAuth is a subtype of AuthBase, but it relies on additional methods like handle_401 and handle_redirect to function correctly within the Session lifecycle. This forces the Session (the client) to perform type-checking or attribute inspection to handle this specific subtype, violating the principle that subtypes should be substitutable for their base type without special handling by the client.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest\",\n      \"entity_type\": \"class\",\n      \"line_start\": 23,\n      \"line_end\": 100,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"MockRequest is an incomplete substitute for the urllib request interface expected by cookielib.\",\n      \"reasoning\": \"MockRequest is used as a substitute for a urllib.request.Request object when interacting with the standard cookielib. However, it only implements a small subset of the methods required by the full urllib request contract. This makes it a fragile substitute that violates LSP, as it cannot be used in all contexts where a standard request object is expected by the underlying library.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/auth.py",
+      "entity_name": "HTTPProxyAuth",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 104,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "HTTPProxyAuth inherits from HTTPBasicAuth but changes the target of the authentication header.",
+      "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth, implying it is a behavioral substitute. However, it overrides the __call__ method to set the 'Proxy-Authorization' header instead of the 'Authorization' header. A client expecting an HTTPBasicAuth instance to authenticate with an origin server will find the program's correctness altered if an HTTPProxyAuth instance is substituted, as the origin server will not receive the required credentials."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "RequestsCookieJar",
+      "entity_type": "class",
+      "line_start": 176,
+      "line_end": 437,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "RequestsCookieJar implements MutableMapping but introduces non-standard exceptions in __getitem__.",
+      "reasoning": "By inheriting from MutableMapping, RequestsCookieJar is expected to adhere to the standard mapping contract where __getitem__ returns a value or raises a KeyError. However, RequestsCookieJar can raise a CookieConflictError if multiple cookies with the same name exist across different domains/paths. This violates the expectations of any client using the object through the MutableMapping interface."
+    },
+    {
+      "file_path": "requests/src/requests/auth.py",
+      "entity_name": "HTTPDigestAuth",
+      "entity_type": "class",
+      "line_start": 107,
+      "line_end": 314,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "HTTPDigestAuth requires specific method handling (handle_401) not present in the AuthBase interface.",
+      "reasoning": "HTTPDigestAuth is a subtype of AuthBase, but it relies on additional methods like handle_401 and handle_redirect to function correctly within the Session lifecycle. This forces the Session (the client) to perform type-checking or attribute inspection to handle this specific subtype, violating the principle that subtypes should be substitutable for their base type without special handling by the client."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest",
+      "entity_type": "class",
+      "line_start": 23,
+      "line_end": 100,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "MockRequest is an incomplete substitute for the urllib request interface expected by cookielib.",
+      "reasoning": "MockRequest is used as a substitute for a urllib.request.Request object when interacting with the standard cookielib. However, it only implements a small subset of the methods required by the full urllib request contract. This makes it a fragile substitute that violates LSP, as it cannot be used in all contexts where a standard request object is expected by the underlying library."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 53797.30939865112,
+  "error": null
+}

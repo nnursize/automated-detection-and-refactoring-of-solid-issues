@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Context",
+    "entity_type": "class",
+    "line_start": 569,
+    "line_end": 587,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Context class combines dependency location/holding with singleton instance management.",
+    "reasoning": "The class provides access to `IResultCapture` and `IConfig` (dependency location), but also manages its own singleton instance via `friend` functions `getCurrentMutableContext()` and `getCurrentContext()`. Managing a singleton instance is a separate responsibility from merely holding and providing access to other components. This could be split into a `Context` for holding dependencies and a `ContextSingleton` for managing the global instance."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "GeneratorUntypedBase",
+    "entity_type": "class",
+    "line_start": 1062,
+    "line_end": 1136,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The GeneratorUntypedBase class mixes value generation logic with result capture and error reporting concerns.",
+    "reasoning": "The primary responsibility of a generator should be to produce values (`countedNext`, `currentElementIndex`, `currentElementAsString`). However, this class also includes `missingCaptureInstance()` for error reporting and `getResultCapture()` for interacting with the result capture system. These are separate concerns that could be delegated or handled by an external mechanism, allowing the generator to focus solely on value generation."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IResultCapture",
+    "entity_type": "class",
+    "line_start": 1065,
+    "line_end": 1127,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The IResultCapture interface includes static methods for global message management, which is distinct from instance-specific result capturing.",
+    "reasoning": "An interface (`IResultCapture`) should define a contract for instance-specific behavior. However, `pushScopedMessage()`, `popScopedMessage()`, and `emplaceUnscopedMessage()` are static methods. If these operate on a global state, they represent a global message management responsibility that is separate from the contract of an individual `IResultCapture` instance. These static methods would be better placed in a dedicated `MessageManager` utility class or a global function."
+  }
+]

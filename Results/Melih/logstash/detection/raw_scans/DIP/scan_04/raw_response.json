@@ -1,0 +1,62 @@
+{
+  "scan_id": "logstash_DIP_scan_04",
+  "repo_name": "logstash",
+  "principle": "DIP",
+  "scan_number": 4,
+  "timestamp": "2026-04-19T17:17:02.856659",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Dependency Inversion Principle (DIP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inte...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 105,\n      \"line_end\": 128,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete dependencies in constructor\",\n      \"reasoning\": \"The Queue class directly instantiates FileCheckpointIO, which is a low-level implementation detail. It should depend on an abstraction (e.g., CheckpointIO interface) and receive it via dependency injection to allow for easier testing and decoupling.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 110,\n      \"line_end\": 110,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Direct instantiation of concrete compression codec\",\n      \"reasoning\": \"The Queue class directly instantiates a compression codec via a factory call within the constructor. This creates a hard dependency on the specific implementation of the compression codec factory, violating DIP.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.openPages\",\n      \"entity_type\": \"class\",\n      \"line_start\": 194,\n      \"line_end\": 194,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete MmapPageIOV2\",\n      \"reasoning\": \"The openPages method directly instantiates MmapPageIOV2, a low-level implementation detail. High-level logic should depend on the PageIO abstraction, not a specific file-mapped implementation.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.newCheckpointedHeadpage\",\n      \"entity_type\": \"class\",\n      \"line_start\": 296,\n      \"line_end\": 296,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete MmapPageIOV2\",\n      \"reasoning\": \"The method directly instantiates MmapPageIOV2. This couples the high-level queue management logic to a specific storage implementation, preventing the use of alternative storage strategies.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 105,
+      "line_end": 128,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete dependencies in constructor",
+      "reasoning": "The Queue class directly instantiates FileCheckpointIO, which is a low-level implementation detail. It should depend on an abstraction (e.g., CheckpointIO interface) and receive it via dependency injection to allow for easier testing and decoupling."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 110,
+      "line_end": 110,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Direct instantiation of concrete compression codec",
+      "reasoning": "The Queue class directly instantiates a compression codec via a factory call within the constructor. This creates a hard dependency on the specific implementation of the compression codec factory, violating DIP."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.openPages",
+      "entity_type": "class",
+      "line_start": 194,
+      "line_end": 194,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete MmapPageIOV2",
+      "reasoning": "The openPages method directly instantiates MmapPageIOV2, a low-level implementation detail. High-level logic should depend on the PageIO abstraction, not a specific file-mapped implementation."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.newCheckpointedHeadpage",
+      "entity_type": "class",
+      "line_start": 296,
+      "line_end": 296,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete MmapPageIOV2",
+      "reasoning": "The method directly instantiates MmapPageIOV2. This couples the high-level queue management logic to a specific storage implementation, preventing the use of alternative storage strategies."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3504.239559173584,
+  "error": null
+}

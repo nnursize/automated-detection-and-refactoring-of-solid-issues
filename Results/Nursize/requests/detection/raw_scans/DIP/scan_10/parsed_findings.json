@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 357,
+    "line_end": 817,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level Session class directly depends on concrete low-level HTTPAdapter.",
+    "reasoning": "The Session class imports and instantiates the concrete HTTPAdapter class to handle default protocol schemes (http/https). This violates DIP as the high-level orchestrator should depend on the BaseAdapter abstraction and use dependency injection to allow for alternative transport implementations without modifying the Session class."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter",
+    "entity_type": "class",
+    "line_start": 145,
+    "line_end": 698,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "HTTPAdapter directly instantiates low-level urllib3.PoolManager.",
+    "reasoning": "HTTPAdapter is tightly coupled to the urllib3 library, directly instantiating PoolManager within its initialization logic (typically in init_poolmanager). This prevents the inversion of control necessary to swap out the underlying connection management or mock it effectively for testing without monkey-patching, violating the principle that details should depend on abstractions."
+  },
+  {
+    "file_path": "requests/src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 14,
+    "line_end": 61,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Top-level API function directly instantiates the concrete Session class.",
+    "reasoning": "The request function in api.py directly instantiates the concrete Session class. This hard-coded dependency on a specific implementation prevents the inversion of control, making it impossible to inject a different session manager or mock the session logic at the library's primary entry point."
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newSpecialCollectionConstructor",
+    "entity_type": "method",
+    "line_start": 177,
+    "line_end": 209,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Method explicitly checks for and handles many concrete collection types, requiring modification for new types.",
+    "reasoning": "The method `newSpecialCollectionConstructor` contains a series of `if-else` statements that explicitly check for specific `Class<?>` types like `EnumSet`, `EnumMap`, `ArrayList`, `LinkedHashMap`, `ArrayDeque`, `LinkedHashSet`, etc. To support the instantiation of a new standard `Collection` or `Map` implementation by default, this method would need to be modified to add another conditional branch. This violates the Open/Closed Principle as existing code needs modification to extend functionality."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "entity_name": "JsonTreeReader.peek",
+    "entity_type": "method",
+    "line_start": 126,
+    "line_end": 158,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Method determines next JsonToken based on internal JsonElement stack, requiring modification for new JsonElement types.",
+    "reasoning": "The `peek` method inspects the current state of the parsing stack (which holds `JsonElement`s) to determine the next `JsonToken`. This logic likely involves `instanceof` checks or equivalent dispatching based on the concrete type of `JsonElement` at the top of the stack. If a new type of `JsonElement` (representing a new kind of JSON structure or primitive) were ever introduced, this `peek` method would need modification to correctly identify and return the corresponding `JsonToken`. This violates the Open/Closed Principle."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeWriter.java",
+    "entity_name": "JsonTreeWriter.put",
+    "entity_type": "method",
+    "line_start": 79,
+    "line_end": 95,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Method dispatches writing logic based on concrete type of JsonElement, requiring modification for new JsonElement types.",
+    "reasoning": "The `put` method is responsible for writing a generic `JsonElement`. Its implementation must contain logic (e.g., `if (value instanceof JsonArray) { ... } else if (value instanceof JsonObject) { ... }`) to determine the concrete type of `value` and dispatch to the appropriate writing logic. If a new subclass of `JsonElement` were added, this method would need to be modified to handle the new type, violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java",
+    "entity_name": "ObjectTypeAdapter.read",
+    "entity_type": "method",
+    "line_start": 109,
+    "line_end": 117,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Method dispatches deserialization logic based on JsonToken type, requiring modification for new JsonToken types.",
+    "reasoning": "The `read` method, along with its helpers `tryBeginNesting` and `readTerminal`, reads arbitrary JSON content and maps it to Java `Object`s. It uses `JsonReader.peek()` to determine the next `JsonToken`. The subsequent logic will inherently involve conditional statements (e.g., `switch` or `if-else`) to handle different `JsonToken` types (BEGIN_ARRAY, BEGIN_OBJECT, STRING, NUMBER, BOOLEAN, NULL). If a new `JsonToken` type were introduced into the JSON specification and supported by `JsonReader`, this `ObjectTypeAdapter` would need modification to add a new branch for the new token, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+    "entity_name": "JsonElementTypeAdapter.read",
+    "entity_type": "method",
+    "line_start": 77,
+    "line_end": 90,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Method dispatches deserialization logic based on JsonToken type, requiring modification for new JsonToken types.",
+    "reasoning": "Similar to `ObjectTypeAdapter.read`, this method reads `JsonElement`s by peeking the next `JsonToken` and then branching based on its type. The presence of `IllegalStateException(\"Unexpected token: \" + peeked)` implies a non-exhaustive `switch` or `if-else` chain. If a new `JsonToken` type were introduced, this method would require modification to handle it, violating the Open/Closed Principle."
+  }
+]

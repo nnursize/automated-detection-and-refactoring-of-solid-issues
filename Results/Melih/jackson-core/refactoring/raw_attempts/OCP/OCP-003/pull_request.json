@@ -1,0 +1,101 @@
+{
+  "issue_id": "OCP-003",
+  "principle": "OCP",
+  "title": "Refactor OCP-003 (OCP): Switch statement on token ID requires modification to handle new token types",
+  "branch": "refactor/OCP-003",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3702,
+    "completion_tokens": 971
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getStringLength",
+    "entity_type": "class",
+    "line_start": 379,
+    "line_end": 398,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Switch statement on token ID requires modification to handle new token types",
+    "reasoning": "The getStringLength method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Refactor getStringLength to use a map-based strategy, adhering to OCP.",
+    "rationale": "The original getStringLength method used a switch statement on JsonToken IDs, which violates the Open/Closed Principle as new token types would require modifying the method. This refactoring introduces a TokenLengthGetter functional interface and a static map (TOKEN_LENGTH_GETTERS) to associate JsonTokens with their respective length calculation logic. This allows for extension (adding new token types and their length logic) without modifying the core getStringLength method, thus adhering to OCP. A new helper method, getTextBufferSize, is also introduced for consistency and to avoid code duplication in lambdas.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "        return _currToken.asCharArray();\n    }",
+        "replace_text": "        return _currToken.asCharArray();\n    }\n\n    // --- OCP Refactoring for getStringLength ---\n    @FunctionalInterface\n    private interface TokenLengthGetter {\n        int get(UTF8StreamJsonParser parser) throws JacksonException;\n    }\n\n    private static final java.util.Map<tools.jackson.core.JsonToken, TokenLengthGetter> TOKEN_LENGTH_GETTERS;\n\n    static {\n        TOKEN_LENGTH_GETTERS = new java.util.EnumMap<>(tools.jackson.core.JsonToken.class);\n        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.PROPERTY_NAME, parser -> parser._streamReadContext.currentName().length());\n        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.VALUE_STRING, parser -> {\n            if (parser._tokenIncomplete) {\n                parser._tokenIncomplete = false;\n                parser._finishString();\n            }\n            return parser.getTextBufferSize();\n        });\n        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_INT, UTF8StreamJsonParser::getTextBufferSize);\n        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_FLOAT, UTF8StreamJsonParser::getTextBufferSize);\n    }",
+        "search_lines": 2,
+        "replace_lines": 24
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    // Helper method to avoid repeating _textBuffer.getTextBuffer() in lambda\n    private char[] getTextBufferContents() {\n        return _textBuffer.getTextBuffer();\n    }",
+        "replace_text": "    // Helper method to avoid repeating _textBuffer.getTextBuffer() in lambda\n    private char[] getTextBufferContents() {\n        return _textBuffer.getTextBuffer();\n    }\n\n    // Helper method to avoid repeating _textBuffer.size() in lambda\n    private int getTextBufferSize() {\n        return _textBuffer.size();\n    }",
+        "search_lines": 4,
+        "replace_lines": 9
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    @Override\n    public int getStringLength() throws JacksonException\n    {\n        if (_currToken != null) { // null only before/after document\n            switch (_currToken.id()) {\n\n            case ID_PROPERTY_NAME:\n                return _streamReadContext.currentName().length();\n            case ID_STRING:\n                if (_tokenIncomplete) {\n                    _tokenIncomplete = false;\n                    _finishString(); // only strings can be incomplete\n                }\n                // fall through\n            case ID_NUMBER_INT:\n            case ID_NUMBER_FLOAT:\n                return _textBuffer.size();\n\n            default:\n                return _currToken.asCharArray().length;\n            }\n        }\n        return 0;\n    }",
+        "replace_text": "    @Override\n    public int getStringLength() throws JacksonException\n    {\n        if (_currToken == null) { // null only before/after document\n            return 0;\n        }\n        TokenLengthGetter getter = TOKEN_LENGTH_GETTERS.get(_currToken);\n        if (getter != null) {\n            return getter.get(this);\n        }\n        return _currToken.asCharArray().length;\n    }",
+        "search_lines": 24,
+        "replace_lines": 12
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3546,
+        "blank_lines": 276,
+        "comment_lines": 283,
+        "function_count": 113,
+        "avg_cc": 9.72,
+        "max_cc": 986.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3558,
+        "blank_lines": 278,
+        "comment_lines": 284,
+        "function_count": 114,
+        "avg_cc": 9.62,
+        "max_cc": 984.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\nindex 39108fe..a1c1f9c 100644\n--- a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\n+++ b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\n@@ -449,6 +449,11 @@ public class UTF8StreamJsonParser\n         return _textBuffer.getTextBuffer();\n     }\n \n+    // Helper method to avoid repeating _textBuffer.size() in lambda\n+    private int getTextBufferSize() {\n+        return _textBuffer.size();\n+    }\n+\n     @Override\n     public char[] getStringCharacters() throws JacksonException\n     {\n@@ -462,29 +467,39 @@ public class UTF8StreamJsonParser\n         return _currToken.asCharArray();\n     }\n \n-    @Override\n-    public int getStringLength() throws JacksonException\n-    {\n-        if (_currToken != null) { // null only before/after document\n-            switch (_currToken.id()) {\n+    // --- OCP Refactoring for getStringLength ---\n+    @FunctionalInterface\n+    private interface TokenLengthGetter {\n+        int get(UTF8StreamJsonParser parser) throws JacksonException;\n+    }\n \n-            case ID_PROPERTY_NAME:\n-                return _streamReadContext.currentName().length();\n-            case ID_STRING:\n-                if (_tokenIncomplete) {\n-                    _tokenIncomplete = false;\n-                    _finishString(); // only strings can be incomplete\n-                }\n-                // fall through\n-            case ID_NUMBER_INT:\n-            case ID_NUMBER_FLOAT:\n-                return _textBuffer.size();\n+    private static final java.util.Map<tools.jackson.core.JsonToken, TokenLengthGetter> TOKEN_LENGTH_GETTERS;\n \n-            default:\n-                return _currToken.asCharArray().length;\n+    static {\n+        TOKEN_LENGTH_GETTERS = new java.util.EnumMap<>(tools.jackson.core.JsonToken.class);\n+        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.PROPERTY_NAME, parser -> parser._streamReadContext.currentName().length());\n+        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.VALUE_STRING, parser -> {\n+            if (parser._tokenIncomplete) {\n+                parser._tokenIncomplete = false;\n+                parser._finishString();\n             }\n+            return parser.getTextBufferSize();\n+        });\n+        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_INT, UTF8StreamJsonParser::getTextBufferSize);\n+        TOKEN_LENGTH_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_FLOAT, UTF8StreamJsonParser::getTextBufferSize);\n+    }\n+\n+    @Override\n+    public int getStringLength() throws JacksonException\n+    {\n+        if (_currToken == null) { // null only before/after document\n+            return 0;\n         }\n-        return 0;\n+        TokenLengthGetter getter = TOKEN_LENGTH_GETTERS.get(_currToken);\n+        if (getter != null) {\n+            return getter.get(this);\n+        }\n+        return _currToken.asCharArray().length;\n     }\n \n     @Override\n",
+  "duration_ms": 18832.309246063232
+}

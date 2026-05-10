@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 493,
+    "line_end": 493,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implements binary data access in a way that may not be supported by all base JsonParser implementations.",
+    "reasoning": "While JsonParser defines binary access, specific implementations like UTF8StreamJsonParser rely on internal buffer state that might not be available or consistent across all parser types, potentially leading to runtime failures when substituted."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 363,
+    "line_end": 363,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implements binary data access in a way that may not be supported by all base JsonParser implementations.",
+    "reasoning": "Similar to UTF8StreamJsonParser, this implementation relies on DataInput which significantly alters the expected input contract of the base JsonParser, potentially causing issues for clients expecting standard InputStream-based behavior."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 462,
+    "line_end": 462,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implements binary data access in a way that may not be supported by all base JsonParser implementations.",
+    "reasoning": "Reader-based parsing of binary data is inherently different from stream-based parsing. Implementing this in a subclass of a general JsonParser can lead to unexpected behavior for consumers of the base class."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingJsonParserBase.java",
+    "entity_name": "NonBlockingJsonParserBase.getNextSignedByteFromBuffer",
+    "entity_type": "class",
+    "line_start": 172,
+    "line_end": 172,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Abstract methods in a base class force subclasses into a specific non-blocking contract that violates the standard JsonParser contract.",
+    "reasoning": "The introduction of abstract methods like getNextSignedByteFromBuffer forces subclasses to implement a specific non-blocking state machine, which is not part of the standard JsonParser interface, breaking the ability to treat all JsonParsers uniformly."
+  }
+]

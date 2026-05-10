@@ -43,8 +43,10 @@ def relocate(
     classes = extract_classes(full_file_content, language)
     signatures = extract_signatures(full_file_content, language)
 
-    if "." in entity_name:
-        class_name, member = entity_name.split(".", 1)
+    lookup_name = _lookup_entity_name(entity_name, language)
+
+    if "." in lookup_name:
+        class_name, member = lookup_name.split(".", 1)
         for ci in classes:
             if ci.name != class_name:
                 continue
@@ -59,11 +61,11 @@ def relocate(
         return None
 
     for ci in classes:
-        if ci.name == entity_name:
+        if ci.name == lookup_name:
             return _slice(full_file_content, file_path, entity_name,
                           "class", ci.line_start, ci.line_end)
     for sig in signatures:
-        if sig.name == entity_name:
+        if sig.name == lookup_name:
             inside_class = any(
                 ci.line_start <= sig.line_start <= ci.line_end
                 for ci in classes
@@ -73,6 +75,19 @@ def relocate(
             return _slice(full_file_content, file_path, entity_name,
                           "function", sig.line_start, sig.line_end)
     return None
+
+
+def _lookup_entity_name(entity_name: str, language: str) -> str:
+    """Convert detector entity names into names extractors can match.
+
+    C/C++ detections often include namespace qualifiers, e.g.
+    ``Catch::Benchmark::Benchmark``. The regex extractor records the declared
+    entity name itself, so the final qualifier is the best relocation key.
+    """
+    lang = (language or "").lower().strip()
+    if lang in {"c++", "cpp", "cxx", "cc", "hpp", "h++"} and "::" in entity_name:
+        return entity_name.rsplit("::", 1)[-1]
+    return entity_name
 
 
 def _slice(content: str, file_path: str, entity_name: str, kind: str,

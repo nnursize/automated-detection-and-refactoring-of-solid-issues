@@ -1,0 +1,51 @@
+{
+  "issue_id": "LSP-001",
+  "principle": "LSP",
+  "title": "Refactor LSP-001 (LSP): Subclass method returns None instead of raising KeyError for missing keys.",
+  "branch": "refactor/LSP-001",
+  "base": "main",
+  "head_commit": "d7c31619d0f4344c4f802c51dcde02ae3f039a75",
+  "status": "llm_error",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": "unhandled error: FatalLLMError: Server unavailable (503) \u2014 skipping to preserve quota: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/structures.py",
+    "entity_name": "LookupDict.__getitem__",
+    "entity_type": "class",
+    "line_start": 101,
+    "line_end": 104,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Subclass method returns None instead of raising KeyError for missing keys.",
+    "reasoning": "LookupDict inherits from the built-in dict. The contract for dict.__getitem__ is to raise a KeyError when a key is not found. LookupDict overrides this to return None, which breaks the expectations of any code using it as a standard dictionary substitute, potentially leading to AttributeError or silent failures elsewhere."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/structures.py",
+        "loc": 67,
+        "blank_lines": 27,
+        "comment_lines": 5,
+        "function_count": 14,
+        "avg_cc": 1.38,
+        "max_cc": 2.0,
+        "mi": 81.77
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 1093.1527614593506
+}

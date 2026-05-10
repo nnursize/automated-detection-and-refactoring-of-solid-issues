@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-007",
+  "principle": "ISP",
+  "title": "Refactor ISP-007 (ISP): MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for s...",
+  "branch": "refactor/ISP-007",
+  "base": "main",
+  "head_commit": "c86960ad45d225a0604034d8f0b69a79cde0356a",
+  "status": "obsolete",
+  "obsolete_reason": "entity `org.logstash.ackedqueue.io.MmapPageIOV1` not found in current source of `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "org.logstash.ackedqueue.io.MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 29,
+    "line_end": 222,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface but throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, and `write()`. This is a textbook violation of the Interface Segregation Principle. It indicates that the `PageIO` interface is 'fat' and groups together responsibilities (reading, writing, lifecycle management, recovery) that are not universally applicable to all its implementations. `MmapPageIOV1` only supports reading, but is forced to provide implementations for writing, creating, and other operations it does not support. The `PageIO` interface should be segregated into smaller, more focused interfaces (e.g., `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `LifecyclePageIO`) so that clients are only forced to depend on methods relevant to their specific needs."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 31.942129135131836
+}

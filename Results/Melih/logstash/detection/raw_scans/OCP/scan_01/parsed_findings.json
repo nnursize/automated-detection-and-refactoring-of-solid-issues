@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "EventCondition.Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 100,
+    "line_end": 125,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Type-checking logic using instanceof chain for expression compilation",
+    "reasoning": "The buildCondition method uses a long chain of instanceof checks to determine how to compile different BooleanExpression types. Adding a new expression type to the Logstash configuration language requires modifying this central compiler method instead of extending the system through polymorphism or a visitor pattern."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/settings.rb",
+    "entity_name": "LogStash::Config::DSL.validate_value",
+    "entity_type": "method",
+    "line_start": 360,
+    "line_end": 500,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Monolithic case statement for configuration value validation",
+    "reasoning": "The validate_value method contains a massive case statement that handles every supported validator type (string, number, boolean, password, etc.). Adding a new data type or validation logic to Logstash settings requires modifying this core method, violating the principle that the system should be open for extension but closed for modification."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 650,
+    "line_end": 670,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on protocol strings for source details",
+    "reasoning": "This method uses a switch statement to handle different configuration source protocols ('string', 'file', 'module', etc.). Adding a new source type requires modifying this execution class. This logic should be delegated to the source objects themselves."
+  }
+]

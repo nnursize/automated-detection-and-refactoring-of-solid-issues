@@ -1,0 +1,88 @@
+{
+  "issue_id": "OCP-002",
+  "principle": "OCP",
+  "title": "Refactor OCP-002 (OCP): Switch statement on token ID requires modification to handle new token types",
+  "branch": "refactor/OCP-002",
+  "base": "main",
+  "head_commit": "68ce7e9ad175b8602bc625a892c37584b60ad05f",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3560,
+    "completion_tokens": 873
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getStringCharacters",
+    "entity_type": "class",
+    "line_start": 357,
+    "line_end": 376,
+    "severity": "medium",
+    "scan_count": 5,
+    "description": "Switch statement on token ID requires modification to handle new token types",
+    "reasoning": "The getStringCharacters method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Replaced switch statement in getStringCharacters with a static lookup map to adhere to OCP.",
+    "rationale": "The original `getStringCharacters` method used a switch statement on `JsonToken.id()`, which violates the Open/Closed Principle because adding new token types would require modifying this method. By introducing a static `Map` of `Function`s, the method itself becomes closed for modification. New token-specific character retrieval logic can be added by extending the `CHARACTER_PROVIDERS` map in its static initializer block, thus adhering to OCP. This approach keeps the logic localized within the parser where it has access to necessary internal state (`_tokenIncomplete`, `_finishString`, `_textBuffer`, `currentNameInBuffer`).",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "import tools.jackson.core.util.TextBuffer;",
+        "replace_text": "import tools.jackson.core.util.TextBuffer;\n\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.function.Function;",
+        "search_lines": 1,
+        "replace_lines": 5
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "public class UTF8StreamJsonParser extends JsonParserBase\n{\n    /*\n    /**********************************************************\n    /* Configuration\n    /**********************************************************\n     */",
+        "replace_text": "public class UTF8StreamJsonParser extends JsonParserBase\n{\n    private static final Map<Integer, Function<UTF8StreamJsonParser, char[]>> CHARACTER_PROVIDERS;\n\n    static {\n        CHARACTER_PROVIDERS = new HashMap<>();\n        CHARACTER_PROVIDERS.put(JsonToken.ID_PROPERTY_NAME, parser -> parser.currentNameInBuffer());\n        CHARACTER_PROVIDERS.put(JsonToken.ID_STRING, parser -> {\n            if (parser._tokenIncomplete) {\n                parser._tokenIncomplete = false;\n                parser._finishString();\n            }\n            return parser._textBuffer.getTextBuffer();\n        });\n        CHARACTER_PROVIDERS.put(JsonToken.ID_NUMBER_INT, parser -> parser._textBuffer.getTextBuffer());\n        CHARACTER_PROVIDERS.put(JsonToken.ID_NUMBER_FLOAT, parser -> parser._textBuffer.getTextBuffer());\n    }\n\n    /*\n    /**********************************************************\n    /* Configuration\n    /**********************************************************\n     */",
+        "search_lines": 7,
+        "replace_lines": 23
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    @Override\n    public char[] getStringCharacters() throws JacksonException\n    {\n        if (_currToken != null) { // null only before/after document\n            switch (_currToken.id()) {\n\n            case ID_PROPERTY_NAME:\n                return currentNameInBuffer();\n            case ID_STRING:\n                if (_tokenIncomplete) {\n                    _tokenIncomplete = false;\n                    _finishString(); // only strings can be incomplete\n                }\n                // fall through\n            case ID_NUMBER_INT:\n            case ID_NUMBER_FLOAT:\n                return _textBuffer.getTextBuffer();\n\n            default:\n                return _currToken.asCharArray();\n            }\n        }\n        return null;\n    }",
+        "replace_text": "    @Override\n    public char[] getStringCharacters() throws JacksonException\n    {\n        if (_currToken == null) { // null only before/after document\n            return null;\n        }\n        Function<UTF8StreamJsonParser, char[]> provider = CHARACTER_PROVIDERS.get(_currToken.id());\n        if (provider != null) {\n            return provider.apply(this);\n        }\n        return _currToken.asCharArray();\n    }",
+        "search_lines": 24,
+        "replace_lines": 12
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3541,
+        "blank_lines": 274,
+        "comment_lines": 281,
+        "function_count": 111,
+        "avg_cc": 9.88,
+        "max_cc": 987.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 37905.76791763306
+}

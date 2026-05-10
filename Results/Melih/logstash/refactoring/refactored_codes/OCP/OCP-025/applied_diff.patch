@@ -1,0 +1,20 @@
+diff --git a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java
+index 7b2e452..545a302 100644
+--- a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java
++++ b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java
+@@ -811,14 +811,7 @@ public class AbstractPipelineExt extends RubyBasicObject {
+     }
+ 
+     private String getSourceDescription(SourceWithMetadata source) {
+-        switch (source.getProtocol()) {
+-            case "string": return "config string";
+-            case "file": return source.getId();
+-            case "x-pack-metrics": return "monitoring pipeline";
+-            case "x-pack-config-management": return "central pipeline management";
+-            case "module": return "module";
+-            default: return source.getProtocol();
+-        }
++        return source.getDescription();
+     }
+ 
+     protected final IRubyObject getSetting(final ThreadContext context, final String name) {

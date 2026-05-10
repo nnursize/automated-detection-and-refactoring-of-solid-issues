@@ -1,0 +1,109 @@
+{
+  "issue_id": "SRP-046",
+  "principle": "SRP",
+  "title": "Refactor SRP-046 (SRP): The Column class combines text content storage, text layout configuration, an...",
+  "branch": "refactor/SRP-046",
+  "base": "main",
+  "head_commit": "54a5882f307ef215f4ccad5da24858aad03b7fbc",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 12208,
+    "completion_tokens": 2210
+  },
+  "detected_issue": {
+    "file_path": "third_party/clara.hpp",
+    "entity_name": "Column",
+    "entity_type": "class",
+    "line_start": 71,
+    "line_end": 241,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "The Column class combines text content storage, text layout configuration, and rendering logic.",
+    "reasoning": "The class stores the raw text (`m_strings`), defines layout parameters (`m_width`, `m_indent`, `m_initialIndent`), and provides an iterator that applies these layout rules. Additionally, it offers `operator<<` and `toString()` for rendering the formatted output. A change in text content, layout rules, or rendering mechanism would all require modifications to this single class."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract layout configuration from Column class into a separate ColumnLayout struct",
+    "rationale": "The Column class was violating SRP by managing both data storage and layout parameters. By introducing a ColumnLayout struct, we separate the configuration (width, indent) from the data storage and iteration logic, making the code more maintainable and adhering to the Single Responsibility Principle.",
+    "files_touched": [
+      "third_party/clara.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "third_party/clara.hpp"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "third_party/clara.hpp",
+        "search_text": "    class Column {\n        std::vector<std::string> m_strings;\n        size_t m_width = CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;\n        size_t m_indent = 0;\n        size_t m_initialIndent = std::string::npos;\n\n    public:\n        class iterator {\n            friend Column;\n\n            Column const& m_column;\n            size_t m_stringIndex = 0;\n            size_t m_pos = 0;\n\n            size_t m_len = 0;\n            size_t m_end = 0;\n            bool m_suffix = false;\n\n            iterator( Column const& column, size_t stringIndex )\n            :   m_column( column ),\n                m_stringIndex( stringIndex )\n            {}\n\n            auto line() const -> std::string const& { return m_column.m_strings[m_stringIndex]; }\n\n            auto isBoundary( size_t at ) const -> bool {\n                assert( at > 0 );\n                assert( at <= line().size() );\n\n                return at == line().size() ||\n                       ( isWhitespace( line()[at] ) && !isWhitespace( line()[at-1] ) ) ||\n                       isBreakableBefore( line()[at] ) ||\n                       isBreakableAfter( line()[at-1] );\n            }\n\n            void calcLength() {\n                assert( m_stringIndex < m_column.m_strings.size() );\n\n                m_suffix = false;\n                auto width = m_column.m_width-indent();\n                m_end = m_pos;\n                if (line()[m_pos] == '\\n') {\n                    ++m_end;\n                }\n                while( m_end < line().size() && line()[m_end] != '\\n' )\n                    ++m_end;\n\n                if( m_end < m_pos + width ) {\n                    m_len = m_end - m_pos;\n                }\n                else {\n                    size_t len = width;\n                    while (len > 0 && !isBoundary(m_pos + len))\n                        --len;\n                    while (len > 0 && isWhitespace( line()[m_pos + len - 1] ))\n                        --len;\n\n                    if (len > 0) {\n                        m_len = len;\n                    } else {\n                        m_suffix = true;\n                        m_len = width - 1;\n                    }\n                }\n            }\n\n            auto indent() const -> size_t {\n                auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_initialIndent : std::string::npos;\n                return initial == std::string::npos ? m_column.m_indent : initial;\n            }",
+        "replace_text": "    struct ColumnLayout {\n        size_t width = CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;\n        size_t indent = 0;\n        size_t initialIndent = std::string::npos;\n    };\n\n    class Column {\n        std::vector<std::string> m_strings;\n        ColumnLayout m_layout;\n\n    public:\n        class iterator {\n            friend Column;\n\n            Column const& m_column;\n            size_t m_stringIndex = 0;\n            size_t m_pos = 0;\n\n            size_t m_len = 0;\n            size_t m_end = 0;\n            bool m_suffix = false;\n\n            iterator( Column const& column, size_t stringIndex )\n            :   m_column( column ),\n                m_stringIndex( stringIndex )\n            {}\n\n            auto line() const -> std::string const& { return m_column.m_strings[m_stringIndex]; }\n\n            auto isBoundary( size_t at ) const -> bool {\n                assert( at > 0 );\n                assert( at <= line().size() );\n\n                return at == line().size() ||\n                       ( isWhitespace( line()[at] ) && !isWhitespace( line()[at-1] ) ) ||\n                       isBreakableBefore( line()[at] ) ||\n                       isBreakableAfter( line()[at-1] );\n            }\n\n            void calcLength() {\n                assert( m_stringIndex < m_column.m_strings.size() );\n\n                m_suffix = false;\n                auto width = m_column.m_layout.width-indent();\n                m_end = m_pos;\n                if (line()[m_pos] == '\\n') {\n                    ++m_end;\n                }\n                while( m_end < line().size() && line()[m_end] != '\\n' )\n                    ++m_end;\n\n                if( m_end < m_pos + width ) {\n                    m_len = m_end - m_pos;\n                }\n                else {\n                    size_t len = width;\n                    while (len > 0 && !isBoundary(m_pos + len))\n                        --len;\n                    while (len > 0 && isWhitespace( line()[m_pos + len - 1] ))\n                        --len;\n\n                    if (len > 0) {\n                        m_len = len;\n                    } else {\n                        m_suffix = true;\n                        m_len = width - 1;\n                    }\n                }\n            }\n\n            auto indent() const -> size_t {\n                auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_layout.initialIndent : std::string::npos;\n                return initial == std::string::npos ? m_column.m_layout.indent : initial;\n            }",
+        "search_lines": 70,
+        "replace_lines": 74
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "third_party/clara.hpp",
+        "search_text": "            explicit iterator( Column const& column ) : m_column( column ) {\n                assert( m_column.m_width > m_column.m_indent );\n                assert( m_column.m_initialIndent == std::string::npos || m_column.m_width > m_column.m_initialIndent );\n                calcLength();\n                if( m_len == 0 )",
+        "replace_text": "            explicit iterator( Column const& column ) : m_column( column ) {\n                assert( m_column.m_layout.width > m_column.m_layout.indent );\n                assert( m_column.m_layout.initialIndent == std::string::npos || m_column.m_layout.width > m_column.m_layout.initialIndent );\n                calcLength();\n                if( m_len == 0 )",
+        "search_lines": 5,
+        "replace_lines": 5
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "third_party/clara.hpp",
+        "search_text": "        explicit Column( std::string const& text ) { m_strings.push_back( text ); }\n\n        auto width( size_t newWidth ) -> Column& {\n            assert( newWidth > 0 );\n            m_width = newWidth;\n            return *this;\n        }\n        auto indent( size_t newIndent ) -> Column& {\n            m_indent = newIndent;\n            return *this;\n        }\n        auto initialIndent( size_t newIndent ) -> Column& {\n            m_initialIndent = newIndent;\n            return *this;\n        }\n\n        auto width() const -> size_t { return m_width; }",
+        "replace_text": "        explicit Column( std::string const& text ) { m_strings.push_back( text ); }\n\n        auto width( size_t newWidth ) -> Column& {\n            assert( newWidth > 0 );\n            m_layout.width = newWidth;\n            return *this;\n        }\n        auto indent( size_t newIndent ) -> Column& {\n            m_layout.indent = newIndent;\n            return *this;\n        }\n        auto initialIndent( size_t newIndent ) -> Column& {\n            m_layout.initialIndent = newIndent;\n            return *this;\n        }\n\n        auto width() const -> size_t { return m_layout.width; }",
+        "search_lines": 17,
+        "replace_lines": 17
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "third_party/clara.hpp",
+        "search_text": "                    auto width = m_columns[i].width();\n                    if( m_iterators[i] != m_columns[i].end() ) {\n                        std::string col = *m_iterators[i];\n                        row += padding + col;\n                        if( col.size() < width )\n                            padding = std::string( width - col.size(), ' ' );\n                        else\n                            padding = \"\";\n                    }\n                    else {\n                        padding += std::string( width, ' ' );\n                    }",
+        "replace_text": "                    auto colWidth = m_columns[i].width();\n                    if( m_iterators[i] != m_columns[i].end() ) {\n                        std::string col = *m_iterators[i];\n                        row += padding + col;\n                        if( col.size() < colWidth )\n                            padding = std::string( colWidth - col.size(), ' ' );\n                        else\n                            padding = \"\";\n                    }\n                    else {\n                        padding += std::string( colWidth, ' ' );\n                    }",
+        "search_lines": 12,
+        "replace_lines": 12
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "third_party/clara.hpp",
+        "loc": 1007,
+        "blank_lines": 221,
+        "comment_lines": 39,
+        "function_count": 1,
+        "avg_cc": 145.0,
+        "max_cc": 145.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "third_party/clara.hpp",
+        "loc": 1010,
+        "blank_lines": 222,
+        "comment_lines": 39,
+        "function_count": 1,
+        "avg_cc": 145.0,
+        "max_cc": 145.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/third_party/clara.hpp b/third_party/clara.hpp\nindex eb4c727..9bdc986 100644\n--- a/third_party/clara.hpp\n+++ b/third_party/clara.hpp\n@@ -69,11 +69,15 @@ namespace clara { namespace TextFlow {\n \n     class Columns;\n \n+    struct ColumnLayout {\n+        size_t width = CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;\n+        size_t indent = 0;\n+        size_t initialIndent = std::string::npos;\n+    };\n+\n     class Column {\n         std::vector<std::string> m_strings;\n-        size_t m_width = CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;\n-        size_t m_indent = 0;\n-        size_t m_initialIndent = std::string::npos;\n+        ColumnLayout m_layout;\n \n     public:\n         class iterator {\n@@ -108,7 +112,7 @@ namespace clara { namespace TextFlow {\n                 assert( m_stringIndex < m_column.m_strings.size() );\n \n                 m_suffix = false;\n-                auto width = m_column.m_width-indent();\n+                auto width = m_column.m_layout.width-indent();\n                 m_end = m_pos;\n                 if (line()[m_pos] == '\\n') {\n                     ++m_end;\n@@ -136,8 +140,8 @@ namespace clara { namespace TextFlow {\n             }\n \n             auto indent() const -> size_t {\n-                auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_initialIndent : std::string::npos;\n-                return initial == std::string::npos ? m_column.m_indent : initial;\n+                auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_layout.initialIndent : std::string::npos;\n+                return initial == std::string::npos ? m_column.m_layout.indent : initial;\n             }\n \n             auto addIndentAndSuffix(std::string const &plain) const -> std::string {\n@@ -152,8 +156,8 @@ namespace clara { namespace TextFlow {\n             using iterator_category = std::forward_iterator_tag;\n \n             explicit iterator( Column const& column ) : m_column( column ) {\n-                assert( m_column.m_width > m_column.m_indent );\n-                assert( m_column.m_initialIndent == std::string::npos || m_column.m_width > m_column.m_initialIndent );\n+                assert( m_column.m_layout.width > m_column.m_layout.indent );\n+                assert( m_column.m_layout.initialIndent == std::string::npos || m_column.m_layout.width > m_column.m_layout.initialIndent );\n                 calcLength();\n                 if( m_len == 0 )\n                     m_stringIndex++; // Empty string\n@@ -203,19 +207,19 @@ namespace clara { namespace TextFlow {\n \n         auto width( size_t newWidth ) -> Column& {\n             assert( newWidth > 0 );\n-            m_width = newWidth;\n+            m_layout.width = newWidth;\n             return *this;\n         }\n         auto indent( size_t newIndent ) -> Column& {\n-            m_indent = newIndent;\n+            m_layout.indent = newIndent;\n             return *this;\n         }\n         auto initialIndent( size_t newIndent ) -> Column& {\n-            m_initialIndent = newIndent;\n+            m_layout.initialIndent = newIndent;\n             return *this;\n         }\n \n-        auto width() const -> size_t { return m_width; }\n+        auto width() const -> size_t { return m_layout.width; }\n         auto begin() const -> iterator { return iterator( *this ); }\n         auto end() const -> iterator { return { *this, m_strings.size() }; }\n \n@@ -298,17 +302,17 @@ namespace clara { namespace TextFlow {\n                 std::string row, padding;\n \n                 for( size_t i = 0; i < m_columns.size(); ++i ) {\n-                    auto width = m_columns[i].width();\n+                    auto colWidth = m_columns[i].width();\n                     if( m_iterators[i] != m_columns[i].end() ) {\n                         std::string col = *m_iterators[i];\n                         row += padding + col;\n-                        if( col.size() < width )\n-                            padding = std::string( width - col.size(), ' ' );\n+                        if( col.size() < colWidth )\n+                            padding = std::string( colWidth - col.size(), ' ' );\n                         else\n                             padding = \"\";\n                     }\n                     else {\n-                        padding += std::string( width, ' ' );\n+                        padding += std::string( colWidth, ' ' );\n                     }\n                 }\n                 return row;\n",
+  "duration_ms": 16476.130723953247
+}

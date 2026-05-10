@@ -1,0 +1,13 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Platform and Compiler Detection Macros",
+    "entity_type": "class",
+    "line_start": 53,
+    "line_end": 370,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Extensive use of #if/#elif chains for platform and compiler detection.",
+    "reasoning": "The detection logic for various platforms (e.g., CATCH_PLATFORM_MAC, CATCH_PLATFORM_LINUX, CATCH_PLATFORM_WINDOWS) and compiler capabilities (e.g., __GNUC__, __clang__, _MSC_VER, __NVCOMPILER) relies on long and nested #if/#elif preprocessor directives. To introduce support for a new operating system, compiler, or a specific compiler version's feature, new #elif branches or modifications to existing ones would be required within these blocks. This directly violates the 'closed for modification' aspect of the Open/Closed Principle, as extending the system's compatibility necessitates altering existing source code rather than merely adding new, independent code modules. While this pattern is common and often a pragmatic necessity in low-level cross-platform libraries, it is a literal violation of OCP."
+  }
+]

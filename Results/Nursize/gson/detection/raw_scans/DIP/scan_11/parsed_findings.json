@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson",
+    "entity_type": "class",
+    "line_start": 225,
+    "line_end": 253,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "The Gson class directly instantiates its internal dependency ConstructorConstructor.",
+    "reasoning": "High-level modules like Gson should depend on abstractions rather than low-level implementation details. By directly calling 'new ConstructorConstructor(...)' in its constructor (L253), Gson becomes tightly coupled to a specific internal utility for object creation, violating the Dependency Inversion Principle."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.setDateFormat",
+    "entity_type": "method",
+    "line_start": 638,
+    "line_end": 644,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "The setDateFormat method directly instantiates the concrete SimpleDateFormat class.",
+    "reasoning": "This method hard-codes a dependency on the concrete SimpleDateFormat implementation (L641) instead of depending on the DateFormat abstraction. This limits flexibility and makes it difficult to swap the formatting implementation without modifying the high-level builder logic."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 77,
+    "line_end": 142,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "The create method directly instantiates the concrete TreeTypeAdapter class.",
+    "reasoning": "The factory method creates a hard-coded dependency on the concrete TreeTypeAdapter implementation (L142) instead of using an abstraction or a provider/factory for TypeAdapters. This violates DIP by having a high-level factory module depend on a specific low-level implementation detail."
+  }
+]

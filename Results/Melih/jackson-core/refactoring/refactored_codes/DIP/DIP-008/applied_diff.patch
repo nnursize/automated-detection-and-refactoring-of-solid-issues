@@ -1,0 +1,56 @@
+diff --git a/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java b/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java
+index 9b40c94..601359f 100644
+--- a/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java
++++ b/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java
+@@ -70,7 +70,7 @@ public class ReaderBasedJsonParser
+     /**********************************************************************
+      */
+ 
+-    protected final CharsToNameCanonicalizer _symbols;
++    protected final tools.jackson.core.sym.NameCanonicalizer _symbols;
+ 
+     protected final int _hashSeed;
+ 
+@@ -124,7 +124,7 @@ public class ReaderBasedJsonParser
+      */
+     public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,
+             int stdFeatures, int formatFeatures, Reader r,
+-            CharsToNameCanonicalizer st,
++            tools.jackson.core.sym.NameCanonicalizer st,
+             char[] inputBuffer, int start, int end,
+             boolean bufferRecyclable)
+     {
+@@ -155,7 +155,7 @@ public class ReaderBasedJsonParser
+      */
+     public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,
+             int stdFeatures, int formatFeatures, Reader r,
+-            CharsToNameCanonicalizer st)
++            tools.jackson.core.sym.NameCanonicalizer st)
+     {
+         super(readCtxt, ctxt, stdFeatures, formatFeatures);
+         _reader = r;
+diff --git a/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java b/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java
+index d6969d5..4f64604 100644
+--- a/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java
++++ b/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java
+@@ -46,6 +46,7 @@ import tools.jackson.core.util.InternCache;
+  * access to master instance is read-only (i.e. no modifications done).
+  */
+ public final class CharsToNameCanonicalizer
++    implements NameCanonicalizer
+ {
+     /* If we use "multiply-add" based hash algorithm, this is the multiplier
+      * we use.
+diff --git a/src/main/java/tools/jackson/core/sym/NameCanonicalizer.java b/src/main/java/tools/jackson/core/sym/NameCanonicalizer.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/sym/NameCanonicalizer.java
+@@ -0,0 +1,6 @@
++package tools.jackson.core.sym;
++
++public interface NameCanonicalizer {
++    int hashSeed();
++    void release();
++}
+\ No newline at end of file

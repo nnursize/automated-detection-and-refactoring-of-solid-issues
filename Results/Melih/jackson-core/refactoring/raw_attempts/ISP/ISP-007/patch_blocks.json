@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+    "search_text": "public abstract class JsonParser\n    implements Closeable, Versioned\n{",
+    "replace_text": "public abstract class JsonParser\n    implements Closeable, Versioned\n{"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/ObjectMappingCapableParser.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core;\n\nimport tools.jackson.core.type.ResolvedType;\nimport tools.jackson.core.type.TypeReference;\n\n/**\n * Interface for {@link JsonParser} implementations that support\n * object/tree mapping (data-binding).\n *\n * @since 3.0\n */\npublic interface ObjectMappingCapableParser\n{\n    /**\n     * Method to deserialize JSON content into a non-container type (or\n     * array).\n     */\n    public <T> T readValueAs(Class<T> valueType) throws JacksonException;\n\n    /**\n     * Method to deserialize JSON content into a Java type, using\n     * {@link TypeReference}.\n     */\n    public <T> T readValueAs(TypeReference<T> valueTypeRef) throws JacksonException;\n\n    /**\n     * Method to deserialize JSON content into a Java type, using\n     * {@link ResolvedType}.\n     */\n    public <T> T readValueAs(ResolvedType type) throws JacksonException;\n\n    /**\n     * Method to deserialize JSON content into a tree of {@link TreeNode}s.\n     */\n    public <T extends TreeNode> T readValueAsTree() throws JacksonException;\n}"
+  }
+]

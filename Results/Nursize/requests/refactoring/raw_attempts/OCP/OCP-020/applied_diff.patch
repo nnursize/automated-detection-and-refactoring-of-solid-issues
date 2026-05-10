@@ -1,0 +1,47 @@
+diff --git a/src/requests/auth.py b/src/requests/auth.py
+index 2664e45..3aa7f83 100644
+--- a/src/requests/auth.py
++++ b/src/requests/auth.py
+@@ -135,28 +135,20 @@ class HTTPDigestAuth(AuthBase):
+         opaque = self._thread_local.chal.get("opaque")
+         hash_utf8 = None
+ 
+-        def get_hash_function(algorithm):
+-            if algorithm is None:
+-                algorithm = "MD5"
+-            else:
+-                algorithm = algorithm.upper()
+-
+-            def hash_utf8(x):
+-                if isinstance(x, str):
+-                    x = x.encode("utf-8")
+-                if algorithm == "MD5" or algorithm == "MD5-SESS":
+-                    return hashlib.md5(x).hexdigest()
+-                elif algorithm == "SHA":
+-                    return hashlib.sha1(x).hexdigest()
+-                elif algorithm == "SHA-256":
+-                    return hashlib.sha256(x).hexdigest()
+-                elif algorithm == "SHA-512":
+-                    return hashlib.sha512(x).hexdigest()
+-                return None
+-
+-            return hash_utf8, algorithm
+-
+-        hash_utf8, _algorithm = get_hash_function(algorithm)
++        _algorithm = (algorithm or "MD5").upper()
++        _algorithms = {
++            "MD5": hashlib.md5,
++            "MD5-SESS": hashlib.md5,
++            "SHA": hashlib.sha1,
++            "SHA-256": hashlib.sha256,
++            "SHA-512": hashlib.sha512,
++        }
++
++        def hash_utf8(x):
++            if isinstance(x, str):
++                x = x.encode("utf-8")
++            func = _algorithms.get(_algorithm)
++            return func(x).hexdigest() if func else None
+         KD = lambda s, d: hash_utf8(f"{s}:{d}")  # noqa:E731
+ 
+         if hash_utf8 is None:

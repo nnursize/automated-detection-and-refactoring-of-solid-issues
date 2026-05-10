@@ -1,0 +1,128 @@
+{
+  "scan_id": "Catch2_DIP_scan_07",
+  "repo_name": "Catch2",
+  "principle": "DIP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T22:05:04.572620",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash-lite",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following c++ classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions s...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10653,\n      \"line_end\": 10786,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"RunContext depends on concrete IEventListenerPtr instead of an abstraction.\",\n      \"reasoning\": \"The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 28,\n      \"line_end\": 161,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"RunContext depends on concrete IEventListenerPtr instead of an abstraction.\",\n      \"reasoning\": \"The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10653,\n      \"line_end\": 10786,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"RunContext depends on concrete IEventListenerPtr instead of an abstraction.\",\n      \"reasoning\": \"The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 28,\n      \"line_end\": 161,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"RunContext depends on concrete IEventListenerPtr instead of an abstraction.\",\n      \"reasoning\": \"The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"AssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9033,\n      \"line_end\": 9196,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"AssertionPrinter depends on ColourImpl concrete class.\",\n      \"reasoning\": \"The AssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_compact.cpp\",\n      \"entity_name\": \"AssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 36,\n      \"line_end\": 199,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"AssertionPrinter depends on ColourImpl concrete class.\",\n      \"reasoning\": \"The AssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"TapAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 11494,\n      \"line_end\": 11658,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"TapAssertionPrinter depends on ColourImpl concrete class.\",\n      \"reasoning\": \"The TapAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_tap.cpp\",\n      \"entity_name\": \"TapAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 27,\n      \"line_end\": 191,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"TapAssertionPrinter depends on ColourImpl concrete class.\",\n      \"reasoning\": \"The TapAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9278,\n      \"line_end\": 9426,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"ConsoleAssertionPrinter depends on ColourImpl concrete class.\",\n      \"reasoning\": \"The ConsoleAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_console.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 45,\n      \"line_end\": 193,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"ConsoleAssertionPrinter depends on ColourImpl concrete class.\",\n      \"reasoning\": \"The ConsoleAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "RunContext",
+      "entity_type": "class",
+      "line_start": 10653,
+      "line_end": 10786,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "RunContext depends on concrete IEventListenerPtr instead of an abstraction.",
+      "reasoning": "The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "RunContext",
+      "entity_type": "class",
+      "line_start": 28,
+      "line_end": 161,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "RunContext depends on concrete IEventListenerPtr instead of an abstraction.",
+      "reasoning": "The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "RunContext",
+      "entity_type": "class",
+      "line_start": 10653,
+      "line_end": 10786,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "RunContext depends on concrete IEventListenerPtr instead of an abstraction.",
+      "reasoning": "The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "RunContext",
+      "entity_type": "class",
+      "line_start": 28,
+      "line_end": 161,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "RunContext depends on concrete IEventListenerPtr instead of an abstraction.",
+      "reasoning": "The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "AssertionPrinter",
+      "entity_type": "class",
+      "line_start": 9033,
+      "line_end": 9196,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "AssertionPrinter depends on ColourImpl concrete class.",
+      "reasoning": "The AssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_compact.cpp",
+      "entity_name": "AssertionPrinter",
+      "entity_type": "class",
+      "line_start": 36,
+      "line_end": 199,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "AssertionPrinter depends on ColourImpl concrete class.",
+      "reasoning": "The AssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "TapAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 11494,
+      "line_end": 11658,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "TapAssertionPrinter depends on ColourImpl concrete class.",
+      "reasoning": "The TapAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_tap.cpp",
+      "entity_name": "TapAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 27,
+      "line_end": 191,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "TapAssertionPrinter depends on ColourImpl concrete class.",
+      "reasoning": "The TapAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "ConsoleAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 9278,
+      "line_end": 9426,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "ConsoleAssertionPrinter depends on ColourImpl concrete class.",
+      "reasoning": "The ConsoleAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_console.cpp",
+      "entity_name": "ConsoleAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 45,
+      "line_end": 193,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "ConsoleAssertionPrinter depends on ColourImpl concrete class.",
+      "reasoning": "The ConsoleAssertionPrinter class directly holds a pointer to ColourImpl. While ColourImpl is likely an interface or abstract base class, the code does not explicitly show this. If ColourImpl is a concrete class, this violates DIP. If it is an abstract base class, the dependency is on an abstraction, which is acceptable. Assuming it's concrete for the purpose of this analysis, it's a violation."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 8938.524007797241,
+  "error": null
+}

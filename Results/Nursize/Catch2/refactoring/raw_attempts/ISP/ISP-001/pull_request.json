@@ -1,0 +1,93 @@
+{
+  "issue_id": "ISP-001",
+  "principle": "ISP",
+  "title": "Refactor ISP-001 (ISP): IConfig interface has too many methods, potentially forcing implementations t...",
+  "branch": "refactor/ISP-001",
+  "base": "main",
+  "head_commit": "54580fd98dab8b5e51c04a54766bafb4962b9096",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3888,
+    "completion_tokens": 535
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "IConfig",
+    "entity_type": "class",
+    "line_start": 10655,
+    "line_end": 10786,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "IConfig interface has too many methods, potentially forcing implementations to provide unused functionality.",
+    "reasoning": "The IConfig interface appears to be quite large, with numerous methods for configuring various aspects of the test runner. If an implementation of IConfig only needs a subset of these configurations, it would be forced to implement all methods, even those it doesn't use. This violates the ISP, as clients (or the RunContext in this case) that only depend on a few configuration options are indirectly coupled to the entire interface. It would be better to break this down into smaller, more focused interfaces."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor IConfig into smaller, more focused interfaces to adhere to the Interface Segregation Principle.",
+    "rationale": "The IConfig interface was identified as a 'fat' interface. By splitting it into smaller, logical components (e.g., ITestConfig, IReporterConfig, IRuntimeConfig), we allow implementations to depend only on the functionality they actually require, reducing coupling and improving maintainability.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class IResultCapture;\n    class IConfig;\n\n    class Context {\n        IConfig const* m_config = nullptr;",
+        "replace_text": "    class IResultCapture;\n    class ITestConfig;\n    class IReporterConfig;\n    class IRuntimeConfig;\n    class IConfig;\n\n    class Context {\n        IConfig const* m_config = nullptr;",
+        "search_lines": 5,
+        "replace_lines": 8
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "        constexpr IConfig const* getConfig() const { return m_config; }\n        constexpr void setResultCapture( IResultCapture* resultCapture ) {\n            m_resultCapture = resultCapture;\n        }\n        constexpr void setConfig( IConfig const* config ) { m_config = config; }\n    };",
+        "replace_text": "        constexpr IConfig const* getConfig() const { return m_config; }\n        constexpr void setResultCapture( IResultCapture* resultCapture ) {\n            m_resultCapture = resultCapture;\n        }\n        constexpr void setConfig( IConfig const* config ) { m_config = config; }\n    };\n\n    class ITestConfig {\n    public:\n        virtual ~ITestConfig() = default;\n        virtual bool allowThrows() const = 0;\n        virtual std::string name() const = 0;\n    };\n\n    class IReporterConfig {\n    public:\n        virtual ~IReporterConfig() = default;\n        virtual bool includeSuccessfulResults() const = 0;\n        virtual bool shouldDebugBreak() const = 0;\n    };\n\n    class IRuntimeConfig {\n    public:\n        virtual ~IRuntimeConfig() = default;\n        virtual bool warnAboutNoTests() const = 0;\n    };\n\n    class IConfig : public ITestConfig, public IReporterConfig, public IRuntimeConfig {\n    public:\n        ~IConfig() override = default;\n    };",
+        "search_lines": 6,
+        "replace_lines": 31
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10462,
+        "blank_lines": 3073,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10486,
+        "blank_lines": 3077,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex e2f758a..874fb89 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -565,6 +565,9 @@\n namespace Catch {\n \n     class IResultCapture;\n+    class ITestConfig;\n+    class IReporterConfig;\n+    class IRuntimeConfig;\n     class IConfig;\n \n     class Context {\n@@ -586,6 +589,31 @@ namespace Catch {\n         constexpr void setConfig( IConfig const* config ) { m_config = config; }\n     };\n \n+    class ITestConfig {\n+    public:\n+        virtual ~ITestConfig() = default;\n+        virtual bool allowThrows() const = 0;\n+        virtual std::string name() const = 0;\n+    };\n+\n+    class IReporterConfig {\n+    public:\n+        virtual ~IReporterConfig() = default;\n+        virtual bool includeSuccessfulResults() const = 0;\n+        virtual bool shouldDebugBreak() const = 0;\n+    };\n+\n+    class IRuntimeConfig {\n+    public:\n+        virtual ~IRuntimeConfig() = default;\n+        virtual bool warnAboutNoTests() const = 0;\n+    };\n+\n+    class IConfig : public ITestConfig, public IReporterConfig, public IRuntimeConfig {\n+    public:\n+        ~IConfig() override = default;\n+    };\n+\n     Context& getCurrentMutableContext();\n \n     inline Context const& getCurrentContext() {\n",
+  "duration_ms": 4916.950941085815
+}

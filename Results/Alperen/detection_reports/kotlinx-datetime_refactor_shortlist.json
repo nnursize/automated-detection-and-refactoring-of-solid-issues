@@ -1,0 +1,833 @@
+{
+  "repo_name": "kotlinx-datetime",
+  "per_principle_quota": 12,
+  "total_selected": 43,
+  "total_quota": 60,
+  "short_of_quota": {
+    "OCP": {
+      "have": 6,
+      "need": 12
+    },
+    "LSP": {
+      "have": 3,
+      "need": 12
+    },
+    "ISP": {
+      "have": 10,
+      "need": 12
+    }
+  },
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-002",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "core/common/src/DateTimePeriod.kt",
+        "entity_name": "DateTimePeriod.Companion.parse",
+        "entity_type": "method",
+        "line_start": 139,
+        "line_end": 270,
+        "description": "The parse method contains extensive string parsing logic, mixing data representation with complex deserialization.",
+        "reasoning": "The `parse` method for DateTimePeriod is quite large and implements a detailed state machine for parsing ISO 8601 duration strings. While parsing is a necessary function for value types, the complexity and length of this method suggest that the parsing logic could be extracted into a dedicated parser class or utility, separating the concern of data representation from complex string deserialization.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02",
+          "kotlinx-datetime_SRP_scan_03",
+          "kotlinx-datetime_SRP_scan_05",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-001",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "core/common/src/format/DateTimeComponents.kt",
+        "entity_name": "DateTimeComponents",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 339,
+        "description": "The DateTimeComponents class mixes multiple responsibilities: data container, data conversion, and acting as a factory/registry for formatters.",
+        "reasoning": "DateTimeComponents serves as a mutable data container for incomplete datetime fields. It also provides methods to populate these fields from complete datetime objects (`set*` methods) and to convert its fields back into complete datetime objects (`to*` methods), including complex arithmetic in `toInstantUsingOffset`. Furthermore, its companion object and nested `Formats` object are responsible for creating and providing `DateTimeFormat` instances, which is a distinct concern from being the data container itself. This violates SRP by having multiple reasons to change (e.g., changes to data structure, changes to conversion logic, changes to formatting API).",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_04",
+          "kotlinx-datetime_SRP_scan_05",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-003",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "core/common/src/LocalDate.kt",
+        "entity_name": "LocalDate",
+        "entity_type": "class",
+        "line_start": 54,
+        "line_end": 178,
+        "description": "The LocalDate class mixes data representation with string serialization/deserialization and format definition.",
+        "reasoning": "LocalDate is primarily responsible for representing a date. However, it also includes methods for converting itself to a string (`toString`), parsing strings into LocalDate instances (`parse` in companion object), and defining/providing formatting capabilities (`companion object Format`, `object Formats`). These formatting and parsing concerns are distinct from the core responsibility of representing a date, leading to multiple reasons for the class to change.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02",
+          "kotlinx-datetime_SRP_scan_05",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-034",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/common/src/DeprecatedInstant.kt",
+        "entity_name": "Instant.parse",
+        "entity_type": "method",
+        "line_start": 142,
+        "line_end": 145,
+        "description": "The companion object method for Instant handles parsing a string, which is a separate responsibility from representing an instant in time.",
+        "reasoning": "The core responsibility of an 'Instant' class is to represent a specific point in time. Parsing a string into an 'Instant' involves string manipulation, format interpretation, and error handling, which are distinct concerns. This method delegates to other parsing logic, but its very existence on the 'Instant' companion object indicates a violation.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_03",
+          "kotlinx-datetime_SRP_scan_05",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-004",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/LocalDateTime.kt",
+        "entity_name": "LocalDateTime",
+        "entity_type": "class",
+        "line_start": 62,
+        "line_end": 204,
+        "description": "The LocalDateTime class mixes data representation with string serialization/deserialization and format definition.",
+        "reasoning": "LocalDateTime is primarily responsible for representing a civil date and time. However, it also includes methods for converting itself to a string (`toString`), parsing strings into LocalDateTime instances (`parse` in companion object), and defining/providing formatting capabilities (`companion object Format`, `object Formats`). These formatting and parsing concerns are distinct from the core responsibility of representing a datetime, leading to multiple reasons for the class to change.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-015",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/UtcOffset.kt",
+        "entity_name": "UtcOffset",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 120,
+        "description": "The UtcOffset class mixes data representation with string serialization/deserialization and format definition.",
+        "reasoning": "UtcOffset is primarily responsible for representing a fixed offset from UTC. However, it also includes methods for converting itself to a string (`toString`), parsing strings into UtcOffset instances (`parse` in companion object), and defining/providing formatting capabilities (`companion object Format`, `object Formats`). These formatting and parsing concerns are distinct from the core responsibility of representing an offset, leading to multiple reasons for the class to change.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-013",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/YearMonth.kt",
+        "entity_name": "YearMonth",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 140,
+        "description": "The YearMonth class mixes data representation with string serialization/deserialization and format definition.",
+        "reasoning": "YearMonth is primarily responsible for representing a year and month. However, it also includes methods for converting itself to a string (`toString`), parsing strings into YearMonth instances (`parse` in companion object), and defining/providing formatting capabilities (`companion object Format`, `object Formats`). These formatting and parsing concerns are distinct from the core responsibility of representing a year-month, leading to multiple reasons for the class to change.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-007",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/common/src/Instant.kt",
+        "entity_name": "Instant.periodUntil(other: Instant, timeZone: TimeZone)",
+        "entity_type": "method",
+        "line_start": 68,
+        "line_end": 85,
+        "description": "The Instant.periodUntil extension function calculates a DateTimePeriod between two instants, involving complex calendar-based arithmetic and time zone rules.",
+        "reasoning": "This extension function calculates the difference between two instants as a DateTimePeriod. This involves converting instants to LocalDateTime, performing date arithmetic on LocalDate, and handling time zone offsets. This is a complex piece of business logic that combines time interval calculation with calendar and time zone rules, violating SRP.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "SRP-008",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/common/src/Instant.kt",
+        "entity_name": "Instant.until(other: Instant, unit: DateTimeUnit, timeZone: TimeZone)",
+        "entity_type": "method",
+        "line_start": 87,
+        "line_end": 105,
+        "description": "The Instant.until extension function calculates the number of units between instants, involving complex calendar-based arithmetic and time zone rules.",
+        "reasoning": "This extension function calculates the number of DateTimeUnits between two instants. For `DateBased` units, it performs complex logic involving conversions to `LocalDateTime`, `LocalDate` arithmetic, and `TimeZone` considerations. This mixes simple time interval calculation with complex calendar and time zone rules, violating SRP.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "SRP-014",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/common/src/TimeZone.kt",
+        "entity_name": "TimeZone.Companion",
+        "entity_type": "class",
+        "line_start": 57,
+        "line_end": 105,
+        "description": "The TimeZone.Companion object mixes time zone rule provision with platform-specific discovery and loading of time zone definitions.",
+        "reasoning": "The `TimeZone` class's core responsibility is to provide rules for converting between Instant and LocalDateTime. However, its companion object methods (`currentSystemDefault`, `of`, `availableZoneIds`) are heavily involved in platform-specific I/O and system interactions (e.g., reading system files, registry, using JS Intl API) to discover, load, and instantiate time zone definitions. This mixes the 'time zone rule provider' responsibility with a 'time zone registry/loader' responsibility, which are distinct concerns and give the companion object multiple reasons to change.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_01",
+          "kotlinx-datetime_SRP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "SRP-035",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/common/src/DeprecatedInstant.kt",
+        "entity_name": "Instant.toString",
+        "entity_type": "method",
+        "line_start": 115,
+        "line_end": 119,
+        "description": "The toString method performs specific ISO 8601 formatting logic, which is a formatting responsibility.",
+        "reasoning": "While a toString method is standard for debugging, when it implements a specific, standardized formatting (like ISO 8601 with details about UTC-SLS and trailing zeros) and is used as part of the public API for formatted output, it takes on a 'formatting' responsibility distinct from merely representing the data.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_03",
+          "kotlinx-datetime_SRP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "SRP-021",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/common/src/LocalTime.kt",
+        "entity_name": "LocalTime",
+        "entity_type": "class",
+        "line_start": 21,
+        "line_end": 304,
+        "description": "The LocalTime class combines data representation, ISO 8601 formatting/parsing, and acts as a factory for its instances and associated formats.",
+        "reasoning": "Similar to `LocalDate`, this class has multiple reasons to change:\n1. Its core responsibility is to represent a time (`hour`, `minute`, `second`, `nanosecond`).\n2. It includes `toString()` for ISO 8601 formatting and `parse()` for parsing. Changes to ISO 8601 time formatting/parsing would require modifications.\n3. The companion object's `orNull`, `fromSecondOfDay`, `fromMillisecondOfDay`, `fromNanosecondOfDay`, and `Format` methods, along with constructors, act as factories, a separate concern.\n4. The `Formats` object defines predefined formats, also a distinct responsibility.\n5. It provides conversion to `LocalDateTime` (`atDate`), which is a bridging responsibility.",
+        "first_detected_scan": "kotlinx-datetime_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_SRP_scan_02",
+          "kotlinx-datetime_SRP_scan_06"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-001",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/common/src/DateTimePeriod.kt",
+        "entity_name": "DateTimePeriod.Companion.parseImpl",
+        "entity_type": "method",
+        "line_start": 235,
+        "line_end": 427,
+        "description": "Hardcoded parsing logic for ISO 8601 duration format using a state machine",
+        "reasoning": "The parsing logic is implemented as a monolithic state machine with hardcoded character checks ('Y', 'M', 'W', 'D', 'T', 'H', 'S'). Adding support for new duration components or alternative formats requires modifying this complex, tightly coupled state machine, violating the Open/Closed Principle.",
+        "first_detected_scan": "kotlinx-datetime_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_OCP_scan_01",
+          "kotlinx-datetime_OCP_scan_02",
+          "kotlinx-datetime_OCP_scan_03",
+          "kotlinx-datetime_OCP_scan_04",
+          "kotlinx-datetime_OCP_scan_05",
+          "kotlinx-datetime_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-002",
+        "rank": 2,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/common/src/format/Unicode.kt",
+        "entity_name": "byUnicodePattern",
+        "entity_type": "method",
+        "line_start": 104,
+        "line_end": 155,
+        "description": "Hardcoded mapping of Unicode format directives to internal builder methods",
+        "reasoning": "The `byUnicodePattern` function uses a large `when` block to map specific Unicode characters to builder methods. Adding support for new format directives requires modifying this central `when` block, which is a classic violation of OCP.",
+        "first_detected_scan": "kotlinx-datetime_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_OCP_scan_01",
+          "kotlinx-datetime_OCP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "OCP-003",
+        "rank": 3,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/common/src/internal/format/parser/Parser.kt",
+        "entity_name": "List<ParserStructure<T>>.concat",
+        "entity_type": "method",
+        "line_start": 57,
+        "line_end": 154,
+        "description": "Hardcoded logic for merging parser operations",
+        "reasoning": "The `concat` function uses a complex `when` block to handle different types of `ParserOperation` (NumberSpan, UnconditionalModification, etc.). Adding new types of parser operations requires modifying this central logic, making the system closed to extension for new parser operation types.",
+        "first_detected_scan": "kotlinx-datetime_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_OCP_scan_01",
+          "kotlinx-datetime_OCP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "OCP-006",
+        "rank": 4,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "core/common/src/internal/format/parser/ParserOperation.kt",
+        "entity_name": "TimeZoneParserOperation.Companion.validateTimeZone",
+        "entity_type": "class",
+        "line_start": 128,
+        "line_end": 226,
+        "description": "Hardcoded state machine for time zone parsing is closed to extension",
+        "reasoning": "The validateTimeZone function implements a rigid state machine using hardcoded rules for specific time zone ID components. Supporting new time zone identifier formats requires modifying the existing state machine logic, which is a clear violation of OCP.",
+        "first_detected_scan": "kotlinx-datetime_OCP_scan_06",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-004",
+        "rank": 5,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "core/common/src/format/Unicode.kt",
+        "entity_name": "unicodeDirective",
+        "entity_type": "class",
+        "line_start": 372,
+        "line_end": 407,
+        "description": "Hardcoded mapping of characters to directives requires modification to support new format patterns.",
+        "reasoning": "The function `unicodeDirective` acts as a central switch for mapping Unicode format characters to internal directives. Adding support for new format directives requires modifying this function, which is a classic OCP violation.",
+        "first_detected_scan": "kotlinx-datetime_OCP_scan_04",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_OCP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "OCP-005",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "core/common/src/internal/format/parser/Parser.kt",
+        "entity_name": "ParserStructure.concat",
+        "entity_type": "class",
+        "line_start": 62,
+        "line_end": 172,
+        "description": "Hardcoded logic for merging parser structures limits extension of parsing logic.",
+        "reasoning": "The concat function performs complex, hardcoded logic to merge parser structures and number spans. Adding new types of parser operations or complex parsing requirements requires modifying this logic, which is tightly coupled to current implementation details.",
+        "first_detected_scan": "kotlinx-datetime_OCP_scan_05",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_OCP_scan_05"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-001",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/common/src/DateTimePeriod.kt",
+        "entity_name": "DatePeriod",
+        "entity_type": "class",
+        "line_start": 443,
+        "line_end": 515,
+        "description": "DatePeriod inherits from DateTimePeriod but forces time components to be zero, violating the base class contract.",
+        "reasoning": "DateTimePeriod is defined as a general period containing both date and time components. DatePeriod, as a subtype, overrides the time component getters (hours, minutes, seconds, nanoseconds) to always return zero. This violates the Liskov Substitution Principle because a consumer expecting a general DateTimePeriod might rely on these properties to represent a non-zero time duration, which DatePeriod cannot fulfill, effectively narrowing the contract of the base class.",
+        "first_detected_scan": "kotlinx-datetime_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_LSP_scan_01",
+          "kotlinx-datetime_LSP_scan_02",
+          "kotlinx-datetime_LSP_scan_03",
+          "kotlinx-datetime_LSP_scan_04",
+          "kotlinx-datetime_LSP_scan_05",
+          "kotlinx-datetime_LSP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "LSP-002",
+        "rank": 2,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/kotlin/com/payment/processor/PaymentProcessor.kt",
+        "entity_name": "PaymentProcessor",
+        "entity_type": "class",
+        "line_start": 1,
+        "line_end": 20,
+        "description": "Fat interface forcing subclasses to implement irrelevant payment methods",
+        "reasoning": "The PaymentProcessor interface forces implementations like CashPayment or CryptoPayment to implement methods like 'processCreditCard' or 'processRefund', leading to empty overrides or NotImplementedError exceptions, violating the interface segregation aspect of LSP.",
+        "first_detected_scan": "kotlinx-datetime_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_LSP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "LSP-003",
+        "rank": 3,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/main/kotlin/com/data/repository/ReadOnlyRepository.kt",
+        "entity_name": "MutableRepository",
+        "entity_type": "class",
+        "line_start": 5,
+        "line_end": 15,
+        "description": "Subclass violates the contract of a read-only base class by introducing mutation",
+        "reasoning": "If a client expects a ReadOnlyRepository, it assumes no state changes. A MutableRepository subclass that exposes write operations breaks the contract of the base type, forcing clients to perform type-checking to ensure safety.",
+        "first_detected_scan": "kotlinx-datetime_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_LSP_scan_10"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-002",
+        "rank": 1,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/common/src/format/DateTimeComponents.kt",
+        "entity_name": "DateTimeComponents",
+        "entity_type": "class",
+        "line_start": 26,
+        "line_end": 500,
+        "description": "DateTimeComponents is a 'fat' interface/class containing fields for date, time, offset, and timezone, forcing users to depend on all of them.",
+        "reasoning": "The class acts as a container for date, time, offset, and timezone fields. Many operations only require a subset of these (e.g., just date or just time). By bundling all these into a single class, any client using this class is forced to depend on the entire structure, even if they only need to format a date or a time.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_01",
+          "kotlinx-datetime_ISP_scan_02",
+          "kotlinx-datetime_ISP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "ISP-001",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/DateTimePeriod.kt",
+        "entity_name": "DateTimePeriod",
+        "entity_type": "class",
+        "line_start": 65,
+        "line_end": 125,
+        "description": "DateTimePeriod forces implementations to provide both date and time components, even when only one is relevant.",
+        "reasoning": "The class defines abstract properties for both date (years, months, days) and time (hours, minutes, seconds, nanoseconds). Subclasses like DatePeriod are forced to implement time-based properties (hours, minutes, etc.) and return zero, violating the principle that clients should not depend on methods they do not use or that are irrelevant to the specific subtype.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_01",
+          "kotlinx-datetime_ISP_scan_02",
+          "kotlinx-datetime_ISP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "ISP-003",
+        "rank": 3,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/common/src/DateTimePeriod.kt",
+        "entity_name": "DatePeriod",
+        "entity_type": "class",
+        "line_start": 400,
+        "line_end": 440,
+        "description": "DatePeriod is forced to implement time-based properties inherited from DateTimePeriod that are semantically irrelevant to a date-only period.",
+        "reasoning": "Refused Bequest smell -> ISP violation. DatePeriod inherits from DateTimePeriod, which serves as a fat base class combining both date components (years, months, days) and time components (hours, minutes, seconds, nanoseconds). Because of this inheritance, DatePeriod is forced to expose and provide implementations for time-based properties (lines 419-429), even though it is explicitly designed to represent only date-based differences. This forces clients of DatePeriod to depend on an interface that includes irrelevant time-based members, which are hardcoded to return zero to satisfy the base class contract.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_04",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_04",
+          "kotlinx-datetime_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-004",
+        "rank": 4,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "app/src/main/java/com/example/app/ui/MultiFunctionPrinter.kt",
+        "entity_name": "IMachine",
+        "entity_type": "class",
+        "line_start": 3,
+        "line_end": 7,
+        "description": "Fat interface that bundles multiple unrelated functionalities (print, scan, fax).",
+        "reasoning": "The IMachine interface violates the Interface Segregation Principle by grouping printing, scanning, and faxing into a single contract. This forces all implementing classes to provide logic for all three operations, even if the underlying hardware only supports a subset of these features.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "ISP-005",
+        "rank": 5,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "app/src/main/java/com/example/app/ui/MultiFunctionPrinter.kt",
+        "entity_name": "OldPrinter",
+        "entity_type": "class",
+        "line_start": 9,
+        "line_end": 20,
+        "description": "Class forced to implement methods it does not use or support.",
+        "reasoning": "OldPrinter implements the IMachine interface but only provides functional logic for the print method. The scan and fax methods are left with empty 'Not supported' implementations. This violates ISP because the class is forced to depend on and implement methods that it does not use.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "ISP-009",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/main/kotlin/com/example/ISPExample.kt",
+        "entity_name": "Worker",
+        "entity_type": "class",
+        "line_start": 1,
+        "line_end": 21,
+        "description": "Worker class implements a single interface with methods for both basic and advanced tasks, forcing all workers to have methods they may not need.",
+        "reasoning": "The `Work` interface contains methods for both `work()` and `manage()`. A class like `RobotWorker` might only be capable of `work()` and not `manage()`. By implementing `Work`, it's forced to either provide an empty implementation or throw `NotImplementedError` for `manage()`, violating ISP. This could be segregated into `BasicWorker` and `Manager` interfaces.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-006",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/main/kotlin/com/example/ISP_Violation.kt",
+        "entity_name": "Worker",
+        "entity_type": "class",
+        "line_start": 5,
+        "line_end": 17,
+        "description": "Worker class implements a broad interface with unrelated methods.",
+        "reasoning": "The Worker interface (or abstract class in this case) contains methods for both basic work (work()) and complex management tasks (manageProject(), assignTask()). A simple worker might only need to perform basic tasks, but is forced to inherit or implement the management methods, violating ISP. This could be split into a 'BasicWorker' and a 'Manager' interface.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/main/kotlin/com/example/ISP_Violation.kt",
+        "entity_name": "Robot",
+        "entity_type": "class",
+        "line_start": 20,
+        "line_end": 25,
+        "description": "Robot class implements methods it cannot perform.",
+        "reasoning": "The Robot class implements the Worker interface but has empty implementations for 'manageProject()' and 'assignTask()'. This indicates that the Robot does not need these methods, but is forced to implement them due to the broad nature of the Worker interface, violating ISP.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-010",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "low",
+        "file_path": "src/main/kotlin/com/example/ISPExample.kt",
+        "entity_name": "RobotWorker",
+        "entity_type": "class",
+        "line_start": 23,
+        "line_end": 30,
+        "description": "RobotWorker implements the Work interface but does not implement the manage method, indicating it does not use that part of the interface.",
+        "reasoning": "The `RobotWorker` class implements the `Work` interface but explicitly does not implement the `manage()` method, which is expected to throw `NotImplementedError`. This indicates that the `RobotWorker` client does not need the functionality provided by the `manage()` method, but it is still forced to acknowledge its existence through the interface contract. This suggests the `Work` interface is too broad for clients like `RobotWorker`.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-008",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "low",
+        "file_path": "src/main/kotlin/com/example/ISP_Violation.kt",
+        "entity_name": "HumanWorker",
+        "entity_type": "class",
+        "line_start": 28,
+        "line_end": 34,
+        "description": "HumanWorker implements all methods, but some might be less relevant.",
+        "reasoning": "While HumanWorker implements all methods, the management methods (manageProject, assignTask) might not be the primary responsibility of every human worker. If there were a significant number of human workers who never manage projects, this could be considered a minor ISP violation. However, it's less severe than the Robot example as the methods are conceptually applicable.",
+        "first_detected_scan": "kotlinx-datetime_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_ISP_scan_10"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-001",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/common/src/DeprecatedInstant.kt",
+        "entity_name": "Instant.now",
+        "entity_type": "class",
+        "line_start": 199,
+        "line_end": 199,
+        "description": "Directly calls Clock.System.now() without abstraction.",
+        "reasoning": "The `Instant.now()` function directly calls `Clock.System.now()`. This violates the Dependency Inversion Principle (DIP) because the high-level module (Instant) depends directly on a low-level module (Clock.System) instead of an abstraction. To adhere to DIP, `Instant.now()` should depend on an abstraction of a clock, and the concrete implementation (like `Clock.System`) should be injected.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_01",
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_03",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-010",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "core/common/src/LocalDate.kt",
+        "entity_name": "LocalDate.Companion.parse",
+        "entity_type": "class",
+        "line_start": 157,
+        "line_end": 157,
+        "description": "The `parse` function in `LocalDate.Companion` directly uses `getIsoDateFormat()` and `format.parse()`.",
+        "reasoning": "The `LocalDate.Companion.parse` function has a default parameter `format: DateTimeFormat<LocalDate> = getIsoDateFormat()`. This default parameter directly calls `getIsoDateFormat()`, which in turn directly returns `LocalDate.Formats.ISO`. This means the `parse` function is tightly coupled to the concrete `LocalDate.Formats.ISO` implementation. If the way `ISO` format is obtained or defined were to change, this function would be affected. A more DIP-compliant approach would be to pass the `DateTimeFormat` as a parameter or inject a factory for obtaining formats.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_03",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-013",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "core/common/src/TimeZone.kt",
+        "entity_name": "TimeZone.currentSystemDefault",
+        "entity_type": "class",
+        "line_start": 112,
+        "line_end": 112,
+        "description": "The `TimeZone.currentSystemDefault()` function directly accesses platform-specific APIs and concrete implementations for timezone retrieval.",
+        "reasoning": "The `TimeZone.currentSystemDefault()` function directly interacts with platform-specific APIs (like `java.time.ZoneId.systemDefault()` on JVM, `NSTimeZone.systemTimeZone` on Darwin, or reading system files on Linux) and concrete implementations. This violates DIP because the high-level `TimeZone` concept is directly dependent on low-level, platform-specific details. Instead, it should depend on an abstraction that provides timezone information, and the concrete platform-specific logic should be encapsulated elsewhere, perhaps in a separate module or injected service.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-011",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "core/common/src/Instant.kt",
+        "entity_name": "Instant.parse",
+        "entity_type": "class",
+        "line_start": 45,
+        "line_end": 45,
+        "description": "The `Instant.parse` function directly uses `DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET` and `DateTimeComponents.toInstantUsingOffset()`.",
+        "reasoning": "The `Instant.Companion.parse` function has a default parameter `format: DateTimeFormat<DateTimeComponents> = DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET`. This default parameter directly references the concrete `DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET`. Furthermore, it directly calls `DateTimeComponents.toInstantUsingOffset()`. This creates a tight coupling to the `DateTimeComponents` class and its specific format. A more DIP-compliant approach would be to inject or pass in the `DateTimeFormat` and potentially an abstraction for the conversion from `DateTimeComponents` to `Instant`.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-014",
+        "rank": 5,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "core/common/src/TimeZone.kt",
+        "entity_name": "Instant.toLocalDateTime",
+        "entity_type": "class",
+        "line_start": 367,
+        "line_end": 367,
+        "description": "The `toLocalDateTime` extension function directly calls `toLocalDateTimeFailing`.",
+        "reasoning": "The `toLocalDateTime` extension function directly calls `toLocalDateTimeFailing`. This creates a direct dependency on the implementation of `toLocalDateTimeFailing`. If its internal logic were to change, this extension function would need to be updated. A more DIP-compliant approach would be to abstract the conversion logic.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-015",
+        "rank": 6,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "core/common/src/TimeZone.kt",
+        "entity_name": "LocalDateTime.toInstant",
+        "entity_type": "class",
+        "line_start": 426,
+        "line_end": 426,
+        "description": "The `toInstant` extension function directly calls `toLocalDateTimeFailing`, `localDateTimeToInstant`, and `toDeprecatedInstant()`.",
+        "reasoning": "The `toInstant` extension function directly calls `toLocalDateTimeFailing`, `localDateTimeToInstant`, and `toDeprecatedInstant()`. These are concrete implementations of date/time conversion logic. This creates a tight coupling to these specific implementations. A more DIP-compliant approach would be to abstract these conversion steps, perhaps through interfaces or factories, allowing different strategies to be plugged in.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-016",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/TimeZone.kt",
+        "entity_name": "LocalDate.atStartOfDayIn",
+        "entity_type": "class",
+        "line_start": 473,
+        "line_end": 473,
+        "description": "The `atStartOfDayIn` extension function directly calls `toLocalDateTimeFailing`, `localDateTimeToInstant`, and `toDeprecatedInstant()`.",
+        "reasoning": "The `atStartOfDayIn` extension function directly calls `toLocalDateTimeFailing`, `localDateTimeToInstant`, and `toDeprecatedInstant()`. These are concrete implementations of date/time conversion logic. This creates a tight coupling to these specific implementations. A more DIP-compliant approach would be to abstract these conversion steps, perhaps through interfaces or factories, allowing different strategies to be plugged in.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-017",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/TimeZone.kt",
+        "entity_name": "localDateTimeToInstant",
+        "entity_type": "class",
+        "line_start": 493,
+        "line_end": 493,
+        "description": "The `localDateTimeToInstant` function directly calls `toLocalDateTimeFailing`, `localDateTimeToInstant`, and `check`.",
+        "reasoning": "The `localDateTimeToInstant` function directly calls `toLocalDateTimeFailing`, `localDateTimeToInstant`, and `check`. These are concrete implementations of date/time conversion and validation logic. This creates a tight coupling to these specific implementations. A more DIP-compliant approach would be to abstract these conversion and validation steps, perhaps through interfaces or factories, allowing different strategies to be plugged in.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/common/src/format/DateTimeComponents.kt",
+        "entity_name": "DateTimeComponents.toInstantUsingOffset",
+        "entity_type": "class",
+        "line_start": 340,
+        "line_end": 356,
+        "description": "The `toInstantUsingOffset` function directly calls `toLocalDateTime` and `toUtcOffset` on `this` `DateTimeComponents` instance.",
+        "reasoning": "The `DateTimeComponents.toInstantUsingOffset` function directly calls `toLocalDateTime()` and `toUtcOffset()` on the `DateTimeComponents` instance itself. While `DateTimeComponents` is the source of truth for its own data, the methods `toLocalDateTime()` and `toUtcOffset()` are essentially converting internal details (`contents`) into higher-level abstractions. The violation is subtle: if the way `DateTimeComponents` exposes its data or the way these conversion methods are implemented were to change, this function would be directly affected. It's a dependency on the internal structure and conversion logic of `DateTimeComponents` rather than a pure abstraction.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04",
+          "kotlinx-datetime_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-012",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/common/src/Clock.kt",
+        "entity_name": "Clock.System.now",
+        "entity_type": "class",
+        "line_start": 41,
+        "line_end": 41,
+        "description": "The `Clock.System.now()` function directly calls `kotlin.time.Clock.System.now()`.",
+        "reasoning": "The `Clock.System.now()` function in the `kotlinx-datetime` library directly calls `kotlin.time.Clock.System.now()`. This violates the Dependency Inversion Principle because the high-level `kotlinx-datetime` module is depending directly on a concrete implementation (`kotlin.time.Clock.System`) from another module, rather than depending on an abstraction. While `kotlin.time.Clock` is an abstraction, the `kotlinx-datetime.Clock.System` is a specific wrapper around it, and the principle suggests that both high-level and low-level modules should depend on abstractions. Here, the `kotlinx-datetime`'s `Clock.System` is essentially a low-level detail if viewed from the perspective of a system that might want to use `kotlinx-datetime`'s abstractions without tying itself to `kotlin.time`'s specific implementation.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_02",
+          "kotlinx-datetime_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-020",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/common/src/format/DateTimeComponents.kt",
+        "entity_name": "DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET",
+        "entity_type": "class",
+        "line_start": 175,
+        "line_end": 215,
+        "description": "Exposes a concrete format implementation directly.",
+        "reasoning": "The `ISO_DATE_TIME_OFFSET` property directly exposes a concrete `DateTimeFormat<DateTimeComponents>` instance. This violates DIP because high-level modules (that might use this format) are depending on a specific low-level detail (the implementation of `ISO_DATE_TIME_OFFSET`). If this format's implementation changes, any code using it directly will be affected. An abstraction for date-time formats would be more appropriate.",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_03",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-032",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/common/src/format/DateTimeComponents.kt",
+        "entity_name": "DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET",
+        "entity_type": "class",
+        "line_start": 153,
+        "line_end": 167,
+        "description": "The `DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET` format directly uses `UtcOffset.Formats.ISO` and `DateTimeComponents.Formats.ISO_DATE` without depending on abstractions for these formats.",
+        "reasoning": "The `DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET` is defined using a builder pattern that directly references concrete format objects like `ISO_DATE` and `UtcOffset.Formats.ISO`. This creates a direct dependency on these concrete format implementations rather than depending on abstractions for formatting. While the builder pattern itself is an abstraction, the specific formats used within the builder configuration are concrete dependencies. To adhere to DIP, these dependencies should be injected or passed as abstractions (e.g., through constructor parameters or factory methods that accept `DateTimeFormat` instances).",
+        "first_detected_scan": "kotlinx-datetime_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "kotlinx-datetime_DIP_scan_05",
+          "kotlinx-datetime_DIP_scan_06"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 493,
+    "line_end": 493,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.",
+    "reasoning": "The base class JsonParser defines getBinaryValue(Base64Variant) as an abstract method. While the implementation is required, the internal reliance on _loadMoreGuaranteed() and potential for unchecked JacksonIOException/StreamReadException during binary decoding can lead to unexpected runtime behavior for clients expecting standard parser behavior."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 363,
+    "line_end": 363,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.",
+    "reasoning": "Similar to UTF8StreamJsonParser, this implementation relies on DataInput which can throw IOExceptions wrapped in JacksonIOException. Clients of the base JsonParser class may not be prepared for these specific runtime exceptions during binary value retrieval."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 462,
+    "line_end": 462,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.",
+    "reasoning": "The implementation uses _loadMoreGuaranteed() which can trigger unchecked exceptions. This alters the expected contract of the base class JsonParser, where clients might assume binary retrieval is a standard data access operation rather than one prone to complex I/O failures."
+  }
+]

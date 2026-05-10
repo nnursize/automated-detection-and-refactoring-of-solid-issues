@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-018",
+  "principle": "ISP",
+  "title": "Refactor ISP-018 (ISP): The 'PageIO' interface is a fat interface, bundling too many responsibilities.",
+  "branch": "refactor/ISP-018",
+  "base": "main",
+  "head_commit": "22b093a1453fbe4f3f30563aa4cab10cf4907391",
+  "status": "obsolete",
+  "obsolete_reason": "entity `PageIO` not found in current source of `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+    "entity_name": "PageIO",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 31,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The 'PageIO' interface is a fat interface, bundling too many responsibilities.",
+    "reasoning": "The 'PageIO' interface defines a broad set of methods related to various aspects of page management, including opening, reading, recovering, creating, activating/deactivating, persisting, purging, writing, and querying page properties. Implementations are forced to provide all these methods. Clients that only require a subset of these functionalities (e.g., only reading from a page or only writing to a page) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 45.88031768798828
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+    "search_text": "    /*\n    /**********************************************************************\n    /* Public API, buffer management\n    /**********************************************************************\n     */\n\n    public TextBuffer constructTextBuffer() {\n        return new TextBuffer(_bufferRecycler);\n    }\n\n    public TextBuffer constructReadConstrainedTextBuffer() {\n        return new ReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);\n    }",
+    "replace_text": "    /*\n    /**********************************************************************\n    /* Public API, buffer management\n    /**********************************************************************\n     */\n\n    public TextBuffer constructTextBuffer() {\n        return TextBufferFactory.DEFAULT.constructTextBuffer(_bufferRecycler);\n    }\n\n    public TextBuffer constructReadConstrainedTextBuffer() {\n        return TextBufferFactory.DEFAULT.constructReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);\n    }"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/io/TextBufferFactory.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.io;\n\nimport tools.jackson.core.StreamReadConstraints;\nimport tools.jackson.core.util.BufferRecycler;\nimport tools.jackson.core.util.ReadConstrainedTextBuffer;\nimport tools.jackson.core.util.TextBuffer;\n\n/**\n * Factory for creating {@link TextBuffer} instances.\n */\npublic interface TextBufferFactory {\n    TextBuffer constructTextBuffer(BufferRecycler recycler);\n    TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler);\n\n    TextBufferFactory DEFAULT = new TextBufferFactory() {\n        @Override\n        public TextBuffer constructTextBuffer(BufferRecycler recycler) {\n            return new TextBuffer(recycler);\n        }\n\n        @Override\n        public TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler) {\n            return new ReadConstrainedTextBuffer(src, recycler);\n        }\n    };\n}"
+  }
+]

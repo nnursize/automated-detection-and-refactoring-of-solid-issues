@@ -1,0 +1,15 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 7e42c6d..6db620e 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -7813,7 +7813,9 @@ namespace Detail {
+     template <typename... Ts>
+     GeneratorWrapper<std::tuple<std::decay_t<Ts>...>>
+     table( std::initializer_list<std::tuple<std::decay_t<Ts>...>> tuples ) {
+-        return values<std::tuple<Ts...>>( tuples );
++        using T = std::tuple<std::decay_t<Ts>...>;
++        return GeneratorWrapper<T>(
++            Catch::Detail::make_unique<FixedValuesGenerator<T>>( tuples ) );
+     }
+ 
+     // Tag type to signal that a generator sequence should convert arguments to a specific type

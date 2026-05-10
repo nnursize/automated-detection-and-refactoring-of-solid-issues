@@ -1,0 +1,13 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 57,
+    "line_end": 59,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The MockRequest class is forced to implement add_header, which is not used by its primary client (http.cookiejar.CookieJar).",
+    "reasoning": "The `MockRequest` class aims to mimic the `urllib2.Request` interface to be compatible with `http.cookiejar.CookieJar`. However, the `http.cookiejar.CookieJar.add_cookie_header` method (the client of `MockRequest`) only calls `request.add_unredirected_header` and does not use `request.add_header`. Despite this, `MockRequest` is forced to provide an `add_header` method to fully conform to the `urllib2.Request` interface. By raising `NotImplementedError` and explicitly stating in the comment that 'cookiejar has no legitimate use for this method', it indicates that `MockRequest` is depending on an interface (`urllib2.Request`) that is 'fat' for its specific client's needs, violating ISP."
+  }
+]

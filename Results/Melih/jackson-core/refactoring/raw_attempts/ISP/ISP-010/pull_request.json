@@ -1,0 +1,104 @@
+{
+  "issue_id": "ISP-010",
+  "principle": "ISP",
+  "title": "Refactor ISP-010 (ISP): The ParserBase class is forced to implement _decodeEscaped from JsonParser bu...",
+  "branch": "refactor/ISP-010",
+  "base": "main",
+  "head_commit": "5650ed69e32cc1205ea2281f12c8a5b6bcfeaebf",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11611,
+    "completion_tokens": 1572
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/base/ParserBase.java",
+    "entity_name": "ParserBase._decodeEscaped",
+    "entity_type": "method",
+    "line_start": 1028,
+    "line_end": 1029,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The ParserBase class is forced to implement _decodeEscaped from JsonParser but explicitly throws UnsupportedOperationException.",
+    "reasoning": "The 'JsonParser' interface (or an intermediate abstract class in its hierarchy) mandates a method for decoding escaped characters. 'ParserBase', a foundational abstract class, explicitly throws 'UnsupportedOperationException' for '_decodeEscaped()', indicating it cannot universally provide this functionality. This forces subclasses or clients to depend on a method they might not use or cannot implement, violating the Interface Segregation Principle by making the parser interface too broad."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract _decodeEscaped into a new interface to resolve ISP violation",
+    "rationale": "The _decodeEscaped method is only relevant for parsers that support escaped characters in base64. By moving this to a new interface 'EscapedBase64Parser', we remove the need for ParserBase to implement it and throw UnsupportedOperationException, thus adhering to the Interface Segregation Principle.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/base/ParserBase.java",
+      "src/main/java/tools/jackson/core/base/EscapedBase64Parser.java"
+    ],
+    "files_created": [
+      "src/main/java/tools/jackson/core/base/EscapedBase64Parser.java"
+    ],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/base/ParserBase.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/base/ParserBase.java",
+        "search_text": "    /**\n     * Method that sub-classes must implement to support escaped sequences\n     * in base64-encoded sections.\n     * Sub-classes that do not need base64 support can leave this as is\n     *\n     * @return Character decoded, if any\n     *\n     * @throws JacksonException If escape decoding fails\n     */\n    protected char _decodeEscaped() throws JacksonException {\n        throw new UnsupportedOperationException();\n    }\n\n    protected final int _decodeBase64Escape(Base64Variant b64variant, int ch, int index)\n        throws JacksonException\n    {\n        // Need to handle escaped chars\n        if (ch != '\\\\') {\n            _reportInvalidBase64Char(b64variant, ch, index);\n        }\n        int unescaped = _decodeEscaped();\n        // if white space, skip if first triplet; otherwise errors\n        if (unescaped <= INT_SPACE) {\n            if (index == 0) { // whitespace only allowed to be skipped between triplets\n                return -1;\n            }\n        }\n        // otherwise try to find actual triplet value\n        int bits = b64variant.decodeBase64Char(unescaped);\n        if (bits < 0) {\n            if (bits != Base64Variant.BASE64_VALUE_PADDING) {\n                _reportInvalidBase64Char(b64variant, unescaped, index);\n            }\n        }\n        return bits;\n    }\n\n    protected final int _decodeBase64Escape(Base64Variant b64variant, char ch, int index)\n        throws JacksonException\n    {\n        if (ch != '\\\\') {\n            _reportInvalidBase64Char(b64variant, ch, index);\n            return -1; // never gets here\n        }\n        char unescaped = _decodeEscaped();\n        // if white space, skip if first triplet; otherwise errors\n        if (unescaped <= INT_SPACE) {\n            if (index == 0) { // whitespace only allowed to be skipped between triplets\n                return -1;\n            }\n        }\n        // otherwise try to find actual triplet value\n        int bits = b64variant.decodeBase64Char(unescaped);\n        if (bits < 0) {\n            // second check since padding can only be 3rd or 4th byte (index #2 or #3)\n            if ((bits != Base64Variant.BASE64_VALUE_PADDING) || (index < 2)) {\n                _reportInvalidBase64Char(b64variant, unescaped, index);\n            }\n        }\n        return bits;\n    }",
+        "replace_text": "    protected final int _decodeBase64Escape(Base64Variant b64variant, int ch, int index)\n        throws JacksonException\n    {\n        // Need to handle escaped chars\n        if (ch != '\\\\') {\n            _reportInvalidBase64Char(b64variant, ch, index);\n        }\n        if (!(this instanceof EscapedBase64Parser)) {\n            _reportInvalidBase64Char(b64variant, ch, index, \"Escaped characters not supported\");\n        }\n        int unescaped = ((EscapedBase64Parser) this)._decodeEscaped();\n        // if white space, skip if first triplet; otherwise errors\n        if (unescaped <= INT_SPACE) {\n            if (index == 0) { // whitespace only allowed to be skipped between triplets\n                return -1;\n            }\n        }\n        // otherwise try to find actual triplet value\n        int bits = b64variant.decodeBase64Char(unescaped);\n        if (bits < 0) {\n            if (bits != Base64Variant.BASE64_VALUE_PADDING) {\n                _reportInvalidBase64Char(b64variant, unescaped, index);\n            }\n        }\n        return bits;\n    }\n\n    protected final int _decodeBase64Escape(Base64Variant b64variant, char ch, int index)\n        throws JacksonException\n    {\n        if (ch != '\\\\') {\n            _reportInvalidBase64Char(b64variant, ch, index);\n            return -1; // never gets here\n        }\n        if (!(this instanceof EscapedBase64Parser)) {\n            _reportInvalidBase64Char(b64variant, ch, index, \"Escaped characters not supported\");\n        }\n        char unescaped = ((EscapedBase64Parser) this)._decodeEscaped();\n        // if white space, skip if first triplet; otherwise errors\n        if (unescaped <= INT_SPACE) {\n            if (index == 0) { // whitespace only allowed to be skipped between triplets\n                return -1;\n            }\n        }\n        // otherwise try to find actual triplet value\n        int bits = b64variant.decodeBase64Char(unescaped);\n        if (bits < 0) {\n            // second check since padding can only be 3rd or 4th byte (index #2 or #3)\n            if ((bits != Base64Variant.BASE64_VALUE_PADDING) || (index < 2)) {\n                _reportInvalidBase64Char(b64variant, unescaped, index);\n            }\n        }\n        return bits;\n    }",
+        "search_lines": 61,
+        "replace_lines": 54
+      },
+      {
+        "kind": "create",
+        "file_path": "src/main/java/tools/jackson/core/base/EscapedBase64Parser.java",
+        "new_content": "package tools.jackson.core.base;\n\nimport tools.jackson.core.JacksonException;\n\n/**\n * Interface for parsers that support escaped characters in base64-encoded sections.\n */\npublic interface EscapedBase64Parser {\n    /**\n     * Method that sub-classes must implement to support escaped sequences\n     * in base64-encoded sections.\n     *\n     * @return Character decoded, if any\n     *\n     * @throws JacksonException If escape decoding fails\n     */\n    char _decodeEscaped() throws JacksonException;\n}",
+        "new_content_lines": 18
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/base/ParserBase.java",
+        "loc": 1012,
+        "blank_lines": 108,
+        "comment_lines": 52,
+        "function_count": 50,
+        "avg_cc": 5.14,
+        "max_cc": 208.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/base/ParserBase.java",
+        "loc": 1006,
+        "blank_lines": 107,
+        "comment_lines": 52,
+        "function_count": 49,
+        "avg_cc": 5.22,
+        "max_cc": 208.0,
+        "mi": 0.0
+      },
+      {
+        "file": "src/main/java/tools/jackson/core/base/EscapedBase64Parser.java",
+        "loc": 16,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 3.0,
+        "max_cc": 3.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/base/ParserBase.java b/src/main/java/tools/jackson/core/base/ParserBase.java\nindex 23dc332..b485576 100644\n--- a/src/main/java/tools/jackson/core/base/ParserBase.java\n+++ b/src/main/java/tools/jackson/core/base/ParserBase.java\n@@ -1016,19 +1016,6 @@ public abstract class ParserBase extends ParserMinimalBase\n     /**********************************************************************\n      */\n \n-    /**\n-     * Method that sub-classes must implement to support escaped sequences\n-     * in base64-encoded sections.\n-     * Sub-classes that do not need base64 support can leave this as is\n-     *\n-     * @return Character decoded, if any\n-     *\n-     * @throws JacksonException If escape decoding fails\n-     */\n-    protected char _decodeEscaped() throws JacksonException {\n-        throw new UnsupportedOperationException();\n-    }\n-\n     protected final int _decodeBase64Escape(Base64Variant b64variant, int ch, int index)\n         throws JacksonException\n     {\n@@ -1036,7 +1023,10 @@ public abstract class ParserBase extends ParserMinimalBase\n         if (ch != '\\\\') {\n             _reportInvalidBase64Char(b64variant, ch, index);\n         }\n-        int unescaped = _decodeEscaped();\n+        if (!(this instanceof EscapedBase64Parser)) {\n+            _reportInvalidBase64Char(b64variant, ch, index, \"Escaped characters not supported\");\n+        }\n+        int unescaped = ((EscapedBase64Parser) this)._decodeEscaped();\n         // if white space, skip if first triplet; otherwise errors\n         if (unescaped <= INT_SPACE) {\n             if (index == 0) { // whitespace only allowed to be skipped between triplets\n@@ -1060,7 +1050,10 @@ public abstract class ParserBase extends ParserMinimalBase\n             _reportInvalidBase64Char(b64variant, ch, index);\n             return -1; // never gets here\n         }\n-        char unescaped = _decodeEscaped();\n+        if (!(this instanceof EscapedBase64Parser)) {\n+            _reportInvalidBase64Char(b64variant, ch, index, \"Escaped characters not supported\");\n+        }\n+        char unescaped = ((EscapedBase64Parser) this)._decodeEscaped();\n         // if white space, skip if first triplet; otherwise errors\n         if (unescaped <= INT_SPACE) {\n             if (index == 0) { // whitespace only allowed to be skipped between triplets\ndiff --git a/src/main/java/tools/jackson/core/base/EscapedBase64Parser.java b/src/main/java/tools/jackson/core/base/EscapedBase64Parser.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/src/main/java/tools/jackson/core/base/EscapedBase64Parser.java\n@@ -0,0 +1,18 @@\n+package tools.jackson.core.base;\n+\n+import tools.jackson.core.JacksonException;\n+\n+/**\n+ * Interface for parsers that support escaped characters in base64-encoded sections.\n+ */\n+public interface EscapedBase64Parser {\n+    /**\n+     * Method that sub-classes must implement to support escaped sequences\n+     * in base64-encoded sections.\n+     *\n+     * @return Character decoded, if any\n+     *\n+     * @throws JacksonException If escape decoding fails\n+     */\n+    char _decodeEscaped() throws JacksonException;\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 4977.124929428101
+}

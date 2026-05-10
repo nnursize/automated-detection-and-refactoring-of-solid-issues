@@ -1,0 +1,29 @@
+{
+  "scan_id": "jackson-core_LSP_scan_02",
+  "repo_name": "jackson-core",
+  "principle": "LSP",
+  "scan_number": 2,
+  "timestamp": "2026-04-18T21:40:35.026865",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses tha...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java\",\n      \"entity_name\": \"NonBlockingUtf8JsonParserBase._decodeEscaped\",\n      \"entity_type\": \"method\",\n      \"line_start\": 80,\n      \"line_end\": 84,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass throws UnsupportedOperationException for a method inherited from base class\",\n      \"reasoning\": \"The method _decodeEscaped() is inherited from the base class (likely NonBlockingJsonParserBase or JsonParserBase). By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the contract of the base class, which expects this method to be functional. This prevents the subclass from being used as a drop-in replacement for the base class.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+      "entity_name": "NonBlockingUtf8JsonParserBase._decodeEscaped",
+      "entity_type": "method",
+      "line_start": 80,
+      "line_end": 84,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass throws UnsupportedOperationException for a method inherited from base class",
+      "reasoning": "The method _decodeEscaped() is inherited from the base class (likely NonBlockingJsonParserBase or JsonParserBase). By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the contract of the base class, which expects this method to be functional. This prevents the subclass from being used as a drop-in replacement for the base class."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 2379.09197807312,
+  "error": null
+}

@@ -1,0 +1,339 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: ISP-008
+- **Principle**: Interface Segregation Principle (ISP)
+- **File**: `src/main/java/tools/jackson/core/base/BinaryTSFactory.java`
+- **Entity**: `BinaryTSFactory` (current lines L15-L247 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 1 independent scans
+
+### Description
+The `BinaryTSFactory` is forced to implement character-based parser creation methods but explicitly throws `_nonByteSource()` (which throws `UnsupportedOperationException`).
+
+### Reasoning
+The `BinaryTSFactory` is designed to create parsers for binary input. However, it inherits methods like `createParser(Reader r)`, `createParser(String content)`, and `createParser(char[] content, int offset, int len)` from `TokenStreamFactory`. For these character-based input types, `BinaryTSFactory` explicitly calls `_nonByteSource()` (L97, L118, L124), which then throws `UnsupportedOperationException`. This forces the factory to implement methods for input types it does not support, violating ISP. These methods should be segregated into a `CharSourceTokenStreamFactory` or similar interface.
+
+## Principle reference
+**Interface Segregation Principle** — Clients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.
+
+What typically signals a violation:
+- Abstract base classes or interfaces with too many methods
+- Classes that implement an interface but leave methods as pass or raise NotImplementedError
+- Fat interfaces that could be split into smaller, more focused ones
+- Classes forced to depend on methods they never call
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/base/BinaryTSFactory.java`
+```java
+package tools.jackson.core.base;
+
+import java.io.*;
+import java.nio.file.Path;
+
+import tools.jackson.core.*;
+import tools.jackson.core.io.ContentReference;
+import tools.jackson.core.io.IOContext;
+
+/**
+ * Intermediate {@link TokenStreamFactory} sub-class used as the base for
+ * binary (non-textual) data formats.
+ */
+@SuppressWarnings("resource")
+public abstract class BinaryTSFactory
+    extends DecorableTSFactory
+    implements java.io.Serializable
+{
+    private static final long serialVersionUID = 3L;
+
+    /*
+    /**********************************************************************
+    /* Construction
+    /**********************************************************************
+     */
+
+    protected BinaryTSFactory(StreamReadConstraints src,
+            StreamWriteConstraints swc, ErrorReportConfiguration erc,
+            int formatPF, int formatGF) {
+        super(src, swc, erc, formatPF, formatGF);
+    }
+
+    /**
+     * Constructor used by builders for instantiation.
+     *
+     * @param baseBuilder Builder with configurations to use
+     *
+     * @since 3.0
+     */
+    protected BinaryTSFactory(DecorableTSFBuilder<?,?> baseBuilder)
+    {
+        super(baseBuilder);
+    }
+
+    // Copy constructor.
+    protected BinaryTSFactory(BinaryTSFactory src) {
+        super(src);
+    }
+
+    /*
+    /**********************************************************************
+    /* Default introspection
+    /**********************************************************************
+     */
+
+    @Override
+    public boolean canHandleBinaryNatively() {
+        // binary formats tend to support native inclusion:
+        return true;
+    }
+
+    /*
+    /**********************************************************************
+    /* Factory methods: parsers
+    /**********************************************************************
+     */
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt,
+            File f) throws JacksonException
+    {
+        final InputStream in = _fileInputStream(f);
+        // true, since we create InputStream from File
+        final IOContext ioCtxt = _createContext(_createContentReference(f), true);
+        return _createParser(readCtxt, ioCtxt,
+                _decorate(ioCtxt, in));
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt,
+            Path p) throws JacksonException
+    {
+        // true, since we create InputStream from Path
+        IOContext ioCtxt = _createContext(_createContentReference(p), true);
+        return _createParser(readCtxt, ioCtxt,
+                _decorate(ioCtxt, _pathInputStream(p)));
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt, InputStream in) throws JacksonException {
+        IOContext ioCtxt = _createContext(_createContentReference(in), false);
+        return _createParser(readCtxt, ioCtxt, _decorate(ioCtxt, in));
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt, Reader r) throws JacksonException {
+        return _nonByteSource();
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt,
+            byte[] data, int offset, int len) throws JacksonException
+    {
+        IOContext ioCtxt = _createContext(_createContentReference(data, offset, len),
+                true, null);
+        if (_inputDecorator != null) {
+            InputStream in = _inputDecorator.decorate(ioCtxt, data, offset, len);
+            if (in != null) {
+                return _createParser(readCtxt, ioCtxt, in);
+            }
+        }
+        return _createParser(readCtxt, ioCtxt, data, offset, len);
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt,
+            String content) throws JacksonException {
+        return _nonByteSource();
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt,
+            char[] content, int offset, int len) throws JacksonException {
+        return _nonByteSource();
+    }
+
+    @Override
+    public JsonParser createParser(ObjectReadContext readCtxt,
+            DataInput in) throws JacksonException {
+        IOContext ioCtxt = _createContext(_createContentReference(in), false);
+        return _createParser(readCtxt, ioCtxt, _decorate(ioCtxt, in));
+    }
+
+    protected abstract JsonParser _createParser(ObjectReadContext readCtxt,
+            IOContext ioCtxt, InputStream in) throws JacksonException;
+
+    protected abstract JsonParser _createParser(ObjectReadContext readCtxt,
+            IOContext ioCtxt, byte[] data, int offset, int len) throws JacksonException;
+
+    protected abstract JsonParser _createParser(ObjectReadContext readCtxt,
+            IOContext ioCtxt, DataInput input) throws JacksonException;
+
+    /*
+    /**********************************************************************
+    /* Factory methods: generators
+    /**********************************************************************
+     */
+
+    @Override
+    public JsonGenerator createGenerator(ObjectWriteContext writeCtxt,
+            OutputStream out, JsonEncoding enc)
+        throws JacksonException
+    {
+        // false -> we won't manage the stream unless explicitly directed to
+        IOContext ioCtxt = _createContext(_createContentReference(out), false, enc);
+        return _decorate(
+                _createGenerator(writeCtxt, ioCtxt, _decorate(ioCtxt, out))
+        );
+    }
+
+    @Override
+    public JsonGenerator createGenerator(ObjectWriteContext writeCtxt,
+            Writer w) throws JacksonException
+    {
+        return _nonByteTarget();
+    }
+
+    @Override
+    public JsonGenerator createGenerator(ObjectWriteContext writeCtxt,
+            File f, JsonEncoding enc) throws JacksonException
+    {
+        final OutputStream out = _fileOutputStream(f);
+        // true -> yes, we have to manage the stream since we created it
+        final IOContext ioCtxt = _createContext(_createContentReference(out), true, enc);
+        return _decorate(
+                _createGenerator(writeCtxt, ioCtxt, _decorate(ioCtxt, out))
+        );
+    }
+
+    @Override
+    public JsonGenerator createGenerator(ObjectWriteContext writeCtxt,
+            Path p, JsonEncoding enc)
+        throws JacksonException
+    {
+        final OutputStream out = _pathOutputStream(p);
+        final IOContext ioCtxt = _createContext(_createContentReference(p), true, enc);
+        return _decorate(
+                _createGenerator(writeCtxt, ioCtxt, _decorate(ioCtxt, out))
+        );
+    }
+
+    /*
+    /**********************************************************************
+    /* Factory methods: context objects
+    /**********************************************************************
+     */
+
+    @Override
+    protected ContentReference _createContentReference(Object contentRef) {
+        // false -> not textual
+        return ContentReference.construct(false, contentRef, _errorReportConfiguration);
+    }
+
+    @Override
+    protected ContentReference _createContentReference(Object contentRef,
+            int offset, int length)
+    {
+        // false -> not textual
+        return ContentReference.construct(false, contentRef, offset, length,
+                _errorReportConfiguration);
+    }
+
+    /*
+    /**********************************************************************
+    /* Factory methods: abstract, for sub-classes to implement
+    /**********************************************************************
+     */
+
+    /**
+     * Overridable factory method that actually instantiates generator for
+     * given {@link OutputStream} and context object, using UTF-8 encoding.
+     *<p>
+     * This method is specifically designed to remain
+     * compatible between minor versions so that sub-classes can count
+     * on it being called as expected. That is, it is part of official
+     * interface from sub-class perspective, although not a public
+     * method available to users of factory implementations.
+     *
+     * @param writeCtxt Object write context for generator to use
+     * @param ioCtxt IOContext for generator to use
+     * @param out Writer for generator to use
+     *
+     * @return Generator constructed
+     *
+     * @throws JacksonException If there is a problem constructing generator
+     */
+    protected abstract JsonGenerator _createGenerator(ObjectWriteContext writeCtxt,
+            IOContext ioCtxt, OutputStream out) throws JacksonException;
+
+    protected <T> T _nonByteSource() throws JacksonException {
+        throw new UnsupportedOperationException("Cannot create parser for character-based (not byte-based) source");
+    }
+
+    protected <T> T _nonByteTarget() throws JacksonException {
+        throw new UnsupportedOperationException("Cannot create generator for character-based (not byte-based) target");
+    }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/base/DecorableTSFactory.java`
+- `src/main/java/tools/jackson/core/base/EscapedBase64Parser.java`
+- `src/main/java/tools/jackson/core/base/GeneratorBase.java`
+- `src/main/java/tools/jackson/core/base/package-info.java`
+- `src/main/java/tools/jackson/core/base/ParserBase.java`
+- `src/main/java/tools/jackson/core/base/ParserMinimalBase.java`
+- `src/main/java/tools/jackson/core/base/TextualTSFactory.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

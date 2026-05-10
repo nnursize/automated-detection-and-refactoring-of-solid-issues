@@ -1,0 +1,25 @@
+diff --git a/src/requests/cookies.py b/src/requests/cookies.py
+index 2a787ba..123635c 100644
+--- a/src/requests/cookies.py
++++ b/src/requests/cookies.py
+@@ -514,17 +514,18 @@ def morsel_to_cookie(morsel):
+     )
+ 
+ 
+-def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):
++def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True, jar_factory=RequestsCookieJar):
+     """Returns a CookieJar from a key/value dictionary.
+ 
+     :param cookie_dict: Dict of key/values to insert into CookieJar.
+     :param cookiejar: (optional) A cookiejar to add the cookies to.
+     :param overwrite: (optional) If False, will not replace cookies
+         already in the jar with new ones.
++    :param jar_factory: (optional) A factory function to create a new CookieJar.
+     :rtype: CookieJar
+     """
+     if cookiejar is None:
+-        cookiejar = RequestsCookieJar()
++        cookiejar = jar_factory()
+ 
+     if cookie_dict is not None:
+         names_from_jar = [cookie.name for cookie in cookiejar]

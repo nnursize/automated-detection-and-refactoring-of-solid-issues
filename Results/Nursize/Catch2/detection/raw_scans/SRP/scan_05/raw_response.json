@@ -1,0 +1,62 @@
+{
+  "scan_id": "Catch2_SRP_scan_05",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 5,
+  "timestamp": "2026-05-02T11:00:00.367747",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following c++ source code for violations of the Single Responsibility Principle (SRP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inte...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Benchmark::Benchmark\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1007,\n      \"line_end\": 1065,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Benchmark class combines defining, preparing, executing, analyzing, and reporting benchmark runs.\",\n      \"reasoning\": \"This class has multiple reasons to change. It is responsible for storing benchmark metadata (name, function), preparing the execution plan (e.g., calculating iterations, warmup time), executing the benchmark (running the function, measuring durations), analyzing the raw samples (statistical processing), and reporting the final results. A change in any of these distinct concerns\u2014such as how the execution plan is determined, how samples are collected, how statistics are derived, or how results are reported\u2014would require modifying this single class.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Config\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1771,\n      \"line_end\": 1818,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Config class is responsible for representing configuration data and also for acquiring it from specific environment variables.\",\n      \"reasoning\": \"While the primary responsibility of `Config` is to encapsulate and provide access to configuration settings, the `readBazelEnvVars()` method introduces a secondary responsibility of acquiring configuration from a specific external source (Bazel environment variables). This couples the configuration representation with a particular I/O mechanism and environment detail. Changes to how configuration is sourced (e.g., adding support for config files) or changes to the Bazel environment variable logic would force modifications to this class, which is distinct from changes to the configuration options themselves.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1916,\n      \"line_end\": 1961,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Session class acts as a God Class, combining command-line parsing, configuration management, and test orchestration.\",\n      \"reasoning\": \"This class has an excessive number of responsibilities, making it highly susceptible to changes from various sources. It handles parsing command-line arguments (`applyCommandLine`), managing the application's configuration (`useConfigData`, `configData`, `config`), controlling the entire test execution flow (`run`, `runInternal`), and providing application-level information and help (`showHelp`, `libIdentify`). Each of these is a distinct concern, meaning changes in any of these areas would necessitate modifying the `Session` class.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3393,\n      \"line_end\": 3507,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The RunContext class is a God Class, orchestrating the entire test run, managing diverse event handling, and controlling I/O and error conditions.\",\n      \"reasoning\": \"As the implementation of `IResultCapture`, `RunContext` aggregates a multitude of responsibilities. It handles all assertion outcomes (expressions, messages, exceptions), manages the lifecycle of test sections, tracks test generators, forwards benchmark events, manages output redirection, handles fatal error conditions, and maintains overall test run totals and state. This broad scope means any change to assertion processing, section tracking, generator behavior, benchmark handling, I/O redirection, or error management would require modifications to this single class, violating SRP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Benchmark::Benchmark",
+      "entity_type": "class",
+      "line_start": 1007,
+      "line_end": 1065,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Benchmark class combines defining, preparing, executing, analyzing, and reporting benchmark runs.",
+      "reasoning": "This class has multiple reasons to change. It is responsible for storing benchmark metadata (name, function), preparing the execution plan (e.g., calculating iterations, warmup time), executing the benchmark (running the function, measuring durations), analyzing the raw samples (statistical processing), and reporting the final results. A change in any of these distinct concerns\u2014such as how the execution plan is determined, how samples are collected, how statistics are derived, or how results are reported\u2014would require modifying this single class."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Config",
+      "entity_type": "class",
+      "line_start": 1771,
+      "line_end": 1818,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The Config class is responsible for representing configuration data and also for acquiring it from specific environment variables.",
+      "reasoning": "While the primary responsibility of `Config` is to encapsulate and provide access to configuration settings, the `readBazelEnvVars()` method introduces a secondary responsibility of acquiring configuration from a specific external source (Bazel environment variables). This couples the configuration representation with a particular I/O mechanism and environment detail. Changes to how configuration is sourced (e.g., adding support for config files) or changes to the Bazel environment variable logic would force modifications to this class, which is distinct from changes to the configuration options themselves."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Session",
+      "entity_type": "class",
+      "line_start": 1916,
+      "line_end": 1961,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Session class acts as a God Class, combining command-line parsing, configuration management, and test orchestration.",
+      "reasoning": "This class has an excessive number of responsibilities, making it highly susceptible to changes from various sources. It handles parsing command-line arguments (`applyCommandLine`), managing the application's configuration (`useConfigData`, `configData`, `config`), controlling the entire test execution flow (`run`, `runInternal`), and providing application-level information and help (`showHelp`, `libIdentify`). Each of these is a distinct concern, meaning changes in any of these areas would necessitate modifying the `Session` class."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::RunContext",
+      "entity_type": "class",
+      "line_start": 3393,
+      "line_end": 3507,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The RunContext class is a God Class, orchestrating the entire test run, managing diverse event handling, and controlling I/O and error conditions.",
+      "reasoning": "As the implementation of `IResultCapture`, `RunContext` aggregates a multitude of responsibilities. It handles all assertion outcomes (expressions, messages, exceptions), manages the lifecycle of test sections, tracks test generators, forwards benchmark events, manages output redirection, handles fatal error conditions, and maintains overall test run totals and state. This broad scope means any change to assertion processing, section tracking, generator behavior, benchmark handling, I/O redirection, or error management would require modifications to this single class, violating SRP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 33399.675607681274,
+  "error": null
+}

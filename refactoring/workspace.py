@@ -123,8 +123,12 @@ class Workspace:
             capture_output=True, text=True,
         )
         if result.returncode != 0:
+            detail = "\n".join(
+                part for part in (result.stdout.strip(), result.stderr.strip())
+                if part
+            )
             raise WorkspaceError(
-                f"git {' '.join(args)} failed:\n{result.stderr.strip()}"
+                f"git {' '.join(args)} failed:\n{detail}"
             )
         return result.stdout
 

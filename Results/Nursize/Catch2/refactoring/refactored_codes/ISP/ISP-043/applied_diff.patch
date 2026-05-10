@@ -1,0 +1,39 @@
+diff --git a/src/catch2/internal/catch_clara.hpp b/src/catch2/internal/catch_clara.hpp
+index 85874a1..df678a2 100644
+--- a/src/catch2/internal/catch_clara.hpp
++++ b/src/catch2/internal/catch_clara.hpp
+@@ -476,6 +476,13 @@ namespace Catch {
+                 InternalParseResult parse( Args const& args ) const;
+             };
+ 
++            class HelpGenerator {
++            public:
++                virtual ~HelpGenerator() = default;
++                virtual std::vector<HelpColumns> getHelpColumns() const = 0;
++                virtual void writeToStream(std::ostream& os) const = 0;
++            };
++
+             template <typename DerivedT>
+             class ComposableParserImpl : public ParserBase {
+             public:
+@@ -641,7 +648,7 @@ namespace Catch {
+ 
+ 
+         // A Combined parser
+-        class Parser : Detail::ParserBase {
++        class Parser : Detail::ParserBase, Detail::HelpGenerator {
+             mutable ExeName m_exeName;
+             std::vector<Opt> m_options;
+             std::vector<Arg> m_args;
+@@ -682,9 +689,9 @@ namespace Catch {
+                 return CATCH_MOVE(p);
+             }
+ 
+-            std::vector<Detail::HelpColumns> getHelpColumns() const;
++            std::vector<Detail::HelpColumns> getHelpColumns() const override;
+ 
+-            void writeToStream(std::ostream& os) const;
++            void writeToStream(std::ostream& os) const override;
+ 
+             friend auto operator<<(std::ostream& os, Parser const& parser)
+                 -> std::ostream& {

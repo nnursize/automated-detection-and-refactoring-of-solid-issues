@@ -1,0 +1,74 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 6c69679..1264d02 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -785,6 +785,30 @@ class Response:
+             # to a standard Python utf-8 str.
+             return "utf-8"
+ 
++    def _iter_raw_stream(self, chunk_size):
++        """Iterates over the raw response stream."""
++        # Special case for urllib3.
++        if hasattr(self.raw, "stream"):
++            try:
++                yield from self.raw.stream(chunk_size, decode_content=True)
++            except ProtocolError as e:
++                raise ChunkedEncodingError(e)
++            except DecodeError as e:
++                raise ContentDecodingError(e)
++            except ReadTimeoutError as e:
++                raise ConnectionError(e)
++            except SSLError as e:
++                raise RequestsSSLError(e)
++        else:
++            # Standard file-like object.
++            while True:
++                chunk = self.raw.read(chunk_size)
++                if not chunk:
++                    break
++                yield chunk
++
++        self._content_consumed = True
++
+     def iter_content(self, chunk_size=1, decode_unicode=False):
+         """Iterates over the response data.  When stream=True is set on the
+         request, this avoids reading the content at once into memory for
+@@ -802,29 +826,6 @@ class Response:
+         available encoding based on the response.
+         """
+ 
+-        def generate():
+-            # Special case for urllib3.
+-            if hasattr(self.raw, "stream"):
+-                try:
+-                    yield from self.raw.stream(chunk_size, decode_content=True)
+-                except ProtocolError as e:
+-                    raise ChunkedEncodingError(e)
+-                except DecodeError as e:
+-                    raise ContentDecodingError(e)
+-                except ReadTimeoutError as e:
+-                    raise ConnectionError(e)
+-                except SSLError as e:
+-                    raise RequestsSSLError(e)
+-            else:
+-                # Standard file-like object.
+-                while True:
+-                    chunk = self.raw.read(chunk_size)
+-                    if not chunk:
+-                        break
+-                    yield chunk
+-
+-            self._content_consumed = True
+-
+         if self._content_consumed and isinstance(self._content, bool):
+             raise StreamConsumedError()
+         elif chunk_size is not None and not isinstance(chunk_size, int):
+@@ -834,7 +835,7 @@ class Response:
+         # simulate reading small chunks of the content
+         reused_chunks = iter_slices(self._content, chunk_size)
+ 
+-        stream_chunks = generate()
++        stream_chunks = self._iter_raw_stream(chunk_size)
+ 
+         chunks = reused_chunks if self._content_consumed else stream_chunks
+ 

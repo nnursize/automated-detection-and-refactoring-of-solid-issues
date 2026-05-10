@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IResultCapture",
+    "entity_type": "class",
+    "line_start": 1065,
+    "line_end": 1127,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Static methods `pushScopedMessage`, `popScopedMessage`, `emplaceUnscopedMessage` on `IResultCapture` prevent polymorphic behavior.",
+    "reasoning": "If `IResultCapture` is intended to be an interface for polymorphic result capture strategies, these static methods bypass the interface. This forces clients to rely on a single, global implementation for these operations, rather than using an instance's specific behavior. This closes the system to extension, as adding a new capture strategy might require modifying these static entry points or their underlying implementation, instead of simply providing a new `IResultCapture` instance."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IConfig",
+    "entity_type": "class",
+    "line_start": 1223,
+    "line_end": 1256,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "`IConfig` is a fat interface with numerous unrelated configuration getters.",
+    "reasoning": "The `IConfig` interface exposes a very broad set of configuration parameters. This forces any client needing even a small subset of configuration to depend on the entire interface, violating the Interface Segregation Principle (ISP). This also leads to OCP violations because adding new configuration options (extension) requires modifying the `IConfig` interface, forcing recompilation and potential changes in all clients, even those unaffected by the new options. This could be mitigated by segregating the interface into smaller, role-specific interfaces."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "ITestInvoker",
+    "entity_type": "class",
+    "line_start": 5994,
+    "line_end": 6001,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "`ITestInvoker` interface is missing the `invoke()` method, preventing polymorphic test execution.",
+    "reasoning": "The `ITestInvoker` interface defines `prepareTestCase` and `tearDownTestCase`, but not the core `invoke` method. However, concrete implementations like `TestInvokerAsMethod` and `TestInvokerFixture` provide an `invoke()` method, and `TestCaseHandle` uses it. This structural omission prevents clients from treating different test invocation strategies polymorphically through `ITestInvoker`. Any client wanting to invoke a test would be forced to `dynamic_cast` to a concrete type or use non-polymorphic mechanisms, directly violating OCP as new invoker types would require client modification."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Pattern",
+    "entity_type": "class",
+    "line_start": 3430,
+    "line_end": 3447,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Base class `Pattern` does not declare `matches()` and `serializeTo()` as virtual.",
+    "reasoning": "Subclasses `NamePattern` and `TagPattern` implement `matches()` and `serializeTo()`, but these methods are not declared as virtual in the `Pattern` base class. This means clients interacting with `Pattern` objects cannot call these methods polymorphically. To add a new pattern type and use its specific `matches()` or `serializeTo()` logic, existing client code would need to be modified (e.g., by adding `if/else` checks or `dynamic_cast` calls for new pattern types), which is a direct violation of OCP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IExceptionTranslator",
+    "entity_type": "class",
+    "line_start": 7338,
+    "line_end": 7343,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "`IExceptionTranslator` interface is missing the `translate()` method, preventing polymorphic exception handling.",
+    "reasoning": "The `ExceptionTranslator` concrete class implements a `translate` method, but `IExceptionTranslator` does not declare it. This omission prevents polymorphic use of different exception translation strategies. Clients would be forced to rely on concrete types or non-polymorphic logic to translate exceptions, directly violating OCP as new translator types would necessitate modifications to existing client code."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IRegistryHub",
+    "entity_type": "class",
+    "line_start": 1286,
+    "line_end": 1298,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "`IRegistryHub` and `IMutableRegistryHub` are fat interfaces, aggregating many distinct registry management responsibilities.",
+    "reasoning": "These interfaces provide methods for accessing and modifying various distinct registries (e.g., reporters, test cases, exception translators, tag aliases, enum values). This broad API forces clients to depend on an interface containing methods they don't use, violating ISP. Furthermore, adding a new type of registry (extension) would likely require modifying `IMutableRegistryHub` (and its implementation), potentially impacting all dependent clients, even if they only use a subset of the registry functionalities. This violates OCP as new features require modifying existing, stable code."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IEventListener",
+    "entity_type": "class",
+    "line_start": 9016,
+    "line_end": 9101,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "`IEventListener` is a fat interface with numerous virtual methods for all test events, forcing empty overrides in subclasses.",
+    "reasoning": "The `IEventListener` interface declares a large number of virtual methods, one for each possible test event (e.g., `testRunStarting`, `testCaseStarting`, `sectionStarting`, `assertionEnded`). This design forces all concrete listeners (like `StreamingReporterBase` and `EventListenerBase`) to provide implementations (often empty, as indicated by the skeleton) for every event, even if they are only interested in a few. This violates ISP and, more importantly for OCP, means that adding any *new* event type to the testing framework requires modifying the `IEventListener` interface itself and recompiling/updating *all* existing listeners, making the system closed to extension for new event types without modification."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.cpp",
+    "entity_name": "Win32ColourImpl::use",
+    "entity_type": "method",
+    "line_start": 3591,
+    "line_end": 3611,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The `use` method employs a switch statement on `Colour::Code`, violating OCP.",
+    "reasoning": "The `Win32ColourImpl::use` method (and similarly `ANSIColourImpl::use` in L3670-L3697) uses a `switch` statement to apply different console colors based on a `Colour::Code` enum. This design means that if a new `Colour::Code` is introduced (extension), the `use` method must be modified (adding a new `case` branch). This is a classic violation of OCP, as it makes the existing code not closed for modification when new color types are added. A more extensible design would use polymorphism, where each `Colour::Code` could correspond to a specific `IColourStrategy` object, and adding new colors would involve creating a new strategy without modifying existing code."
+  }
+]

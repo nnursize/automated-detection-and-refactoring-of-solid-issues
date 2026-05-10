@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.init_poolmanager",
+    "entity_type": "class",
+    "line_start": 218,
+    "line_end": 241,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "HTTPAdapter directly instantiates the low-level urllib3 PoolManager.",
+    "reasoning": "The HTTPAdapter class directly creates an instance of urllib3.poolmanager.PoolManager. This hard-codes the dependency on a specific third-party library's implementation detail, making it impossible to substitute the pool manager with an abstraction or mock it for testing without monkeypatching."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session.__init__",
+    "entity_type": "class",
+    "line_start": 403,
+    "line_end": 444,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Session directly instantiates concrete HTTPAdapter objects in its constructor.",
+    "reasoning": "The Session class directly instantiates concrete HTTPAdapter objects for the default 'http://' and 'https://' mount points. This couples the high-level Session logic to a specific transport implementation, violating DIP. These should ideally be injected or provided by a factory."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "class",
+    "line_start": 243,
+    "line_end": 281,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of SOCKSProxyManager and usage of concrete proxy factories.",
+    "reasoning": "The method directly instantiates SOCKSProxyManager and calls the proxy_from_url factory. This couples the transport adapter to specific proxy implementation details and concrete types, rather than relying on an abstract factory or injected provider for proxy management."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Request.prepare",
+    "entity_type": "class",
+    "line_start": 310,
+    "line_end": 312,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "The Request class directly instantiates its own PreparedRequest dependency.",
+    "reasoning": "The prepare method in the Request class directly instantiates the PreparedRequest class. This is a DIP violation as it couples the high-level Request definition to the concrete PreparedRequest implementation, instead of using a factory or dependency injection."
+  }
+]

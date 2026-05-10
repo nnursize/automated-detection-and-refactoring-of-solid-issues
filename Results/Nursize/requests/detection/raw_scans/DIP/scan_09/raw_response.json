@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_DIP_scan_09",
+  "repo_name": "requests",
+  "principle": "DIP",
+  "scan_number": 9,
+  "timestamp": "2026-05-03T11:33:42.516448",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstraction...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.init_poolmanager\",\n      \"entity_type\": \"class\",\n      \"line_start\": 218,\n      \"line_end\": 241,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPAdapter directly instantiates the low-level urllib3 PoolManager.\",\n      \"reasoning\": \"The HTTPAdapter class directly creates an instance of urllib3.poolmanager.PoolManager. This hard-codes the dependency on a specific third-party library's implementation detail, making it impossible to substitute the pool manager with an abstraction or mock it for testing without monkeypatching.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 403,\n      \"line_end\": 444,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Session directly instantiates concrete HTTPAdapter objects in its constructor.\",\n      \"reasoning\": \"The Session class directly instantiates concrete HTTPAdapter objects for the default 'http://' and 'https://' mount points. This couples the high-level Session logic to a specific transport implementation, violating DIP. These should ideally be injected or provided by a factory.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.proxy_manager_for\",\n      \"entity_type\": \"class\",\n      \"line_start\": 243,\n      \"line_end\": 281,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Direct instantiation of SOCKSProxyManager and usage of concrete proxy factories.\",\n      \"reasoning\": \"The method directly instantiates SOCKSProxyManager and calls the proxy_from_url factory. This couples the transport adapter to specific proxy implementation details and concrete types, rather than relying on an abstract factory or injected provider for proxy management.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Request.prepare\",\n      \"entity_type\": \"class\",\n      \"line_start\": 310,\n      \"line_end\": 312,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Request class directly instantiates its own PreparedRequest dependency.\",\n      \"reasoning\": \"The prepare method in the Request class directly instantiates the PreparedRequest class. This is a DIP violation as it couples the high-level Request definition to the concrete PreparedRequest implementation, instead of using a factory or dependency injection.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.init_poolmanager",
+      "entity_type": "class",
+      "line_start": 218,
+      "line_end": 241,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "HTTPAdapter directly instantiates the low-level urllib3 PoolManager.",
+      "reasoning": "The HTTPAdapter class directly creates an instance of urllib3.poolmanager.PoolManager. This hard-codes the dependency on a specific third-party library's implementation detail, making it impossible to substitute the pool manager with an abstraction or mock it for testing without monkeypatching."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.__init__",
+      "entity_type": "class",
+      "line_start": 403,
+      "line_end": 444,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Session directly instantiates concrete HTTPAdapter objects in its constructor.",
+      "reasoning": "The Session class directly instantiates concrete HTTPAdapter objects for the default 'http://' and 'https://' mount points. This couples the high-level Session logic to a specific transport implementation, violating DIP. These should ideally be injected or provided by a factory."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.proxy_manager_for",
+      "entity_type": "class",
+      "line_start": 243,
+      "line_end": 281,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Direct instantiation of SOCKSProxyManager and usage of concrete proxy factories.",
+      "reasoning": "The method directly instantiates SOCKSProxyManager and calls the proxy_from_url factory. This couples the transport adapter to specific proxy implementation details and concrete types, rather than relying on an abstract factory or injected provider for proxy management."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Request.prepare",
+      "entity_type": "class",
+      "line_start": 310,
+      "line_end": 312,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "The Request class directly instantiates its own PreparedRequest dependency.",
+      "reasoning": "The prepare method in the Request class directly instantiates the PreparedRequest class. This is a DIP violation as it couples the high-level Request definition to the concrete PreparedRequest implementation, instead of using a factory or dependency injection."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 118228.0900478363,
+  "error": null
+}

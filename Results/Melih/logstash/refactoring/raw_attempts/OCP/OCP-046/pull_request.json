@@ -1,0 +1,104 @@
+{
+  "issue_id": "OCP-046",
+  "principle": "OCP",
+  "title": "Refactor OCP-046 (OCP): Hardcoded registration of JRuby extension classes.",
+  "branch": "refactor/OCP-046",
+  "base": "main",
+  "head_commit": "1217d0426d0d7a9ee1571c6188fd0c7478a1324e",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9766,
+    "completion_tokens": 546
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+    "entity_name": "RubyUtil",
+    "entity_type": "class",
+    "line_start": 272,
+    "line_end": 561,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Hardcoded registration of JRuby extension classes.",
+    "reasoning": "The `RubyUtil` class contains numerous direct calls to `setupLogstashClass` for specific JRuby extension classes (e.g., `ShutdownWatcherExt`, `JRubyWrappedWriteClientExt`, `JrubyMemoryReadClientExt`). If a new JRuby extension class is introduced, this class must be modified to include another `setupLogstashClass` call, violating the Open/Closed Principle. A more OCP-compliant approach would involve a dynamic discovery mechanism or a pluggable registry where extensions can register themselves without requiring changes to `RubyUtil`."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a Registry pattern for JRuby extension classes to improve OCP compliance.",
+    "rationale": "By creating a Registry interface and a central registry, we allow new JRuby extensions to register themselves without modifying the core RubyUtil class, thus adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+      "logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java"
+    ],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/RubyUtil.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+        "search_text": "        HOOKS_REGISTRY_CLASS =\n            PLUGINS_MODULE.defineClassUnder(\"HooksRegistry\", RUBY.getObject(), HooksRegistryExt::new);\n        HOOKS_REGISTRY_CLASS.defineAnnotatedMethods(HooksRegistryExt.class);\n        RUBY.getGlobalVariables().set(\"$LS_JARS_LOADED\", RUBY.newString(\"true\"));\n        RubyJavaIntegration.setupRubyJavaIntegration(RUBY);\n    }",
+        "replace_text": "        HOOKS_REGISTRY_CLASS =\n            PLUGINS_MODULE.defineClassUnder(\"HooksRegistry\", RUBY.getObject(), HooksRegistryExt::new);\n        HOOKS_REGISTRY_CLASS.defineAnnotatedMethods(HooksRegistryExt.class);\n        JRubyExtensionRegistry.apply(RUBY);\n        RUBY.getGlobalVariables().set(\"$LS_JARS_LOADED\", RUBY.newString(\"true\"));\n        RubyJavaIntegration.setupRubyJavaIntegration(RUBY);\n    }",
+        "search_lines": 6,
+        "replace_lines": 7
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java",
+        "new_content": "package org.logstash;\n\nimport org.jruby.Ruby;\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.function.Consumer;\n\npublic final class JRubyExtensionRegistry {\n    private static final List<Consumer<Ruby>> REGISTRATIONS = new ArrayList<>();\n\n    public static void register(Consumer<Ruby> registration) {\n        REGISTRATIONS.add(registration);\n    }\n\n    public static void apply(Ruby runtime) {\n        for (Consumer<Ruby> registration : REGISTRATIONS) {\n            registration.accept(runtime);\n        }\n    }\n}",
+        "new_content_lines": 20
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+        "loc": 562,
+        "blank_lines": 92,
+        "comment_lines": 1,
+        "function_count": 5,
+        "avg_cc": 1.8,
+        "max_cc": 5.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+        "loc": 563,
+        "blank_lines": 92,
+        "comment_lines": 1,
+        "function_count": 5,
+        "avg_cc": 1.8,
+        "max_cc": 5.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java",
+        "loc": 16,
+        "blank_lines": 4,
+        "comment_lines": 0,
+        "function_count": 2,
+        "avg_cc": 1.5,
+        "max_cc": 2.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/RubyUtil.java b/logstash-core/src/main/java/org/logstash/RubyUtil.java\nindex 50ee6d4..df4b737 100644\n--- a/logstash-core/src/main/java/org/logstash/RubyUtil.java\n+++ b/logstash-core/src/main/java/org/logstash/RubyUtil.java\n@@ -582,6 +582,7 @@ public final class RubyUtil {\n         HOOKS_REGISTRY_CLASS =\n             PLUGINS_MODULE.defineClassUnder(\"HooksRegistry\", RUBY.getObject(), HooksRegistryExt::new);\n         HOOKS_REGISTRY_CLASS.defineAnnotatedMethods(HooksRegistryExt.class);\n+        JRubyExtensionRegistry.apply(RUBY);\n         RUBY.getGlobalVariables().set(\"$LS_JARS_LOADED\", RUBY.newString(\"true\"));\n         RubyJavaIntegration.setupRubyJavaIntegration(RUBY);\n     }\ndiff --git a/logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java b/logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java\n@@ -0,0 +1,20 @@\n+package org.logstash;\n+\n+import org.jruby.Ruby;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.Consumer;\n+\n+public final class JRubyExtensionRegistry {\n+    private static final List<Consumer<Ruby>> REGISTRATIONS = new ArrayList<>();\n+\n+    public static void register(Consumer<Ruby> registration) {\n+        REGISTRATIONS.add(registration);\n+    }\n+\n+    public static void apply(Ruby runtime) {\n+        for (Consumer<Ruby> registration : REGISTRATIONS) {\n+            registration.accept(runtime);\n+        }\n+    }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 4509.947299957275
+}

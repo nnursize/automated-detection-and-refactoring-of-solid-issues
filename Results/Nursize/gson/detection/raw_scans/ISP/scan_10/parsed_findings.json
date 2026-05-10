@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 434,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The JsonElement abstract class is a fat interface, forcing subclasses to implement methods they do not support.",
+    "reasoning": "JsonElement defines numerous 'getAs...' methods (e.g., getAsNumber(), getAsString(), getAsBoolean()) that are only applicable to JsonPrimitive. Subclasses like JsonArray, JsonObject, and JsonNull are forced to implement these methods, typically by throwing an IllegalStateException, indicating they do not support the operation. This violates ISP by making clients of these specific JSON types depend on methods they will never use meaningfully."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.close",
+    "entity_type": "class",
+    "line_start": 1366,
+    "line_end": 1366,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JsonTreeReader.close() throws AssertionError, indicating it's an unsupported operation for an in-memory reader.",
+    "reasoning": "The JsonTreeReader class extends JsonReader, which implements the Closeable interface. However, JsonTreeReader operates on an in-memory JSON tree, so the concept of 'closing' an underlying stream is not applicable. Its close() method throws an AssertionError, signifying that it is forced to implement a method from an interface (Closeable via JsonReader) that it does not meaningfully support, thus violating ISP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+    "entity_name": "RecordNotSupportedHelper",
+    "entity_type": "class",
+    "line_start": 300,
+    "line_end": 324,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "RecordNotSupportedHelper implements RecordHelper but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The RecordNotSupportedHelper class implements the RecordHelper abstract class, which defines methods like getRecordComponentNames(), getCanonicalRecordConstructor(), and getAccessor(). However, RecordNotSupportedHelper explicitly throws UnsupportedOperationException for these methods, indicating that it cannot meaningfully support them in environments where Java Records are not available. This forces the class to depend on methods it does not use, violating ISP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+    "entity_name": "JsonWriter.flush",
+    "entity_type": "class",
+    "line_start": 706,
+    "line_end": 706,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JsonTreeWriter.flush() and JsonTreeWriter.close() throw AssertionError, indicating unsupported operations for an in-memory writer.",
+    "reasoning": "The JsonTreeWriter class extends JsonWriter, which implements the Flushable and Closeable interfaces. Similar to JsonTreeReader, JsonTreeWriter operates on an in-memory JSON tree. Its flush() and close() methods throw AssertionError, indicating that it is forced to implement methods from interfaces (Flushable and Closeable via JsonWriter) that it does not meaningfully support, thus violating ISP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+    "entity_name": "JsonWriter.close",
+    "entity_type": "class",
+    "line_start": 719,
+    "line_end": 719,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JsonTreeWriter.flush() and JsonTreeWriter.close() throw AssertionError, indicating unsupported operations for an in-memory writer.",
+    "reasoning": "The JsonTreeWriter class extends JsonWriter, which implements the Flushable and Closeable interfaces. Similar to JsonTreeReader, JsonTreeWriter operates on an in-memory JSON tree. Its flush() and close() methods throw AssertionError, indicating that it is forced to implement methods from interfaces (Flushable and Closeable via JsonWriter) that it does not meaningfully support, thus violating ISP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "DummyTypeAdapterFactory.create",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 40,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "DummyTypeAdapterFactory.create() throws AssertionError, indicating it should not be used.",
+    "reasoning": "The DummyTypeAdapterFactory implements the TypeAdapterFactory interface but its create() method explicitly throws an AssertionError with the message 'Factory should not be used'. This clearly indicates that the class is forced to implement a method from an interface that it does not meaningfully support, serving merely as a placeholder or a 'dummy' implementation, which is a direct violation of ISP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonStreamParser.java",
+    "entity_name": "JsonStreamParser.remove",
+    "entity_type": "class",
+    "line_start": 122,
+    "line_end": 122,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "JsonStreamParser.remove() throws UnsupportedOperationException, indicating it's not supported.",
+    "reasoning": "The JsonStreamParser class implements the Iterator<JsonElement> interface, which requires the implementation of the remove() method. However, JsonStreamParser.remove() explicitly throws an UnsupportedOperationException. This is a classic ISP violation, as the class is forced to provide an implementation for a method that is not relevant or supported by its specific functionality."
+  },
+  {
+    "file_path": "gson/test-shrinker/src/main/java/com/example/GenericClasses.java",
+    "entity_name": "GenericClasses.Adapter.write",
+    "entity_type": "class",
+    "line_start": 63,
+    "line_end": 63,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "GenericClasses.Adapter.write() throws UnsupportedOperationException, indicating it's not supported.",
+    "reasoning": "The GenericClasses.Adapter class extends TypeAdapter<DummyClass>, which requires the implementation of the write() method. However, GenericClasses.Adapter.write() explicitly throws an UnsupportedOperationException. This indicates that the adapter is forced to implement a method from the TypeAdapter interface that it does not meaningfully support, violating ISP."
+  }
+]

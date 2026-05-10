@@ -1,0 +1,37 @@
+diff --git a/src/requests/sessions.py b/src/requests/sessions.py
+index 32e8f47..efc56f1 100644
+--- a/src/requests/sessions.py
++++ b/src/requests/sessions.py
+@@ -331,24 +331,20 @@ class SessionRedirectMixin:
+ 
+         return new_proxies
+ 
++    REDIRECT_METHOD_MAP = {
++        codes.see_other: ("GET", lambda m: m != "HEAD"),
++        codes.found: ("GET", lambda m: m != "HEAD"),
++        codes.moved: ("GET", lambda m: m == "POST"),
++    }
++
+     def rebuild_method(self, prepared_request, response):
+         """When being redirected we may want to change the method of the request
+         based on certain specs or browser behavior.
+         """
+         method = prepared_request.method
+ 
+-        # Map of status codes to a set of methods that should be changed to GET
+-        # or a specific method to change to.
+-        # https://tools.ietf.org/html/rfc7231#section-6.4.4
+-        # Issue 1704: 301 POST -> GET
+-        REDIRECT_METHOD_MAP = {
+-            codes.see_other: ("GET", lambda m: m != "HEAD"),
+-            codes.found: ("GET", lambda m: m != "HEAD"),
+-            codes.moved: ("GET", lambda m: m == "POST"),
+-        }
+-
+-        if response.status_code in REDIRECT_METHOD_MAP:
+-            new_method, condition = REDIRECT_METHOD_MAP[response.status_code]
++        if response.status_code in self.REDIRECT_METHOD_MAP:
++            new_method, condition = self.REDIRECT_METHOD_MAP[response.status_code]
+             if condition(method):
+                 method = new_method
+ 

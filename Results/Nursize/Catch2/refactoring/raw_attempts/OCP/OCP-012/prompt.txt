@@ -1,0 +1,346 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-012
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `src/catch2/reporters/catch_reporter_tap.cpp`
+- **Entity**: `TapAssertionPrinter.print` (current lines L40-L40 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.
+
+### Reasoning
+Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/catch2/reporters/catch_reporter_tap.cpp`
+```c++
+
+//              Copyright Catch2 Authors
+// Distributed under the Boost Software License, Version 1.0.
+//   (See accompanying file LICENSE.txt or copy at
+//        https://www.boost.org/LICENSE_1_0.txt)
+
+// SPDX-License-Identifier: BSL-1.0
+#include <catch2/reporters/catch_reporter_tap.hpp>
+#include <catch2/internal/catch_console_colour.hpp>
+#include <catch2/internal/catch_string_manip.hpp>
+#include <catch2/catch_test_case_info.hpp>
+#include <catch2/interfaces/catch_interfaces_config.hpp>
+#include <catch2/catch_test_spec.hpp>
+#include <catch2/reporters/catch_reporter_helpers.hpp>
+
+#include <algorithm>
+#include <ostream>
+
+namespace Catch {
+
+    namespace {
+        // Yes, this has to be outside the class and namespaced by naming.
+        // Making older compiler happy is hard.
+        static constexpr StringRef tapFailedString = "not ok"_sr;
+        static constexpr StringRef tapPassedString = "ok"_sr;
+        static constexpr Colour::Code tapDimColour = Colour::FileName;
+
+        class TapAssertionPrinter {
+        public:
+            TapAssertionPrinter& operator= (TapAssertionPrinter const&) = delete;
+            TapAssertionPrinter(TapAssertionPrinter const&) = delete;
+            TapAssertionPrinter(std::ostream& _stream, AssertionStats const& _stats, std::size_t _counter, ColourImpl* colour_)
+                : stream(_stream)
+                , result(_stats.assertionResult)
+                , messages(_stats.infoMessages)
+                , itMessage(_stats.infoMessages.begin())
+                , printInfoMessages(true)
+                , counter(_counter)
+                , colourImpl( colour_ ) {}
+
+            void print() {
+                itMessage = messages.begin();
+
+                switch (result.getResultType()) {
+                case ResultWas::Ok:
+                    printResultType(tapPassedString);
+                    printOriginalExpression();
+                    printReconstructedExpression();
+                    if (!result.hasExpression())
+                        printRemainingMessages(Colour::None);
+                    else
+                        printRemainingMessages();
+                    break;
+                case ResultWas::ExpressionFailed:
+                    if (result.isOk()) {
+                        printResultType(tapPassedString);
+                    } else {
+                        printResultType(tapFailedString);
+                    }
+                    printOriginalExpression();
+                    printReconstructedExpression();
+                    if (result.isOk()) {
+                        printIssue(" # TODO");
+                    }
+                    printRemainingMessages();
+                    break;
+                case ResultWas::ThrewException:
+                    printResultType(tapFailedString);
+                    printIssue("unexpected exception with message:"_sr);
+                    printMessage();
+                    printExpressionWas();
+                    printRemainingMessages();
+                    break;
+                case ResultWas::FatalErrorCondition:
+                    printResultType(tapFailedString);
+                    printIssue("fatal error condition with message:"_sr);
+                    printMessage();
+                    printExpressionWas();
+                    printRemainingMessages();
+                    break;
+                case ResultWas::DidntThrowException:
+                    printResultType(tapFailedString);
+                    printIssue("expected exception, got none"_sr);
+                    printExpressionWas();
+                    printRemainingMessages();
+                    break;
+                case ResultWas::Info:
+                    printResultType("info"_sr);
+                    printMessage();
+                    printRemainingMessages();
+                    break;
+                case ResultWas::Warning:
+                    printResultType("warning"_sr);
+                    printMessage();
+                    printRemainingMessages();
+                    break;
+                case ResultWas::ExplicitFailure:
+                    printResultType(tapFailedString);
+                    printIssue("explicitly"_sr);
+                    printRemainingMessages(Colour::None);
+                    break;
+                case ResultWas::ExplicitSkip:
+                    printResultType(tapPassedString);
+                    printIssue(" # SKIP"_sr);
+                    printMessage();
+                    printRemainingMessages();
+                    break;
+                    // These cases are here to prevent compiler warnings
+                case ResultWas::Unknown:
+                case ResultWas::FailureBit:
+                case ResultWas::Exception:
+                    printResultType("** internal error **"_sr);
+                    break;
+                }
+            }
+
+        private:
+            void printResultType(StringRef passOrFail) const {
+                if (!passOrFail.empty()) {
+                    stream << passOrFail << ' ' << counter << " -";
+                }
+            }
+
+            void printIssue(StringRef issue) const {
+                stream << ' ' << issue;
+            }
+
+            void printExpressionWas() {
+                if (result.hasExpression()) {
+                    stream << ';';
+                    stream << colourImpl->guardColour( tapDimColour )
+                           << " expression was:";
+                    printOriginalExpression();
+                }
+            }
+
+            void printOriginalExpression() const {
+                if (result.hasExpression()) {
+                    stream << ' ' << result.getExpression();
+                }
+            }
+
+            void printReconstructedExpression() const {
+                if (result.hasExpandedExpression()) {
+                    stream << colourImpl->guardColour( tapDimColour ) << " for: ";
+
+                    std::string expr = result.getExpandedExpression();
+                    std::replace(expr.begin(), expr.end(), '\n', ' ');
+                    stream << expr;
+                }
+            }
+
+            void printMessage() {
+                if (itMessage != messages.end()) {
+                    stream << " '" << itMessage->message << '\'';
+                    ++itMessage;
+                }
+            }
+
+            void printRemainingMessages(Colour::Code colour = tapDimColour) {
+                if (itMessage == messages.end()) {
+                    return;
+                }
+
+                // using messages.end() directly (or auto) yields compilation error:
+                std::vector<MessageInfo>::const_iterator itEnd = messages.end();
+                const std::size_t N = static_cast<std::size_t>(itEnd - itMessage);
+
+                stream << colourImpl->guardColour( colour ) << " with "
+                       << pluralise( N, "message"_sr ) << ':';
+
+                for (; itMessage != itEnd; ) {
+                    // If this assertion is a warning ignore any INFO messages
+                    if (printInfoMessages || itMessage->type != ResultWas::Info) {
+                        stream << " '" << itMessage->message << '\'';
+                        if (++itMessage != itEnd) {
+                            stream << colourImpl->guardColour(tapDimColour) << " and";
+                        }
+                    }
+                }
+            }
+
+        private:
+            std::ostream& stream;
+            AssertionResult const& result;
+            std::vector<MessageInfo> const& messages;
+            std::vector<MessageInfo>::const_iterator itMessage;
+            bool printInfoMessages;
+            std::size_t counter;
+            ColourImpl* colourImpl;
+        };
+
+    } // End anonymous namespace
+
+    void TAPReporter::testRunStarting( TestRunInfo const& ) {
+        if ( m_config->testSpec().hasFilters() ) {
+            m_stream << "# filters: " << m_config->testSpec() << '\n';
+        }
+        m_stream << "# rng-seed: " << m_config->rngSeed() << '\n'
+                 << std::flush;
+    }
+
+    void TAPReporter::noMatchingTestCases( StringRef unmatchedSpec ) {
+        m_stream << "# No test cases matched '" << unmatchedSpec << "'\n";
+    }
+
+    void TAPReporter::assertionEnded(AssertionStats const& _assertionStats) {
+        ++counter;
+
+        m_stream << "# " << currentTestCaseInfo->name << '\n';
+        TapAssertionPrinter printer(m_stream, _assertionStats, counter, m_colour.get());
+        printer.print();
+
+        m_stream << '\n' << std::flush;
+    }
+
+    void TAPReporter::testRunEnded(TestRunStats const& _testRunStats) {
+        m_stream << "1.." << _testRunStats.totals.assertions.total();
+        if (_testRunStats.totals.testCases.total() == 0) {
+            m_stream << " # Skipped: No tests ran.";
+        }
+        m_stream << "\n\n" << std::flush;
+        StreamingReporterBase::testRunEnded(_testRunStats);
+    }
+
+
+
+
+} // end namespace Catch
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/catch2/reporters/catch_reporter_automake.cpp`
+- `src/catch2/reporters/catch_reporter_automake.hpp`
+- `src/catch2/reporters/catch_reporter_common_base.cpp`
+- `src/catch2/reporters/catch_reporter_common_base.hpp`
+- `src/catch2/reporters/catch_reporter_compact.cpp`
+- `src/catch2/reporters/catch_reporter_compact.hpp`
+- `src/catch2/reporters/catch_reporter_console.cpp`
+- `src/catch2/reporters/catch_reporter_console.hpp`
+- `src/catch2/reporters/catch_reporter_cumulative_base.cpp`
+- `src/catch2/reporters/catch_reporter_cumulative_base.hpp`
+- `src/catch2/reporters/catch_reporter_event_listener.cpp`
+- `src/catch2/reporters/catch_reporter_event_listener.hpp`
+- `src/catch2/reporters/catch_reporter_helpers.cpp`
+- `src/catch2/reporters/catch_reporter_helpers.hpp`
+- `src/catch2/reporters/catch_reporter_json.cpp`
+- `src/catch2/reporters/catch_reporter_json.hpp`
+- `src/catch2/reporters/catch_reporter_junit.cpp`
+- `src/catch2/reporters/catch_reporter_junit.hpp`
+- `src/catch2/reporters/catch_reporter_multi.cpp`
+- `src/catch2/reporters/catch_reporter_multi.hpp`
+- `src/catch2/reporters/catch_reporter_registrars.cpp`
+- `src/catch2/reporters/catch_reporter_registrars.hpp`
+- `src/catch2/reporters/catch_reporter_sonarqube.cpp`
+- `src/catch2/reporters/catch_reporter_sonarqube.hpp`
+- `src/catch2/reporters/catch_reporter_streaming_base.cpp`
+- `src/catch2/reporters/catch_reporter_streaming_base.hpp`
+- `src/catch2/reporters/catch_reporter_tap.hpp`
+- `src/catch2/reporters/catch_reporter_teamcity.cpp`
+- `src/catch2/reporters/catch_reporter_teamcity.hpp`
+- `src/catch2/reporters/catch_reporter_xml.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

@@ -1,0 +1,101 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.recover",
+    "entity_type": "method",
+    "line_start": 140,
+    "line_end": 142,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a base type method.",
+    "reasoning": "The `recover()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `recover()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.create",
+    "entity_type": "method",
+    "line_start": 146,
+    "line_end": 147,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a base type method.",
+    "reasoning": "The `create()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `create()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.ensurePersisted",
+    "entity_type": "method",
+    "line_start": 166,
+    "line_end": 167,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a base type method.",
+    "reasoning": "The `ensurePersisted()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `ensurePersisted()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.purge",
+    "entity_type": "method",
+    "line_start": 171,
+    "line_end": 172,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a base type method.",
+    "reasoning": "The `purge()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `purge()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.write",
+    "entity_type": "method",
+    "line_start": 177,
+    "line_end": 178,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a base type method.",
+    "reasoning": "The `write(byte[] bytes, long seqNum)` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `write()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/AbstractDeadLetterQueueWriterExt.java",
+    "entity_name": "PluginDeadLetterQueueWriterExt.doWrite",
+    "entity_type": "method",
+    "line_start": 195,
+    "line_end": 204,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype throws IllegalStateException not declared in the abstract base method's contract.",
+    "reasoning": "The `doWrite` method in `PluginDeadLetterQueueWriterExt` throws `IllegalStateException`. If the abstract `doWrite` method in `AbstractDeadLetterQueueWriterExt` does not declare `IllegalStateException` as part of its contract, this is an LSP violation. It changes the expected exception behavior, meaning a client handling `AbstractDeadLetterQueueWriterExt` might not be prepared for this specific runtime exception when using a `PluginDeadLetterQueueWriterExt` instance."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/OutputDelegatorExt.java",
+    "entity_name": "OutputDelegatorExt.doOutput",
+    "entity_type": "method",
+    "line_start": 107,
+    "line_end": 113,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype throws IllegalStateException not declared in the abstract base method's contract.",
+    "reasoning": "The `doOutput` method in `OutputDelegatorExt` throws `IllegalStateException`. If the abstract `doOutput` method in `AbstractOutputDelegatorExt` does not declare `IllegalStateException` as part of its contract, this is an LSP violation. It changes the expected exception behavior, meaning a client handling `AbstractOutputDelegatorExt` might not be prepared for this specific runtime exception when using an `OutputDelegatorExt` instance."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/instrument/metrics/NullNamespacedMetricExt.java",
+    "entity_name": "NullNamespacedMetricExt",
+    "entity_type": "class",
+    "line_start": 38,
+    "line_end": 162,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Null Object Pattern implementation violates LSP by providing no-op methods where the base contract implies functional behavior.",
+    "reasoning": "The `NullNamespacedMetricExt` class, by its name and typical 'Null Object Pattern' usage, likely provides no-op implementations for methods like `doIncrement`, `doDecrement`, `getGauge`, `getTimer`, etc. If the abstract base class `AbstractNamespacedMetricExt` defines a contract where these methods are expected to perform actual metric operations (e.g., modify state, return meaningful values), then a no-op implementation violates LSP. Clients expecting a functional metric might not correctly handle the absence of behavior, leading to incorrect program state or logic."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/instrument/metrics/NullMetricExt.java",
+    "entity_name": "NullMetricExt",
+    "entity_type": "class",
+    "line_start": 37,
+    "line_end": 146,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Null Object Pattern implementation violates LSP by providing no-op methods where the base contract implies functional behavior.",
+    "reasoning": "The `NullMetricExt` class, by its name and typical 'Null Object Pattern' usage, likely provides no-op implementations for methods like `doIncrement`, `doDecrement`, `getGauge`, `getTimer`, etc. If the abstract base class `AbstractSimpleMetricExt` defines a contract where these methods are expected to perform actual metric operations, then a no-op implementation violates LSP. Clients expecting a functional metric might not correctly handle the absence of behavior, leading to incorrect program state or logic."
+  }
+]

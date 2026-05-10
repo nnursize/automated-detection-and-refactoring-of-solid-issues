@@ -1,0 +1,68 @@
+diff --git a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java
+index 8a3e347..39108fe 100644
+--- a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java
++++ b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java
+@@ -422,29 +422,44 @@ public class UTF8StreamJsonParser
+         }
+     }
+ 
+-    @Override
+-    public char[] getStringCharacters() throws JacksonException
+-    {
+-        if (_currToken != null) { // null only before/after document
+-            switch (_currToken.id()) {
++    // --- OCP Refactoring for getStringCharacters ---
++    @FunctionalInterface
++    private interface TokenCharGetter {
++        char[] get(UTF8StreamJsonParser parser) throws JacksonException;
++    }
+ 
+-            case ID_PROPERTY_NAME:
+-                return currentNameInBuffer();
+-            case ID_STRING:
+-                if (_tokenIncomplete) {
+-                    _tokenIncomplete = false;
+-                    _finishString(); // only strings can be incomplete
+-                }
+-                // fall through
+-            case ID_NUMBER_INT:
+-            case ID_NUMBER_FLOAT:
+-                return _textBuffer.getTextBuffer();
++    private static final java.util.Map<tools.jackson.core.JsonToken, TokenCharGetter> TOKEN_CHAR_GETTERS;
+ 
+-            default:
+-                return _currToken.asCharArray();
++    static {
++        TOKEN_CHAR_GETTERS = new java.util.EnumMap<>(tools.jackson.core.JsonToken.class);
++        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.PROPERTY_NAME, UTF8StreamJsonParser::currentNameInBuffer);
++        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_STRING, parser -> {
++            if (parser._tokenIncomplete) {
++                parser._tokenIncomplete = false;
++                parser._finishString();
+             }
++            return parser._textBuffer.getTextBuffer();
++        });
++        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_INT, UTF8StreamJsonParser::getTextBufferContents);
++        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_FLOAT, UTF8StreamJsonParser::getTextBufferContents);
++    }
++
++    // Helper method to avoid repeating _textBuffer.getTextBuffer() in lambda
++    private char[] getTextBufferContents() {
++        return _textBuffer.getTextBuffer();
++    }
++
++    @Override
++    public char[] getStringCharacters() throws JacksonException
++    {
++        if (_currToken == null) { // null only before/after document
++            return null;
+         }
+-        return null;
++        TokenCharGetter getter = TOKEN_CHAR_GETTERS.get(_currToken);
++        if (getter != null) {
++            return getter.get(this);
++        }
++        return _currToken.asCharArray();
+     }
+ 
+     @Override

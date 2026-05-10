@@ -1,0 +1,51 @@
+{
+  "scan_id": "gson_OCP_scan_07",
+  "repo_name": "gson",
+  "principle": "OCP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T12:41:54.991882",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyi...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/GsonBuilder.java\",\n      \"entity_name\": \"GsonBuilder.createFactories\",\n      \"entity_type\": \"method\",\n      \"line_start\": 700,\n      \"line_end\": 766,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Hardcoded list of built-in TypeAdapterFactories violates OCP.\",\n      \"reasoning\": \"The `createFactories` method explicitly adds a fixed list of `TypeAdapterFactory` instances for various types. If Gson needs to support a new built-in type or a new way of handling an existing type, this method must be modified to add the new factory. This makes the class closed for extension without modification.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/GsonBuilder.java\",\n      \"entity_name\": \"GsonBuilder.addDateTypeAdapters\",\n      \"entity_type\": \"method\",\n      \"line_start\": 790,\n      \"line_end\": 809,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic for date type adapters based on configuration violates OCP.\",\n      \"reasoning\": \"The `addDateTypeAdapters` method uses `if-else if` statements to determine which date format (pattern-based or style-based) to use and whether to add SQL date type adapters. Adding a new date format or a new SQL date type would require modifying this method, making it not open for extension.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java\",\n      \"entity_name\": \"JsonWriter.value(Number)\",\n      \"entity_type\": \"method\",\n      \"line_start\": 400,\n      \"line_end\": 425,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic and hardcoded checks for specific Number subclasses in `value(Number)` and `alwaysCreatesValidJsonNumber` methods violate OCP.\",\n      \"reasoning\": \"The `value(Number)` method and its helper `alwaysCreatesValidJsonNumber` contain `if-else if` chains and direct class comparisons (`c == Integer.class || c == Long.class || ...`) to determine if a `Number` subclass always produces a valid JSON number string. If a new `Number` subclass were introduced that also always produces a valid JSON number, these methods would need to be modified, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+      "entity_name": "GsonBuilder.createFactories",
+      "entity_type": "method",
+      "line_start": 700,
+      "line_end": 766,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+      "reasoning": "The `createFactories` method explicitly adds a fixed list of `TypeAdapterFactory` instances for various types. If Gson needs to support a new built-in type or a new way of handling an existing type, this method must be modified to add the new factory. This makes the class closed for extension without modification."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+      "entity_name": "GsonBuilder.addDateTypeAdapters",
+      "entity_type": "method",
+      "line_start": 790,
+      "line_end": 809,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic for date type adapters based on configuration violates OCP.",
+      "reasoning": "The `addDateTypeAdapters` method uses `if-else if` statements to determine which date format (pattern-based or style-based) to use and whether to add SQL date type adapters. Adding a new date format or a new SQL date type would require modifying this method, making it not open for extension."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+      "entity_name": "JsonWriter.value(Number)",
+      "entity_type": "method",
+      "line_start": 400,
+      "line_end": 425,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic and hardcoded checks for specific Number subclasses in `value(Number)` and `alwaysCreatesValidJsonNumber` methods violate OCP.",
+      "reasoning": "The `value(Number)` method and its helper `alwaysCreatesValidJsonNumber` contain `if-else if` chains and direct class comparisons (`c == Integer.class || c == Long.class || ...`) to determine if a `Number` subclass always produces a valid JSON number string. If a new `Number` subclass were introduced that also always produces a valid JSON number, these methods would need to be modified, violating OCP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 71310.2695941925,
+  "error": null
+}

@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_ISP_scan_03",
+  "repo_name": "jackson-core",
+  "principle": "ISP",
+  "scan_number": 3,
+  "timestamp": "2026-05-01T19:36:23.044480",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Interface Segregation Principle (ISP).\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.\n\n## What to Look For\n- Abstract base classes or interfaces with too many methods\n- Classe...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 21,\n      \"line_end\": 1780,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"UTF8StreamJsonParser implements the fat JsonParser interface, forcing it to implement many methods that may not be relevant for a stream-based parser.\",\n      \"reasoning\": \"The JsonParser interface is a large, monolithic interface containing methods for all possible parsing behaviors (e.g., binary, textual, numeric, and traversal). A stream-based parser like UTF8StreamJsonParser is forced to implement the entire contract, even though some functionality (like arbitrary binary access) might be secondary or require complex state management not naturally supported by the primary stream-reading model.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java\",\n      \"entity_name\": \"UTF8DataInputJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 44,\n      \"line_end\": 1420,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"UTF8DataInputJsonParser implements the fat JsonParser interface, forcing it to provide implementations for methods that are logically incompatible with DataInput-based sequential access.\",\n      \"reasoning\": \"The JsonParser interface includes numerous methods for random access or look-ahead that are inherently difficult or impossible to implement efficiently on a DataInput stream. Implementing this large interface forces the class to either implement complex workarounds or expose methods that violate the expected behavior of the underlying input source.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\",\n      \"entity_name\": \"ReaderBasedJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 17,\n      \"line_end\": 1150,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"ReaderBasedJsonParser implements the large JsonParser interface, forcing the inclusion of methods for binary data and non-blocking parsing that are not its primary purpose.\",\n      \"reasoning\": \"ReaderBasedJsonParser is a character-based parser. The JsonParser interface is fat, containing methods for binary, stream, and async parsing. This forces the implementation to carry the overhead and complexity of an interface that covers diverse parsing models beyond character-based reading.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 21,
+      "line_end": 1780,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "UTF8StreamJsonParser implements the fat JsonParser interface, forcing it to implement many methods that may not be relevant for a stream-based parser.",
+      "reasoning": "The JsonParser interface is a large, monolithic interface containing methods for all possible parsing behaviors (e.g., binary, textual, numeric, and traversal). A stream-based parser like UTF8StreamJsonParser is forced to implement the entire contract, even though some functionality (like arbitrary binary access) might be secondary or require complex state management not naturally supported by the primary stream-reading model."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+      "entity_name": "UTF8DataInputJsonParser",
+      "entity_type": "class",
+      "line_start": 44,
+      "line_end": 1420,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "UTF8DataInputJsonParser implements the fat JsonParser interface, forcing it to provide implementations for methods that are logically incompatible with DataInput-based sequential access.",
+      "reasoning": "The JsonParser interface includes numerous methods for random access or look-ahead that are inherently difficult or impossible to implement efficiently on a DataInput stream. Implementing this large interface forces the class to either implement complex workarounds or expose methods that violate the expected behavior of the underlying input source."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "entity_name": "ReaderBasedJsonParser",
+      "entity_type": "class",
+      "line_start": 17,
+      "line_end": 1150,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "ReaderBasedJsonParser implements the large JsonParser interface, forcing the inclusion of methods for binary data and non-blocking parsing that are not its primary purpose.",
+      "reasoning": "ReaderBasedJsonParser is a character-based parser. The JsonParser interface is fat, containing methods for binary, stream, and async parsing. This forces the implementation to carry the overhead and complexity of an interface that covers diverse parsing models beyond character-based reading."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 8209.18607711792,
+  "error": null
+}

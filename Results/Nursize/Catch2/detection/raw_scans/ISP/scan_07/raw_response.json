@@ -1,0 +1,139 @@
+{
+  "scan_id": "Catch2_ISP_scan_07",
+  "repo_name": "Catch2",
+  "principle": "ISP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T20:33:30.271296",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash-lite",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following c++ classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface b...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IConfig\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10655,\n      \"line_end\": 10786,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IConfig interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IConfig interface appears to be quite large, with numerous methods for configuring various aspects of the test runner. If an implementation of IConfig only needs a subset of these configurations, it would be forced to implement all methods, even those it doesn't use. This violates the ISP, as clients (or the RunContext in this case) that only depend on a few configuration options are indirectly coupled to the entire interface. It would be better to break this down into smaller, more focused interfaces.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"IConfig\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 161,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IConfig interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IConfig interface appears to be quite large, with numerous methods for configuring various aspects of the test runner. If an implementation of IConfig only needs a subset of these configurations, it would be forced to implement all methods, even those it doesn't use. This violates the ISP, as clients (or the RunContext in this case) that only depend on a few configuration options are indirectly coupled to the entire interface. It would be better to break this down into smaller, more focused interfaces.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IEventListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10656,\n      \"line_end\": 10786,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"IEventListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 31,\n      \"line_end\": 161,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IGeneratorTracker\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10653,\n      \"line_end\": 10786,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IGeneratorTracker interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IGeneratorTracker interface appears to have a significant number of methods related to managing generators within the test framework. If a specific use case only requires a subset of these tracking functionalities, implementing the full interface would be unnecessary. This violates ISP by forcing clients to depend on methods they do not use. It could potentially be refactored into smaller interfaces for different aspects of generator tracking.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"IGeneratorTracker\",\n      \"entity_type\": \"class\",\n      \"line_start\": 28,\n      \"line_end\": 161,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IGeneratorTracker interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IGeneratorTracker interface appears to have a significant number of methods related to managing generators within the test framework. If a specific use case only requires a subset of these tracking functionalities, implementing the full interface would be unnecessary. This violates ISP by forcing clients to depend on methods they do not use. It could potentially be refactored into smaller interfaces for different aspects of generator tracking.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IResultCapture\",\n      \"entity_type\": \"class\",\n      \"line_start\": 566,\n      \"line_end\": 587,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IResultCapture interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IResultCapture interface defines a broad set of methods for capturing and reporting assertion results. Implementations that only need to handle a subset of these (e.g., only reporting failures, or only handling specific message types) would be forced to implement all methods. This violates ISP. It might be better to decompose this into smaller interfaces for different aspects of result capture.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IResultCapture\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10654,\n      \"line_end\": 10786,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IResultCapture interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IResultCapture interface defines a broad set of methods for capturing and reporting assertion results. Implementations that only need to handle a subset of these (e.g., only reporting failures, or only handling specific message types) would be forced to implement all methods. This violates ISP. It might be better to decompose this into smaller interfaces for different aspects of result capture.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"IResultCapture\",\n      \"entity_type\": \"class\",\n      \"line_start\": 29,\n      \"line_end\": 161,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"IResultCapture interface has too many methods, potentially forcing implementations to provide unused functionality.\",\n      \"reasoning\": \"The IResultCapture interface defines a broad set of methods for capturing and reporting assertion results. Implementations that only need to handle a subset of these (e.g., only reporting failures, or only handling specific message types) would be forced to implement all methods. This violates ISP. It might be better to decompose this into smaller interfaces for different aspects of result capture.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"ExprLhs\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5451,\n      \"line_end\": 5605,\n      \"principle\": \"ISP\",\n      \"severity\": \"low\",\n      \"description\": \"ExprLhs provides operators that might not be used by all clients.\",\n      \"reasoning\": \"The `ExprLhs` class defines a multitude of overloaded operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `|`, `&`, `^`, `&&`, `||`). While these are used to construct `BinaryExpr` and `UnaryExpr` for assertion evaluation, a client that only needs to perform a specific type of comparison might be indirectly coupled to all other defined operators. If `ExprLhs` were to be used in a context where only a subset of these operations is relevant, it could be considered a violation of ISP. However, given its role in expression building for assertions, this is a more subtle violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_decomposer.hpp\",\n      \"entity_name\": \"ExprLhs\",\n      \"entity_type\": \"class\",\n      \"line_start\": 285,\n      \"line_end\": 439,\n      \"principle\": \"ISP\",\n      \"severity\": \"low\",\n      \"description\": \"ExprLhs provides operators that might not be used by all clients.\",\n      \"reasoning\": \"The `ExprLhs` class defines a multitude of overloaded operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `|`, `&`, `^`, `&&`, `||`). While these are used to construct `BinaryExpr` and `UnaryExpr` for assertion evaluation, a client that only needs to perform a specific type of comparison might be indirectly coupled to all other defined operators. If `ExprLhs` were to be used in a context where only a subset of these operations is relevant, it could be considered a violation of ISP. However, given its role in expression building for assertions, this is a more subtle violation.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IConfig",
+      "entity_type": "class",
+      "line_start": 10655,
+      "line_end": 10786,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IConfig interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IConfig interface appears to be quite large, with numerous methods for configuring various aspects of the test runner. If an implementation of IConfig only needs a subset of these configurations, it would be forced to implement all methods, even those it doesn't use. This violates the ISP, as clients (or the RunContext in this case) that only depend on a few configuration options are indirectly coupled to the entire interface. It would be better to break this down into smaller, more focused interfaces."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "IConfig",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 161,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IConfig interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IConfig interface appears to be quite large, with numerous methods for configuring various aspects of the test runner. If an implementation of IConfig only needs a subset of these configurations, it would be forced to implement all methods, even those it doesn't use. This violates the ISP, as clients (or the RunContext in this case) that only depend on a few configuration options are indirectly coupled to the entire interface. It would be better to break this down into smaller, more focused interfaces."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IEventListener",
+      "entity_type": "class",
+      "line_start": 10656,
+      "line_end": 10786,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "IEventListener",
+      "entity_type": "class",
+      "line_start": 31,
+      "line_end": 161,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IGeneratorTracker",
+      "entity_type": "class",
+      "line_start": 10653,
+      "line_end": 10786,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IGeneratorTracker interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IGeneratorTracker interface appears to have a significant number of methods related to managing generators within the test framework. If a specific use case only requires a subset of these tracking functionalities, implementing the full interface would be unnecessary. This violates ISP by forcing clients to depend on methods they do not use. It could potentially be refactored into smaller interfaces for different aspects of generator tracking."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "IGeneratorTracker",
+      "entity_type": "class",
+      "line_start": 28,
+      "line_end": 161,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IGeneratorTracker interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IGeneratorTracker interface appears to have a significant number of methods related to managing generators within the test framework. If a specific use case only requires a subset of these tracking functionalities, implementing the full interface would be unnecessary. This violates ISP by forcing clients to depend on methods they do not use. It could potentially be refactored into smaller interfaces for different aspects of generator tracking."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IResultCapture",
+      "entity_type": "class",
+      "line_start": 566,
+      "line_end": 587,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IResultCapture interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IResultCapture interface defines a broad set of methods for capturing and reporting assertion results. Implementations that only need to handle a subset of these (e.g., only reporting failures, or only handling specific message types) would be forced to implement all methods. This violates ISP. It might be better to decompose this into smaller interfaces for different aspects of result capture."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IResultCapture",
+      "entity_type": "class",
+      "line_start": 10654,
+      "line_end": 10786,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IResultCapture interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IResultCapture interface defines a broad set of methods for capturing and reporting assertion results. Implementations that only need to handle a subset of these (e.g., only reporting failures, or only handling specific message types) would be forced to implement all methods. This violates ISP. It might be better to decompose this into smaller interfaces for different aspects of result capture."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "IResultCapture",
+      "entity_type": "class",
+      "line_start": 29,
+      "line_end": 161,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "IResultCapture interface has too many methods, potentially forcing implementations to provide unused functionality.",
+      "reasoning": "The IResultCapture interface defines a broad set of methods for capturing and reporting assertion results. Implementations that only need to handle a subset of these (e.g., only reporting failures, or only handling specific message types) would be forced to implement all methods. This violates ISP. It might be better to decompose this into smaller interfaces for different aspects of result capture."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "ExprLhs",
+      "entity_type": "class",
+      "line_start": 5451,
+      "line_end": 5605,
+      "principle": "ISP",
+      "severity": "low",
+      "description": "ExprLhs provides operators that might not be used by all clients.",
+      "reasoning": "The `ExprLhs` class defines a multitude of overloaded operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `|`, `&`, `^`, `&&`, `||`). While these are used to construct `BinaryExpr` and `UnaryExpr` for assertion evaluation, a client that only needs to perform a specific type of comparison might be indirectly coupled to all other defined operators. If `ExprLhs` were to be used in a context where only a subset of these operations is relevant, it could be considered a violation of ISP. However, given its role in expression building for assertions, this is a more subtle violation."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_decomposer.hpp",
+      "entity_name": "ExprLhs",
+      "entity_type": "class",
+      "line_start": 285,
+      "line_end": 439,
+      "principle": "ISP",
+      "severity": "low",
+      "description": "ExprLhs provides operators that might not be used by all clients.",
+      "reasoning": "The `ExprLhs` class defines a multitude of overloaded operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `|`, `&`, `^`, `&&`, `||`). While these are used to construct `BinaryExpr` and `UnaryExpr` for assertion evaluation, a client that only needs to perform a specific type of comparison might be indirectly coupled to all other defined operators. If `ExprLhs` were to be used in a context where only a subset of these operations is relevant, it could be considered a violation of ISP. However, given its role in expression building for assertions, this is a more subtle violation."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 18707.865953445435,
+  "error": null
+}

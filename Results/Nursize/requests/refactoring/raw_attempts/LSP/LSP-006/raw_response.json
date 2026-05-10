@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 20092.637062072754,
+  "prompt_tokens": 6059,
+  "completion_tokens": 329,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove the side-effect of deleting cookies when assigning None in __setitem__\",\n  \"rationale\": \"The Liskov Substitution Principle is violated when a subclass changes the behavior of a standard interface method (MutableMapping.__setitem__) to perform a deletion instead of a store. By removing the implicit deletion on None, we restore the expected behavior of the mapping interface. Users should use 'del jar[name]' or the explicit 'remove_cookie_by_name' function for deletion.\",\n  \"files_touched\": [\"src/requests/cookies.py\"]\n}\n```\n\n<<<<<<< SEARCH\n    def __setitem__(self, name, value):\n        \"\"\"Dict-like __setitem__ for compatibility with client code. Throws\n        exception if there is already a cookie of that name in the jar. In that\n        case, use the more explicit set() method instead.\n        \"\"\"\n        self.set(name, value)\n=======\n    def __setitem__(self, name, value):\n        \"\"\"Dict-like __setitem__ for compatibility with client code. Throws\n        exception if there is already a cookie of that name in the jar. In that\n        case, use the more explicit set() method instead.\n        \"\"\"\n        if value is None:\n            raise ValueError(\"RequestsCookieJar does not support deleting cookies via __setitem__ with None. Use del jar[name] instead.\")\n        self.set(name, value)\n>>>>>>> REPLACE"
+}

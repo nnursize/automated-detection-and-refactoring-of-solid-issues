@@ -1,0 +1,62 @@
+{
+  "scan_id": "logstash_DIP_scan_01",
+  "repo_name": "logstash",
+  "principle": "DIP",
+  "scan_number": 1,
+  "timestamp": "2026-04-19T17:13:52.775688",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Dependency Inversion Principle (DIP).\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.\n\n## What to Look For\n- Classes that directly instantiate their dependencie...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 89,\n      \"line_end\": 120,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of dependencies in constructor\",\n      \"reasoning\": \"The Queue constructor directly instantiates FileCheckpointIO and uses hardcoded logic to create dependencies, preventing the injection of mock implementations for testing and violating the Dependency Inversion Principle.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.newCheckpointedHeadpage\",\n      \"entity_type\": \"method\",\n      \"line_start\": 321,\n      \"line_end\": 328,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of MmapPageIOV2\",\n      \"reasoning\": \"The method directly instantiates the concrete class MmapPageIOV2 instead of depending on an abstraction (e.g., PageIO factory), creating tight coupling to a specific IO implementation.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\",\n      \"entity_name\": \"CompiledPipeline.CompiledPipeline\",\n      \"entity_type\": \"class\",\n      \"line_start\": 96,\n      \"line_end\": 113,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Direct instantiation of internal components\",\n      \"reasoning\": \"The constructor directly instantiates ConfigVariableExpander and other internal components, making it difficult to swap these dependencies for testing or alternative configurations.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\",\n      \"entity_name\": \"PluginFactoryExt.plugin\",\n      \"entity_type\": \"method\",\n      \"line_start\": 165,\n      \"line_end\": 222,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete plugin delegators\",\n      \"reasoning\": \"The method directly instantiates OutputDelegatorExt and other concrete classes based on plugin type, violating DIP by coupling the factory to specific implementation classes rather than relying on an abstract factory or registry pattern.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.Queue",
+      "entity_type": "class",
+      "line_start": 89,
+      "line_end": 120,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of dependencies in constructor",
+      "reasoning": "The Queue constructor directly instantiates FileCheckpointIO and uses hardcoded logic to create dependencies, preventing the injection of mock implementations for testing and violating the Dependency Inversion Principle."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.newCheckpointedHeadpage",
+      "entity_type": "method",
+      "line_start": 321,
+      "line_end": 328,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of MmapPageIOV2",
+      "reasoning": "The method directly instantiates the concrete class MmapPageIOV2 instead of depending on an abstraction (e.g., PageIO factory), creating tight coupling to a specific IO implementation."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+      "entity_name": "CompiledPipeline.CompiledPipeline",
+      "entity_type": "class",
+      "line_start": 96,
+      "line_end": 113,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Direct instantiation of internal components",
+      "reasoning": "The constructor directly instantiates ConfigVariableExpander and other internal components, making it difficult to swap these dependencies for testing or alternative configurations."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+      "entity_name": "PluginFactoryExt.plugin",
+      "entity_type": "method",
+      "line_start": 165,
+      "line_end": 222,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete plugin delegators",
+      "reasoning": "The method directly instantiates OutputDelegatorExt and other concrete classes based on plugin type, violating DIP by coupling the factory to specific implementation classes rather than relying on an abstract factory or registry pattern."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 4880.866289138794,
+  "error": null
+}

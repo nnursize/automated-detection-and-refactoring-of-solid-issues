@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java",
+    "entity_name": "ByteSourceJsonBootstrapper.constructParser",
+    "entity_type": "method",
+    "line_start": 283,
+    "line_end": 299,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete UTF8StreamJsonParser implementation.",
+    "reasoning": "The constructParser method directly instantiates the concrete UTF8StreamJsonParser class. This creates a hard-coded dependency between the input-detection logic (bootstrapper) and a specific low-level parser implementation, rather than using a factory or dependency injection to provide the parser abstraction."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+    "entity_name": "TextualTSFactory._createWriter",
+    "entity_type": "method",
+    "line_start": 339,
+    "line_end": 345,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of concrete UTF8Writer implementation.",
+    "reasoning": "The factory directly calls 'new' on the concrete UTF8Writer class. This couples the high-level factory abstraction to a specific low-level I/O implementation, violating the requirement that high-level modules should depend on abstractions (Writer) rather than concrete details."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+    "entity_name": "IOContext.constructTextBuffer",
+    "entity_type": "method",
+    "line_start": 214,
+    "line_end": 216,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of concrete TextBuffer.",
+    "reasoning": "IOContext, a class meant to manage resource context, directly instantiates the concrete TextBuffer class. This prevents the substitution of different buffering strategies and couples the lifecycle management logic to a specific buffer implementation."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+    "entity_name": "GeneratorBase._constructDefaultPrettyPrinter",
+    "entity_type": "method",
+    "line_start": 377,
+    "line_end": 378,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Hard-coded dependency on concrete DefaultPrettyPrinter implementation.",
+    "reasoning": "The base class for generators directly instantiates the concrete DefaultPrettyPrinter. By not allowing this dependency to be injected or provided through an abstraction, the class is tightly coupled to a specific formatting implementation."
+  }
+]

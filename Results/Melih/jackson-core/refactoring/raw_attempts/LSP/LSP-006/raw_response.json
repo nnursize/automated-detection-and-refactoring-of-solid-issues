@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1758.6045265197754,
+  "prompt_tokens": 3963,
+  "completion_tokens": 358,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove restrictive token check in getBinaryValue to adhere to base class contract\",\n  \"rationale\": \"The base class JsonParser defines getBinaryValue() as a general method. By throwing an exception for tokens other than VALUE_STRING or VALUE_EMBEDDED_OBJECT, the subclass violates the Liskov Substitution Principle. The fix removes the explicit check, allowing the method to handle other tokens or return null/default behavior as expected by the base contract.\",\n  \"files_touched\": [\"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    @Override\n    public byte[] getBinaryValue(Base64Variant b64variant) throws JacksonException\n    {\n        if (_currToken != JsonToken.VALUE_STRING &&\n                (_currToken != JsonToken.VALUE_EMBEDDED_OBJECT || _binaryValue == null)) {\n            return _reportError(\"Current token (\"+_currToken+\") not VALUE_STRING or VALUE_EMBEDDED_OBJECT, cannot access as binary\");\n        }\n        // To ensure that we won't see inconsistent data, better clear up state...\n=======\n    @Override\n    public byte[] getBinaryValue(Base64Variant b64variant) throws JacksonException\n    {\n        if (_currToken != JsonToken.VALUE_STRING && _currToken != JsonToken.VALUE_EMBEDDED_OBJECT) {\n            return null;\n        }\n        // To ensure that we won't see inconsistent data, better clear up state...\n>>>>>>> REPLACE"
+}

@@ -1,0 +1,51 @@
+diff --git a/src/main/java/tools/jackson/core/io/IOContext.java b/src/main/java/tools/jackson/core/io/IOContext.java
+index 9304ec4..396abe6 100644
+--- a/src/main/java/tools/jackson/core/io/IOContext.java
++++ b/src/main/java/tools/jackson/core/io/IOContext.java
+@@ -213,11 +213,11 @@ public class IOContext implements AutoCloseable
+      */
+ 
+     public TextBuffer constructTextBuffer() {
+-        return new TextBuffer(_bufferRecycler);
++        return TextBufferFactory.DEFAULT.constructTextBuffer(_bufferRecycler);
+     }
+ 
+     public TextBuffer constructReadConstrainedTextBuffer() {
+-        return new ReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);
++        return TextBufferFactory.DEFAULT.constructReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);
+     }
+ 
+     /**
+diff --git a/src/main/java/tools/jackson/core/io/TextBufferFactory.java b/src/main/java/tools/jackson/core/io/TextBufferFactory.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/io/TextBufferFactory.java
+@@ -0,0 +1,26 @@
++package tools.jackson.core.io;
++
++import tools.jackson.core.StreamReadConstraints;
++import tools.jackson.core.util.BufferRecycler;
++import tools.jackson.core.util.ReadConstrainedTextBuffer;
++import tools.jackson.core.util.TextBuffer;
++
++/**
++ * Factory for creating {@link TextBuffer} instances.
++ */
++public interface TextBufferFactory {
++    TextBuffer constructTextBuffer(BufferRecycler recycler);
++    TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler);
++
++    TextBufferFactory DEFAULT = new TextBufferFactory() {
++        @Override
++        public TextBuffer constructTextBuffer(BufferRecycler recycler) {
++            return new TextBuffer(recycler);
++        }
++
++        @Override
++        public TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler) {
++            return new ReadConstrainedTextBuffer(src, recycler);
++        }
++    };
++}
+\ No newline at end of file

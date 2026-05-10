@@ -1,0 +1,62 @@
+{
+  "scan_id": "logstash_DIP_scan_07",
+  "repo_name": "logstash",
+  "principle": "DIP",
+  "scan_number": 7,
+  "timestamp": "2026-04-19T17:21:22.507659",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 980,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Queue directly instantiates concrete implementation FileCheckpointIO\",\n      \"reasoning\": \"The Queue class directly instantiates FileCheckpointIO in its constructor. This creates a hard dependency on a specific implementation of checkpoint I/O, preventing the use of alternative storage strategies or mocking for unit testing.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.openPages\",\n      \"entity_type\": \"class\",\n      \"line_start\": 169,\n      \"line_end\": 265,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Queue directly instantiates concrete implementation MmapPageIOV2\",\n      \"reasoning\": \"The openPages method directly instantiates MmapPageIOV2. This couples the high-level Queue logic to a specific file-based I/O implementation, violating the principle that high-level modules should depend on abstractions.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.createDeadLetterQueueWriterFromSettings\",\n      \"entity_type\": \"class\",\n      \"line_start\": 323,\n      \"line_end\": 338,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"AbstractPipelineExt directly depends on the static factory DeadLetterQueueFactory\",\n      \"reasoning\": \"The pipeline logic relies on a static factory to create DLQ writers. This prevents the injection of different writer implementations and tightly couples the pipeline to the specific DeadLetterQueueFactory implementation.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 109,\n      \"line_end\": 814,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"DeadLetterQueueWriter directly instantiates RecordIOWriter\",\n      \"reasoning\": \"The writer directly instantiates RecordIOWriter in nextWriter(). This hard-codes the dependency on a specific I/O writer implementation, making it difficult to swap or mock the underlying record writing mechanism.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 980,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Queue directly instantiates concrete implementation FileCheckpointIO",
+      "reasoning": "The Queue class directly instantiates FileCheckpointIO in its constructor. This creates a hard dependency on a specific implementation of checkpoint I/O, preventing the use of alternative storage strategies or mocking for unit testing."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.openPages",
+      "entity_type": "class",
+      "line_start": 169,
+      "line_end": 265,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Queue directly instantiates concrete implementation MmapPageIOV2",
+      "reasoning": "The openPages method directly instantiates MmapPageIOV2. This couples the high-level Queue logic to a specific file-based I/O implementation, violating the principle that high-level modules should depend on abstractions."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.createDeadLetterQueueWriterFromSettings",
+      "entity_type": "class",
+      "line_start": 323,
+      "line_end": 338,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "AbstractPipelineExt directly depends on the static factory DeadLetterQueueFactory",
+      "reasoning": "The pipeline logic relies on a static factory to create DLQ writers. This prevents the injection of different writer implementations and tightly couples the pipeline to the specific DeadLetterQueueFactory implementation."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 109,
+      "line_end": 814,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "DeadLetterQueueWriter directly instantiates RecordIOWriter",
+      "reasoning": "The writer directly instantiates RecordIOWriter in nextWriter(). This hard-codes the dependency on a specific I/O writer implementation, making it difficult to swap or mock the underlying record writing mechanism."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 73707.40246772766,
+  "error": null
+}

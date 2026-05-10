@@ -1,0 +1,73 @@
+{
+  "scan_id": "gson_DIP_scan_06",
+  "repo_name": "gson",
+  "principle": "DIP",
+  "scan_number": 6,
+  "timestamp": "2026-05-02T16:48:13.255703",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Dependency Inversion Principle (DIP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inte...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonReader.java\",\n      \"entity_name\": \"JsonReader\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1641,\n      \"line_end\": 1662,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base class JsonReader depends on its subclass JsonTreeReader in a static initializer.\",\n      \"reasoning\": \"Inappropriate Intimacy smell -> DIP violation. The high-level abstraction (JsonReader) directly references and performs an 'instanceof' check against its low-level implementation detail (JsonTreeReader) within a static block to initialize JsonReaderInternalAccess. This creates a circular dependency where the base class is coupled to its specific implementations.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/Gson.java\",\n      \"entity_name\": \"Gson.Gson\",\n      \"entity_type\": \"class\",\n      \"line_start\": 254,\n      \"line_end\": 265,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Gson directly instantiates internal implementation details in its constructor.\",\n      \"reasoning\": \"Hard-coded dependencies smell -> DIP violation. The high-level Gson class directly instantiates concrete low-level implementation classes like ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory using 'new'. Instead of depending on abstractions or having these components injected via a factory or IoC container, Gson is tightly coupled to specific internal implementations, making it difficult to swap these components or test them in isolation.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.javaTimeTypeAdapterFactory\",\n      \"entity_type\": \"method\",\n      \"line_start\": 900,\n      \"line_end\": 910,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Method uses reflective class loading to depend on a concrete implementation by name.\",\n      \"reasoning\": \"Tight coupling smell -> DIP violation. The method hard-codes a string literal for 'com.google.gson.internal.bind.JavaTimeTypeAdapters' and uses reflection to instantiate it. This depends on a specific concrete implementation detail rather than an abstraction, and bypasses type-safe dependency management.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TreeTypeAdapter.java\",\n      \"entity_name\": \"TreeTypeAdapter.delegate\",\n      \"entity_type\": \"method\",\n      \"line_start\": 104,\n      \"line_end\": 110,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Low-level adapter calls back into high-level Gson to resolve dependencies.\",\n      \"reasoning\": \"Message Chain/Circular Dependency smell -> DIP violation. TreeTypeAdapter (a detail) depends on the Gson class (the high-level module) to obtain a delegate adapter via 'gson.getDelegateAdapter'. This violates DIP because the low-level component should not depend on the high-level orchestration module to resolve its own sub-dependencies; these should be provided via abstraction or during construction.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonParser.java\",\n      \"entity_name\": \"JsonParser.parseReader\",\n      \"entity_type\": \"method\",\n      \"line_start\": 100,\n      \"line_end\": 111,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Static utility directly instantiates concrete JsonReader implementation.\",\n      \"reasoning\": \"Hard-coded dependency smell -> DIP violation. JsonParser directly instantiates 'new JsonReader(reader)' instead of using a factory or receiving an abstraction. This couples the high-level parsing logic to the specific streaming implementation of JsonReader, preventing the use of alternative reader implementations without modifying the parser.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "entity_name": "JsonReader",
+      "entity_type": "class",
+      "line_start": 1641,
+      "line_end": 1662,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Base class JsonReader depends on its subclass JsonTreeReader in a static initializer.",
+      "reasoning": "Inappropriate Intimacy smell -> DIP violation. The high-level abstraction (JsonReader) directly references and performs an 'instanceof' check against its low-level implementation detail (JsonTreeReader) within a static block to initialize JsonReaderInternalAccess. This creates a circular dependency where the base class is coupled to its specific implementations."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+      "entity_name": "Gson.Gson",
+      "entity_type": "class",
+      "line_start": 254,
+      "line_end": 265,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Gson directly instantiates internal implementation details in its constructor.",
+      "reasoning": "Hard-coded dependencies smell -> DIP violation. The high-level Gson class directly instantiates concrete low-level implementation classes like ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory using 'new'. Instead of depending on abstractions or having these components injected via a factory or IoC container, Gson is tightly coupled to specific internal implementations, making it difficult to swap these components or test them in isolation."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.javaTimeTypeAdapterFactory",
+      "entity_type": "method",
+      "line_start": 900,
+      "line_end": 910,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Method uses reflective class loading to depend on a concrete implementation by name.",
+      "reasoning": "Tight coupling smell -> DIP violation. The method hard-codes a string literal for 'com.google.gson.internal.bind.JavaTimeTypeAdapters' and uses reflection to instantiate it. This depends on a specific concrete implementation detail rather than an abstraction, and bypasses type-safe dependency management."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TreeTypeAdapter.java",
+      "entity_name": "TreeTypeAdapter.delegate",
+      "entity_type": "method",
+      "line_start": 104,
+      "line_end": 110,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Low-level adapter calls back into high-level Gson to resolve dependencies.",
+      "reasoning": "Message Chain/Circular Dependency smell -> DIP violation. TreeTypeAdapter (a detail) depends on the Gson class (the high-level module) to obtain a delegate adapter via 'gson.getDelegateAdapter'. This violates DIP because the low-level component should not depend on the high-level orchestration module to resolve its own sub-dependencies; these should be provided via abstraction or during construction."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonParser.java",
+      "entity_name": "JsonParser.parseReader",
+      "entity_type": "method",
+      "line_start": 100,
+      "line_end": 111,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Static utility directly instantiates concrete JsonReader implementation.",
+      "reasoning": "Hard-coded dependency smell -> DIP violation. JsonParser directly instantiates 'new JsonReader(reader)' instead of using a factory or receiving an abstraction. This couples the high-level parsing logic to the specific streaming implementation of JsonReader, preventing the use of alternative reader implementations without modifying the parser."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 172951.5461921692,
+  "error": null
+}

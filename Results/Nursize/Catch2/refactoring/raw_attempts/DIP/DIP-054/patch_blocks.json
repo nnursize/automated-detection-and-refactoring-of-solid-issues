@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "    template <typename... Ts>\n    GeneratorWrapper<std::tuple<std::decay_t<Ts>...>>\n    table( std::initializer_list<std::tuple<std::decay_t<Ts>...>> tuples ) {\n        return values<std::tuple<Ts...>>( tuples );\n    }",
+    "replace_text": "    template <typename... Ts>\n    GeneratorWrapper<std::tuple<std::decay_t<Ts>...>>\n    table( std::initializer_list<std::tuple<std::decay_t<Ts>...>> tuples ) {\n        using T = std::tuple<std::decay_t<Ts>...>;\n        return GeneratorWrapper<T>(\n            Catch::Detail::make_unique<FixedValuesGenerator<T>>( tuples ) );\n    }"
+  }
+]

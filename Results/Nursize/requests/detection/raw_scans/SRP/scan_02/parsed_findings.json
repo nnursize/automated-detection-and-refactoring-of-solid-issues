@@ -1,0 +1,112 @@
+[
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "extract_zipped_paths",
+    "entity_type": "class",
+    "line_start": 217,
+    "line_end": 240,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Function handles file system operations and zip archive extraction, which is distinct from general HTTP utilities.",
+    "reasoning": "The `extract_zipped_paths` function is responsible for file system checks (`os.path.exists`), path manipulation (`os.path.split`), zip archive detection (`zipfile.is_zipfile`), and file extraction/writing (`zip_file.read`, `atomic_open`). These are generic file system and archive management responsibilities, which are not directly related to HTTP protocol utilities like URL parsing, header manipulation, or proxy logic that dominate the `utils.py` module. A change in how zip files are handled or how temporary files are managed would require changing this function, independent of HTTP concerns."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "atomic_open",
+    "entity_type": "class",
+    "line_start": 243,
+    "line_end": 253,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Function provides atomic file writing, a generic file system utility.",
+    "reasoning": "The `atomic_open` function is responsible for ensuring atomic file writes using temporary files and `os.replace`. This is a low-level file system operation, not specific to HTTP. Its reason to change would be related to robust file I/O, error handling during file writes, or cross-platform atomic file operations, which are separate from HTTP-specific concerns."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "address_in_network",
+    "entity_type": "class",
+    "line_start": 418,
+    "line_end": 427,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Function performs IP address and network subnet calculations, a generic network utility.",
+    "reasoning": "This function's responsibility is to determine if an IP address belongs to a given network subnet using bitwise operations on IP addresses and netmasks. This is a generic network utility function, not directly related to HTTP protocol parsing or manipulation. A change in IP address representation, subnet calculation algorithms, or network security policies (e.g., IPv6 support) would necessitate changes here, independent of HTTP-specific logic."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "dotted_netmask",
+    "entity_type": "class",
+    "line_start": 430,
+    "line_end": 436,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Function converts CIDR mask to dotted decimal format, a generic network utility.",
+    "reasoning": "The `dotted_netmask` function converts a CIDR mask (e.g., /24) into a dotted decimal netmask (e.g., 255.255.255.0). This is a pure network utility for IP address representation, not directly tied to HTTP. Changes in network addressing schemes or how netmasks are represented would affect this function."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "is_ipv4_address",
+    "entity_type": "class",
+    "line_start": 439,
+    "line_end": 446,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Function validates if a string is an IPv4 address, a generic network utility.",
+    "reasoning": "This function uses `socket.inet_aton` to validate if a string is a valid IPv4 address. This is a generic network validation utility. Its reason to change would be related to IP address validation rules or supporting other IP versions (e.g., IPv6), distinct from HTTP concerns."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "is_valid_cidr",
+    "entity_type": "class",
+    "line_start": 449,
+    "line_end": 464,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Function validates CIDR format, a generic network utility.",
+    "reasoning": "The `is_valid_cidr` function checks the syntax and range of a CIDR notation string. This is a generic network validation utility. Changes in CIDR format specifications or validation requirements would affect this function, independently of HTTP protocol logic."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response.text",
+    "entity_type": "method",
+    "line_start": 401,
+    "line_end": 427,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Method handles content byte-to-unicode decoding and encoding detection.",
+    "reasoning": "While `Response` is responsible for providing content, the `text` property takes on the additional responsibility of *decoding* the raw `content` bytes into a unicode string, including logic for encoding detection (`apparent_encoding` via `chardet` or `charset_normalizer`) and error handling (`errors='replace'`). This decoding and encoding detection logic could be delegated to a separate 'ContentDecoder' or 'EncodingGuesser' component, allowing `Response` to focus solely on providing access to the raw response data and its metadata."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response.json",
+    "entity_type": "method",
+    "line_start": 429,
+    "line_end": 461,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Method handles JSON specific encoding guessing and JSON parsing.",
+    "reasoning": "The `json` method adds the responsibility of *parsing* the response content as JSON. This includes specific logic for guessing JSON-compatible UTF encodings (`guess_json_utf`) and then using `complexjson.loads` to deserialize the content. This is a specialized content interpretation responsibility, distinct from merely providing access to the raw response or its basic text representation. A dedicated 'JSONParser' component could handle this, making `Response` simpler and more focused on its core role."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response.links",
+    "entity_type": "method",
+    "line_start": 463,
+    "line_end": 477,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Method parses the 'Link' HTTP header, a specific header parsing responsibility.",
+    "reasoning": "The `links` property is responsible for *parsing* a specific HTTP header ('Link') into a structured dictionary. This is a specialized header interpretation task, rather than a general responsibility of representing the HTTP response. If the format of Link headers were to change, or if support for other complex headers were added, this logic would need to be modified or extended, indicating a separate reason to change from the core `Response` object's role."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.handle_401",
+    "entity_type": "method",
+    "line_start": 218,
+    "line_end": 258,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Method mixes authentication challenge parsing with HTTP response handling and request retry logic.",
+    "reasoning": "The `HTTPDigestAuth` class's primary responsibility should be to construct the `Authorization` header for Digest authentication. However, its `handle_401` method takes on a significantly broader role. It not only parses the `WWW-Authenticate` header to extract challenge parameters but also actively *handles* the HTTP 401 response: it checks the status code, rewinds the request body, closes the original response, creates a *copy* of the request, prepares cookies, adds the new `Authorization` header, and *resends* the request via the connection adapter. This method clearly violates SRP by combining authentication logic with complex HTTP client control flow, I/O management, and retry orchestration. Changes to retry behavior, response handling, or connection management would impact this authentication class."
+  }
+]

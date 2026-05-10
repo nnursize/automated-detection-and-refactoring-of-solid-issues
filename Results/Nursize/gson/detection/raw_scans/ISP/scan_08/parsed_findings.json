@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS",
+    "entity_type": "class",
+    "line_start": 66,
+    "line_end": 81,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The TypeAdapter for java.lang.Class throws UnsupportedOperationException for both read and write methods.",
+    "reasoning": "The TypeAdapter for java.lang.Class explicitly throws UnsupportedOperationException for both its 'read' and 'write' methods. This indicates that the java.lang.Class type is being forced to implement the TypeAdapter interface (or abstract class) but cannot genuinely fulfill its contract, thus violating the Interface Segregation Principle. Clients consuming this adapter are forced to depend on methods that are not supported."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 434,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The abstract JsonElement class defines numerous getAs...() methods (e.g., getAsBoolean, getAsNumber) that are only semantically relevant for JsonPrimitive.",
+    "reasoning": "The abstract class JsonElement serves as a base for different JSON types (primitive, array, object, null). It defines a broad set of 'getAs...' methods (e.g., getAsBoolean, getAsNumber, getAsString) which are primarily applicable to JsonPrimitive. Subclasses like JsonNull and JsonObject are forced to implement these methods by throwing UnsupportedOperationException, indicating they do not naturally support this behavior. JsonArray provides a conditional implementation (for single-element arrays), which is an awkward interpretation for a collection type. This design makes JsonElement a 'fat' abstract class, forcing its implementors to depend on methods they do not use or cannot meaningfully implement, thereby violating ISP."
+  }
+]

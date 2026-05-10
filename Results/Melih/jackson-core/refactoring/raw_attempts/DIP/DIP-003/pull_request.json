@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-003",
+  "principle": "DIP",
+  "title": "Refactor DIP-003 (DIP): Direct instantiation of StreamWriteException.",
+  "branch": "refactor/DIP-003",
+  "base": "main",
+  "head_commit": "5650ed69e32cc1205ea2281f12c8a5b6bcfeaebf",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4083,
+    "completion_tokens": 444
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator._constructWriteException",
+    "entity_type": "method",
+    "line_start": 1118,
+    "line_end": 1118,
+    "severity": "low",
+    "scan_count": 4,
+    "description": "Direct instantiation of StreamWriteException.",
+    "reasoning": "The base class for generators directly instantiates a concrete exception type. While common in Java, strictly speaking, this couples the generator abstraction to a specific detail (the exception implementation)."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce an abstract factory method for creating StreamWriteException to decouple JsonGenerator from the concrete implementation.",
+    "rationale": "The JsonGenerator class was directly instantiating StreamWriteException. By introducing a protected abstract method _constructWriteException, subclasses can provide the specific exception implementation, adhering to the Dependency Inversion Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "loc": 2229,
+        "blank_lines": 162,
+        "comment_lines": 33,
+        "function_count": 66,
+        "avg_cc": 8.45,
+        "max_cc": 493.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 7423.638582229614
+}

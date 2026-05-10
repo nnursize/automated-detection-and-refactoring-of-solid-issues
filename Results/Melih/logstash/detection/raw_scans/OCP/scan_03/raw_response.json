@@ -1,0 +1,84 @@
+{
+  "scan_id": "logstash_OCP_scan_03",
+  "repo_name": "logstash",
+  "principle": "OCP",
+  "scan_number": 3,
+  "timestamp": "2026-04-19T13:31:36.711705",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Open/Closed Principle (OCP).\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.\n\n## What to Look For\n- Long if/elif/else or switch chains that would need modification to add new types\n- Functions with type-checking logic (isinstance checks) to ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\",\n      \"entity_name\": \"EventCondition.Compiler.buildCondition\",\n      \"entity_type\": \"method\",\n      \"line_start\": 111,\n      \"line_end\": 136,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Long instanceof/if-else chain for compiling boolean expressions.\",\n      \"reasoning\": \"The method buildCondition uses an explicit if-else chain to check for specific subclasses of BooleanExpression (Eq, RegexEq, In, Or, And, etc.). Adding a new type of boolean operator or expression to the Logstash configuration language requires modifying this central compiler method, rather than allowing the expressions to define their own compilation logic via polymorphism or a Visitor pattern.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/config/mixin.rb\",\n      \"entity_name\": \"LogStash::Config::Mixin::DSL.validate_value\",\n      \"entity_type\": \"method\",\n      \"line_start\": 358,\n      \"line_end\": 494,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Massive case statement for configuration value validation.\",\n      \"reasoning\": \"The validate_value method contains a hardcoded list of validator symbols (:codec, :hash, :string, :boolean, etc.). To add a new validation type to Logstash, a developer must modify this specific method and insert a new branch into the case statement. This logic should be encapsulated in validator objects that register themselves in a registry.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.getPipelineSourceDetails\",\n      \"entity_type\": \"method\",\n      \"line_start\": 697,\n      \"line_end\": 716,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded switch statement for configuration source protocols.\",\n      \"reasoning\": \"The method switches on string values for the 'protocol' variable (string, file, x-pack-metrics, etc.) to return a description. Adding a new configuration source (e.g., an S3 or HTTP source) requires modifying this class. This is a violation as it lacks a plugin mechanism or polymorphic dispatch for source metadata providers.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/secret/cli/SecretStoreCli.java\",\n      \"entity_name\": \"SecretStoreCli.command\",\n      \"entity_type\": \"method\",\n      \"line_start\": 178,\n      \"line_end\": 251,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on Command enum for CLI execution.\",\n      \"reasoning\": \"The command execution logic is tied directly to a switch statement over the Command enum. Adding a new CLI command for secret management requires modifying this switch block. A more OCP-compliant approach would use a Command pattern where each command is an object registered with the CLI runner.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/health/PipelineIndicator.java\",\n      \"entity_name\": \"PipelineIndicator.StatusProbe.analyze\",\n      \"entity_type\": \"method\",\n      \"line_start\": 157,\n      \"line_end\": 198,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on pipeline states in health reporting.\",\n      \"reasoning\": \"The analyze method hardcodes the logic for every possible pipeline state (LOADING, RUNNING, FINISHED, etc.). If the Logstash core introduces a new state (e.g., PAUSED or RELOADING), this health monitoring logic must be manually updated. The logic for status analysis should be delegated to the state objects themselves or a state-specific analyzer registry.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\",\n      \"entity_name\": \"PluginFactoryExt.plugin\",\n      \"entity_type\": \"method\",\n      \"line_start\": 220,\n      \"line_end\": 250,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded logic for different plugin types (Input, Output, Filter).\",\n      \"reasoning\": \"The plugin creation method uses if-else logic to determine how to wrap or delegate different plugin types. Introducing a new core plugin category would require modifying this method. While the implementation uses some creator objects, the high-level orchestration remains closed to new types without modification.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+      "entity_name": "EventCondition.Compiler.buildCondition",
+      "entity_type": "method",
+      "line_start": 111,
+      "line_end": 136,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Long instanceof/if-else chain for compiling boolean expressions.",
+      "reasoning": "The method buildCondition uses an explicit if-else chain to check for specific subclasses of BooleanExpression (Eq, RegexEq, In, Or, And, etc.). Adding a new type of boolean operator or expression to the Logstash configuration language requires modifying this central compiler method, rather than allowing the expressions to define their own compilation logic via polymorphism or a Visitor pattern."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/config/mixin.rb",
+      "entity_name": "LogStash::Config::Mixin::DSL.validate_value",
+      "entity_type": "method",
+      "line_start": 358,
+      "line_end": 494,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Massive case statement for configuration value validation.",
+      "reasoning": "The validate_value method contains a hardcoded list of validator symbols (:codec, :hash, :string, :boolean, etc.). To add a new validation type to Logstash, a developer must modify this specific method and insert a new branch into the case statement. This logic should be encapsulated in validator objects that register themselves in a registry."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+      "entity_type": "method",
+      "line_start": 697,
+      "line_end": 716,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded switch statement for configuration source protocols.",
+      "reasoning": "The method switches on string values for the 'protocol' variable (string, file, x-pack-metrics, etc.) to return a description. Adding a new configuration source (e.g., an S3 or HTTP source) requires modifying this class. This is a violation as it lacks a plugin mechanism or polymorphic dispatch for source metadata providers."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/secret/cli/SecretStoreCli.java",
+      "entity_name": "SecretStoreCli.command",
+      "entity_type": "method",
+      "line_start": 178,
+      "line_end": 251,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on Command enum for CLI execution.",
+      "reasoning": "The command execution logic is tied directly to a switch statement over the Command enum. Adding a new CLI command for secret management requires modifying this switch block. A more OCP-compliant approach would use a Command pattern where each command is an object registered with the CLI runner."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/health/PipelineIndicator.java",
+      "entity_name": "PipelineIndicator.StatusProbe.analyze",
+      "entity_type": "method",
+      "line_start": 157,
+      "line_end": 198,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on pipeline states in health reporting.",
+      "reasoning": "The analyze method hardcodes the logic for every possible pipeline state (LOADING, RUNNING, FINISHED, etc.). If the Logstash core introduces a new state (e.g., PAUSED or RELOADING), this health monitoring logic must be manually updated. The logic for status analysis should be delegated to the state objects themselves or a state-specific analyzer registry."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+      "entity_name": "PluginFactoryExt.plugin",
+      "entity_type": "method",
+      "line_start": 220,
+      "line_end": 250,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded logic for different plugin types (Input, Output, Filter).",
+      "reasoning": "The plugin creation method uses if-else logic to determine how to wrap or delegate different plugin types. Introducing a new core plugin category would require modifying this method. While the implementation uses some creator objects, the high-level orchestration remains closed to new types without modification."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 17726.990699768066,
+  "error": null
+}

@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-105",
+  "principle": "LSP",
+  "title": "Refactor LSP-105 (LSP): Base class contract for 'getAsX' methods is too broad, forcing subclasses to...",
+  "branch": "refactor/LSP-105",
+  "base": "main",
+  "head_commit": "222eae250a0a4feb4064c8fb9cf8f3b5d4154aba",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6053,
+    "completion_tokens": 844
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement.getAsJsonObject",
+    "entity_type": "method",
+    "line_start": 159,
+    "line_end": 163,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Base class contract for 'getAsX' methods is too broad, forcing subclasses to throw IllegalStateException.",
+    "reasoning": "The `JsonElement` abstract class defines numerous `getAsX()` methods (e.g., `getAsJsonObject()`, `getAsJsonArray()`, `getAsNumber()`, `getAsString()`). Its default implementations throw `IllegalStateException` if the element is not of the expected type. Subtypes like `JsonArray`, `JsonObject`, `JsonPrimitive`, and `JsonNull` cannot logically fulfill all these contracts. For example, a `JsonArray` cannot be converted to a `JsonObject` or a `Number`. This forces clients to perform type-checking (e.g., `isJsonArray()`) before calling `getAsJsonArray()`, which is a classic indicator of a 'fat interface' and an LSP violation. Subtypes are not substitutable for the base type without clients needing to know the concrete type to avoid runtime exceptions."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "",
+    "rationale": "",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "loc": 407,
+        "blank_lines": 25,
+        "comment_lines": 2,
+        "function_count": 21,
+        "avg_cc": 4.19,
+        "max_cc": 68.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 4705.5370807647705
+}

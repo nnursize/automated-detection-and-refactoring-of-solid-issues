@@ -1,0 +1,85 @@
+{
+  "issue_id": "ISP-026",
+  "principle": "ISP",
+  "title": "Refactor ISP-026 (ISP): The TypeAdapter for DummyClass throws UnsupportedOperationException for write...",
+  "branch": "refactor/ISP-026",
+  "base": "main",
+  "head_commit": "29fb26dc6739abacd329814707753280ac11a2e7",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 1985,
+    "completion_tokens": 187
+  },
+  "detected_issue": {
+    "file_path": "test-shrinker/src/main/java/com/example/GenericClasses.java",
+    "entity_name": "GenericClasses.DummyClass.Adapter.write",
+    "entity_type": "method",
+    "line_start": 39,
+    "line_end": 41,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The TypeAdapter for DummyClass throws UnsupportedOperationException for write method.",
+    "reasoning": "The `TypeAdapter` interface requires both a 'read' and a 'write' method. This specific implementation for `DummyClass` explicitly throws an `UnsupportedOperationException` for the `write` method. This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle. While `TypeAdapter` itself is a relatively small interface, this specific implementation demonstrates a clear non-use of one of its core methods."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Implement write method in DummyClass.Adapter to avoid UnsupportedOperationException",
+    "rationale": "The Interface Segregation Principle violation was triggered by throwing an UnsupportedOperationException in the write method. By providing a valid implementation that writes the string representation of the DummyClass, we satisfy the contract of the TypeAdapter interface without violating ISP.",
+    "files_touched": [
+      "test-shrinker/src/main/java/com/example/GenericClasses.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "test-shrinker/src/main/java/com/example/GenericClasses.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "test-shrinker/src/main/java/com/example/GenericClasses.java",
+        "search_text": "      @Override\n      public void write(JsonWriter out, DummyClass value) throws IOException {\n        throw new UnsupportedOperationException();\n      }",
+        "replace_text": "      @Override\n      public void write(JsonWriter out, DummyClass value) throws IOException {\n        out.value(value.s);\n      }",
+        "search_lines": 4,
+        "replace_lines": 4
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "test-shrinker/src/main/java/com/example/GenericClasses.java",
+        "loc": 55,
+        "blank_lines": 13,
+        "comment_lines": 0,
+        "function_count": 6,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "test-shrinker/src/main/java/com/example/GenericClasses.java",
+        "loc": 55,
+        "blank_lines": 13,
+        "comment_lines": 0,
+        "function_count": 6,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/test-shrinker/src/main/java/com/example/GenericClasses.java b/test-shrinker/src/main/java/com/example/GenericClasses.java\nindex 10d8659..0f6597b 100644\n--- a/test-shrinker/src/main/java/com/example/GenericClasses.java\n+++ b/test-shrinker/src/main/java/com/example/GenericClasses.java\n@@ -61,7 +61,7 @@ public class GenericClasses {\n \n       @Override\n       public void write(JsonWriter out, DummyClass value) throws IOException {\n-        throw new UnsupportedOperationException();\n+        out.value(value.s);\n       }\n     }\n   }\n",
+  "duration_ms": 1551.1975288391113
+}

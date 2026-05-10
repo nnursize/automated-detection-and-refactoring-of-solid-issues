@@ -1,0 +1,104 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java b/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java
+index e594fae..139b329 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java
+@@ -37,40 +37,27 @@ public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+ 
+   private JsonElementTypeAdapter() {}
+ 
+-  /**
+-   * Tries to begin reading a JSON array or JSON object, returning {@code null} if the next element
+-   * is neither of those.
+-   */
+-  private JsonElement tryBeginNesting(JsonReader in, JsonToken peeked) throws IOException {
+-    switch (peeked) {
+-      case BEGIN_ARRAY:
+-        in.beginArray();
+-        return new JsonArray();
+-      case BEGIN_OBJECT:
+-        in.beginObject();
+-        return new JsonObject();
+-      default:
+-        return null;
+-    }
++  private interface ReaderStrategy {
++    JsonElement read(JsonReader in) throws IOException;
++  }
++
++  private static final java.util.Map<JsonToken, ReaderStrategy> STRATEGIES = new java.util.EnumMap<>(JsonToken.class);
++
++  static {
++    STRATEGIES.put(JsonToken.BEGIN_ARRAY, in -> { in.beginArray(); return new JsonArray(); });
++    STRATEGIES.put(JsonToken.BEGIN_OBJECT, in -> { in.beginObject(); return new JsonObject(); });
++    STRATEGIES.put(JsonToken.STRING, in -> new JsonPrimitive(in.nextString()));
++    STRATEGIES.put(JsonToken.NUMBER, in -> new JsonPrimitive(new LazilyParsedNumber(in.nextString())));
++    STRATEGIES.put(JsonToken.BOOLEAN, in -> new JsonPrimitive(in.nextBoolean()));
++    STRATEGIES.put(JsonToken.NULL, in -> { in.nextNull(); return JsonNull.INSTANCE; });
+   }
+ 
+-  /** Reads a {@link JsonElement} which cannot have any nested elements */
+-  private JsonElement readTerminal(JsonReader in, JsonToken peeked) throws IOException {
+-    switch (peeked) {
+-      case STRING:
+-        return new JsonPrimitive(in.nextString());
+-      case NUMBER:
+-        String number = in.nextString();
+-        return new JsonPrimitive(new LazilyParsedNumber(number));
+-      case BOOLEAN:
+-        return new JsonPrimitive(in.nextBoolean());
+-      case NULL:
+-        in.nextNull();
+-        return JsonNull.INSTANCE;
+-      default:
+-        // When read(JsonReader) is called with JsonReader in invalid state
+-        throw new IllegalStateException("Unexpected token: " + peeked);
++  private JsonElement readElement(JsonReader in, JsonToken peeked) throws IOException {
++    ReaderStrategy strategy = STRATEGIES.get(peeked);
++    if (strategy == null) {
++      throw new IllegalStateException("Unexpected token: " + peeked);
+     }
++    return strategy.read(in);
+   }
+ 
+   @Override
+@@ -81,12 +68,12 @@ public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+     }
+ 
+     // Either JsonArray or JsonObject
+-    JsonElement current;
+     JsonToken peeked = in.peek();
++    JsonElement current = readElement(in, peeked);
++    boolean isNesting = (peeked == JsonToken.BEGIN_ARRAY || peeked == JsonToken.BEGIN_OBJECT);
+ 
+-    current = tryBeginNesting(in, peeked);
+-    if (current == null) {
+-      return readTerminal(in, peeked);
++    if (!isNesting) {
++      return current;
+     }
+ 
+     Deque<JsonElement> stack = new ArrayDeque<>();
+@@ -100,12 +87,8 @@ public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+         }
+ 
+         peeked = in.peek();
+-        JsonElement value = tryBeginNesting(in, peeked);
+-        boolean isNesting = value != null;
+-
+-        if (value == null) {
+-          value = readTerminal(in, peeked);
+-        }
++        JsonElement value = readElement(in, peeked);
++        boolean isValueNesting = (peeked == JsonToken.BEGIN_ARRAY || peeked == JsonToken.BEGIN_OBJECT);
+ 
+         if (current instanceof JsonArray) {
+           ((JsonArray) current).add(value);
+@@ -113,7 +96,7 @@ public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+           ((JsonObject) current).add(name, value);
+         }
+ 
+-        if (isNesting) {
++        if (isValueNesting) {
+           stack.addLast(current);
+           current = value;
+         }

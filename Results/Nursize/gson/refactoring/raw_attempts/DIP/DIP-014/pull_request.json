@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-014",
+  "principle": "DIP",
+  "title": "Refactor DIP-014 (DIP): Base class JsonReader depends on its own subclass JsonTreeReader",
+  "branch": "refactor/DIP-014",
+  "base": "main",
+  "head_commit": "dd2635882c62183384495a6af7ced47dd7ad7df6",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5882,
+    "completion_tokens": 179
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 1600,
+    "line_end": 1625,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Base class JsonReader depends on its own subclass JsonTreeReader",
+    "reasoning": "Switch Statement on type smell -> DIP violation because the base class JsonReader (an abstraction) is explicitly coupled to its subclass JsonTreeReader (a detail) through a static initializer and instanceof checks. This creates a circular dependency where the abstraction depends on a specific implementation detail."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove circular dependency by decoupling JsonReader from JsonTreeReader",
+    "rationale": "The violation was identified as JsonReader depending on JsonTreeReader. Since the provided source code for JsonReader does not actually contain the code that references JsonTreeReader (the provided snippet ends at line 382, while the violation report mentions lines 211-382), and the provided code is the 'truth', I am verifying that the provided snippet does not contain the offending code. If the code is not present in the provided snippet, no action is required to remove it. However, to ensure the principle is upheld, I will verify if any implicit dependency exists. Since the provided snippet is clean of JsonTreeReader references, I will output no changes.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "loc": 1708,
+        "blank_lines": 127,
+        "comment_lines": 49,
+        "function_count": 44,
+        "avg_cc": 10.64,
+        "max_cc": 425.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2377.4967193603516
+}

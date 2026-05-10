@@ -1,0 +1,29 @@
+{
+  "scan_id": "requests_ISP_scan_03",
+  "repo_name": "requests",
+  "principle": "ISP",
+  "scan_number": 3,
+  "timestamp": "2026-05-03T12:12:19.034532",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Interface Segregation Principle (ISP).\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.\n\n## What to Look For\n- Abstract base classes or interfaces with too many methods\n- Clas...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest.add_header\",\n      \"entity_type\": \"method\",\n      \"line_start\": 62,\n      \"line_end\": 64,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The MockRequest class is forced to implement a method (add_header) from an interface it mimics (urllib2.Request) but does not use, explicitly raising NotImplementedError.\",\n      \"reasoning\": \"The MockRequest class is designed to mimic the urllib2.Request interface for compatibility with http.cookiejar.CookieJar. However, the add_header method is explicitly not implemented and raises NotImplementedError, with a comment stating 'cookiejar has no legitimate use for this method; add it back if you find one.' This indicates that the client (CookieJar) expects an interface (urllib2.Request) that is 'fat' for MockRequest's specific purpose. MockRequest only needs add_unredirected_header for its interaction with CookieJar, but is forced to provide add_header, thereby violating the Interface Segregation Principle.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest.add_header",
+      "entity_type": "method",
+      "line_start": 62,
+      "line_end": 64,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The MockRequest class is forced to implement a method (add_header) from an interface it mimics (urllib2.Request) but does not use, explicitly raising NotImplementedError.",
+      "reasoning": "The MockRequest class is designed to mimic the urllib2.Request interface for compatibility with http.cookiejar.CookieJar. However, the add_header method is explicitly not implemented and raises NotImplementedError, with a comment stating 'cookiejar has no legitimate use for this method; add it back if you find one.' This indicates that the client (CookieJar) expects an interface (urllib2.Request) that is 'fat' for MockRequest's specific purpose. MockRequest only needs add_unredirected_header for its interaction with CookieJar, but is forced to provide add_header, thereby violating the Interface Segregation Principle."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 12738.569259643555,
+  "error": null
+}

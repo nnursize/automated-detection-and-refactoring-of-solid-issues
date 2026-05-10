@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/ReadablePageIO.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.ackedqueue.io;\n\nimport java.io.IOException;\nimport org.logstash.ackedqueue.SequencedList;\n\npublic interface ReadablePageIO {\n    void open(long minSeqNum, int elementCount) throws IOException;\n    SequencedList<byte[]> read(long seqNum, int limit) throws IOException;\n    void deactivate();\n    void activate() throws IOException;\n    void close();\n    int getCapacity();\n    long getMinSeqNum();\n    int getElementCount();\n    int getHead();\n    boolean isCorruptedPage() throws IOException;\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/WritablePageIO.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.ackedqueue.io;\n\npublic interface WritablePageIO {\n    void recover();\n    void create();\n    void ensurePersisted();\n    void purge();\n    void write(byte[] bytes, long seqNum);\n    boolean hasSpace(int bytes);\n    int persistedByteCount(int byteCount);\n}"
+  }
+]

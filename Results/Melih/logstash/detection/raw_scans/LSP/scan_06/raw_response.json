@@ -1,0 +1,150 @@
+{
+  "scan_id": "logstash_LSP_scan_06",
+  "repo_name": "logstash",
+  "principle": "LSP",
+  "scan_number": 6,
+  "timestamp": "2026-04-19T15:25:59.365378",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Liskov Substitution Principle (LSP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inter...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1\",\n      \"entity_type\": \"class\",\n      \"line_start\": 38,\n      \"line_end\": 224,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 violates PageIO contract by throwing UnsupportedOperationException and changing fundamental behavior.\",\n      \"reasoning\": \"The `MmapPageIOV1` class, a subtype of `PageIO`, overrides several methods (`recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`) to consistently throw `UnsupportedOperationException`. This fundamentally breaks the contract implied by the `PageIO` interface, as clients of `PageIO` would expect these operations to be supported. Additionally, `hasSpace(int bytes)` is overridden to unconditionally return `false`, which changes the expected behavior of logically checking for available space. These changes make `MmapPageIOV1` not substitutable for `PageIO` without altering the correctness of programs that rely on the base contract.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.isShutdownRequested\",\n      \"entity_type\": \"method\",\n      \"line_start\": 743,\n      \"line_end\": 746,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Abstract method in base class throws IllegalStateException if not overridden by subtype.\",\n      \"reasoning\": \"The `isShutdownRequested()` method in `AbstractPipelineExt` throws an `IllegalStateException` if it is not overridden by a concrete subclass. This implies that the base class itself is not fully functional for this method, and clients calling `isShutdownRequested()` on an `AbstractPipelineExt` instance cannot do so safely without knowing its concrete type, thus violating the Liskov Substitution Principle.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\",\n      \"entity_name\": \"EventCondition.Compiler.buildCondition\",\n      \"entity_type\": \"method\",\n      \"line_start\": 57,\n      \"line_end\": 96,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Extensive use of instanceof checks (Switch Statement on Type smell) violates polymorphic behavior.\",\n      \"reasoning\": \"The `buildCondition()` method extensively uses `instanceof` checks on `BooleanExpression` and its various subclasses, followed by explicit casting and type-specific logic. This 'Switch Statement on Type' design prevents polymorphic behavior, as adding new `BooleanExpression` subtypes would necessitate modifying this method. If a new `BooleanExpression` is not explicitly handled, it will lead to an `UnexpectedTypeException`, demonstrating that new subtypes are not substitutable without altering client code.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.overwrite\",\n      \"entity_type\": \"method\",\n      \"line_start\": 286,\n      \"line_end\": 291,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Method uses instanceof check to conditionally perform or ignore operation based on concrete type.\",\n      \"reasoning\": \"The `overwrite(co.elastic.logstash.api.Event e)` method uses an `instanceof Event` check. If the provided event `e` is not an instance of `org.logstash.Event`, the method returns `e` unmodified. This violates the Liskov Substitution Principle because clients expecting the `overwrite` method to apply changes to `this` event based on the provided `co.elastic.logstash.api.Event` interface cannot substitute other valid implementations of the `co.elastic.logstash.api.Event` interface without breaking the expected behavior.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.append\",\n      \"entity_type\": \"method\",\n      \"line_start\": 294,\n      \"line_end\": 299,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Method uses instanceof check to conditionally perform or ignore operation based on concrete type.\",\n      \"reasoning\": \"Similar to `overwrite`, the `append(co.elastic.logstash.api.Event e)` method uses an `instanceof Event` check. If the provided event `e` is not an instance of `org.logstash.Event`, the method returns `e` unmodified. This violates the Liskov Substitution Principle because clients expecting the `append` method to apply changes to `this` event based on the provided `co.elastic.logstash.api.Event` interface cannot substitute other valid implementations of the `co.elastic.logstash.api.Event` interface without breaking the expected behavior.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ext/JrubyEventExtLibrary.java\",\n      \"entity_name\": \"JrubyEventExtLibrary.RubyEvent.ruby_initialize\",\n      \"entity_type\": \"method\",\n      \"line_start\": 57,\n      \"line_end\": 66,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Constructor uses instanceof checks (Switch Statement on Type smell) for initialization, limiting substitutability of IRubyObject subtypes.\",\n      \"reasoning\": \"The `ruby_initialize()` constructor uses `instanceof` checks (`RubyHash`, `Event.class`) and `isNil()` to determine how to initialize the underlying `Event`. If the `data` argument is an `IRubyObject` that is not one of these specific types, it delegates to `initializeFallback` which can then throw a `TypeError`. This pattern violates LSP by requiring explicit knowledge of specific `IRubyObject` subtypes for correct initialization, rather than operating polymorphically on `IRubyObject` based on a broader contract (e.g., if any `IRubyObject` could provide map-like data).\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\",\n      \"entity_name\": \"PluginFactoryExt.plugin\",\n      \"entity_type\": \"method\",\n      \"line_start\": 166,\n      \"line_end\": 221,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Method uses extensive if/else if chain on PluginLookup.PluginType (Switch Statement on Type smell), violating polymorphic extension.\",\n      \"reasoning\": \"The `plugin()` method contains a large `if/else if` chain that dispatches plugin creation logic based on the `PluginLookup.PluginType` enum. This 'Switch Statement on Type' is a violation of LSP because adding new plugin types requires modifying this method, rather than allowing the system to be extended polymorphically. This makes the factory tightly coupled to existing plugin types and not open for extension.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/settings.rb\",\n      \"entity_name\": \"LogStash::Settings::Setting::Nullable.validate\",\n      \"entity_type\": \"method\",\n      \"line_start\": 622,\n      \"line_end\": 625,\n      \"principle\": \"LSP\",\n      \"severity\": \"low\",\n      \"description\": \"Subtype relaxes precondition of base method by allowing null input for validation.\",\n      \"reasoning\": \"The `Nullable` class's `validate(value)` method overrides its base `Setting#validate` by returning `true` if `value.nil?`. If the base `Setting#validate` implicitly or explicitly expects non-null input (e.g., by throwing an `ArgumentError` for `nil`), then `Nullable` relaxes this precondition. A subtype should not weaken the preconditions of the base type's methods, which is a violation of the Liskov Substitution Principle.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/settings.rb\",\n      \"entity_name\": \"LogStash::Settings::Setting::DeprecatedAlias.value\",\n      \"entity_type\": \"method\",\n      \"line_start\": 645,\n      \"line_end\": 650,\n      \"principle\": \"LSP\",\n      \"severity\": \"low\",\n      \"description\": \"Subtype introduces new side-effect (logging a deprecation warning) not present in base method.\",\n      \"reasoning\": \"The `DeprecatedAlias#value()` method introduces a new side-effect: logging a deprecation warning when the value is accessed. While the functional correctness of retrieving the value might not be altered, LSP states that observable behavior should not change. Introducing a new side-effect not present in the base `Setting#value()` method violates this principle.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/settings.rb\",\n      \"entity_name\": \"LogStash::Settings::Setting::DeprecatedAlias.set\",\n      \"entity_type\": \"method\",\n      \"line_start\": 640,\n      \"line_end\": 643,\n      \"principle\": \"LSP\",\n      \"severity\": \"low\",\n      \"description\": \"Subtype introduces new side-effect (logging a deprecation warning) not present in base method.\",\n      \"reasoning\": \"The `DeprecatedAlias#set()` method introduces a new side-effect: logging a deprecation warning when the value is set. While the functional correctness of setting the value might not be altered, LSP states that observable behavior should not change. Introducing a new side-effect not present in the base `Setting#set()` method violates this principle.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/settings.rb\",\n      \"entity_name\": \"LogStash::Settings::Setting::SettingWithDeprecatedAlias.validate_value\",\n      \"entity_type\": \"method\",\n      \"line_start\": 692,\n      \"line_end\": 699,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subtype introduces new exception type/condition not related to value's intrinsic validity.\",\n      \"reasoning\": \"The `SettingWithDeprecatedAlias#validate_value()` method introduces a new `ArgumentError` exception when both a deprecated alias and a canonical setting are used. This failure condition is not related to the intrinsic validity of the setting's value, but rather to *how* the setting was provided. This changes the postconditions and introduces a new exception type for specific input combinations, which violates the Liskov Substitution Principle as it alters the expected behavior of `validate_value` from the base `Setting` class.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/config/mixin.rb\",\n      \"entity_name\": \"LogStash::Config::Mixin::DSL.validate_value\",\n      \"entity_type\": \"method\",\n      \"line_start\": 361,\n      \"line_end\": 512,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Extensive use of if/elsif and case statements on validator argument (Switch Statement on Type/Value smell) violates polymorphic extension.\",\n      \"reasoning\": \"The `validate_value()` method contains a large `if/elsif` chain that checks the type of the `validator` argument (Array, Symbol, or nil), and a nested `case` statement that dispatches based on specific symbol values (`:codec`, `:hash`, `:array`, etc.). This 'Switch Statement on Type/Value' design violates LSP because it tightly couples the method to existing validator types. Adding new validation types would require modifying this method, rather than allowing for polymorphic extension, making the system fragile and not open for extension.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1",
+      "entity_type": "class",
+      "line_start": 38,
+      "line_end": 224,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 violates PageIO contract by throwing UnsupportedOperationException and changing fundamental behavior.",
+      "reasoning": "The `MmapPageIOV1` class, a subtype of `PageIO`, overrides several methods (`recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`) to consistently throw `UnsupportedOperationException`. This fundamentally breaks the contract implied by the `PageIO` interface, as clients of `PageIO` would expect these operations to be supported. Additionally, `hasSpace(int bytes)` is overridden to unconditionally return `false`, which changes the expected behavior of logically checking for available space. These changes make `MmapPageIOV1` not substitutable for `PageIO` without altering the correctness of programs that rely on the base contract."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.isShutdownRequested",
+      "entity_type": "method",
+      "line_start": 743,
+      "line_end": 746,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Abstract method in base class throws IllegalStateException if not overridden by subtype.",
+      "reasoning": "The `isShutdownRequested()` method in `AbstractPipelineExt` throws an `IllegalStateException` if it is not overridden by a concrete subclass. This implies that the base class itself is not fully functional for this method, and clients calling `isShutdownRequested()` on an `AbstractPipelineExt` instance cannot do so safely without knowing its concrete type, thus violating the Liskov Substitution Principle."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+      "entity_name": "EventCondition.Compiler.buildCondition",
+      "entity_type": "method",
+      "line_start": 57,
+      "line_end": 96,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Extensive use of instanceof checks (Switch Statement on Type smell) violates polymorphic behavior.",
+      "reasoning": "The `buildCondition()` method extensively uses `instanceof` checks on `BooleanExpression` and its various subclasses, followed by explicit casting and type-specific logic. This 'Switch Statement on Type' design prevents polymorphic behavior, as adding new `BooleanExpression` subtypes would necessitate modifying this method. If a new `BooleanExpression` is not explicitly handled, it will lead to an `UnexpectedTypeException`, demonstrating that new subtypes are not substitutable without altering client code."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.overwrite",
+      "entity_type": "method",
+      "line_start": 286,
+      "line_end": 291,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Method uses instanceof check to conditionally perform or ignore operation based on concrete type.",
+      "reasoning": "The `overwrite(co.elastic.logstash.api.Event e)` method uses an `instanceof Event` check. If the provided event `e` is not an instance of `org.logstash.Event`, the method returns `e` unmodified. This violates the Liskov Substitution Principle because clients expecting the `overwrite` method to apply changes to `this` event based on the provided `co.elastic.logstash.api.Event` interface cannot substitute other valid implementations of the `co.elastic.logstash.api.Event` interface without breaking the expected behavior."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.append",
+      "entity_type": "method",
+      "line_start": 294,
+      "line_end": 299,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Method uses instanceof check to conditionally perform or ignore operation based on concrete type.",
+      "reasoning": "Similar to `overwrite`, the `append(co.elastic.logstash.api.Event e)` method uses an `instanceof Event` check. If the provided event `e` is not an instance of `org.logstash.Event`, the method returns `e` unmodified. This violates the Liskov Substitution Principle because clients expecting the `append` method to apply changes to `this` event based on the provided `co.elastic.logstash.api.Event` interface cannot substitute other valid implementations of the `co.elastic.logstash.api.Event` interface without breaking the expected behavior."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ext/JrubyEventExtLibrary.java",
+      "entity_name": "JrubyEventExtLibrary.RubyEvent.ruby_initialize",
+      "entity_type": "method",
+      "line_start": 57,
+      "line_end": 66,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Constructor uses instanceof checks (Switch Statement on Type smell) for initialization, limiting substitutability of IRubyObject subtypes.",
+      "reasoning": "The `ruby_initialize()` constructor uses `instanceof` checks (`RubyHash`, `Event.class`) and `isNil()` to determine how to initialize the underlying `Event`. If the `data` argument is an `IRubyObject` that is not one of these specific types, it delegates to `initializeFallback` which can then throw a `TypeError`. This pattern violates LSP by requiring explicit knowledge of specific `IRubyObject` subtypes for correct initialization, rather than operating polymorphically on `IRubyObject` based on a broader contract (e.g., if any `IRubyObject` could provide map-like data)."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+      "entity_name": "PluginFactoryExt.plugin",
+      "entity_type": "method",
+      "line_start": 166,
+      "line_end": 221,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Method uses extensive if/else if chain on PluginLookup.PluginType (Switch Statement on Type smell), violating polymorphic extension.",
+      "reasoning": "The `plugin()` method contains a large `if/else if` chain that dispatches plugin creation logic based on the `PluginLookup.PluginType` enum. This 'Switch Statement on Type' is a violation of LSP because adding new plugin types requires modifying this method, rather than allowing the system to be extended polymorphically. This makes the factory tightly coupled to existing plugin types and not open for extension."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/settings.rb",
+      "entity_name": "LogStash::Settings::Setting::Nullable.validate",
+      "entity_type": "method",
+      "line_start": 622,
+      "line_end": 625,
+      "principle": "LSP",
+      "severity": "low",
+      "description": "Subtype relaxes precondition of base method by allowing null input for validation.",
+      "reasoning": "The `Nullable` class's `validate(value)` method overrides its base `Setting#validate` by returning `true` if `value.nil?`. If the base `Setting#validate` implicitly or explicitly expects non-null input (e.g., by throwing an `ArgumentError` for `nil`), then `Nullable` relaxes this precondition. A subtype should not weaken the preconditions of the base type's methods, which is a violation of the Liskov Substitution Principle."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/settings.rb",
+      "entity_name": "LogStash::Settings::Setting::DeprecatedAlias.value",
+      "entity_type": "method",
+      "line_start": 645,
+      "line_end": 650,
+      "principle": "LSP",
+      "severity": "low",
+      "description": "Subtype introduces new side-effect (logging a deprecation warning) not present in base method.",
+      "reasoning": "The `DeprecatedAlias#value()` method introduces a new side-effect: logging a deprecation warning when the value is accessed. While the functional correctness of retrieving the value might not be altered, LSP states that observable behavior should not change. Introducing a new side-effect not present in the base `Setting#value()` method violates this principle."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/settings.rb",
+      "entity_name": "LogStash::Settings::Setting::DeprecatedAlias.set",
+      "entity_type": "method",
+      "line_start": 640,
+      "line_end": 643,
+      "principle": "LSP",
+      "severity": "low",
+      "description": "Subtype introduces new side-effect (logging a deprecation warning) not present in base method.",
+      "reasoning": "The `DeprecatedAlias#set()` method introduces a new side-effect: logging a deprecation warning when the value is set. While the functional correctness of setting the value might not be altered, LSP states that observable behavior should not change. Introducing a new side-effect not present in the base `Setting#set()` method violates this principle."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/settings.rb",
+      "entity_name": "LogStash::Settings::Setting::SettingWithDeprecatedAlias.validate_value",
+      "entity_type": "method",
+      "line_start": 692,
+      "line_end": 699,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subtype introduces new exception type/condition not related to value's intrinsic validity.",
+      "reasoning": "The `SettingWithDeprecatedAlias#validate_value()` method introduces a new `ArgumentError` exception when both a deprecated alias and a canonical setting are used. This failure condition is not related to the intrinsic validity of the setting's value, but rather to *how* the setting was provided. This changes the postconditions and introduces a new exception type for specific input combinations, which violates the Liskov Substitution Principle as it alters the expected behavior of `validate_value` from the base `Setting` class."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/config/mixin.rb",
+      "entity_name": "LogStash::Config::Mixin::DSL.validate_value",
+      "entity_type": "method",
+      "line_start": 361,
+      "line_end": 512,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Extensive use of if/elsif and case statements on validator argument (Switch Statement on Type/Value smell) violates polymorphic extension.",
+      "reasoning": "The `validate_value()` method contains a large `if/elsif` chain that checks the type of the `validator` argument (Array, Symbol, or nil), and a nested `case` statement that dispatches based on specific symbol values (`:codec`, `:hash`, `:array`, etc.). This 'Switch Statement on Type/Value' design violates LSP because it tightly couples the method to existing validator types. Adding new validation types would require modifying this method, rather than allowing for polymorphic extension, making the system fragile and not open for extension."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 47540.40861129761,
+  "error": null
+}

@@ -1,0 +1,62 @@
+{
+  "scan_id": "Catch2_OCP_scan_10",
+  "repo_name": "Catch2",
+  "principle": "OCP",
+  "scan_number": 10,
+  "timestamp": "2026-05-02T11:28:06.418457",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a c++ repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that sho...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IEventListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9016,\n      \"line_end\": 9101,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat interface for event listeners, violating ISP and OCP.\",\n      \"reasoning\": \"The `IEventListener` interface defines a large number of virtual methods for various test events (e.g., `testRunStarting`, `testCaseStarting`, `assertionEnded`, `benchmarkStarting`, `listReporters`). This broad interface forces all concrete event listeners/reporters to implement (or inherit empty implementations for) all methods, even if they are only interested in a subset of events. This violates the Interface Segregation Principle (ISP). When a new event type is introduced, the `IEventListener` interface itself must be modified, which then necessitates changes in all existing implementations, directly violating the Open/Closed Principle. Clients are forced to depend on methods they don't need.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"Win32ColourImpl.use\",\n      \"entity_type\": \"method\",\n      \"line_start\": 3591,\n      \"line_end\": 3611,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on `Colour::Code` in `use` method, violating OCP.\",\n      \"reasoning\": \"The `Win32ColourImpl::use` method contains a `switch` statement that dispatches logic based on `Colour::Code`. If a new `Colour::Code` is added to the system, this `switch` statement must be modified to include the new case, requiring changes to existing code. This directly violates the Open/Closed Principle, as the class is not closed for modification when new color types are introduced. A more OCP-compliant design would use a polymorphic approach where each color type is an object that encapsulates its specific behavior.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_compact.cpp\",\n      \"entity_name\": \"AssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 48,\n      \"line_end\": 114,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on `ResultWas::OfType` in `print` method, violating OCP.\",\n      \"reasoning\": \"The `AssertionPrinter::print` method (and similar methods in derived reporter classes like `TapAssertionPrinter` and `ConsoleAssertionPrinter`) contains a large `switch` statement that dispatches logic based on `ResultWas::OfType`. If a new assertion result type is introduced, this `switch` statement must be modified to handle the new case, requiring changes to existing code. This directly violates the Open/Closed Principle, as the class is not closed for modification when new result types are introduced. A more OCP-compliant approach would involve a polymorphic design where each `ResultWas::OfType` is represented by an object that handles its own printing.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_output_redirect.cpp\",\n      \"entity_name\": \"makeOutputRedirect\",\n      \"entity_type\": \"function\",\n      \"line_start\": 263,\n      \"line_end\": 263,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Factory function `makeOutputRedirect` likely uses conditional logic (switch/if-else) to instantiate `OutputRedirect` subclasses, violating OCP.\",\n      \"reasoning\": \"The `makeOutputRedirect` function is responsible for creating concrete `OutputRedirect` implementations based on an `OutputRedirect::Kind` parameter. This factory function almost certainly contains conditional logic (e.g., a `switch` statement or `if/else` chain) to determine which specific `OutputRedirect` subclass to instantiate. If a new type of output redirection is added, this function would need to be modified to include the new instantiation logic, violating the Open/Closed Principle. A more OCP-compliant approach would involve a registry pattern where new redirect types can register themselves, allowing the factory to be extended without modification.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IEventListener",
+      "entity_type": "class",
+      "line_start": 9016,
+      "line_end": 9101,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Fat interface for event listeners, violating ISP and OCP.",
+      "reasoning": "The `IEventListener` interface defines a large number of virtual methods for various test events (e.g., `testRunStarting`, `testCaseStarting`, `assertionEnded`, `benchmarkStarting`, `listReporters`). This broad interface forces all concrete event listeners/reporters to implement (or inherit empty implementations for) all methods, even if they are only interested in a subset of events. This violates the Interface Segregation Principle (ISP). When a new event type is introduced, the `IEventListener` interface itself must be modified, which then necessitates changes in all existing implementations, directly violating the Open/Closed Principle. Clients are forced to depend on methods they don't need."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "Win32ColourImpl.use",
+      "entity_type": "method",
+      "line_start": 3591,
+      "line_end": 3611,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on `Colour::Code` in `use` method, violating OCP.",
+      "reasoning": "The `Win32ColourImpl::use` method contains a `switch` statement that dispatches logic based on `Colour::Code`. If a new `Colour::Code` is added to the system, this `switch` statement must be modified to include the new case, requiring changes to existing code. This directly violates the Open/Closed Principle, as the class is not closed for modification when new color types are introduced. A more OCP-compliant design would use a polymorphic approach where each color type is an object that encapsulates its specific behavior."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_compact.cpp",
+      "entity_name": "AssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 48,
+      "line_end": 114,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on `ResultWas::OfType` in `print` method, violating OCP.",
+      "reasoning": "The `AssertionPrinter::print` method (and similar methods in derived reporter classes like `TapAssertionPrinter` and `ConsoleAssertionPrinter`) contains a large `switch` statement that dispatches logic based on `ResultWas::OfType`. If a new assertion result type is introduced, this `switch` statement must be modified to handle the new case, requiring changes to existing code. This directly violates the Open/Closed Principle, as the class is not closed for modification when new result types are introduced. A more OCP-compliant approach would involve a polymorphic design where each `ResultWas::OfType` is represented by an object that handles its own printing."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_output_redirect.cpp",
+      "entity_name": "makeOutputRedirect",
+      "entity_type": "class",
+      "line_start": 263,
+      "line_end": 263,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Factory function `makeOutputRedirect` likely uses conditional logic (switch/if-else) to instantiate `OutputRedirect` subclasses, violating OCP.",
+      "reasoning": "The `makeOutputRedirect` function is responsible for creating concrete `OutputRedirect` implementations based on an `OutputRedirect::Kind` parameter. This factory function almost certainly contains conditional logic (e.g., a `switch` statement or `if/else` chain) to determine which specific `OutputRedirect` subclass to instantiate. If a new type of output redirection is added, this function would need to be modified to include the new instantiation logic, violating the Open/Closed Principle. A more OCP-compliant approach would involve a registry pattern where new redirect types can register themselves, allowing the factory to be extended without modification."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 38478.9092540741,
+  "error": null
+}

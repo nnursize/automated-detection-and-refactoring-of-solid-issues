@@ -1,0 +1,140 @@
+{
+  "issue_id": "ISP-015",
+  "principle": "ISP",
+  "title": "Refactor ISP-015 (ISP): The 'Queue' class acts as a fat interface, forcing clients to depend on metho...",
+  "branch": "refactor/ISP-015",
+  "base": "main",
+  "head_commit": "b901e8c7034cc8594c1b9d2728a6cd0cb12300f5",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11032,
+    "completion_tokens": 637
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 744,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "The 'Queue' class acts as a fat interface, forcing clients to depend on methods they do not use.",
+    "reasoning": "The 'Queue' class combines multiple responsibilities (writing, reading, acknowledging, administrative tasks like opening/closing, and querying detailed state). Clients that only need to perform write operations are forced to depend on methods related to reading, acknowledging, and various state queries, and vice-versa. This broad API surface violates ISP by not segregating the interface into more focused roles like 'QueueWriter', 'QueueReader', and 'QueueAdmin'."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce QueueWriter, QueueReader, and QueueAdmin interfaces to segregate Queue responsibilities.",
+    "rationale": "The Queue class was a 'fat' interface. By introducing specific interfaces for writing, reading, and administrative tasks, clients can now depend on the minimal set of methods they actually require, adhering to the Interface Segregation Principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java",
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java",
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java",
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java",
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java"
+    ],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "public final class Queue implements Closeable {",
+        "replace_text": "public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAdmin {",
+        "search_lines": 1,
+        "replace_lines": 1
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java",
+        "new_content": "package org.logstash.ackedqueue;\n\nimport java.io.IOException;\n\npublic interface QueueWriter {\n    long write(Queueable element) throws IOException;\n    boolean isFull();\n    boolean isClosed();\n}",
+        "new_content_lines": 9
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java",
+        "new_content": "package org.logstash.ackedqueue;\n\nimport java.io.IOException;\n\npublic interface QueueReader {\n    Batch nonBlockReadBatch(int limit) throws IOException;\n    Batch readBatch(int limit, long timeout) throws IOException;\n    void ack(long firstAckSeqNum, int ackCount) throws IOException;\n    Queueable deserialize(byte[] bytes);\n}",
+        "new_content_lines": 10
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java",
+        "new_content": "package org.logstash.ackedqueue;\n\nimport java.io.Closeable;\nimport java.io.IOException;\n\npublic interface QueueAdmin extends Closeable {\n    void open() throws IOException;\n    String getDirPath();\n    long getMaxBytes();\n    long getMaxUnread();\n    long getPersistedByteSize();\n    int getPageCapacity();\n    long getUnreadCount();\n    boolean isEmpty();\n    boolean isFullyAcked();\n    void ensurePersistedUpto(long seqNum) throws IOException;\n    int firstUnackedPageNum();\n    long getAckedCount();\n    long getUnackedCount();\n    boolean isClosed();\n}",
+        "new_content_lines": 21
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 734,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 734,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java",
+        "loc": 7,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java",
+        "loc": 8,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java",
+        "loc": 19,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\nindex e240dfb..7fe08bb 100644\n--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n@@ -52,7 +52,7 @@ import org.logstash.plugins.NamespacedMetricImpl;\n /**\n  * Persistent queue implementation.\n  * */\n-public final class Queue implements Closeable {\n+public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAdmin {\n \n     private long seqNum;\n \ndiff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java\n@@ -0,0 +1,9 @@\n+package org.logstash.ackedqueue;\n+\n+import java.io.IOException;\n+\n+public interface QueueWriter {\n+    long write(Queueable element) throws IOException;\n+    boolean isFull();\n+    boolean isClosed();\n+}\n\\ No newline at end of file\ndiff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java\n@@ -0,0 +1,10 @@\n+package org.logstash.ackedqueue;\n+\n+import java.io.IOException;\n+\n+public interface QueueReader {\n+    Batch nonBlockReadBatch(int limit) throws IOException;\n+    Batch readBatch(int limit, long timeout) throws IOException;\n+    void ack(long firstAckSeqNum, int ackCount) throws IOException;\n+    Queueable deserialize(byte[] bytes);\n+}\n\\ No newline at end of file\ndiff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java\n@@ -0,0 +1,21 @@\n+package org.logstash.ackedqueue;\n+\n+import java.io.Closeable;\n+import java.io.IOException;\n+\n+public interface QueueAdmin extends Closeable {\n+    void open() throws IOException;\n+    String getDirPath();\n+    long getMaxBytes();\n+    long getMaxUnread();\n+    long getPersistedByteSize();\n+    int getPageCapacity();\n+    long getUnreadCount();\n+    boolean isEmpty();\n+    boolean isFullyAcked();\n+    void ensurePersistedUpto(long seqNum) throws IOException;\n+    int firstUnackedPageNum();\n+    long getAckedCount();\n+    long getUnackedCount();\n+    boolean isClosed();\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 16062.077522277832
+}

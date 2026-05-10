@@ -1,0 +1,40 @@
+{
+  "scan_id": "requests_LSP_scan_03",
+  "repo_name": "requests",
+  "principle": "LSP",
+  "scan_number": 3,
+  "timestamp": "2026-05-03T01:22:26.181841",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses t...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/structures.py\",\n      \"entity_name\": \"LookupDict\",\n      \"entity_type\": \"class\",\n      \"line_start\": 73,\n      \"line_end\": 88,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"LookupDict inherits from dict but breaks the contract of __getitem__ and uses a different storage mechanism.\",\n      \"reasoning\": \"LookupDict inherits from the built-in 'dict' but overrides '__getitem__' to return None instead of raising a KeyError when a key is missing. Furthermore, it retrieves values from the instance's '__dict__' instead of the dictionary's actual internal storage. This breaks the fundamental contract of the dict type, as code expecting a dictionary and using standard error handling (try-except KeyError) will fail to detect missing keys, potentially leading to TypeErrors or incorrect logic downstream.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/auth.py\",\n      \"entity_name\": \"HTTPProxyAuth\",\n      \"entity_type\": \"class\",\n      \"line_start\": 93,\n      \"line_end\": 98,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"HTTPProxyAuth inherits from HTTPBasicAuth but modifies a different header, breaking behavioral substitution.\",\n      \"reasoning\": \"HTTPProxyAuth inherits from HTTPBasicAuth but overrides the '__call__' method to modify the 'Proxy-Authorization' header instead of the 'Authorization' header. This violates LSP because HTTPProxyAuth is not a valid behavioral substitute for HTTPBasicAuth; any calling code expecting the parent's contract (applying Basic credentials to the 'Authorization' header) will find that the expected header is missing when an HTTPProxyAuth instance is used.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/structures.py",
+      "entity_name": "LookupDict",
+      "entity_type": "class",
+      "line_start": 73,
+      "line_end": 88,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "LookupDict inherits from dict but breaks the contract of __getitem__ and uses a different storage mechanism.",
+      "reasoning": "LookupDict inherits from the built-in 'dict' but overrides '__getitem__' to return None instead of raising a KeyError when a key is missing. Furthermore, it retrieves values from the instance's '__dict__' instead of the dictionary's actual internal storage. This breaks the fundamental contract of the dict type, as code expecting a dictionary and using standard error handling (try-except KeyError) will fail to detect missing keys, potentially leading to TypeErrors or incorrect logic downstream."
+    },
+    {
+      "file_path": "requests/src/requests/auth.py",
+      "entity_name": "HTTPProxyAuth",
+      "entity_type": "class",
+      "line_start": 93,
+      "line_end": 98,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "HTTPProxyAuth inherits from HTTPBasicAuth but modifies a different header, breaking behavioral substitution.",
+      "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth but overrides the '__call__' method to modify the 'Proxy-Authorization' header instead of the 'Authorization' header. This violates LSP because HTTPProxyAuth is not a valid behavioral substitute for HTTPBasicAuth; any calling code expecting the parent's contract (applying Basic credentials to the 'Authorization' header) will find that the expected header is missing when an HTTPProxyAuth instance is used."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 47945.15419006348,
+  "error": null
+}

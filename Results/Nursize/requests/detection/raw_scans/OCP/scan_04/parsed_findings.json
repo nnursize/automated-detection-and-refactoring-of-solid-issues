@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "class",
+    "line_start": 124,
+    "line_end": 188,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded type-checking logic for determining object length.",
+    "reasoning": "Switch Statement smell -> OCP violation because the function relies on a hardcoded sequence of hasattr and isinstance checks to determine how to calculate an object's length. Adding support for new types of streamable or file-like objects requires modifying the function's internal logic rather than extending it through a common interface or registration mechanism."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.build_digest_header",
+    "entity_type": "method",
+    "line_start": 106,
+    "line_end": 186,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded algorithm selection logic for digest authentication.",
+    "reasoning": "Switch Statement smell -> OCP violation because the method uses a hardcoded if/elif chain to map algorithm names (MD5, SHA-256, etc.) to their respective hashing implementations. Adding support for a new hashing algorithm requires modifying the method's core logic rather than extending it via a registry or strategy pattern."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "method",
+    "line_start": 314,
+    "line_end": 332,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded method-switching logic based on HTTP status codes.",
+    "reasoning": "Switch Statement smell -> OCP violation because the logic for transforming HTTP methods during redirects is explicitly tied to specific HTTP status codes (301, 302, 303). Supporting new redirect behaviors or status codes requires modifying this method's internal logic."
+  }
+]

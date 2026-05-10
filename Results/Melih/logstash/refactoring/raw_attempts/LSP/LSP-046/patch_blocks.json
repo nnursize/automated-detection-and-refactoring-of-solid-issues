@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "search_text": "    @Override\n    public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n        if (e instanceof Event) {\n            return overwrite((Event)e);\n        }\n        return e;\n    }\n\n    @Override\n    public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n        if (e instanceof Event) {\n            return append((Event)e);\n        }\n        return e;\n    }",
+    "replace_text": "    @Override\n    public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n        this.data = ConvertedMap.newFromMap(e.toMap());\n        this.cancelled = e.isCancelled();\n        Instant t = e.getEventTimestamp();\n        setTimestamp(t == null ? new Timestamp() : new Timestamp(t.toEpochMilli()));\n        return this;\n    }\n\n    @Override\n    public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n        Util.mapMerge(this.data, e.toMap());\n        return this;\n    }"
+  }
+]

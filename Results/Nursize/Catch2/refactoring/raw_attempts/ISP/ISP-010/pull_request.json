@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-010",
+  "principle": "ISP",
+  "title": "Refactor ISP-010 (ISP): ExprLhs provides operators that might not be used by all clients.",
+  "branch": "refactor/ISP-010",
+  "base": "main",
+  "head_commit": "2a3e90bc5cf75ef551e4552f2be95f31800d55c5",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "ExprLhs",
+    "entity_type": "class",
+    "line_start": 5451,
+    "line_end": 5605,
+    "severity": "low",
+    "scan_count": 3,
+    "description": "ExprLhs provides operators that might not be used by all clients.",
+    "reasoning": "The `ExprLhs` class defines a multitude of overloaded operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `|`, `&`, `^`, `&&`, `||`). While these are used to construct `BinaryExpr` and `UnaryExpr` for assertion evaluation, a client that only needs to perform a specific type of comparison might be indirectly coupled to all other defined operators. If `ExprLhs` were to be used in a context where only a subset of these operations is relevant, it could be considered a violation of ISP. However, given its role in expression building for assertions, this is a more subtle violation."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

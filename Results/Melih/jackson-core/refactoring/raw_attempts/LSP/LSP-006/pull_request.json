@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-006",
+  "principle": "LSP",
+  "title": "Refactor LSP-006 (LSP): Subclass overrides getBinaryValue to throw an exception for tokens not suppor...",
+  "branch": "refactor/LSP-006",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3963,
+    "completion_tokens": 358
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 322,
+    "line_end": 343,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Subclass overrides getBinaryValue to throw an exception for tokens not supported by the base class contract.",
+    "reasoning": "The base class JsonParser defines getBinaryValue() as a general method for accessing binary data. By explicitly restricting the allowed tokens to VALUE_STRING or VALUE_EMBEDDED_OBJECT and throwing an error for others, the subclass narrows the contract of the base class, making it non-substitutable in contexts where a caller might expect the base class to handle other token types or provide a different fallback mechanism."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove restrictive token check in getBinaryValue to adhere to base class contract",
+    "rationale": "The base class JsonParser defines getBinaryValue() as a general method. By throwing an exception for tokens other than VALUE_STRING or VALUE_EMBEDDED_OBJECT, the subclass violates the Liskov Substitution Principle. The fix removes the explicit check, allowing the method to handle other tokens or return null/default behavior as expected by the base contract.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3558,
+        "blank_lines": 278,
+        "comment_lines": 284,
+        "function_count": 114,
+        "avg_cc": 9.62,
+        "max_cc": 984.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3617.8083419799805
+}

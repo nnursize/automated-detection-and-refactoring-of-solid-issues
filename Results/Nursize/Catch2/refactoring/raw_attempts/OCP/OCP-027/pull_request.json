@@ -1,0 +1,40 @@
+{
+  "issue_id": "OCP-027",
+  "principle": "OCP",
+  "title": "Refactor OCP-027 (OCP): Switch statement on `Colour::Code` in `use` method, violating OCP.",
+  "branch": "refactor/OCP-027",
+  "base": "main",
+  "head_commit": "851b4f2cf0e00bbe1cd47018b1837e2247af8f88",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.cpp",
+    "entity_name": "Win32ColourImpl.use",
+    "entity_type": "method",
+    "line_start": 3591,
+    "line_end": 3611,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Switch statement on `Colour::Code` in `use` method, violating OCP.",
+    "reasoning": "The `Win32ColourImpl::use` method contains a `switch` statement that dispatches logic based on `Colour::Code`. If a new `Colour::Code` is added to the system, this `switch` statement must be modified to include the new case, requiring changes to existing code. This directly violates the Open/Closed Principle, as the class is not closed for modification when new color types are introduced. A more OCP-compliant design would use a polymorphic approach where each color type is an object that encapsulates its specific behavior."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

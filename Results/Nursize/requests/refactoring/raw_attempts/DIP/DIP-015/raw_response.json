@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1758.253812789917,
+  "prompt_tokens": 3121,
+  "completion_tokens": 357,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Decouple request() from concrete Session class by using a module-level session factory.\",\n  \"rationale\": \"The request function was hardcoded to use sessions.Session. By defining a module-level variable for the session factory, we allow the implementation to be swapped or configured without modifying the high-level API function, adhering to the Dependency Inversion Principle.\",\n  \"files_touched\": [\"src/requests/api.py\"]\n}\n```\n\n<<<<<<< SEARCH\nfrom . import sessions\n\n\ndef request(method, url, **kwargs):\n=======\nfrom . import sessions\n\n# Default session factory\nsession_factory = sessions.Session\n\n\ndef request(method, url, **kwargs):\n>>>>>>> REPLACE\n\n<<<<<<< SEARCH\n    session_factory = kwargs.pop(\"session_factory\", sessions.Session)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with session_factory() as session:\n        return session.request(method=method, url=url, **kwargs)\n=======\n    factory = kwargs.pop(\"session_factory\", session_factory)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with factory() as session:\n        return session.request(method=method, url=url, **kwargs)\n>>>>>>> REPLACE"
+}

@@ -1,0 +1,275 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-070
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java`
+- **Entity**: `JsonElementTypeAdapter.read` (current lines L77-L77 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+If-else if chain and switch statements for reading different JSON element types, requiring modification for new types.
+
+### Reasoning
+The `read` method, particularly through its calls to `tryBeginNesting` and `readTerminal`, contains `switch` statements that dispatch logic based on `JsonToken` (e.g., `BEGIN_ARRAY`, `BEGIN_OBJECT`, `STRING`, `NUMBER`, `BOOLEAN`, `NULL`). Additionally, there's an `if (in instanceof JsonTreeReader)` check for optimization. If new JSON token types or new `JsonReader` subclasses that offer specialized reading were introduced, these conditional structures would need to be modified. This is a clear OCP violation, as extending JSON parsing capabilities or reader types requires altering existing code.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java`
+```java
+/*
+ * Copyright (C) 2024 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson.internal.bind;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.TypeAdapter;
+import com.google.gson.internal.LazilyParsedNumber;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Map;
+
+/** Adapter for {@link JsonElement} and subclasses. */
+public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+  public static final JsonElementTypeAdapter ADAPTER = new JsonElementTypeAdapter();
+
+  private JsonElementTypeAdapter() {}
+
+  /**
+   * Tries to begin reading a JSON array or JSON object, returning {@code null} if the next element
+   * is neither of those.
+   */
+  private JsonElement tryBeginNesting(JsonReader in, JsonToken peeked) throws IOException {
+    switch (peeked) {
+      case BEGIN_ARRAY:
+        in.beginArray();
+        return new JsonArray();
+      case BEGIN_OBJECT:
+        in.beginObject();
+        return new JsonObject();
+      default:
+        return null;
+    }
+  }
+
+  /** Reads a {@link JsonElement} which cannot have any nested elements */
+  private JsonElement readTerminal(JsonReader in, JsonToken peeked) throws IOException {
+    switch (peeked) {
+      case STRING:
+        return new JsonPrimitive(in.nextString());
+      case NUMBER:
+        String number = in.nextString();
+        return new JsonPrimitive(new LazilyParsedNumber(number));
+      case BOOLEAN:
+        return new JsonPrimitive(in.nextBoolean());
+      case NULL:
+        in.nextNull();
+        return JsonNull.INSTANCE;
+      default:
+        // When read(JsonReader) is called with JsonReader in invalid state
+        throw new IllegalStateException("Unexpected token: " + peeked);
+    }
+  }
+
+  @Override
+  public JsonElement read(JsonReader in) throws IOException {
+    // Optimization if value already exists as JsonElement
+    if (in instanceof JsonTreeReader) {
+      return ((JsonTreeReader) in).nextJsonElement();
+    }
+
+    // Either JsonArray or JsonObject
+    JsonElement current;
+    JsonToken peeked = in.peek();
+
+    current = tryBeginNesting(in, peeked);
+    if (current == null) {
+      return readTerminal(in, peeked);
+    }
+
+    Deque<JsonElement> stack = new ArrayDeque<>();
+
+    while (true) {
+      while (in.hasNext()) {
+        String name = null;
+        // Name is only used for JSON object members
+        if (current instanceof JsonObject) {
+          name = in.nextName();
+        }
+
+        peeked = in.peek();
+        JsonElement value = tryBeginNesting(in, peeked);
+        boolean isNesting = value != null;
+
+        if (value == null) {
+          value = readTerminal(in, peeked);
+        }
+
+        if (current instanceof JsonArray) {
+          ((JsonArray) current).add(value);
+        } else {
+          ((JsonObject) current).add(name, value);
+        }
+
+        if (isNesting) {
+          stack.addLast(current);
+          current = value;
+        }
+      }
+
+      // End current element
+      if (current instanceof JsonArray) {
+        in.endArray();
+      } else {
+        in.endObject();
+      }
+
+      if (stack.isEmpty()) {
+        return current;
+      } else {
+        // Continue with enclosing element
+        current = stack.removeLast();
+      }
+    }
+  }
+
+  @Override
+  public void write(JsonWriter out, JsonElement value) throws IOException {
+    if (value == null || value.isJsonNull()) {
+      out.nullValue();
+    } else if (value.isJsonPrimitive()) {
+      JsonPrimitive primitive = value.getAsJsonPrimitive();
+      if (primitive.isNumber()) {
+        out.value(primitive.getAsNumber());
+      } else if (primitive.isBoolean()) {
+        out.value(primitive.getAsBoolean());
+      } else {
+        out.value(primitive.getAsString());
+      }
+    } else if (value.isJsonArray()) {
+      out.beginArray();
+      for (JsonElement e : value.getAsJsonArray()) {
+        write(out, e);
+      }
+      out.endArray();
+    } else if (value.isJsonObject()) {
+      out.beginObject();
+      for (Map.Entry<String, JsonElement> e : value.getAsJsonObject().entrySet()) {
+        out.name(e.getKey());
+        write(out, e.getValue());
+      }
+      out.endObject();
+    } else {
+      throw new IllegalArgumentException("Couldn't write " + value.getClass());
+    }
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/internal/bind/ArrayTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/BasicTypeAdapters.java`
+- `gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java`
+- `gson/src/main/java/com/google/gson/internal/bind/CollectionTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/EnumTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java`
+- `gson/src/main/java/com/google/gson/internal/bind/IgnoreJRERequirement.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonTreeWriter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/MapTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/NumberTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/SerializationDelegatingTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TreeTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

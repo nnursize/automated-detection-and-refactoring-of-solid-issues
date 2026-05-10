@@ -1,0 +1,386 @@
+diff --git a/src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java b/src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java
+index 0005dde..05238da 100644
+--- a/src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java
++++ b/src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java
+@@ -9,6 +9,7 @@ import tools.jackson.core.io.CharTypes;
+ import tools.jackson.core.io.IOContext;
+ import tools.jackson.core.sym.ByteQuadsCanonicalizer;
+ import tools.jackson.core.util.*;
++import tools.jackson.core.json.UTF8DataInputBase64Decoder;
+ 
+ import static tools.jackson.core.JsonTokenId.*;
+ 
+@@ -93,6 +94,11 @@ public class UTF8DataInputJsonParser
+      */
+     protected int _nextByte = -1;
+ 
++    /**
++     * Helper for Base64 decoding from DataInput.
++     */
++    protected UTF8DataInputBase64Decoder _base64Decoder;
++
+     /*
+     /**********************************************************************
+     /* Life-cycle
+@@ -108,6 +114,7 @@ public class UTF8DataInputJsonParser
+         _symbols = sym;
+         _inputData = inputData;
+         _nextByte = firstByte;
++        _base64Decoder = new UTF8DataInputBase64Decoder(_inputData, _ioContext, this);
+     }
+ 
+     /*
+@@ -371,7 +378,7 @@ public class UTF8DataInputJsonParser
+          */
+         if (_tokenIncomplete) {
+             try {
+-                _binaryValue = _decodeBase64(b64variant);
++                _binaryValue = _base64Decoder.decode(b64variant);
+             } catch (IOException e) {
+                 throw _constructReadException("Failed to decode VALUE_STRING as base64 (%s): %s",
+                         b64variant, e.getMessage());
+@@ -407,7 +414,9 @@ public class UTF8DataInputJsonParser
+         // otherwise do "real" incremental parsing...
+         byte[] buf = _ioContext.allocBase64Buffer();
+         try {
+-            return _readBinary(b64variant, out, buf);
++            int count = _base64Decoder.readBinary(b64variant, out, buf);
++            _tokenIncomplete = false;
++            return count;
+         } catch (IOException e) {
+             throw _wrapIOFailure(e);
+         } finally {
+@@ -415,127 +424,6 @@ public class UTF8DataInputJsonParser
+         }
+     }
+ 
+-    protected int _readBinary(Base64Variant b64variant, OutputStream out,
+-            byte[] buffer)
+-        throws IOException
+-    {
+-        int outputPtr = 0;
+-        final int outputEnd = buffer.length - 3;
+-        int outputCount = 0;
+-
+-        while (true) {
+-            // first, we'll skip preceding white space, if any
+-            int ch;
+-            do {
+-                ch = _inputData.readUnsignedByte();
+-            } while (ch <= INT_SPACE);
+-            int bits = b64variant.decodeBase64Char(ch);
+-            if (bits < 0) { // reached the end, fair and square?
+-                if (ch == INT_QUOTE) {
+-                    break;
+-                }
+-                bits = _decodeBase64Escape(b64variant, ch, 0);
+-                if (bits < 0) { // white space to skip
+-                    continue;
+-                }
+-            }
+-
+-            // enough room? If not, flush
+-            if (outputPtr > outputEnd) {
+-                outputCount += outputPtr;
+-                out.write(buffer, 0, outputPtr);
+-                outputPtr = 0;
+-            }
+-
+-            int decodedData = bits;
+-
+-            // then second base64 char; can't get padding yet, nor ws
+-            ch = _inputData.readUnsignedByte();
+-            bits = b64variant.decodeBase64Char(ch);
+-            if (bits < 0) {
+-                bits = _decodeBase64Escape(b64variant, ch, 1);
+-            }
+-            decodedData = (decodedData << 6) | bits;
+-
+-            // third base64 char; can be padding, but not ws
+-            ch = _inputData.readUnsignedByte();
+-            bits = b64variant.decodeBase64Char(ch);
+-
+-            // First branch: can get padding (-> 1 byte)
+-            if (bits < 0) {
+-                if (bits != Base64Variant.BASE64_VALUE_PADDING) {
+-                    // could also just be 'missing'  padding
+-                    if (ch == INT_QUOTE) {
+-                        decodedData >>= 4;
+-                        buffer[outputPtr++] = (byte) decodedData;
+-                        if (b64variant.requiresPaddingOnRead()) {
+-                            _handleBase64MissingPadding(b64variant);
+-                        }
+-                        break;
+-                    }
+-                    bits = _decodeBase64Escape(b64variant, ch, 2);
+-                }
+-                if (bits == Base64Variant.BASE64_VALUE_PADDING) {
+-                    // Ok, must get padding
+-                    ch = _inputData.readUnsignedByte();
+-                    if (!b64variant.usesPaddingChar(ch)) {
+-                        if ((ch != INT_BACKSLASH)
+-                                || _decodeBase64Escape(b64variant, ch, 3) != Base64Variant.BASE64_VALUE_PADDING) {
+-                            _reportInvalidBase64Char(b64variant, ch, 3, "expected padding character '"+b64variant.getPaddingChar()+"'");
+-                        }
+-                    }
+-                    // Got 12 bits, only need 8, need to shift
+-                    decodedData >>= 4;
+-                    buffer[outputPtr++] = (byte) decodedData;
+-                    continue;
+-                }
+-            }
+-            // Nope, 2 or 3 bytes
+-            decodedData = (decodedData << 6) | bits;
+-            // fourth and last base64 char; can be padding, but not ws
+-            ch = _inputData.readUnsignedByte();
+-            bits = b64variant.decodeBase64Char(ch);
+-            if (bits < 0) {
+-                if (bits != Base64Variant.BASE64_VALUE_PADDING) {
+-                    // could also just be 'missing'  padding
+-                    if (ch == INT_QUOTE) {
+-                        decodedData >>= 2;
+-                        buffer[outputPtr++] = (byte) (decodedData >> 8);
+-                        buffer[outputPtr++] = (byte) decodedData;
+-                        if (b64variant.requiresPaddingOnRead()) {
+-                            _handleBase64MissingPadding(b64variant);
+-                        }
+-                        break;
+-                    }
+-                    bits = _decodeBase64Escape(b64variant, ch, 3);
+-                }
+-                if (bits == Base64Variant.BASE64_VALUE_PADDING) {
+-                    /* With padding we only get 2 bytes; but we have
+-                     * to shift it a bit so it is identical to triplet
+-                     * case with partial output.
+-                     * 3 chars gives 3x6 == 18 bits, of which 2 are
+-                     * dummies, need to discard:
+-                     */
+-                    decodedData >>= 2;
+-                    buffer[outputPtr++] = (byte) (decodedData >> 8);
+-                    buffer[outputPtr++] = (byte) decodedData;
+-                    continue;
+-                }
+-            }
+-            // otherwise, our triplet is now complete
+-            decodedData = (decodedData << 6) | bits;
+-            buffer[outputPtr++] = (byte) (decodedData >> 16);
+-            buffer[outputPtr++] = (byte) (decodedData >> 8);
+-            buffer[outputPtr++] = (byte) decodedData;
+-        }
+-        _tokenIncomplete = false;
+-        if (outputPtr > 0) {
+-            outputCount += outputPtr;
+-            out.write(buffer, 0, outputPtr);
+-        }
+-        return outputCount;
+-    }
+-
+     /*
+     /**********************************************************************
+     /* Public API, traversal, basic
+diff --git a/src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java b/src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java
+@@ -0,0 +1,199 @@
++package tools.jackson.core.json;
++
++import java.io.DataInput;
++import java.io.IOException;
++import java.io.OutputStream;
++
++import tools.jackson.core.Base64Variant;
++import tools.jackson.core.exc.StreamReadException;
++import tools.jackson.core.io.IOContext;
++import tools.jackson.core.util.ByteArrayBuilder;
++
++/**
++ * Helper class for {@link UTF8DataInputJsonParser} to handle Base64 decoding
++ * from a {@link DataInput} source.
++ */
++public class UTF8DataInputBase64Decoder {
++    private final DataInput _inputData;
++    private final IOContext _ioContext;
++    private final JsonParserBase _parser; // For error reporting and ByteArrayBuilder
++
++    // Constants from UTF8DataInputJsonParser's context
++    private final static int INT_SPACE = 0x0020; // ' '
++    private final static int INT_QUOTE = 0x0022; // '"'
++    private final static int INT_BACKSLASH = 0x005C; // '\'
++
++    public UTF8DataInputBase64Decoder(DataInput inputData, IOContext ioContext, JsonParserBase parser) {
++        _inputData = inputData;
++        _ioContext = ioContext;
++        _parser = parser;
++    }
++
++    /**
++     * Decodes a full Base64 value from the input stream into a byte array.
++     * This corresponds to the original `_decodeBase64(Base64Variant)` method.
++     */
++    public byte[] decode(Base64Variant b64variant) throws IOException {
++        ByteArrayBuilder builder = _parser._getByteArrayBuilder();
++        byte[] buffer = _ioContext.allocBase64Buffer();
++        try {
++            readBinary(b64variant, builder, buffer);
++        } finally {
++            _ioContext.releaseBase64Buffer(buffer);
++        }
++        return builder.toByteArray();
++    }
++
++    /**
++     * Reads and decodes Base64 content from the input stream, writing it to the
++     * provided OutputStream. This corresponds to the original `_readBinary` method.
++     */
++    public int readBinary(Base64Variant b64variant, OutputStream out, byte[] buffer) throws IOException {
++        int outputPtr = 0;
++        final int outputEnd = buffer.length - 3;
++        int outputCount = 0;
++
++        while (true) {
++            // first, we'll skip preceding white space, if any
++            int ch;
++            do {
++                ch = _inputData.readUnsignedByte();
++            } while (ch <= INT_SPACE);
++            int bits = b64variant.decodeBase64Char(ch);
++            if (bits < 0) { // reached the end, fair and square?
++                if (ch == INT_QUOTE) {
++                    break;
++                }
++                bits = _decodeBase64Escape(b64variant, ch, 0);
++                if (bits < 0) { // white space to skip
++                    continue;
++                }
++            }
++
++            // enough room? If not, flush
++            if (outputPtr > outputEnd) {
++                outputCount += outputPtr;
++                out.write(buffer, 0, outputPtr);
++                outputPtr = 0;
++            }
++
++            int decodedData = bits;
++
++            // then second base64 char; can't get padding yet, nor ws
++            ch = _inputData.readUnsignedByte();
++            bits = b64variant.decodeBase64Char(ch);
++            if (bits < 0) {
++                bits = _decodeBase64Escape(b64variant, ch, 1);
++            }
++            decodedData = (decodedData << 6) | bits;
++
++            // third base64 char; can be padding, but not ws
++            ch = _inputData.readUnsignedByte();
++            bits = b64variant.decodeBase64Char(ch);
++
++            // First branch: can get padding (-> 1 byte)
++            if (bits < 0) {
++                if (bits != Base64Variant.BASE64_VALUE_PADDING) {
++                    // could also just be 'missing'  padding
++                    if (ch == INT_QUOTE) {
++                        decodedData >>= 4;
++                        buffer[outputPtr++] = (byte) decodedData;
++                        if (b64variant.requiresPaddingOnRead()) {
++                            _handleBase64MissingPadding(b64variant);
++                        }
++                        break;
++                    }
++                    bits = _decodeBase64Escape(b64variant, ch, 2);
++                }
++                if (bits == Base64Variant.BASE64_VALUE_PADDING) {
++                    // Ok, must get padding
++                    ch = _inputData.readUnsignedByte();
++                    if (!b64variant.usesPaddingChar(ch)) {
++                        if ((ch != INT_BACKSLASH)
++                                || _decodeBase64Escape(b64variant, ch, 3) != Base64Variant.BASE64_VALUE_PADDING) {
++                            _reportInvalidBase64Char(b64variant, ch, 3, "expected padding character '"+b64variant.getPaddingChar()+"'");
++                        }
++                    }
++                    // Got 12 bits, only need 8, need to shift
++                    decodedData >>= 4;
++                    buffer[outputPtr++] = (byte) decodedData;
++                    continue;
++                }
++            }
++            // Nope, 2 or 3 bytes
++            decodedData = (decodedData << 6) | bits;
++            // fourth and last base64 char; can be padding, but not ws
++            ch = _inputData.readUnsignedByte();
++            bits = b64variant.decodeBase64Char(ch);
++            if (bits < 0) {
++                if (bits != Base64Variant.BASE64_VALUE_PADDING) {
++                    // could also just be 'missing'  padding
++                    if (ch == INT_QUOTE) {
++                        decodedData >>= 2;
++                        buffer[outputPtr++] = (byte) (decodedData >> 8);
++                        buffer[outputPtr++] = (byte) decodedData;
++                        if (b64variant.requiresPaddingOnRead()) {
++                            _handleBase64MissingPadding(b64variant);
++                        }
++                        break;
++                    }
++                    bits = _decodeBase64Escape(b64variant, ch, 3);
++                }
++                if (bits == Base64Variant.BASE64_VALUE_PADDING) {
++                    /* With padding we only get 2 bytes; but we have
++                     * to shift it a bit so it is identical to triplet
++                     * case with partial output.
++                     * 3 chars gives 3x6 == 18 bits, of which 2 are
++                     * dummies, need to discard:
++                     */
++                    decodedData >>= 2;
++                    buffer[outputPtr++] = (byte) (decodedData >> 8);
++                    buffer[outputPtr++] = (byte) decodedData;
++                    continue;
++                }
++            }
++            // otherwise, our triplet is now complete
++            decodedData = (decodedData << 6) | bits;
++            buffer[outputPtr++] = (byte) (decodedData >> 16);
++            buffer[outputPtr++] = (byte) (decodedData >> 8);
++            buffer[outputPtr++] = (byte) decodedData;
++        }
++        if (outputPtr > 0) {
++            outputCount += outputPtr;
++            out.write(buffer, 0, outputPtr);
++        }
++        return outputCount;
++    }
++
++    protected int _decodeBase64Escape(Base64Variant b64variant, int ch, int bptrs) throws IOException {
++        if (ch != INT_BACKSLASH) {
++            _reportInvalidBase64Char(b64variant, ch, bptrs, null);
++        }
++        int unescaped = _inputData.readUnsignedByte();
++        if (unescaped == INT_QUOTE) { // " is not escaped by default
++            return b64variant.decodeBase64Char(unescaped);
++        }
++        // !!! TODO: maybe allow other escapes?
++        _reportInvalidBase64Char(b64variant, unescaped, bptrs, "unrecognized character escape for base64 (needs to be '\"')");
++        return -1; // never gets here
++    }
++
++    protected void _handleBase64MissingPadding(Base64Variant b64variant) throws StreamReadException {
++        _parser._reportError("Unexpected end-of-input in null-terminated base64 String (expected padding character '"+b64variant.getPaddingChar()+"').");
++    }
++
++    protected void _reportInvalidBase64Char(Base64Variant b64variant, int ch, int bptrs, String msg) throws StreamReadException {
++        String base;
++        if (ch <= INT_SPACE) {
++            base = "Illegal white space character (code 0x"+Integer.toHexString(ch)+") in base64 content";
++        } else if (b64variant.usesPaddingChar(ch)) {
++            base = "Unexpected padding character ('"+b64variant.getPaddingChar()+"') in base64 content";
++        } else {
++            base = "Illegal character '"+((char)ch)+"' (code 0x"+Integer.toHexString(ch)+") in base64 content";
++        }
++        if (msg != null) {
++            base = base + ": " + msg;
++        }
++        _parser._reportError(base);
++    }
++}
+\ No newline at end of file

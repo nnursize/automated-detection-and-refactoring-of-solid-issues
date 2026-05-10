@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.Queue",
+    "entity_type": "class",
+    "line_start": 102,
+    "line_end": 107,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Hard-coded instantiation of dependencies via constructor",
+    "reasoning": "The Queue class is responsible for creating its own dependencies (Settings, Metric) via hard-coded constructor logic. It should instead receive these dependencies through constructor injection to allow for easier testing and dependency management."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.createDeadLetterQueueWriterFromSettings",
+    "entity_type": "class",
+    "line_start": 398,
+    "line_end": 398,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "High-level business logic instantiating low-level implementation detail",
+    "reasoning": "The AbstractPipelineExt class is creating a DeadLetterQueueWriter instance directly. High-level modules should rely on abstractions, not concrete implementations of writers."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+    "entity_name": "CompiledPipeline.CompiledPipeline",
+    "entity_type": "class",
+    "line_start": 113,
+    "line_end": 120,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct dependency on concrete PluginFactory implementation",
+    "reasoning": "The constructor forces a dependency on RubyIntegration.PluginFactory. While an interface, it is highly coupled to Ruby-specific integration logic within a Java compiled pipeline, violating the separation of concerns by leaking infrastructure details into the business logic."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt.buildInput",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 122,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Factory method directly instantiating plugins without abstraction injection",
+    "reasoning": "The method is responsible for instantiating plugins directly. In a DIP-compliant architecture, the factory should utilize a registry or provider pattern where the injection of the plugin implementation is managed outside of the instantiation logic."
+  }
+]

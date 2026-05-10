@@ -1,0 +1,85 @@
+{
+  "issue_id": "ISP-022",
+  "principle": "ISP",
+  "title": "Refactor ISP-022 (ISP): Context class exposes methods for both IResultCapture and IConfig, potentiall...",
+  "branch": "refactor/ISP-022",
+  "base": "main",
+  "head_commit": "2a3e90bc5cf75ef551e4552f2be95f31800d55c5",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3807,
+    "completion_tokens": 513
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Context",
+    "entity_type": "class",
+    "line_start": 569,
+    "line_end": 587,
+    "severity": "low",
+    "scan_count": 3,
+    "description": "Context class exposes methods for both IResultCapture and IConfig, potentially forcing clients to depend on unused interfaces.",
+    "reasoning": "The Context class has methods like getResultCapture() and getConfig() which return pointers to IResultCapture and IConfig respectively. If a client only needs one of these, it still depends on the Context class which aggregates both. This could be seen as a violation of ISP if Context is considered an 'interface' in itself, and clients are forced to depend on methods they don't use."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Split Context into IResultCaptureProvider and IConfigProvider to adhere to ISP",
+    "rationale": "The Context class was acting as a 'fat' interface provider. By introducing IResultCaptureProvider and IConfigProvider, clients can now depend on only the specific functionality they require, adhering to the Interface Segregation Principle.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class Context {\n        IConfig const* m_config = nullptr;\n        IResultCapture* m_resultCapture = nullptr;\n\n        CATCH_EXPORT static Context currentContext;\n        friend Context& getCurrentMutableContext();\n        friend Context const& getCurrentContext();\n\n    public:\n        constexpr IResultCapture* getResultCapture() const {\n            return m_resultCapture;\n        }\n        constexpr IConfig const* getConfig() const { return m_config; }\n        constexpr void setResultCapture( IResultCapture* resultCapture ) {\n            m_resultCapture = resultCapture;\n        }\n        constexpr void setConfig( IConfig const* config ) { m_config = config; }\n    };",
+        "replace_text": "    class IResultCaptureProvider {\n    public:\n        virtual ~IResultCaptureProvider() = default;\n        virtual IResultCapture* getResultCapture() const = 0;\n    };\n\n    class IConfigProvider {\n    public:\n        virtual ~IConfigProvider() = default;\n        virtual IConfig const* getConfig() const = 0;\n    };\n\n    class Context : public IResultCaptureProvider, public IConfigProvider {\n        IConfig const* m_config = nullptr;\n        IResultCapture* m_resultCapture = nullptr;\n\n        CATCH_EXPORT static Context currentContext;\n        friend Context& getCurrentMutableContext();\n        friend Context const& getCurrentContext();\n\n    public:\n        IResultCapture* getResultCapture() const override {\n            return m_resultCapture;\n        }\n        IConfig const* getConfig() const override { return m_config; }\n        void setResultCapture( IResultCapture* resultCapture ) {\n            m_resultCapture = resultCapture;\n        }\n        void setConfig( IConfig const* config ) { m_config = config; }\n    };",
+        "search_lines": 18,
+        "replace_lines": 30
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10486,
+        "blank_lines": 3077,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10496,
+        "blank_lines": 3079,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex e517e65..6435ff7 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -570,7 +570,19 @@ namespace Catch {\n     class IRuntimeConfig;\n     class IConfig;\n \n-    class Context {\n+    class IResultCaptureProvider {\n+    public:\n+        virtual ~IResultCaptureProvider() = default;\n+        virtual IResultCapture* getResultCapture() const = 0;\n+    };\n+\n+    class IConfigProvider {\n+    public:\n+        virtual ~IConfigProvider() = default;\n+        virtual IConfig const* getConfig() const = 0;\n+    };\n+\n+    class Context : public IResultCaptureProvider, public IConfigProvider {\n         IConfig const* m_config = nullptr;\n         IResultCapture* m_resultCapture = nullptr;\n \n@@ -579,14 +591,14 @@ namespace Catch {\n         friend Context const& getCurrentContext();\n \n     public:\n-        constexpr IResultCapture* getResultCapture() const {\n+        IResultCapture* getResultCapture() const override {\n             return m_resultCapture;\n         }\n-        constexpr IConfig const* getConfig() const { return m_config; }\n-        constexpr void setResultCapture( IResultCapture* resultCapture ) {\n+        IConfig const* getConfig() const override { return m_config; }\n+        void setResultCapture( IResultCapture* resultCapture ) {\n             m_resultCapture = resultCapture;\n         }\n-        constexpr void setConfig( IConfig const* config ) { m_config = config; }\n+        void setConfig( IConfig const* config ) { m_config = config; }\n     };\n \n     class ITestConfig {\n",
+  "duration_ms": 4456.85601234436
+}

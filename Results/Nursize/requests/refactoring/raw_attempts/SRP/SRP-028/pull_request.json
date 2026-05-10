@@ -1,0 +1,100 @@
+{
+  "issue_id": "SRP-028",
+  "principle": "SRP",
+  "title": "Refactor SRP-028 (SRP): Implements the full HTTP Digest Authentication header construction logic, inc...",
+  "branch": "refactor/SRP-028",
+  "base": "main",
+  "head_commit": "fbbb51ee88d79384e571ee7f04ba1b13f1b954a9",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4233,
+    "completion_tokens": 724
+  },
+  "detected_issue": {
+    "file_path": "src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.build_digest_header",
+    "entity_type": "method",
+    "line_start": 78,
+    "line_end": 160,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Implements the full HTTP Digest Authentication header construction logic, including hash function selection, nonce/cnonce/qop calculations, and header formatting.",
+    "reasoning": "This is a 'god method' that encapsulates the entire RFC 2617 Digest Authentication header construction. Its responsibilities include: 1) Extracting various parameters (realm, nonce, qop, algorithm, opaque) from `self._thread_local.chal`. 2) Dynamically selecting the appropriate hash function (MD5, SHA, SHA-256, SHA-512). 3) Performing complex cryptographic calculations for `HA1`, `HA2`, `respdig` involving nonce, cnonce, and qop. 4) Formatting the final `Digest` header string with all its components. Any change in the Digest Auth specification, supported algorithms, or calculation methods would require extensive modification to this single function."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract Digest Auth header construction logic into a helper function to improve SRP.",
+    "rationale": "The build_digest_header method was doing too much: algorithm selection, cryptographic calculations, and string formatting. By extracting the algorithm selection and hashing logic into a helper function, we separate the concerns of 'how to hash' from 'how to build the header'.",
+    "files_touched": [
+      "src/requests/auth.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/auth.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/auth.py",
+        "search_text": "        if algorithm is None:\n            _algorithm = \"MD5\"\n        else:\n            _algorithm = algorithm.upper()\n        # lambdas assume digest modules are imported at the top level\n        if _algorithm == \"MD5\" or _algorithm == \"MD5-SESS\":\n\n            def md5_utf8(x):\n                if isinstance(x, str):\n                    x = x.encode(\"utf-8\")\n                return hashlib.md5(x).hexdigest()\n\n            hash_utf8 = md5_utf8\n        elif _algorithm == \"SHA\":\n\n            def sha_utf8(x):\n                if isinstance(x, str):\n                    x = x.encode(\"utf-8\")\n                return hashlib.sha1(x).hexdigest()\n\n            hash_utf8 = sha_utf8\n        elif _algorithm == \"SHA-256\":\n\n            def sha256_utf8(x):\n                if isinstance(x, str):\n                    x = x.encode(\"utf-8\")\n                return hashlib.sha256(x).hexdigest()\n\n            hash_utf8 = sha256_utf8\n        elif _algorithm == \"SHA-512\":\n\n            def sha512_utf8(x):\n                if isinstance(x, str):\n                    x = x.encode(\"utf-8\")\n                return hashlib.sha512(x).hexdigest()\n\n            hash_utf8 = sha512_utf8\n\n        KD = lambda s, d: hash_utf8(f\"{s}:{d}\")  # noqa:E731",
+        "replace_text": "        def get_hash_function(algorithm):\n            if algorithm is None:\n                algorithm = \"MD5\"\n            else:\n                algorithm = algorithm.upper()\n\n            def hash_utf8(x):\n                if isinstance(x, str):\n                    x = x.encode(\"utf-8\")\n                if algorithm == \"MD5\" or algorithm == \"MD5-SESS\":\n                    return hashlib.md5(x).hexdigest()\n                elif algorithm == \"SHA\":\n                    return hashlib.sha1(x).hexdigest()\n                elif algorithm == \"SHA-256\":\n                    return hashlib.sha256(x).hexdigest()\n                elif algorithm == \"SHA-512\":\n                    return hashlib.sha512(x).hexdigest()\n                return None\n\n            return hash_utf8, algorithm\n\n        hash_utf8, _algorithm = get_hash_function(algorithm)\n        KD = lambda s, d: hash_utf8(f\"{s}:{d}\")  # noqa:E731",
+        "search_lines": 39,
+        "replace_lines": 23
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165954.38170433044,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [WinError 10054] An existing connection was forcibly closed by the remote host\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:482: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.21s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 12:43:57] \"GET /get HTTP/1.1\" 200 222\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/auth.py",
+        "loc": 223,
+        "blank_lines": 64,
+        "comment_lines": 27,
+        "function_count": 19,
+        "avg_cc": 2.95,
+        "max_cc": 19.0,
+        "mi": 47.4
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/auth.py",
+        "loc": 214,
+        "blank_lines": 58,
+        "comment_lines": 26,
+        "function_count": 17,
+        "avg_cc": 2.58,
+        "max_cc": 13.0,
+        "mi": 48.8
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/auth.py b/src/requests/auth.py\nindex c39b645..2664e45 100644\n--- a/src/requests/auth.py\n+++ b/src/requests/auth.py\n@@ -135,44 +135,28 @@ class HTTPDigestAuth(AuthBase):\n         opaque = self._thread_local.chal.get(\"opaque\")\n         hash_utf8 = None\n \n-        if algorithm is None:\n-            _algorithm = \"MD5\"\n-        else:\n-            _algorithm = algorithm.upper()\n-        # lambdas assume digest modules are imported at the top level\n-        if _algorithm == \"MD5\" or _algorithm == \"MD5-SESS\":\n-\n-            def md5_utf8(x):\n-                if isinstance(x, str):\n-                    x = x.encode(\"utf-8\")\n-                return hashlib.md5(x).hexdigest()\n+        def get_hash_function(algorithm):\n+            if algorithm is None:\n+                algorithm = \"MD5\"\n+            else:\n+                algorithm = algorithm.upper()\n \n-            hash_utf8 = md5_utf8\n-        elif _algorithm == \"SHA\":\n-\n-            def sha_utf8(x):\n+            def hash_utf8(x):\n                 if isinstance(x, str):\n                     x = x.encode(\"utf-8\")\n-                return hashlib.sha1(x).hexdigest()\n-\n-            hash_utf8 = sha_utf8\n-        elif _algorithm == \"SHA-256\":\n-\n-            def sha256_utf8(x):\n-                if isinstance(x, str):\n-                    x = x.encode(\"utf-8\")\n-                return hashlib.sha256(x).hexdigest()\n-\n-            hash_utf8 = sha256_utf8\n-        elif _algorithm == \"SHA-512\":\n-\n-            def sha512_utf8(x):\n-                if isinstance(x, str):\n-                    x = x.encode(\"utf-8\")\n-                return hashlib.sha512(x).hexdigest()\n-\n-            hash_utf8 = sha512_utf8\n-\n+                if algorithm == \"MD5\" or algorithm == \"MD5-SESS\":\n+                    return hashlib.md5(x).hexdigest()\n+                elif algorithm == \"SHA\":\n+                    return hashlib.sha1(x).hexdigest()\n+                elif algorithm == \"SHA-256\":\n+                    return hashlib.sha256(x).hexdigest()\n+                elif algorithm == \"SHA-512\":\n+                    return hashlib.sha512(x).hexdigest()\n+                return None\n+\n+            return hash_utf8, algorithm\n+\n+        hash_utf8, _algorithm = get_hash_function(algorithm)\n         KD = lambda s, d: hash_utf8(f\"{s}:{d}\")  # noqa:E731\n \n         if hash_utf8 is None:\n",
+  "duration_ms": 170306.81991577148
+}

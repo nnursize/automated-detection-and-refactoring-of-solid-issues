@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/cookies.py",
+    "search_text": "    def __getitem__(self, name):\n        \"\"\"Dict-like __getitem__() for compatibility with client code. Throws\n        exception if there are more than one cookie with name. In that case,\n        use the more explicit get() method instead.\n\n        .. warning:: operation is O(n), not O(1).\n        \"\"\"\n        return self._find_no_duplicates(name)",
+    "replace_text": "    def __getitem__(self, name):\n        \"\"\"Dict-like __getitem__() for compatibility with client code. Throws\n        exception if there are more than one cookie with name. In that case,\n        use the more explicit get() method instead.\n\n        .. warning:: operation is O(n), not O(1).\n        \"\"\"\n        try:\n            return self._find_no_duplicates(name)\n        except CookieConflictError as e:\n            raise KeyError(str(e))"
+  }
+]

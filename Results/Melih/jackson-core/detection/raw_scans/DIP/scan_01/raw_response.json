@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_DIP_scan_01",
+  "repo_name": "jackson-core",
+  "principle": "DIP",
+  "scan_number": 1,
+  "timestamp": "2026-05-02T16:05:28.077588",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Dependency Inversion Principle (DIP).\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.\n\n## What to Look For\n- Classes that directly instantiate their dependencie...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._reportInvalidToken\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1530,\n      \"line_end\": 1533,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Direct instantiation of TokenStreamLocation concrete class.\",\n      \"reasoning\": \"The parser directly instantiates TokenStreamLocation instead of using a factory or receiving it via injection. While TokenStreamLocation is a value object, this creates a tight coupling between the high-level parsing logic and the specific implementation of location tracking.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\",\n      \"entity_name\": \"ReaderBasedJsonParser._reportInvalidToken\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1530,\n      \"line_end\": 1533,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Direct instantiation of TokenStreamLocation concrete class.\",\n      \"reasoning\": \"Similar to UTF8StreamJsonParser, this class directly instantiates a concrete implementation of location metadata, violating the principle that high-level modules should depend on abstractions.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator._constructWriteException\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1118,\n      \"line_end\": 1118,\n      \"principle\": \"DIP\",\n      \"severity\": \"low\",\n      \"description\": \"Direct instantiation of StreamWriteException.\",\n      \"reasoning\": \"The base class for generators directly instantiates a concrete exception type. While common in Java, strictly speaking, this couples the generator abstraction to a specific detail (the exception implementation).\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 115,\n      \"line_end\": 125,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Dependency on concrete canonicalizer implementation ByteQuadsCanonicalizer.\",\n      \"reasoning\": \"The parser depends on ByteQuadsCanonicalizer, which is a concrete implementation of symbol table management. DIP suggests that high-level modules (",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._reportInvalidToken",
+      "entity_type": "method",
+      "line_start": 1530,
+      "line_end": 1533,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Direct instantiation of TokenStreamLocation concrete class.",
+      "reasoning": "The parser directly instantiates TokenStreamLocation instead of using a factory or receiving it via injection. While TokenStreamLocation is a value object, this creates a tight coupling between the high-level parsing logic and the specific implementation of location tracking."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "entity_name": "ReaderBasedJsonParser._reportInvalidToken",
+      "entity_type": "method",
+      "line_start": 1530,
+      "line_end": 1533,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Direct instantiation of TokenStreamLocation concrete class.",
+      "reasoning": "Similar to UTF8StreamJsonParser, this class directly instantiates a concrete implementation of location metadata, violating the principle that high-level modules should depend on abstractions."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator._constructWriteException",
+      "entity_type": "method",
+      "line_start": 1118,
+      "line_end": 1118,
+      "principle": "DIP",
+      "severity": "low",
+      "description": "Direct instantiation of StreamWriteException.",
+      "reasoning": "The base class for generators directly instantiates a concrete exception type. While common in Java, strictly speaking, this couples the generator abstraction to a specific detail (the exception implementation)."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 209537.38856315613,
+  "error": null
+}

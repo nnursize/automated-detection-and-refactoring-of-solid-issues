@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 434,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Bloated API: JsonElement forces all subclasses to implement many isJsonX() and getAsJsonX() methods.",
+    "reasoning": "The `JsonElement` class defines numerous `isJsonX()` (e.g., `isJsonArray`, `isJsonObject`) and `getAsJsonX()` (e.g., `getAsJsonObject`, `getAsJsonArray`, `getAsString`, `getAsDouble`) methods. Adding a new JSON element type (e.g., `JsonComment`) would require modifying the `JsonElement` class itself to add corresponding `isJsonComment()` and `getAsJsonComment()` methods. Consequently, all existing concrete subclasses (`JsonArray`, `JsonObject`, `JsonPrimitive`, `JsonNull`) would need to be modified to implement these new methods, typically by throwing `IllegalStateException`, thus violating OCP. This indicates a broad API that should be segregated into role-specific interfaces or refactored using a visitor pattern."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.doPeek",
+    "entity_type": "method",
+    "line_start": 582,
+    "line_end": 594,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Inferred type-checking logic in `doPeek()` to determine `JsonToken` type.",
+    "reasoning": "The `doPeek()` method is responsible for identifying the next JSON token from the input stream. This typically involves a large `switch` statement or `if-else if` chain based on character codes or internal state to map to `JsonToken` enum values. Adding a new `JsonToken` type (e.g., for a new JSON extension) would necessitate modifying this existing method, violating OCP. A more pluggable tokenization strategy could improve extensibility."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "entity_name": "JsonTreeReader.peek",
+    "entity_type": "method",
+    "line_start": 126,
+    "line_end": 158,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Inferred type-checking logic in `peek()` based on internal stack state and `JsonElement` types.",
+    "reasoning": "The `peek()` method in `JsonTreeReader` determines the next `JsonToken` by inspecting the current element on its internal stack. This requires `instanceof` checks or similar type-dependent logic (e.g., `if (stack.peek() instanceof JsonArray)`). Adding a new `JsonElement` type or a new internal stack state that maps to a `JsonToken` would require modifying this method, violating OCP. This could be improved by using a more polymorphic approach for stack elements or a visitor pattern on `JsonElement`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeWriter.java",
+    "entity_name": "JsonTreeWriter.put",
+    "entity_type": "method",
+    "line_start": 79,
+    "line_end": 94,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Inferred type-checking logic in `put()` to handle different `JsonElement` types.",
+    "reasoning": "The `put(JsonElement value)` method, or its internal helpers, must inspect the concrete type of the `JsonElement` (e.g., using `instanceof` checks for `JsonObject`, `JsonArray`, `JsonPrimitive`, `JsonNull`) to correctly add it to the JSON tree representation. Adding a new `JsonElement` type would require modifying this method with a new `if-else` branch or `switch` on type, violating OCP. This could be addressed with a visitor pattern on `JsonElement` or by having `JsonElement` itself handle its writing to a `JsonWriter`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java",
+    "entity_name": "ObjectTypeAdapter.read",
+    "entity_type": "method",
+    "line_start": 109,
+    "line_end": 116,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Inferred type-checking logic in `read()` for `JsonToken` types during deserialization.",
+    "reasoning": "The `read()` method (and its helpers `readTerminal`, `tryBeginNesting`) in `ObjectTypeAdapter` (and similarly `JsonElementTypeAdapter`) must determine how to parse the next value based on the `JsonToken` peeked from the `JsonReader`. This typically involves a `switch` statement or `if-else if` chain on `JsonToken` enum values. Adding a new `JsonToken` type would require modifying these methods, violating OCP. This is a common challenge in parsers that could be mitigated with a more extensible parsing strategy or a token-specific handler registry."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.get",
+    "entity_type": "method",
+    "line_start": 103,
+    "line_end": 170,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Inferred type-checking logic for special collection/map types during object construction.",
+    "reasoning": "The `get` method likely contains an `if-else if` chain that checks the `rawType` of the `TypeToken` to provide specialized `ObjectConstructor` implementations for specific types (e.g., `EnumSet`, `EnumMap`, `Collection`, `Map`, `Date`). If a new type requires a custom construction strategy, this method would need to be modified to add a new branch, violating OCP. This could be improved by using a registry of `ObjectConstructorFactory` instances or a chain of responsibility pattern for constructor resolution."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.get().create",
+    "entity_type": "method",
+    "line_start": 396,
+    "line_end": 396,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Inferred type-checking logic in `create()` method of the `JavaTimeTypeAdapters` factory for various `java.time` types.",
+    "reasoning": "The `create` method of the anonymous `TypeAdapterFactory` returned by `JavaTimeTypeAdapters.get()` is responsible for providing `TypeAdapter`s for different `java.time` types. This method will likely contain a large `if-else if` chain or `switch` statement on `typeToken.getRawType()` to match specific `java.time` classes (e.g., `Duration.class`, `Instant.class`, `LocalDate.class`). Adding support for a new `java.time` type would require modifying this existing `create` method, violating OCP. A more extensible approach would involve a registry of factories or a more generic type matching mechanism."
+  }
+]

@@ -1,0 +1,43 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 6435ff7..0a5a59e 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -564,12 +564,38 @@
+ 
+ namespace Catch {
+ 
++    class IAssertionCapture;
++    class IMessageCapture;
++    class ISectionCapture;
+     class IResultCapture;
+     class ITestConfig;
+     class IReporterConfig;
+     class IRuntimeConfig;
+     class IConfig;
+ 
++    class IAssertionCapture {
++    public:
++        virtual ~IAssertionCapture() = default;
++        // ... methods for assertions ...
++    };
++
++    class IMessageCapture {
++    public:
++        virtual ~IMessageCapture() = default;
++        // ... methods for messages ...
++    };
++
++    class ISectionCapture {
++    public:
++        virtual ~ISectionCapture() = default;
++        // ... methods for sections ...
++    };
++
++    class IResultCapture : public IAssertionCapture, public IMessageCapture, public ISectionCapture {
++    public:
++        ~IResultCapture() override = default;
++    };
++
+     class IResultCaptureProvider {
+     public:
+         virtual ~IResultCaptureProvider() = default;

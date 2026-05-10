@@ -1,0 +1,233 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS.write",
+    "entity_type": "method",
+    "line_start": 67,
+    "line_end": 73,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method that should perform serialization.",
+    "reasoning": "The TypeAdapter.write method's contract implies that it should serialize the given value. Throwing an UnsupportedOperationException fundamentally alters this contract, making the subtype not substitutable for the base type without altering program correctness. The base TypeAdapter does not declare this exception."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS.read",
+    "entity_type": "method",
+    "line_start": 75,
+    "line_end": 79,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method that should perform deserialization.",
+    "reasoning": "The TypeAdapter.read method's contract implies that it should deserialize a value. Throwing an UnsupportedOperationException fundamentally alters this contract, making the subtype not substitutable for the base type without altering program correctness. The base TypeAdapter does not declare this exception."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.FloatAdapter.write",
+    "entity_type": "method",
+    "line_start": 464,
+    "line_end": 479,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype introduces a new precondition by throwing IllegalArgumentException for NaN/Infinity values.",
+    "reasoning": "The TypeAdapter<Number>.write method does not explicitly state a precondition that floating-point numbers must be finite. By throwing an IllegalArgumentException for NaN or Infinity values when 'strict' is true, FloatAdapter introduces a new precondition that might not be expected by clients using TypeAdapter<Number> polymorphically. While IllegalArgumentException is a RuntimeException and thus doesn't break the method signature, it alters the expected behavior."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.DoubleAdapter.write",
+    "entity_type": "method",
+    "line_start": 497,
+    "line_end": 509,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype introduces a new precondition by throwing IllegalArgumentException for NaN/Infinity values.",
+    "reasoning": "The TypeAdapter<Number>.write method does not explicitly state a precondition that floating-point numbers must be finite. By throwing an IllegalArgumentException for NaN or Infinity values when 'strict' is true, DoubleAdapter introduces a new precondition that might not be expected by clients using TypeAdapter<Number> polymorphically. While IllegalArgumentException is a RuntimeException and thus doesn't break the method signature, it alters the expected behavior."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CALENDAR.create",
+    "entity_type": "method",
+    "line_start": 863,
+    "line_end": 870,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for Calendar calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.newTypeHierarchyFactory.create.read",
+    "entity_type": "method",
+    "line_start": 1050,
+    "line_end": 1065,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Wrapped TypeAdapter's 'read' method throws an exception for a valid return value.",
+    "reasoning": "The TypeAdapter created by newTypeHierarchyFactory wraps another TypeAdapter. Its 'read' method calls the wrapped adapter's 'read' and then throws JsonSyntaxException if the result is not an instance of 'requestedType'. This alters the postcondition of the wrapped adapter's 'read' method, as it can throw an exception for a value that the original adapter would have legitimately returned. This makes the wrapper not substitutable for the original adapter."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.DURATION.create",
+    "entity_type": "method",
+    "line_start": 54,
+    "line_end": 56,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for Duration calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.INSTANT.create",
+    "entity_type": "method",
+    "line_start": 69,
+    "line_end": 71,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for Instant calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.LOCAL_DATE.create",
+    "entity_type": "method",
+    "line_start": 84,
+    "line_end": 86,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for LocalDate calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.LOCAL_TIME.create",
+    "entity_type": "method",
+    "line_start": 100,
+    "line_end": 104,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for LocalTime calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.MONTH_DAY.create",
+    "entity_type": "method",
+    "line_start": 169,
+    "line_end": 171,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for MonthDay calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.PERIOD.create",
+    "entity_type": "method",
+    "line_start": 269,
+    "line_end": 271,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for Period calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.YEAR.create",
+    "entity_type": "method",
+    "line_start": 284,
+    "line_end": 286,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for Year calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.YEAR_MONTH.create",
+    "entity_type": "method",
+    "line_start": 299,
+    "line_end": 301,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's 'read' method (indirectly via 'create') throws an undeclared RuntimeException.",
+    "reasoning": "The TypeAdapter.read method (inherited from IntegerFieldsTypeAdapter) is declared to throw IOException. The 'create' method of the anonymous TypeAdapter for YearMonth calls toIntExact, which can throw IllegalArgumentException (a RuntimeException) if a long value is too large for an int. This introduces an unexpected RuntimeException not covered by the declared IOException, violating the postcondition of the 'read' method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap.put",
+    "entity_type": "method",
+    "line_start": 115,
+    "line_end": 123,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype changes preconditions by forbidding null keys and conditionally null values.",
+    "reasoning": "The AbstractMap.put method generally permits null keys (one) and null values (multiple). LinkedTreeMap.put explicitly throws NullPointerException for null keys and conditionally for null values (if allowNullValues is false). This changes the preconditions of the put method, making LinkedTreeMap not fully substitutable for AbstractMap without altering correctness."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap.Node.setValue",
+    "entity_type": "method",
+    "line_start": 506,
+    "line_end": 512,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype changes preconditions by conditionally forbidding null values.",
+    "reasoning": "The Map.Entry.setValue method generally allows null values. LinkedTreeMap.Node.setValue throws NullPointerException if the value is null and allowNullValue is false. This changes the preconditions of the setValue method, making LinkedTreeMap.Node not fully substitutable for Map.Entry without altering correctness."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap.readObject",
+    "entity_type": "method",
+    "line_start": 684,
+    "line_end": 687,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws InvalidObjectException during deserialization, violating Serializable contract.",
+    "reasoning": "The Serializable interface implies that an object can be deserialized. LinkedTreeMap.readObject explicitly throws InvalidObjectException, preventing direct deserialization. While writeReplace is used to provide an alternative, this method's behavior directly violates the implicit contract of the Serializable interface for direct deserialization, making it not fully substitutable."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create (anonymous/local class adapter)",
+    "entity_type": "method",
+    "line_start": 100,
+    "line_end": 118,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype's TypeAdapter always serializes/deserializes to/from null, altering expected behavior.",
+    "reasoning": "For anonymous and non-static local classes, the TypeAdapter returned by create always calls in.skipValue() for read and out.nullValue() for write. This fundamentally changes the expected behavior of a TypeAdapter, which is to perform actual serialization and deserialization of the object's content, not to simply nullify it. This violates the behavioral contract of TypeAdapter."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create (BLOCK_ALL filter)",
+    "entity_type": "method",
+    "line_start": 120,
+    "line_end": 126,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype throws an undeclared RuntimeException (JsonIOException).",
+    "reasoning": "The TypeAdapterFactory.create method is not declared to throw JsonIOException. ReflectiveTypeAdapterFactory.create throws JsonIOException (a RuntimeException) if the ReflectionAccessFilter returns BLOCK_ALL. While RuntimeExceptions do not break the method signature, introducing an unexpected RuntimeException for a factory method alters its exception contract and can lead to unexpected program termination for clients not anticipating this specific failure mode."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.get (ThrowingObjectConstructor)",
+    "entity_type": "method",
+    "line_start": 101,
+    "line_end": 104,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Returned ObjectConstructor always throws an exception, violating postcondition of object creation.",
+    "reasoning": "The ObjectConstructor.construct() method's contract implies that it should successfully create and return an object. When ConstructorConstructor.get returns a ThrowingObjectConstructor, its construct() method always throws a JsonIOException. This violates the postcondition of successful object creation, making ThrowingObjectConstructor not substitutable for a 'real' ObjectConstructor without altering program correctness (it will never produce an object)."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/reflect/TypeToken.java",
+    "entity_name": "TypeToken.isAssignableFrom",
+    "entity_type": "method",
+    "line_start": 204,
+    "line_end": 208,
+    "principle": "LSP",
+    "severity": "low",
+    "description": "Deprecated method is documented as inconsistent with javac, violating semantic contract.",
+    "reasoning": "The isAssignableFrom methods are explicitly deprecated and their Javadoc warns that they 'may be inconsistent with javac for types with wildcards'. This indicates a violation of the semantic contract: the method does not reliably perform the operation implied by its name according to standard Java rules. While it doesn't throw new exceptions or change signatures, its behavior is not what a client would expect from a method named 'isAssignableFrom'."
+  }
+]

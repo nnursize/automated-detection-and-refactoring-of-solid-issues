@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-022",
+  "principle": "OCP",
+  "title": "Refactor OCP-022 (OCP): Function uses multiple hasattr checks to handle different object types",
+  "branch": "refactor/OCP-022",
+  "base": "main",
+  "head_commit": "380714d4acc73557af3763195c3cf77746a61428",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10519,
+    "completion_tokens": 1289
+  },
+  "detected_issue": {
+    "file_path": "src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "class",
+    "line_start": 135,
+    "line_end": 207,
+    "severity": "medium",
+    "scan_count": 5,
+    "description": "Function uses multiple hasattr checks to handle different object types",
+    "reasoning": "The function calculates object length by checking for various attributes (__len__, len, fileno, tell, seek). Supporting a new type of stream or custom object with a unique way to determine length would require adding more conditional branches to this utility."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor super_len to use a registry-based strategy pattern for OCP compliance.",
+    "rationale": "Replaced the hardcoded if/elif chain with a registry of length-calculating strategies. This allows adding support for new types by registering a new handler without modifying the core logic of super_len.",
+    "files_touched": [
+      "src/requests/utils.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/utils.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/utils.py",
+        "search_text": "def super_len(o):\n    total_length = None\n    current_position = 0\n\n    if not is_urllib3_1 and isinstance(o, str):\n        # urllib3 2.x+ treats all strings as utf-8 instead\n        # of latin-1 (iso-8859-1) like http.client.\n        o = o.encode(\"utf-8\")\n\n    if hasattr(o, \"__len__\"):\n        total_length = len(o)\n\n    elif hasattr(o, \"len\"):\n        total_length = o.len\n\n    elif hasattr(o, \"fileno\"):\n        try:\n            fileno = o.fileno()\n        except (io.UnsupportedOperation, AttributeError):\n            # AttributeError is a surprising exception, seeing as how we've just checked\n            # that `hasattr(o, 'fileno')`.  It happens for objects obtained via\n            # `Tarfile.extractfile()`, per issue 5229.\n            pass\n        else:\n            total_length = os.fstat(fileno).st_size\n\n            # Having used fstat to determine the file length, we need to\n            # confirm that this file was opened up in binary mode.\n            if \"b\" not in o.mode:\n                warnings.warn(\n                    (\n                        \"Requests has determined the content-length for this \"\n                        \"request using the binary size of the file: however, the \"\n                        \"file has been opened in text mode (i.e. without the 'b' \"\n                        \"flag in the mode). This may lead to an incorrect \"\n                        \"content-length. In Requests 3.0, support will be removed \"\n                        \"for files in text mode.\"\n                    ),\n                    FileModeWarning,\n                )\n\n    if hasattr(o, \"tell\"):\n        try:\n            current_position = o.tell()\n        except OSError:\n            # This can happen in some weird situations, such as when the file\n            # is actually a special file descriptor like stdin. In this\n            # instance, we don't know what the length is, so set it to zero and\n            # let requests chunk it instead.\n            if total_length is not None:\n                current_position = total_length\n        else:\n            if hasattr(o, \"seek\") and total_length is None:\n                # StringIO and BytesIO have seek but no usable fileno\n                try:\n                    # seek to end of file\n                    o.seek(0, 2)\n                    total_length = o.tell()\n\n                    # seek back to current position to support\n                    # partially read file-like objects\n                    o.seek(current_position or 0)\n                except OSError:\n                    total_length = 0\n\n    if total_length is None:\n        total_length = 0\n\n    return max(0, total_length - current_position)",
+        "replace_text": "def _len_len(o):\n    return len(o)\n\n\ndef _len_attr(o):\n    return o.len\n\n\ndef _len_file(o):\n    try:\n        fileno = o.fileno()\n    except (io.UnsupportedOperation, AttributeError):\n        return None\n    total_length = os.fstat(fileno).st_size\n    if \"b\" not in o.mode:\n        warnings.warn(\n            (\n                \"Requests has determined the content-length for this \"\n                \"request using the binary size of the file: however, the \"\n                \"file has been opened in text mode (i.e. without the 'b' \"\n                \"flag in the mode). This may lead to an incorrect \"\n                \"content-length. In Requests 3.0, support will be removed \"\n                \"for files in text mode.\"\n            ),\n            FileModeWarning,\n        )\n    return total_length\n\n\n_LENGTH_STRATEGIES = [\n    (lambda o: hasattr(o, \"__len__\"), _len_len),\n    (lambda o: hasattr(o, \"len\"), _len_attr),\n    (lambda o: hasattr(o, \"fileno\"), _len_file),\n]\n\n\ndef super_len(o):\n    total_length = None\n    current_position = 0\n\n    if not is_urllib3_1 and isinstance(o, str):\n        o = o.encode(\"utf-8\")\n\n    for predicate, strategy in _LENGTH_STRATEGIES:\n        if predicate(o):\n            total_length = strategy(o)\n            if total_length is not None:\n                break\n\n    if hasattr(o, \"tell\"):\n        try:\n            current_position = o.tell()\n        except OSError:\n            if total_length is not None:\n                current_position = total_length\n        else:\n            if hasattr(o, \"seek\") and total_length is None:\n                try:\n                    o.seek(0, 2)\n                    total_length = o.tell()\n                    o.seek(current_position or 0)\n                except OSError:\n                    total_length = 0\n\n    return max(0, (total_length or 0) - current_position)",
+        "search_lines": 69,
+        "replace_lines": 65
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165983.38556289673,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:478: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.22s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 12:58:30] \"GET /get HTTP/1.1\" 200 257\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/utils.py",
+        "loc": 769,
+        "blank_lines": 231,
+        "comment_lines": 84,
+        "function_count": 43,
+        "avg_cc": 4.55,
+        "max_cc": 18.0,
+        "mi": 25.21
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/utils.py",
+        "loc": 777,
+        "blank_lines": 234,
+        "comment_lines": 69,
+        "function_count": 46,
+        "avg_cc": 4.29,
+        "max_cc": 17.0,
+        "mi": 25.03
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/utils.py b/src/requests/utils.py\nindex 4d3039b..3938a2c 100644\n--- a/src/requests/utils.py\n+++ b/src/requests/utils.py\n@@ -131,75 +131,71 @@ def dict_to_sequence(d):\n     return d\n \n \n+def _len_len(o):\n+    return len(o)\n+\n+\n+def _len_attr(o):\n+    return o.len\n+\n+\n+def _len_file(o):\n+    try:\n+        fileno = o.fileno()\n+    except (io.UnsupportedOperation, AttributeError):\n+        return None\n+    total_length = os.fstat(fileno).st_size\n+    if \"b\" not in o.mode:\n+        warnings.warn(\n+            (\n+                \"Requests has determined the content-length for this \"\n+                \"request using the binary size of the file: however, the \"\n+                \"file has been opened in text mode (i.e. without the 'b' \"\n+                \"flag in the mode). This may lead to an incorrect \"\n+                \"content-length. In Requests 3.0, support will be removed \"\n+                \"for files in text mode.\"\n+            ),\n+            FileModeWarning,\n+        )\n+    return total_length\n+\n+\n+_LENGTH_STRATEGIES = [\n+    (lambda o: hasattr(o, \"__len__\"), _len_len),\n+    (lambda o: hasattr(o, \"len\"), _len_attr),\n+    (lambda o: hasattr(o, \"fileno\"), _len_file),\n+]\n+\n+\n def super_len(o):\n     total_length = None\n     current_position = 0\n \n     if not is_urllib3_1 and isinstance(o, str):\n-        # urllib3 2.x+ treats all strings as utf-8 instead\n-        # of latin-1 (iso-8859-1) like http.client.\n         o = o.encode(\"utf-8\")\n \n-    if hasattr(o, \"__len__\"):\n-        total_length = len(o)\n-\n-    elif hasattr(o, \"len\"):\n-        total_length = o.len\n-\n-    elif hasattr(o, \"fileno\"):\n-        try:\n-            fileno = o.fileno()\n-        except (io.UnsupportedOperation, AttributeError):\n-            # AttributeError is a surprising exception, seeing as how we've just checked\n-            # that `hasattr(o, 'fileno')`.  It happens for objects obtained via\n-            # `Tarfile.extractfile()`, per issue 5229.\n-            pass\n-        else:\n-            total_length = os.fstat(fileno).st_size\n-\n-            # Having used fstat to determine the file length, we need to\n-            # confirm that this file was opened up in binary mode.\n-            if \"b\" not in o.mode:\n-                warnings.warn(\n-                    (\n-                        \"Requests has determined the content-length for this \"\n-                        \"request using the binary size of the file: however, the \"\n-                        \"file has been opened in text mode (i.e. without the 'b' \"\n-                        \"flag in the mode). This may lead to an incorrect \"\n-                        \"content-length. In Requests 3.0, support will be removed \"\n-                        \"for files in text mode.\"\n-                    ),\n-                    FileModeWarning,\n-                )\n+    for predicate, strategy in _LENGTH_STRATEGIES:\n+        if predicate(o):\n+            total_length = strategy(o)\n+            if total_length is not None:\n+                break\n \n     if hasattr(o, \"tell\"):\n         try:\n             current_position = o.tell()\n         except OSError:\n-            # This can happen in some weird situations, such as when the file\n-            # is actually a special file descriptor like stdin. In this\n-            # instance, we don't know what the length is, so set it to zero and\n-            # let requests chunk it instead.\n             if total_length is not None:\n                 current_position = total_length\n         else:\n             if hasattr(o, \"seek\") and total_length is None:\n-                # StringIO and BytesIO have seek but no usable fileno\n                 try:\n-                    # seek to end of file\n                     o.seek(0, 2)\n                     total_length = o.tell()\n-\n-                    # seek back to current position to support\n-                    # partially read file-like objects\n                     o.seek(current_position or 0)\n                 except OSError:\n                     total_length = 0\n \n-    if total_length is None:\n-        total_length = 0\n-\n-    return max(0, total_length - current_position)\n+    return max(0, (total_length or 0) - current_position)\n \n \n def get_netrc_auth(url, raise_errors=False):\n",
+  "duration_ms": 170648.04244041443
+}

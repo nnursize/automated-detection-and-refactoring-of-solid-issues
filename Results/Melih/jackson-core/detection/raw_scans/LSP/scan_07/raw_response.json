@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_LSP_scan_07",
+  "repo_name": "jackson-core",
+  "principle": "LSP",
+  "scan_number": 7,
+  "timestamp": "2026-04-18T21:45:46.572740",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Liskov Substitution Principle (LSP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a s...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.getBinaryValue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 322,\n      \"line_end\": 343,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass overrides getBinaryValue to throw an exception for tokens not supported by the base class contract.\",\n      \"reasoning\": \"The base class JsonParser defines getBinaryValue() as a general method for accessing binary data. By explicitly restricting the allowed tokens to VALUE_STRING or VALUE_EMBEDDED_OBJECT and throwing an error for others, the subclass narrows the contract of the base class, making it non-substitutable in contexts where a caller might expect the base class to handle other token types or provide a different fallback mechanism.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator.writeRawUTF8String\",\n      \"entity_type\": \"class\",\n      \"line_start\": 444,\n      \"line_end\": 447,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass implementation throws UnsupportedOperationException for a method defined in the base class.\",\n      \"reasoning\": \"The base class JsonGenerator defines writeRawUTF8String as part of its public API. By overriding it to throw an UnsupportedOperationException, the subclass violates the Liskov Substitution Principle because it cannot be used in any context where the base class is expected to support this operation.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator.writeUTF8String\",\n      \"entity_type\": \"class\",\n      \"line_start\": 449,\n      \"line_end\": 452,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass implementation throws UnsupportedOperationException for a method defined in the base class.\",\n      \"reasoning\": \"Similar to writeRawUTF8String, the base class JsonGenerator defines writeUTF8String as part of its public API. The subclass implementation explicitly refuses to support this method, breaking the contract established by the base class.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+      "entity_type": "class",
+      "line_start": 322,
+      "line_end": 343,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass overrides getBinaryValue to throw an exception for tokens not supported by the base class contract.",
+      "reasoning": "The base class JsonParser defines getBinaryValue() as a general method for accessing binary data. By explicitly restricting the allowed tokens to VALUE_STRING or VALUE_EMBEDDED_OBJECT and throwing an error for others, the subclass narrows the contract of the base class, making it non-substitutable in contexts where a caller might expect the base class to handle other token types or provide a different fallback mechanism."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+      "entity_type": "class",
+      "line_start": 444,
+      "line_end": 447,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+      "reasoning": "The base class JsonGenerator defines writeRawUTF8String as part of its public API. By overriding it to throw an UnsupportedOperationException, the subclass violates the Liskov Substitution Principle because it cannot be used in any context where the base class is expected to support this operation."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator.writeUTF8String",
+      "entity_type": "class",
+      "line_start": 449,
+      "line_end": 452,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+      "reasoning": "Similar to writeRawUTF8String, the base class JsonGenerator defines writeUTF8String as part of its public API. The subclass implementation explicitly refuses to support this method, breaking the contract established by the base class."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 2537.108898162842,
+  "error": null
+}

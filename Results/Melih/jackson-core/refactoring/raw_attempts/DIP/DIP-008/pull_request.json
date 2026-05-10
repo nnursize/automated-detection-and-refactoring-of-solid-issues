@@ -1,0 +1,140 @@
+{
+  "issue_id": "DIP-008",
+  "principle": "DIP",
+  "title": "Refactor DIP-008 (DIP): Concrete parser implementation depends on a concrete symbol table implementation",
+  "branch": "refactor/DIP-008",
+  "base": "main",
+  "head_commit": "70ee934d5eea670f5238a219cd3df955090a48c2",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7831,
+    "completion_tokens": 684
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser",
+    "entity_type": "class",
+    "line_start": 116,
+    "line_end": 130,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Concrete parser implementation depends on a concrete symbol table implementation",
+    "reasoning": "Rigid Coupling smell -> Similar to the UTF-8 parser, the ReaderBasedJsonParser depends on the concrete CharsToNameCanonicalizer. This prevents the inversion of control where different canonicalization strategies could be injected through a common interface or abstraction."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce NameCanonicalizer interface to decouple ReaderBasedJsonParser from concrete CharsToNameCanonicalizer",
+    "rationale": "The ReaderBasedJsonParser was tightly coupled to the concrete CharsToNameCanonicalizer class. By introducing a NameCanonicalizer interface (or using the existing one if applicable, but here we define the abstraction) and updating the parser to depend on this interface, we adhere to the Dependency Inversion Principle. Note: Since CharsToNameCanonicalizer is a complex class, I am creating a NameCanonicalizer interface that it will implement, and updating the parser to use this interface.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java",
+      "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "src/main/java/tools/jackson/core/sym/NameCanonicalizer.java"
+    ],
+    "files_created": [
+      "src/main/java/tools/jackson/core/sym/NameCanonicalizer.java"
+    ],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java"
+    ],
+    "patch_blocks_count": 5,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java",
+        "search_text": "public final class CharsToNameCanonicalizer\n{",
+        "replace_text": "public final class CharsToNameCanonicalizer\n    implements NameCanonicalizer\n{",
+        "search_lines": 2,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "search_text": "    protected final CharsToNameCanonicalizer _symbols;",
+        "replace_text": "    protected final tools.jackson.core.sym.NameCanonicalizer _symbols;",
+        "search_lines": 1,
+        "replace_lines": 1
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "search_text": "    public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n            int stdFeatures, int formatFeatures, Reader r,\n            CharsToNameCanonicalizer st,\n            char[] inputBuffer, int start, int end,\n            boolean bufferRecyclable)",
+        "replace_text": "    public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n            int stdFeatures, int formatFeatures, Reader r,\n            tools.jackson.core.sym.NameCanonicalizer st,\n            char[] inputBuffer, int start, int end,\n            boolean bufferRecyclable)",
+        "search_lines": 5,
+        "replace_lines": 5
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "search_text": "    public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n            int stdFeatures, int formatFeatures, Reader r,\n            CharsToNameCanonicalizer st)",
+        "replace_text": "    public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n            int stdFeatures, int formatFeatures, Reader r,\n            tools.jackson.core.sym.NameCanonicalizer st)",
+        "search_lines": 3,
+        "replace_lines": 3
+      },
+      {
+        "kind": "create",
+        "file_path": "src/main/java/tools/jackson/core/sym/NameCanonicalizer.java",
+        "new_content": "package tools.jackson.core.sym;\n\npublic interface NameCanonicalizer {\n    int hashSeed();\n    void release();\n}",
+        "new_content_lines": 6
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "loc": 2604,
+        "blank_lines": 201,
+        "comment_lines": 176,
+        "function_count": 85,
+        "avg_cc": 9.92,
+        "max_cc": 759.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java",
+        "loc": 741,
+        "blank_lines": 90,
+        "comment_lines": 57,
+        "function_count": 26,
+        "avg_cc": 6.23,
+        "max_cc": 137.0,
+        "mi": 0.0
+      },
+      {
+        "file": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "loc": 2604,
+        "blank_lines": 201,
+        "comment_lines": 176,
+        "function_count": 85,
+        "avg_cc": 9.92,
+        "max_cc": 759.0,
+        "mi": 0.0
+      },
+      {
+        "file": "src/main/java/tools/jackson/core/sym/NameCanonicalizer.java",
+        "loc": 5,
+        "blank_lines": 1,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java b/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\nindex 9b40c94..601359f 100644\n--- a/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\n+++ b/src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\n@@ -70,7 +70,7 @@ public class ReaderBasedJsonParser\n     /**********************************************************************\n      */\n \n-    protected final CharsToNameCanonicalizer _symbols;\n+    protected final tools.jackson.core.sym.NameCanonicalizer _symbols;\n \n     protected final int _hashSeed;\n \n@@ -124,7 +124,7 @@ public class ReaderBasedJsonParser\n      */\n     public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n             int stdFeatures, int formatFeatures, Reader r,\n-            CharsToNameCanonicalizer st,\n+            tools.jackson.core.sym.NameCanonicalizer st,\n             char[] inputBuffer, int start, int end,\n             boolean bufferRecyclable)\n     {\n@@ -155,7 +155,7 @@ public class ReaderBasedJsonParser\n      */\n     public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n             int stdFeatures, int formatFeatures, Reader r,\n-            CharsToNameCanonicalizer st)\n+            tools.jackson.core.sym.NameCanonicalizer st)\n     {\n         super(readCtxt, ctxt, stdFeatures, formatFeatures);\n         _reader = r;\ndiff --git a/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java b/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java\nindex d6969d5..4f64604 100644\n--- a/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java\n+++ b/src/main/java/tools/jackson/core/sym/CharsToNameCanonicalizer.java\n@@ -46,6 +46,7 @@ import tools.jackson.core.util.InternCache;\n  * access to master instance is read-only (i.e. no modifications done).\n  */\n public final class CharsToNameCanonicalizer\n+    implements NameCanonicalizer\n {\n     /* If we use \"multiply-add\" based hash algorithm, this is the multiplier\n      * we use.\ndiff --git a/src/main/java/tools/jackson/core/sym/NameCanonicalizer.java b/src/main/java/tools/jackson/core/sym/NameCanonicalizer.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/src/main/java/tools/jackson/core/sym/NameCanonicalizer.java\n@@ -0,0 +1,6 @@\n+package tools.jackson.core.sym;\n+\n+public interface NameCanonicalizer {\n+    int hashSeed();\n+    void release();\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 4117.632627487183
+}

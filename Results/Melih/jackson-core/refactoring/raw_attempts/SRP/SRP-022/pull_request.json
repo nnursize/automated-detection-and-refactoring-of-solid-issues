@@ -1,0 +1,104 @@
+{
+  "issue_id": "SRP-022",
+  "principle": "SRP",
+  "title": "Refactor SRP-022 (SRP): Factory directly manages opening I/O streams from a URL, mixing factory creat...",
+  "branch": "refactor/SRP-022",
+  "base": "main",
+  "head_commit": "0ba54c84a1992c712b13299318a7885b1bd303ab",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14536,
+    "completion_tokens": 1062
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory._optimizedStreamFromURL",
+    "entity_type": "method",
+    "line_start": 1300,
+    "line_end": 1328,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Factory directly manages opening I/O streams from a URL, mixing factory creation with I/O resource management.",
+    "reasoning": "A `TokenStreamFactory`'s primary responsibility is to configure and create `JsonParser` and `JsonGenerator` instances. The `_optimizedStreamFromURL` method, however, directly handles the logic for opening an `InputStream` from a `URL`. This is a responsibility related to I/O resource management, which is distinct from the factory's core role. This I/O logic could be delegated to a separate utility class."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Extract URL stream opening logic into a dedicated utility class to improve SRP.",
+    "rationale": "The `_optimizedStreamFromURL` method in `TokenStreamFactory` was responsible for both configuring stream factories and managing I/O resources from a URL. This violates the Single Responsibility Principle. By moving the URL stream opening logic to a new utility class `URLResourceUtil` in the `tools.jackson.core.io` package, `TokenStreamFactory` can now delegate this I/O responsibility. The original method now simply calls the utility and handles the `IOException` wrapping, maintaining its existing public API and behavior.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "src/main/java/tools/jackson/core/io/URLResourceUtil.java"
+    ],
+    "files_created": [
+      "src/main/java/tools/jackson/core/io/URLResourceUtil.java"
+    ],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/TokenStreamFactory.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "search_text": "    @Deprecated // since 3.0\n    protected InputStream _optimizedStreamFromURL(URL url) throws JacksonException {\n        if (\"file\".equals(url.getProtocol())) {\n            /* Cannot do this if the path refers\n             * to a network drive on windows. This fixes the problem;\n             * might not be needed on all platforms (NFS?), but should not\n             * matter a lot: performance penalty of extra wrapping is more\n             * relevant when accessing local file system.\n             */\n            String host = url.getHost();\n            if (host == null || host.length() == 0) {\n                // [core#48]: Let's try to avoid probs with URL encoded stuff\n                String path = url.getPath();\n                if (path.indexOf('%') < 0) {\n                    try {\n                        return new FileInputStream(url.getPath());\n                    } catch (IOException e) {\n                        throw _wrapIOFailure(e);\n                    }\n                }\n                // otherwise, let's fall through and let URL decoder do its magic\n            }\n        }\n        try {\n            return url.openStream();\n        } catch (IOException e) {\n            throw _wrapIOFailure(e);\n        }\n    }",
+        "replace_text": "    @Deprecated // since 3.0\n    protected InputStream _optimizedStreamFromURL(URL url) throws JacksonException {\n        try {\n            return URLResourceUtil.optimizedStreamFromURL(url);\n        } catch (IOException e) {\n            throw _wrapIOFailure(e);\n        }\n    }",
+        "search_lines": 29,
+        "replace_lines": 8
+      },
+      {
+        "kind": "create",
+        "file_path": "src/main/java/tools/jackson/core/io/URLResourceUtil.java",
+        "new_content": "/* Jackson JSON-processor.\n *\n * Copyright (c) 2007- Tatu Saloranta, tatu.saloranta@iki.fi\n */\npackage tools.jackson.core.io;\n\nimport java.io.FileInputStream;\nimport java.io.IOException;\nimport java.io.InputStream;\nimport java.net.URL;\n\n/**\n * Internal utility class used by {@link tools.jackson.core.TokenStreamFactory}\n * for handling URL-based input stream creation.\n *\n * @since 3.0.1\n */\npublic final class URLResourceUtil {\n\n    private URLResourceUtil() { }\n\n    /**\n     * Helper method used for constructing an optimal stream for\n     * parsers to use, when input is to be read from an URL.\n     * This helps when reading file content via URL.\n     *\n     * @param url Source to read content to parse from\n     *\n     * @return InputStream constructed for given {@link URL}\n     *\n     * @throws IOException If there is a problem accessing content from specified {@link URL}\n     */\n    public static InputStream optimizedStreamFromURL(URL url) throws IOException {\n        if (\"file\".equals(url.getProtocol())) {\n            /* Cannot do this if the path refers\n             * to a network drive on windows. This fixes the problem;\n             * might not be needed on all platforms (NFS?), but should not\n             * matter a lot: performance penalty of extra wrapping is more\n             * relevant when accessing local file system.\n             */\n            String host = url.getHost();\n            if (host == null || host.length() == 0) {\n                // [core#48]: Let's try to avoid probs with URL encoded stuff\n                String path = url.getPath();\n                if (path.indexOf('%') < 0) {\n                    return new FileInputStream(url.getPath());\n                }\n                // otherwise, let's fall through and let URL decoder do its magic\n            }\n        }\n        return url.openStream();\n    }\n}",
+        "new_content_lines": 53
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "loc": 1294,
+        "blank_lines": 124,
+        "comment_lines": 23,
+        "function_count": 51,
+        "avg_cc": 4.59,
+        "max_cc": 184.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "loc": 1275,
+        "blank_lines": 124,
+        "comment_lines": 21,
+        "function_count": 51,
+        "avg_cc": 4.41,
+        "max_cc": 175.0,
+        "mi": 0.0
+      },
+      {
+        "file": "src/main/java/tools/jackson/core/io/URLResourceUtil.java",
+        "loc": 47,
+        "blank_lines": 4,
+        "comment_lines": 2,
+        "function_count": 1,
+        "avg_cc": 15.0,
+        "max_cc": 15.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/TokenStreamFactory.java b/src/main/java/tools/jackson/core/TokenStreamFactory.java\nindex b6480bd..2f33b7d 100644\n--- a/src/main/java/tools/jackson/core/TokenStreamFactory.java\n+++ b/src/main/java/tools/jackson/core/TokenStreamFactory.java\n@@ -1283,29 +1283,8 @@ public abstract class TokenStreamFactory\n      */\n     @Deprecated // since 3.0\n     protected InputStream _optimizedStreamFromURL(URL url) throws JacksonException {\n-        if (\"file\".equals(url.getProtocol())) {\n-            /* Cannot do this if the path refers\n-             * to a network drive on windows. This fixes the problem;\n-             * might not be needed on all platforms (NFS?), but should not\n-             * matter a lot: performance penalty of extra wrapping is more\n-             * relevant when accessing local file system.\n-             */\n-            String host = url.getHost();\n-            if (host == null || host.length() == 0) {\n-                // [core#48]: Let's try to avoid probs with URL encoded stuff\n-                String path = url.getPath();\n-                if (path.indexOf('%') < 0) {\n-                    try {\n-                        return new FileInputStream(url.getPath());\n-                    } catch (IOException e) {\n-                        throw _wrapIOFailure(e);\n-                    }\n-                }\n-                // otherwise, let's fall through and let URL decoder do its magic\n-            }\n-        }\n         try {\n-            return url.openStream();\n+            return URLResourceUtil.optimizedStreamFromURL(url);\n         } catch (IOException e) {\n             throw _wrapIOFailure(e);\n         }\ndiff --git a/src/main/java/tools/jackson/core/io/URLResourceUtil.java b/src/main/java/tools/jackson/core/io/URLResourceUtil.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/src/main/java/tools/jackson/core/io/URLResourceUtil.java\n@@ -0,0 +1,53 @@\n+/* Jackson JSON-processor.\n+ *\n+ * Copyright (c) 2007- Tatu Saloranta, tatu.saloranta@iki.fi\n+ */\n+package tools.jackson.core.io;\n+\n+import java.io.FileInputStream;\n+import java.io.IOException;\n+import java.io.InputStream;\n+import java.net.URL;\n+\n+/**\n+ * Internal utility class used by {@link tools.jackson.core.TokenStreamFactory}\n+ * for handling URL-based input stream creation.\n+ *\n+ * @since 3.0.1\n+ */\n+public final class URLResourceUtil {\n+\n+    private URLResourceUtil() { }\n+\n+    /**\n+     * Helper method used for constructing an optimal stream for\n+     * parsers to use, when input is to be read from an URL.\n+     * This helps when reading file content via URL.\n+     *\n+     * @param url Source to read content to parse from\n+     *\n+     * @return InputStream constructed for given {@link URL}\n+     *\n+     * @throws IOException If there is a problem accessing content from specified {@link URL}\n+     */\n+    public static InputStream optimizedStreamFromURL(URL url) throws IOException {\n+        if (\"file\".equals(url.getProtocol())) {\n+            /* Cannot do this if the path refers\n+             * to a network drive on windows. This fixes the problem;\n+             * might not be needed on all platforms (NFS?), but should not\n+             * matter a lot: performance penalty of extra wrapping is more\n+             * relevant when accessing local file system.\n+             */\n+            String host = url.getHost();\n+            if (host == null || host.length() == 0) {\n+                // [core#48]: Let's try to avoid probs with URL encoded stuff\n+                String path = url.getPath();\n+                if (path.indexOf('%') < 0) {\n+                    return new FileInputStream(url.getPath());\n+                }\n+                // otherwise, let's fall through and let URL decoder do its magic\n+            }\n+        }\n+        return url.openStream();\n+    }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 12608.151197433472
+}

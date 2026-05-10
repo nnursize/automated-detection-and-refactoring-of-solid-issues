@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 6805.270433425903,
+  "prompt_tokens": 10035,
+  "completion_tokens": 281,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Relax BitSet deserialization to accept any non-zero value as true\",\n  \"rationale\": \"The BitSet adapter previously strictly enforced 0 or 1, which is overly restrictive for a general-purpose type adapter. By treating any non-zero value as true (consistent with common programming conventions for boolean-like integers), we improve substitutability and robustness without breaking existing valid 0/1 inputs.\",\n  \"files_touched\": [\"gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\"]\n}\n```\n\n<<<<<<< SEARCH gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n                int intValue = in.nextInt();\n                if (intValue == 0) {\n                  set = false;\n                } else if (intValue == 1) {\n                  set = true;\n                } else {\n                  throw new JsonSyntaxException(\n                      \"Invalid bitset value \"\n                          + intValue\n                          + \", expected 0 or 1; at path \"\n                          + in.getPreviousPath());\n                }\n=======\n                int intValue = in.nextInt();\n                set = intValue != 0;\n>>>>>>> REPLACE"
+}

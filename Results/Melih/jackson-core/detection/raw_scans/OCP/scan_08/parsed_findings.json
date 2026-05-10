@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.nextToken",
+    "entity_type": "class",
+    "line_start": 447,
+    "line_end": 537,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Switch statement on token IDs requires modification for every new token type",
+    "reasoning": "The nextToken() method uses a switch-case block based on character/token identifiers. Adding new JSON token types or modifying existing ones requires direct modification of this central parsing logic, violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._getText2",
+    "entity_type": "class",
+    "line_start": 308,
+    "line_end": 322,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on token IDs forces modification for new token types",
+    "reasoning": "The _getText2 method uses a switch statement on token IDs. If new token types are introduced into the Jackson core, this method must be updated to handle them, which is a classic violation of OCP."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator.copyCurrentEvent",
+    "entity_type": "class",
+    "line_start": 1022,
+    "line_end": 1066,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Switch statement on token IDs requires modification for new token types",
+    "reasoning": "The copyCurrentEvent method uses a switch statement to dispatch logic based on token IDs. Adding new token types necessitates modifying this method, violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator._prependOrWriteCharacterEscape",
+    "entity_type": "class",
+    "line_start": 1073,
+    "line_end": 1157,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded logic for character escaping limits extensibility",
+    "reasoning": "The method uses rigid branching logic to handle character escapes. Introducing new escape strategies or complex character handling requires modifying this core logic instead of being able to inject an strategy."
+  }
+]

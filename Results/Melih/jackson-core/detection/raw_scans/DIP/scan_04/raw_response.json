@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_DIP_scan_04",
+  "repo_name": "jackson-core",
+  "principle": "DIP",
+  "scan_number": 4,
+  "timestamp": "2026-05-02T16:41:09.611209",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Dependency Inversion Principle (DIP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inte...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.writeBinary\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1041,\n      \"line_end\": 1043,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Abstraction depends on concrete detail Base64Variants\",\n      \"reasoning\": \"The abstract class JsonGenerator (a high-level abstraction) directly depends on the concrete class Base64Variants (a low-level detail) to provide a default variant. This couples the abstraction to a specific implementation of Base64 encoding rules, violating the principle that abstractions should not depend on details.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.streamWriteConstraints\",\n      \"entity_type\": \"method\",\n      \"line_start\": 58,\n      \"line_end\": 60,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Abstraction depends on concrete detail StreamWriteConstraints\",\n      \"reasoning\": \"The abstract class JsonGenerator depends on the concrete class StreamWriteConstraints to provide default limits. This hard-codes a dependency on a specific implementation of constraint management into the base abstraction, making it difficult to substitute different constraint logic without modifying the core API.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 48,\n      \"line_end\": 48,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Concrete parser depends on concrete symbol table implementation\",\n      \"reasoning\": \"The UTF8StreamJsonParser (a low-level detail) is tightly coupled to the concrete ByteQuadsCanonicalizer class for symbol management. According to DIP, details should depend on abstractions. The lack of an interface for symbol tables (a 'Missing Abstraction' smell) forces the parser to depend on a specific hash-table implementation, preventing the substitution of alternative symbol-matching strategies.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 100,\n      \"line_end\": 115,\n      \"principle\": \"DIP",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.writeBinary",
+      "entity_type": "method",
+      "line_start": 1041,
+      "line_end": 1043,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Abstraction depends on concrete detail Base64Variants",
+      "reasoning": "The abstract class JsonGenerator (a high-level abstraction) directly depends on the concrete class Base64Variants (a low-level detail) to provide a default variant. This couples the abstraction to a specific implementation of Base64 encoding rules, violating the principle that abstractions should not depend on details."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.streamWriteConstraints",
+      "entity_type": "method",
+      "line_start": 58,
+      "line_end": 60,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Abstraction depends on concrete detail StreamWriteConstraints",
+      "reasoning": "The abstract class JsonGenerator depends on the concrete class StreamWriteConstraints to provide default limits. This hard-codes a dependency on a specific implementation of constraint management into the base abstraction, making it difficult to substitute different constraint logic without modifying the core API."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 48,
+      "line_end": 48,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Concrete parser depends on concrete symbol table implementation",
+      "reasoning": "The UTF8StreamJsonParser (a low-level detail) is tightly coupled to the concrete ByteQuadsCanonicalizer class for symbol management. According to DIP, details should depend on abstractions. The lack of an interface for symbol tables (a 'Missing Abstraction' smell) forces the parser to depend on a specific hash-table implementation, preventing the substitution of alternative symbol-matching strategies."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 301273.3438014984,
+  "error": null
+}

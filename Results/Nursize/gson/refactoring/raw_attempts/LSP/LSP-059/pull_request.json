@@ -1,0 +1,51 @@
+{
+  "issue_id": "LSP-059",
+  "principle": "LSP",
+  "title": "Refactor LSP-059 (LSP): Subtype introduces a new precondition by throwing IllegalArgumentException fo...",
+  "branch": "refactor/LSP-059",
+  "base": "main",
+  "head_commit": "4b7c6490166c1b426d2880f4209bea8815b0e088",
+  "status": "llm_error",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": "unhandled error: FatalLLMError: Server unavailable (503) \u2014 skipping to preserve quota: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.DoubleAdapter.write",
+    "entity_type": "method",
+    "line_start": 497,
+    "line_end": 509,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Subtype introduces a new precondition by throwing IllegalArgumentException for NaN/Infinity values.",
+    "reasoning": "The TypeAdapter<Number>.write method does not explicitly state a precondition that floating-point numbers must be finite. By throwing an IllegalArgumentException for NaN or Infinity values when 'strict' is true, DoubleAdapter introduces a new precondition that might not be expected by clients using TypeAdapter<Number> polymorphically. While IllegalArgumentException is a RuntimeException and thus doesn't break the method signature, it alters the expected behavior."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 836,
+        "blank_lines": 106,
+        "comment_lines": 9,
+        "function_count": 72,
+        "avg_cc": 2.01,
+        "max_cc": 74.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3071.991443634033
+}

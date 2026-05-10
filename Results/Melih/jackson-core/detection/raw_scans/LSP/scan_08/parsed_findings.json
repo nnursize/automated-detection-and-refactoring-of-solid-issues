@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 322,
+    "line_end": 344,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass overrides getBinaryValue to change behavior and throw exceptions not specified in the base contract.",
+    "reasoning": "The base class JsonParser defines getBinaryValue as a method that retrieves binary data. UTF8StreamJsonParser adds logic that performs base64 decoding and throws a constructed JacksonException if the token is not a string or embedded object, effectively changing the postconditions and error handling behavior expected by the base class contract."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+    "entity_type": "class",
+    "line_start": 444,
+    "line_end": 447,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+    "reasoning": "The JsonGenerator base class defines writeRawUTF8String as a public API method. WriterBasedJsonGenerator explicitly throws an UnsupportedOperationException, which violates the Liskov Substitution Principle because an instance of WriterBasedJsonGenerator cannot be used as a JsonGenerator without the risk of an unexpected runtime exception for a supported method."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator.writeUTF8String",
+    "entity_type": "class",
+    "line_start": 449,
+    "line_end": 452,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+    "reasoning": "Similar to writeRawUTF8String, the base class JsonGenerator defines writeUTF8String as a public API. WriterBasedJsonGenerator throws an UnsupportedOperationException, violating the contract that a JsonGenerator should be able to handle UTF8 strings."
+  }
+]

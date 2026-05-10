@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java",
+    "entity_name": "ByteSourceJsonBootstrapper.constructParser",
+    "entity_type": "class",
+    "line_start": 283,
+    "line_end": 300,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete UTF8StreamJsonParser.",
+    "reasoning": "The constructParser method directly instantiates UTF8StreamJsonParser using the 'new' keyword. This violates DIP because a high-level component responsible for bootstrapping should depend on the JsonParser abstraction rather than a specific low-level implementation."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+    "entity_name": "IOContext.constructTextBuffer",
+    "entity_type": "class",
+    "line_start": 214,
+    "line_end": 221,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete TextBuffer implementations.",
+    "reasoning": "The constructTextBuffer and constructReadConstrainedTextBuffer methods directly instantiate TextBuffer and ReadConstrainedTextBuffer. This prevents the inversion of control where alternative buffer strategies could be injected into the context."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+    "entity_name": "TextualTSFactory._createWriter",
+    "entity_type": "class",
+    "line_start": 339,
+    "line_end": 346,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete UTF8Writer.",
+    "reasoning": "The _createWriter method directly instantiates UTF8Writer, coupling the factory to a specific implementation of the Writer abstraction instead of allowing for the injection of different writer types."
+  }
+]

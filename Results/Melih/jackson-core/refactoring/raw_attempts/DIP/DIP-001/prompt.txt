@@ -1,0 +1,349 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-001
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+- **Entity**: `UTF8StreamJsonParser._reportInvalidToken` (current lines L3964-L3964 in the file as shown below)
+- **Severity**: low
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Direct instantiation of TokenStreamLocation concrete class.
+
+### Reasoning
+The parser directly instantiates TokenStreamLocation instead of using a factory or receiving it via injection. While TokenStreamLocation is a value object, this creates a tight coupling between the high-level parsing logic and the specific implementation of location tracking.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+```java
+# ... 3843 earlier lines elided ...
+            _loadMoreGuaranteed();
+        }
+        int d = _inputBuffer[_inputPtr++];
+        if ((d & 0xC0) != 0x080) {
+            _reportInvalidOther(d & 0xFF, _inputPtr);
+        }
+        c = ((c & 0x07) << 6) | (d & 0x3F);
+
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        d = _inputBuffer[_inputPtr++];
+        if ((d & 0xC0) != 0x080) {
+            _reportInvalidOther(d & 0xFF, _inputPtr);
+        }
+        c = (c << 6) | (d & 0x3F);
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        d = _inputBuffer[_inputPtr++];
+        if ((d & 0xC0) != 0x080) {
+            _reportInvalidOther(d & 0xFF, _inputPtr);
+        }
+
+        /* note: won't change it to negative here, since caller
+         * already knows it'll need a surrogate
+         */
+        return ((c << 6) | (d & 0x3F)) - 0x10000;
+    }
+
+    private final void _skipUtf8_2() throws JacksonException
+    {
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        int c = _inputBuffer[_inputPtr++];
+        if ((c & 0xC0) != 0x080) {
+            _reportInvalidOther(c & 0xFF, _inputPtr);
+        }
+    }
+
+    /* Alas, can't heavily optimize skipping, since we still have to
+     * do validity checks...
+     */
+    private final void _skipUtf8_3() throws JacksonException
+    {
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        //c &= 0x0F;
+        int c = _inputBuffer[_inputPtr++];
+        if ((c & 0xC0) != 0x080) {
+            _reportInvalidOther(c & 0xFF, _inputPtr);
+        }
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        c = _inputBuffer[_inputPtr++];
+        if ((c & 0xC0) != 0x080) {
+            _reportInvalidOther(c & 0xFF, _inputPtr);
+        }
+    }
+
+    private final void _skipUtf8_4(int c) throws JacksonException
+    {
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        int d = _inputBuffer[_inputPtr++];
+        if ((d & 0xC0) != 0x080) {
+            _reportInvalidOther(d & 0xFF, _inputPtr);
+        }
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        d = _inputBuffer[_inputPtr++];
+        if ((d & 0xC0) != 0x080) {
+            _reportInvalidOther(d & 0xFF, _inputPtr);
+        }
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        d = _inputBuffer[_inputPtr++];
+        if ((d & 0xC0) != 0x080) {
+            _reportInvalidOther(d & 0xFF, _inputPtr);
+        }
+    }
+
+    /*
+    /**********************************************************************
+    /* Internal methods, input loading
+    /**********************************************************************
+     */
+
+    // We actually need to check the character value here
+    // (to see if we have \n following \r).
+    protected final void _skipCR() throws JacksonException
+    {
+        if (_inputPtr < _inputEnd || _loadMore()) {
+            if (_inputBuffer[_inputPtr] == BYTE_LF) {
+                ++_inputPtr;
+            }
+        }
+        ++_currInputRow;
+        _currInputRowStart = _inputPtr;
+    }
+
+    protected int nextByte() throws JacksonException
+    {
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        return _inputBuffer[_inputPtr++] & 0xFF;
+    }
+
+    /*
+    /**********************************************************************
+    /* Internal methods, error reporting
+    /**********************************************************************
+     */
+
+    protected <T> T _reportInvalidToken(String matchedPart, int ptr) throws JacksonException {
+        _inputPtr = ptr;
+        return _reportInvalidToken(matchedPart, _validJsonTokenList());
+    }
+
+    protected <T> T _reportInvalidToken(String matchedPart) throws JacksonException {
+        return _reportInvalidToken(matchedPart, _validJsonTokenList());
+    }
+
+    protected <T> T _reportInvalidToken(String matchedPart, String msg) throws JacksonException
+    {
+        /* Let's just try to find what appears to be the token, using
+         * regular Java identifier character rules. It's just a heuristic,
+         * nothing fancy here (nor fast).
+         */
+        // [core#1180]: Construct JsonLocation at token start BEFORE _loadMore() may change buffer state
+        final int tokenStartPtr = _inputPtr - matchedPart.length();
+        final int col = tokenStartPtr - _currInputRowStart + 1; // 1-based
+        final TokenStreamLocation loc = new TokenStreamLocation(_contentReference(),
+                _currInputProcessed + tokenStartPtr, -1L, // bytes, chars
+                _currInputRow, col);
+
+        StringBuilder sb = new StringBuilder(matchedPart);
+        while ((_inputPtr < _inputEnd) || _loadMore()) {
+            int i = _inputBuffer[_inputPtr++];
+            char c = (char) _decodeCharForError(i);
+            if (!Character.isJavaIdentifierPart(c)) {
+                // 11-Jan-2016, tatu: note: we will fully consume the character,
+                //   included or not, so if recovery was possible, it'd be off-by-one...
+                // 04-Apr-2021, tatu: ... and the reason we can't do much about it is
+                //   because it may be multi-byte UTF-8 character (and even if saved
+                //   offset, on buffer boundary it would not work, still)
+                break;
+            }
+            sb.append(c);
+            if (sb.length() >= _ioContext.errorReportConfiguration().getMaxErrorTokenLength()) {
+                sb.append("...");
+                break;
+            }
+        }
+        final String fullMsg = String.format("Unrecognized token '%s': was expecting %s", sb, msg);
+        throw _constructReadException(fullMsg, loc);
+    }
+
+    protected <T> T _reportInvalidChar(int c) throws StreamReadException
+    {
+        // Either invalid WS or illegal UTF-8 start char
+        if (c < INT_SPACE) {
+            _reportInvalidSpace(c);
+        }
+        return _reportInvalidInitial(c);
+    }
+
+    protected <T> T _reportInvalidInitial(int mask) throws StreamReadException {
+        return _reportError("Invalid UTF-8 start byte 0x"+Integer.toHexString(mask));
+    }
+
+    protected <T> T _reportInvalidOther(int mask) throws StreamReadException {
+        return _reportError("Invalid UTF-8 middle byte 0x"+Integer.toHexString(mask));
+    }
+
+    protected <T> T _reportInvalidOther(int mask, int ptr) throws StreamReadException
+    {
+        _inputPtr = ptr;
+        return _reportInvalidOther(mask);
+    }
+
+    /*
+    /**********************************************************************
+    /* Internal methods, binary access (delegated to UTF8Base64Decoder)
+    /**********************************************************************
+     */
+
+    /*
+    /**********************************************************************
+    /* Improved location updating
+    /**********************************************************************
+     */
+
+    @Override
+    public TokenStreamLocation currentTokenLocation()
+    {
+        if (_currToken == JsonToken.PROPERTY_NAME) {
+            long total = _currInputProcessed + (_nameStartOffset-1);
+            return new TokenStreamLocation(_contentReference(),
+                    total, -1L, _nameStartRow, _nameStartCol);
+        }
+        return new TokenStreamLocation(_contentReference(),
+                _tokenInputTotal-1, -1L, _tokenInputRow, _tokenInputCol);
+    }
+
+    @Override
+    public TokenStreamLocation currentLocation()
+    {
+        int col = _inputPtr - _currInputRowStart + 1; // 1-based
+        return new TokenStreamLocation(_contentReference(),
+                _currInputProcessed + _inputPtr, -1L, // bytes, chars
+                _currInputRow, col);
+    }
+
+    @Override // @since 2.17
+    protected TokenStreamLocation _currentLocationMinusOne() {
+        final int prevInputPtr = _inputPtr - 1;
+        final int col = prevInputPtr - _currInputRowStart + 1; // 1-based
+        return new TokenStreamLocation(_contentReference(),
+                _currInputProcessed + prevInputPtr, -1L, // bytes, chars
+                _currInputRow, col);
+    }
+
+    private final void _updateLocation()
+    {
+        _tokenInputRow = _currInputRow;
+        final int ptr = _inputPtr;
+        _tokenInputTotal = _currInputProcessed + ptr;
+        _tokenInputCol = ptr - _currInputRowStart;
+    }
+
+    private final void _updateNameLocation()
+    {
+        _nameStartRow = _currInputRow;
+# ... 36 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/json/Base64CharInput.java`
+- `src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java`
+- `src/main/java/tools/jackson/core/json/CharOutputTarget.java`
+- `src/main/java/tools/jackson/core/json/DupDetector.java`
+- `src/main/java/tools/jackson/core/json/JsonFactory.java`
+- `src/main/java/tools/jackson/core/json/JsonFactoryBuilder.java`
+- `src/main/java/tools/jackson/core/json/JsonGeneratorBase.java`
+- `src/main/java/tools/jackson/core/json/JsonParserBase.java`
+- `src/main/java/tools/jackson/core/json/JsonReadContext.java`
+- `src/main/java/tools/jackson/core/json/JsonReadFeature.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteContext.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteFeature.java`
+- `src/main/java/tools/jackson/core/json/package-info.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedBase64StreamDecoder.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8Base64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedBase64Encoder.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

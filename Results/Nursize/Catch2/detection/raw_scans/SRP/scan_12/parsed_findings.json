@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Config",
+    "entity_type": "class",
+    "line_start": 3804,
+    "line_end": 3865,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Config class is a God object, holding configuration for diverse aspects of the testing framework.",
+    "reasoning": "This class is responsible for managing configuration related to test selection (filters, sections), reporting (reporters, listeners, output files, colour modes, verbosity), test execution behavior (throws, assertions, durations, run order, random seed, sharding), and benchmark-specific settings. Any change in these unrelated areas would require modifying this single class, violating the Single Responsibility Principle. It should be decomposed into more specialized configuration objects, e.g., TestRunConfig, ReportingConfig, BenchmarkConfig."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 4952,
+    "line_end": 4992,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Session class acts as a central orchestrator, combining command-line parsing, configuration management, and test execution logic.",
+    "reasoning": "This class is responsible for too many distinct concerns: parsing command-line arguments (`applyCommandLine`, `cli`), managing global configuration (`useConfigData`, `configData`, `config`), orchestrating the entire test run lifecycle (`run`, `runInternal`), and displaying general information (`showHelp`, `libIdentify`). Changes to any of these areas would necessitate modifying the Session class, indicating multiple reasons to change and a clear violation of SRP."
+  }
+]

@@ -1,0 +1,73 @@
+{
+  "scan_id": "logstash_OCP_scan_09",
+  "repo_name": "logstash",
+  "principle": "OCP",
+  "scan_number": 9,
+  "timestamp": "2026-04-19T13:41:18.802997",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyi...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\",\n      \"entity_name\": \"Compiler.buildCondition\",\n      \"entity_type\": \"method\",\n      \"line_start\": 117,\n      \"line_end\": 147,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Method uses a long instanceof chain to handle different BooleanExpression subtypes.\",\n      \"reasoning\": \"The buildCondition method relies on an explicit chain of instanceof checks (Eq, RegexEq, In, Or, And, etc.) to determine how to compile an expression. Adding a new expression type to the configuration language requires modifying this central compiler method rather than extending the expression hierarchy or using a Visitor pattern, violating the principle that the compiler should be closed for modification.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.getPipelineSourceDetails\",\n      \"entity_type\": \"method\",\n      \"line_start\": 883,\n      \"line_end\": 902,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on protocol strings prevents extension of pipeline sources.\",\n      \"reasoning\": \"The method uses a switch statement to map protocol names ('string', 'file', 'module', etc.) to descriptions. Adding a new configuration source type or protocol requires modifying this class to add a new case, instead of allowing the source itself to provide its own metadata or using a plugin-based registry.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.parseTimestamp\",\n      \"entity_type\": \"method\",\n      \"line_start\": 502,\n      \"line_end\": 526,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Instanceof chain for timestamp parsing requires modification for new date types.\",\n      \"reasoning\": \"The parseTimestamp method uses a chain of instanceof checks to handle different input types (String, RubyString, DateTime, Date, etc.). Supporting a new temporal type from a different library or a new JSR-310 type requires modifying this core utility method.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter.executeStoragePolicy\",\n      \"entity_type\": \"method\",\n      \"line_start\": 423,\n      \"line_end\": 443,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded storage policy logic based on enum types.\",\n      \"reasoning\": \"The method checks the storageType enum using if/else logic. Adding a new storage policy (e.g., a policy that compresses old segments instead of dropping them) requires modifying this internal logic rather than injecting a polymorphic StoragePolicy strategy.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.collectStats\",\n      \"entity_type\": \"method\",\n      \"line_start\": 575,\n      \"line_end\": 599,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded type check for specific queue implementation in stats collection.\",\n      \"reasoning\": \"The method performs an instanceof check for JRubyWrappedAckedQueueExt to collect specific capacity and data metrics. This couples the pipeline statistics logic to a specific queue implementation. Adding a new queue type with different metrics would require modifying this method.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+      "entity_name": "Compiler.buildCondition",
+      "entity_type": "method",
+      "line_start": 117,
+      "line_end": 147,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Method uses a long instanceof chain to handle different BooleanExpression subtypes.",
+      "reasoning": "The buildCondition method relies on an explicit chain of instanceof checks (Eq, RegexEq, In, Or, And, etc.) to determine how to compile an expression. Adding a new expression type to the configuration language requires modifying this central compiler method rather than extending the expression hierarchy or using a Visitor pattern, violating the principle that the compiler should be closed for modification."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+      "entity_type": "method",
+      "line_start": 883,
+      "line_end": 902,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on protocol strings prevents extension of pipeline sources.",
+      "reasoning": "The method uses a switch statement to map protocol names ('string', 'file', 'module', etc.) to descriptions. Adding a new configuration source type or protocol requires modifying this class to add a new case, instead of allowing the source itself to provide its own metadata or using a plugin-based registry."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.parseTimestamp",
+      "entity_type": "method",
+      "line_start": 502,
+      "line_end": 526,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Instanceof chain for timestamp parsing requires modification for new date types.",
+      "reasoning": "The parseTimestamp method uses a chain of instanceof checks to handle different input types (String, RubyString, DateTime, Date, etc.). Supporting a new temporal type from a different library or a new JSR-310 type requires modifying this core utility method."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter.executeStoragePolicy",
+      "entity_type": "method",
+      "line_start": 423,
+      "line_end": 443,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded storage policy logic based on enum types.",
+      "reasoning": "The method checks the storageType enum using if/else logic. Adding a new storage policy (e.g., a policy that compresses old segments instead of dropping them) requires modifying this internal logic rather than injecting a polymorphic StoragePolicy strategy."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.collectStats",
+      "entity_type": "method",
+      "line_start": 575,
+      "line_end": 599,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded type check for specific queue implementation in stats collection.",
+      "reasoning": "The method performs an instanceof check for JRubyWrappedAckedQueueExt to collect specific capacity and data metrics. This couples the pipeline statistics logic to a specific queue implementation. Adding a new queue type with different metrics would require modifying this method."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 45670.03679275513,
+  "error": null
+}

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 19016.19839668274,
+  "prompt_tokens": 4374,
+  "completion_tokens": 267,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Throw UnsupportedOperationException in write() to explicitly signal read-only contract\",\n  \"rationale\": \"The class is documented as read-only. While throwing an exception is technically an LSP violation if the base interface implies mutability, the current implementation was already doing so via a no-op. Changing the no-op to an explicit UnsupportedOperationException makes the violation visible and follows standard Java practices for read-only implementations of mutable interfaces, signaling the contract violation clearly to developers.\",\n  \"files_touched\": [\"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\"]\n}\n```\n\n<<<<<<< SEARCH logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\n    @Override\n    public void write(byte[] bytes, long seqNum) {\n        // No-op for read-only legacy V1 pages\n    }\n=======\n    @Override\n    public void write(byte[] bytes, long seqNum) {\n        throw new UnsupportedOperationException(\"MmapPageIOV1 is read-only\");\n    }\n>>>>>>> REPLACE"
+}

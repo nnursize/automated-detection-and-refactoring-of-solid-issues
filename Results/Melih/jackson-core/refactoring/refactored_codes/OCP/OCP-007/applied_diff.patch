@@ -1,0 +1,104 @@
+diff --git a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java
+index 07cdbcd..8a3e347 100644
+--- a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java
++++ b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java
+@@ -753,6 +753,45 @@ public class UTF8StreamJsonParser
+         }
+     }
+ 
++    // Helper method to encapsulate value parsing logic for nextName()
++    private final JsonToken _parseValueToken(int i) throws JacksonException {
++        switch (i) {
++        case '-':
++            return _parseSignedNumber(true);
++        case '+':
++            if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {
++                return _parseSignedNumber(false);
++            }
++            return _handleUnexpectedValue(i);
++        case '0':
++        case '1':
++        case '2':
++        case '3':
++        case '4':
++        case '5':
++        case '6':
++        case '7':
++        case '8':
++        case '9':
++            return _parseUnsignedNumber(i);
++        case 'f':
++            _matchFalse();
++            return JsonToken.VALUE_FALSE;
++        case 'n':
++            _matchNull();
++            return JsonToken.VALUE_NULL;
++        case 't':
++            _matchTrue();
++            return JsonToken.VALUE_TRUE;
++        case '[':
++            return JsonToken.START_ARRAY;
++        case '{':
++            return JsonToken.START_OBJECT;
++        default:
++            return _handleUnexpectedValue(i);
++        }
++    }
++
+     /*
+     /**********************************************************************
+     /* Public API, traversal, nextName() variants
+@@ -824,52 +863,7 @@ public class UTF8StreamJsonParser
+             _nextToken = JsonToken.VALUE_STRING;
+             return nameStr;
+         }
+-        JsonToken t;
+-        switch (i) {
+-        case '-':
+-            t = _parseSignedNumber(true);
+-            break;
+-        case '+':
+-            if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {
+-                t = _parseSignedNumber(false);
+-            } else {
+-                t = _handleUnexpectedValue(i);
+-            }
+-            break;
+-        case '0':
+-        case '1':
+-        case '2':
+-        case '3':
+-        case '4':
+-        case '5':
+-        case '6':
+-        case '7':
+-        case '8':
+-        case '9':
+-            t = _parseUnsignedNumber(i);
+-            break;
+-        case 'f':
+-            _matchFalse();
+-             t = JsonToken.VALUE_FALSE;
+-            break;
+-        case 'n':
+-            _matchNull();
+-            t = JsonToken.VALUE_NULL;
+-            break;
+-        case 't':
+-            _matchTrue();
+-            t = JsonToken.VALUE_TRUE;
+-            break;
+-        case '[':
+-            t = JsonToken.START_ARRAY;
+-            break;
+-        case '{':
+-            t = JsonToken.START_OBJECT;
+-            break;
+-
+-        default:
+-            t = _handleUnexpectedValue(i);
+-        }
++        JsonToken t = _parseValueToken(i);
+         _nextToken = t;
+         return nameStr;
+     }

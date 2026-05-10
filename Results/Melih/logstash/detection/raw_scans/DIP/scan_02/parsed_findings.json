@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.Queue",
+    "entity_type": "class",
+    "line_start": 98,
+    "line_end": 128,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level module depends on low-level implementation details (FileCheckpointIO, MmapPageIOV2).",
+    "reasoning": "The Queue constructor directly instantiates concrete implementations like FileCheckpointIO and MmapPageIOV2. It should instead receive these dependencies via constructor injection (e.g., as interfaces) to allow for different storage backends or easier testing."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.newCheckpointedHeadpage",
+    "entity_type": "method",
+    "line_start": 305,
+    "line_end": 311,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of MmapPageIOV2 inside the method.",
+    "reasoning": "The method directly instantiates MmapPageIOV2. High-level logic should not be responsible for creating specific, low-level storage implementations; this should be handled by a factory or injected dependency."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.openPages",
+    "entity_type": "method",
+    "line_start": 182,
+    "line_end": 182,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of MmapPageIOV2 inside the method.",
+    "reasoning": "The method directly instantiates MmapPageIOV2. This couples the Queue logic to a specific file-based storage implementation, preventing the use of other PageIO implementations."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.cleanedUpFullyAckedCorruptedPage",
+    "entity_type": "method",
+    "line_start": 253,
+    "line_end": 253,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of MmapPageIOV2 inside the method.",
+    "reasoning": "The method directly instantiates MmapPageIOV2, violating the principle that high-level modules should depend on abstractions, not concrete implementations."
+  }
+]

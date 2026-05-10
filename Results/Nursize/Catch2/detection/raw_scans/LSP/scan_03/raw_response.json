@@ -1,0 +1,51 @@
+{
+  "scan_id": "Catch2_LSP_scan_03",
+  "repo_name": "Catch2",
+  "principle": "LSP",
+  "scan_number": 3,
+  "timestamp": "2026-05-02T17:25:40.498724",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following c++ source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses that...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::ITransientExpression\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1845,\n      \"line_end\": 1868,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base class uses type-querying methods to distinguish subtypes.\",\n      \"reasoning\": \"The base class ITransientExpression includes the method isBinaryExpression(). This pattern of 'Type Tagging' or manual type querying suggests that consumers of the interface are expected to branch logic based on the concrete subtype rather than relying on polymorphic behavior. Subtypes should be substitutable without the caller needing to query their specific nature.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Clara::Detail::BoundRef\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3777,\n      \"line_end\": 3781,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Interface defines type-specific property queries (isContainer, isFlag).\",\n      \"reasoning\": \"BoundRef defines virtual methods isContainer() and isFlag() which are overridden by subclasses to identify their specific type category. This forces components working with BoundRef pointers to handle different subtypes through conditional logic based on these tags, violating the expectation that a subtype can replace its base type transparently.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::TestCaseTracking::ITracker\",\n      \"entity_type\": \"class\",\n      \"line_start\": 4712,\n      \"line_end\": 4762,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"The ITracker interface uses explicit methods to identify specific subtypes (isSectionTracker, isGeneratorTracker).\",\n      \"reasoning\": \"By including isSectionTracker() and isGeneratorTracker() in the ITracker interface, the design forces the base class to be aware of its potential specializations. Callers are encouraged to use these methods to downcast or change behavior depending on the concrete subtype, which breaks the polymorphic contract where the base type should be sufficient for all interactions.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::ITransientExpression",
+      "entity_type": "class",
+      "line_start": 1845,
+      "line_end": 1868,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Base class uses type-querying methods to distinguish subtypes.",
+      "reasoning": "The base class ITransientExpression includes the method isBinaryExpression(). This pattern of 'Type Tagging' or manual type querying suggests that consumers of the interface are expected to branch logic based on the concrete subtype rather than relying on polymorphic behavior. Subtypes should be substitutable without the caller needing to query their specific nature."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Clara::Detail::BoundRef",
+      "entity_type": "class",
+      "line_start": 3777,
+      "line_end": 3781,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Interface defines type-specific property queries (isContainer, isFlag).",
+      "reasoning": "BoundRef defines virtual methods isContainer() and isFlag() which are overridden by subclasses to identify their specific type category. This forces components working with BoundRef pointers to handle different subtypes through conditional logic based on these tags, violating the expectation that a subtype can replace its base type transparently."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::TestCaseTracking::ITracker",
+      "entity_type": "class",
+      "line_start": 4712,
+      "line_end": 4762,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "The ITracker interface uses explicit methods to identify specific subtypes (isSectionTracker, isGeneratorTracker).",
+      "reasoning": "By including isSectionTracker() and isGeneratorTracker() in the ITracker interface, the design forces the base class to be aware of its potential specializations. Callers are encouraged to use these methods to downcast or change behavior depending on the concrete subtype, which breaks the polymorphic contract where the base type should be sufficient for all interactions."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 179228.11603546143,
+  "error": null
+}

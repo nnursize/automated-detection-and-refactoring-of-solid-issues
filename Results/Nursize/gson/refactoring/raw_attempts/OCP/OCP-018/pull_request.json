@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-018",
+  "principle": "OCP",
+  "title": "Refactor OCP-018 (OCP): Large if-else if chain for specific java.time types violates OCP.",
+  "branch": "refactor/OCP-018",
+  "base": "main",
+  "head_commit": "04a632b05fe1b7980330a1de38f2ad9fa993f310",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5851,
+    "completion_tokens": 1205
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.JAVA_TIME_FACTORY.create",
+    "entity_type": "method",
+    "line_start": 340,
+    "line_end": 376,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Large if-else if chain for specific java.time types violates OCP.",
+    "reasoning": "The `create` method in `JAVA_TIME_FACTORY` contains a long `if-else if` chain that explicitly checks for numerous `java.time` classes (Duration, Instant, LocalDate, etc.) to return their respective type adapters. Adding support for any new `java.time` type would require modifying this method, making it a clear violation of OCP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace if-else chain in JavaTimeTypeAdapters with a Map-based registry for OCP compliance.",
+    "rationale": "By using a Map to store TypeAdapter providers (functional interfaces), we eliminate the hardcoded if-else chain. New java.time types can now be supported by simply adding an entry to the registry map, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+        "search_text": "  static final TypeAdapterFactory JAVA_TIME_FACTORY =\n      new TypeAdapterFactory() {\n        @Override\n        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {\n          Class<? super T> rawType = typeToken.getRawType();\n          if (!rawType.getName().startsWith(\"java.time.\")) {\n            // Immediately return null so we don't load all these classes when nobody's doing\n            // anything with java.time.\n            return null;\n          }\n          TypeAdapter<?> adapter = null;\n          if (rawType == Duration.class) {\n            adapter = DURATION;\n          } else if (rawType == Instant.class) {\n            adapter = INSTANT;\n          } else if (rawType == LocalDate.class) {\n            adapter = LOCAL_DATE;\n          } else if (rawType == LocalTime.class) {\n            adapter = LOCAL_TIME;\n          } else if (rawType == LocalDateTime.class) {\n            adapter = localDateTime(gson);\n          } else if (rawType == MonthDay.class) {\n            adapter = MONTH_DAY;\n          } else if (rawType == OffsetDateTime.class) {\n            adapter = offsetDateTime(gson);\n          } else if (rawType == OffsetTime.class) {\n            adapter = offsetTime(gson);\n          } else if (rawType == Period.class) {\n            adapter = PERIOD;\n          } else if (rawType == Year.class) {\n            adapter = YEAR;\n          } else if (rawType == YearMonth.class) {\n            adapter = YEAR_MONTH;\n          } else if (rawType == ZoneId.class || rawType == ZoneOffset.class) {\n            // We don't check ZoneId.class.isAssignableFrom(rawType) because we don't want to match\n            // the non-public class ZoneRegion in the runtime type check in\n            // TypeAdapterRuntimeTypeWrapper.write. If we did, then our ZONE_ID would take\n            // precedence over a ZoneId adapter that the user might have registered. (This exact\n            // situation showed up in a Google-internal test.)\n            adapter = ZONE_ID;\n          } else if (rawType == ZonedDateTime.class) {\n            adapter = zonedDateTime(gson);\n          }\n          @SuppressWarnings(\"unchecked\")\n          TypeAdapter<T> result = (TypeAdapter<T>) adapter;\n          return result;\n        }\n      };",
+        "replace_text": "  private interface AdapterProvider {\n    TypeAdapter<?> get(Gson gson);\n  }\n\n  private static final java.util.Map<Class<?>, AdapterProvider> ADAPTER_REGISTRY = new java.util.HashMap<>();\n\n  static {\n    ADAPTER_REGISTRY.put(Duration.class, g -> DURATION);\n    ADAPTER_REGISTRY.put(Instant.class, g -> INSTANT);\n    ADAPTER_REGISTRY.put(LocalDate.class, g -> LOCAL_DATE);\n    ADAPTER_REGISTRY.put(LocalTime.class, g -> LOCAL_TIME);\n    ADAPTER_REGISTRY.put(LocalDateTime.class, JavaTimeTypeAdapters::localDateTime);\n    ADAPTER_REGISTRY.put(MonthDay.class, g -> MONTH_DAY);\n    ADAPTER_REGISTRY.put(OffsetDateTime.class, JavaTimeTypeAdapters::offsetDateTime);\n    ADAPTER_REGISTRY.put(OffsetTime.class, JavaTimeTypeAdapters::offsetTime);\n    ADAPTER_REGISTRY.put(Period.class, g -> PERIOD);\n    ADAPTER_REGISTRY.put(Year.class, g -> YEAR);\n    ADAPTER_REGISTRY.put(YearMonth.class, g -> YEAR_MONTH);\n    ADAPTER_REGISTRY.put(ZoneId.class, g -> ZONE_ID);\n    ADAPTER_REGISTRY.put(ZoneOffset.class, g -> ZONE_ID);\n    ADAPTER_REGISTRY.put(ZonedDateTime.class, JavaTimeTypeAdapters::zonedDateTime);\n  }\n\n  static final TypeAdapterFactory JAVA_TIME_FACTORY =\n      new TypeAdapterFactory() {\n        @Override\n        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {\n          Class<? super T> rawType = typeToken.getRawType();\n          if (!rawType.getName().startsWith(\"java.time.\")) {\n            return null;\n          }\n          AdapterProvider provider = ADAPTER_REGISTRY.get(rawType);\n          if (provider == null) return null;\n          @SuppressWarnings(\"unchecked\")\n          TypeAdapter<T> result = (TypeAdapter<T>) provider.get(gson);\n          return result;\n        }\n      };",
+        "search_lines": 48,
+        "replace_lines": 38
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+        "loc": 350,
+        "blank_lines": 27,
+        "comment_lines": 17,
+        "function_count": 17,
+        "avg_cc": 3.47,
+        "max_cc": 43.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+        "loc": 344,
+        "blank_lines": 30,
+        "comment_lines": 10,
+        "function_count": 17,
+        "avg_cc": 2.65,
+        "max_cc": 29.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java\nindex 6c5450e..5a729cc 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java\n@@ -335,51 +335,41 @@ final class JavaTimeTypeAdapters implements TypeAdapters.FactorySupplier {\n     }.nullSafe();\n   }\n \n+  private interface AdapterProvider {\n+    TypeAdapter<?> get(Gson gson);\n+  }\n+\n+  private static final java.util.Map<Class<?>, AdapterProvider> ADAPTER_REGISTRY = new java.util.HashMap<>();\n+\n+  static {\n+    ADAPTER_REGISTRY.put(Duration.class, g -> DURATION);\n+    ADAPTER_REGISTRY.put(Instant.class, g -> INSTANT);\n+    ADAPTER_REGISTRY.put(LocalDate.class, g -> LOCAL_DATE);\n+    ADAPTER_REGISTRY.put(LocalTime.class, g -> LOCAL_TIME);\n+    ADAPTER_REGISTRY.put(LocalDateTime.class, JavaTimeTypeAdapters::localDateTime);\n+    ADAPTER_REGISTRY.put(MonthDay.class, g -> MONTH_DAY);\n+    ADAPTER_REGISTRY.put(OffsetDateTime.class, JavaTimeTypeAdapters::offsetDateTime);\n+    ADAPTER_REGISTRY.put(OffsetTime.class, JavaTimeTypeAdapters::offsetTime);\n+    ADAPTER_REGISTRY.put(Period.class, g -> PERIOD);\n+    ADAPTER_REGISTRY.put(Year.class, g -> YEAR);\n+    ADAPTER_REGISTRY.put(YearMonth.class, g -> YEAR_MONTH);\n+    ADAPTER_REGISTRY.put(ZoneId.class, g -> ZONE_ID);\n+    ADAPTER_REGISTRY.put(ZoneOffset.class, g -> ZONE_ID);\n+    ADAPTER_REGISTRY.put(ZonedDateTime.class, JavaTimeTypeAdapters::zonedDateTime);\n+  }\n+\n   static final TypeAdapterFactory JAVA_TIME_FACTORY =\n       new TypeAdapterFactory() {\n         @Override\n         public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {\n           Class<? super T> rawType = typeToken.getRawType();\n           if (!rawType.getName().startsWith(\"java.time.\")) {\n-            // Immediately return null so we don't load all these classes when nobody's doing\n-            // anything with java.time.\n             return null;\n           }\n-          TypeAdapter<?> adapter = null;\n-          if (rawType == Duration.class) {\n-            adapter = DURATION;\n-          } else if (rawType == Instant.class) {\n-            adapter = INSTANT;\n-          } else if (rawType == LocalDate.class) {\n-            adapter = LOCAL_DATE;\n-          } else if (rawType == LocalTime.class) {\n-            adapter = LOCAL_TIME;\n-          } else if (rawType == LocalDateTime.class) {\n-            adapter = localDateTime(gson);\n-          } else if (rawType == MonthDay.class) {\n-            adapter = MONTH_DAY;\n-          } else if (rawType == OffsetDateTime.class) {\n-            adapter = offsetDateTime(gson);\n-          } else if (rawType == OffsetTime.class) {\n-            adapter = offsetTime(gson);\n-          } else if (rawType == Period.class) {\n-            adapter = PERIOD;\n-          } else if (rawType == Year.class) {\n-            adapter = YEAR;\n-          } else if (rawType == YearMonth.class) {\n-            adapter = YEAR_MONTH;\n-          } else if (rawType == ZoneId.class || rawType == ZoneOffset.class) {\n-            // We don't check ZoneId.class.isAssignableFrom(rawType) because we don't want to match\n-            // the non-public class ZoneRegion in the runtime type check in\n-            // TypeAdapterRuntimeTypeWrapper.write. If we did, then our ZONE_ID would take\n-            // precedence over a ZoneId adapter that the user might have registered. (This exact\n-            // situation showed up in a Google-internal test.)\n-            adapter = ZONE_ID;\n-          } else if (rawType == ZonedDateTime.class) {\n-            adapter = zonedDateTime(gson);\n-          }\n+          AdapterProvider provider = ADAPTER_REGISTRY.get(rawType);\n+          if (provider == null) return null;\n           @SuppressWarnings(\"unchecked\")\n-          TypeAdapter<T> result = (TypeAdapter<T>) adapter;\n+          TypeAdapter<T> result = (TypeAdapter<T>) provider.get(gson);\n           return result;\n         }\n       };\n",
+  "duration_ms": 4249.032497406006
+}

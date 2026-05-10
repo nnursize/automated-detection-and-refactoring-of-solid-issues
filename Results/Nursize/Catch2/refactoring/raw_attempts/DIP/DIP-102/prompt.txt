@@ -1,0 +1,456 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-102
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `RunContext` (current lines L10652-L10777 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 6 independent scans
+
+### Description
+RunContext depends on concrete IEventListenerPtr instead of an abstraction.
+
+### Reasoning
+The RunContext class takes ownership of an IEventListenerPtr in its constructor. While IEventListener is an interface, the use of unique_ptr with a concrete type (IEventListenerPtr) implies a dependency on the specific implementation details of how listeners are managed, rather than a more abstract dependency on a listener management service. A more DIP-compliant approach would involve injecting a factory or a collection of listeners, or depending on an interface that manages listeners.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 10531 earlier lines elided ...
+
+        void startCycle() {
+            m_currentTracker = m_rootTracker.get();
+            m_runState = Executing;
+        }
+        void completeCycle();
+
+        bool completedCycle() const;
+        ITracker& currentTracker() { return *m_currentTracker; }
+        void setCurrentTracker( ITracker* tracker );
+    };
+
+    class TrackerBase : public ITracker {
+    protected:
+
+        TrackerContext& m_ctx;
+
+    public:
+        TrackerBase( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );
+
+        bool isComplete() const override;
+
+        void open();
+
+        void close() override;
+        void fail() override;
+
+    private:
+        void moveToParent();
+        void moveToThis();
+    };
+
+    class SectionTracker : public TrackerBase {
+        std::vector<StringRef> m_filters;
+        // Note that lifetime-wise we piggy back off the name stored in the `ITracker` parent`.
+        // Currently it allocates owns the name, so this is safe. If it is later refactored
+        // to not own the name, the name still has to outlive the `ITracker` parent, so
+        // this should still be safe.
+        StringRef m_trimmed_name;
+    public:
+        SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );
+
+        bool isComplete() const override;
+        bool isSectionTracker() const override { return true; }
+
+        static SectionTracker& acquire( TrackerContext& ctx, NameAndLocationRef const& nameAndLocation );
+
+        void tryOpen();
+
+        void addInitialFilters( std::vector<std::string> const& filters );
+        void addNextFilters( std::vector<StringRef> const& filters );
+        //! Returns filters active in this tracker
+        std::vector<StringRef> const& getFilters() const { return m_filters; }
+        //! Returns whitespace-trimmed name of the tracked section
+        StringRef trimmedName() const;
+    };
+
+} // namespace TestCaseTracking
+
+using TestCaseTracking::ITracker;
+using TestCaseTracking::TrackerContext;
+using TestCaseTracking::SectionTracker;
+
+} // namespace Catch
+
+#endif // CATCH_TEST_CASE_TRACKER_HPP_INCLUDED
+
+
+#ifndef CATCH_THREAD_SUPPORT_HPP_INCLUDED
+#define CATCH_THREAD_SUPPORT_HPP_INCLUDED
+
+
+#if defined( CATCH_CONFIG_THREAD_SAFE_ASSERTIONS )
+#    include <atomic>
+#    include <mutex>
+#endif
+
+
+namespace Catch {
+    namespace Detail {
+#if defined( CATCH_CONFIG_THREAD_SAFE_ASSERTIONS )
+        using Mutex = std::mutex;
+        using LockGuard = std::lock_guard<std::mutex>;
+        struct AtomicCounts {
+            std::atomic<std::uint64_t> passed{ 0 };
+            std::atomic<std::uint64_t> failed{ 0 };
+            std::atomic<std::uint64_t> failedButOk{ 0 };
+            std::atomic<std::uint64_t> skipped{ 0 };
+        };
+#else // ^^ Use actual mutex, lock and atomics
+      // vv Dummy implementations for single-thread performance
+
+        struct Mutex {
+            void lock() {}
+            void unlock() {}
+        };
+
+        struct LockGuard {
+            LockGuard( Mutex ) {}
+        };
+
+        using AtomicCounts = Counts;
+#endif
+
+    } // namespace Detail
+} // namespace Catch
+
+#endif // CATCH_THREAD_SUPPORT_HPP_INCLUDED
+
+#include <string>
+
+namespace Catch {
+
+    class IGeneratorTracker;
+    class IConfig;
+    class IEventListener;
+    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+    class OutputRedirect;
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    class RunContext final : public IResultCapture {
+
+    public:
+        RunContext( RunContext const& ) = delete;
+        RunContext& operator =( RunContext const& ) = delete;
+
+        explicit RunContext( IConfig const* _config, IEventListenerPtr&& reporter );
+
+        ~RunContext() override;
+
+        Totals runTest(TestCaseHandle const& testCase);
+
+    public: // IResultCapture
+
+        // Assertion handlers
+        void handleExpr
+                (   AssertionInfo const& info,
+                    ITransientExpression const& expr,
+                    AssertionReaction& reaction ) override;
+        void handleMessage
+                (   AssertionInfo const& info,
+                    ResultWas::OfType resultType,
+                    std::string&& message,
+                    AssertionReaction& reaction ) override;
+        void handleUnexpectedExceptionNotThrown
+                (   AssertionInfo const& info,
+                    AssertionReaction& reaction ) override;
+        void handleUnexpectedInflightException
+                (   AssertionInfo const& info,
+                    std::string&& message,
+                    AssertionReaction& reaction ) override;
+        void handleIncomplete
+                (   AssertionInfo const& info ) override;
+        void handleNonExpr
+                (   AssertionInfo const &info,
+                    ResultWas::OfType resultType,
+                    AssertionReaction &reaction ) override;
+
+        void notifyAssertionStarted( AssertionInfo const& info ) override;
+        bool sectionStarted( StringRef sectionName,
+                             SourceLineInfo const& sectionLineInfo,
+                             Counts& assertions ) override;
+
+        void sectionEnded( SectionEndInfo&& endInfo ) override;
+        void sectionEndedEarly( SectionEndInfo&& endInfo ) override;
+
+        IGeneratorTracker*
+        acquireGeneratorTracker( StringRef generatorName,
+                                 SourceLineInfo const& lineInfo ) override;
+        IGeneratorTracker* createGeneratorTracker(
+            StringRef generatorName,
+            SourceLineInfo lineInfo,
+            Generators::GeneratorBasePtr&& generator ) override;
+
+
+        void benchmarkPreparing( StringRef name ) override;
+        void benchmarkStarting( BenchmarkInfo const& info ) override;
+        void benchmarkEnded( BenchmarkStats<> const& stats ) override;
+        void benchmarkFailed( StringRef error ) override;
+
+        std::string getCurrentTestName() const override;
+
+        const AssertionResult* getLastResult() const override;
+
+        void exceptionEarlyReported() override;
+
+        void handleFatalErrorCondition( StringRef message ) override;
+
+        bool lastAssertionPassed() override;
+
+    public:
+        // !TBD We need to do this another way!
+        bool aborting() const;
+
+    private:
+        void assertionPassedFastPath( SourceLineInfo lineInfo );
+        // Update the non-thread-safe m_totals from the atomic assertion counts.
+        void updateTotalsFromAtomics();
+
+        void runCurrentTest();
+        void invokeActiveTestCase();
+
+        bool testForMissingAssertions( Counts& assertions );
+
+        void assertionEnded( AssertionResult&& result );
+        void reportExpr
+                (   AssertionInfo const &info,
+                    ResultWas::OfType resultType,
+                    ITransientExpression const *expr,
+                    bool negated );
+
+        void populateReaction( AssertionReaction& reaction, bool has_normal_disposition );
+
+        // Creates dummy info for unexpected exceptions/fatal errors,
+        // where we do not have the access to one, but we still need
+        // to send one to the reporters.
+        AssertionInfo makeDummyAssertionInfo();
+
+    private:
+
+        void handleUnfinishedSections();
+        mutable Detail::Mutex m_assertionMutex;
+        TestRunInfo m_runInfo;
+        TestCaseHandle const* m_activeTestCase = nullptr;
+        ITracker* m_testCaseTracker = nullptr;
+        Optional<AssertionResult> m_lastResult;
+        IConfig const* m_config;
+        Totals m_totals;
+        Detail::AtomicCounts m_atomicAssertionCount;
+        IEventListenerPtr m_reporter;
+        std::vector<SectionEndInfo> m_unfinishedSections;
+        std::vector<ITracker*> m_activeSections;
+        TrackerContext m_trackerContext;
+        Detail::unique_ptr<OutputRedirect> m_outputRedirect;
+        FatalConditionHandler m_fatalConditionhandler;
+        // Caches m_config->abortAfter() to avoid vptr calls/allow inlining
+        size_t m_abortAfterXFailedAssertions;
+        bool m_shouldReportUnexpected = true;
+        // Caches whether `assertionStarting` events should be sent to the reporter.
+        bool m_reportAssertionStarting;
+        // Caches whether `assertionEnded` events for successful assertions should be sent to the reporter
+        bool m_includeSuccessfulResults;
+        // Caches m_config->shouldDebugBreak() to avoid vptr calls/allow inlining
+        bool m_shouldDebugBreak;
+    };
+
+    void seedRng(IConfig const& config);
+    unsigned int rngSeed();
+} // end namespace Catch
+
+#endif // CATCH_RUN_CONTEXT_HPP_INCLUDED
+
+
+#ifndef CATCH_SHARDING_HPP_INCLUDED
+#define CATCH_SHARDING_HPP_INCLUDED
+
+#include <cassert>
+#include <algorithm>
+
+namespace Catch {
+
+    template<typename Container>
+    Container createShard(Container const& container, std::size_t const shardCount, std::size_t const shardIndex) {
+        assert(shardCount > shardIndex);
+
+        if (shardCount == 1) {
+            return container;
+        }
+
+        const std::size_t totalTestCount = container.size();
+
+        const std::size_t shardSize = totalTestCount / shardCount;
+        const std::size_t leftoverTests = totalTestCount % shardCount;
+
+        const std::size_t startIndex = shardIndex * shardSize + (std::min)(shardIndex, leftoverTests);
+        const std::size_t endIndex = (shardIndex + 1) * shardSize + (std::min)(shardIndex + 1, leftoverTests);
+
+        auto startIterator = std::next(container.begin(), static_cast<std::ptrdiff_t>(startIndex));
+        auto endIterator = std::next(container.begin(), static_cast<std::ptrdiff_t>(endIndex));
+
+        return Container(startIterator, endIterator);
+    }
+
+}
+
+#endif // CATCH_SHARDING_HPP_INCLUDED
+
+
+#ifndef CATCH_SINGLETONS_HPP_INCLUDED
+#define CATCH_SINGLETONS_HPP_INCLUDED
+
+namespace Catch {
+
+    struct ISingleton {
+        virtual ~ISingleton(); // = default
+    };
+
+
+    void addSingleton( ISingleton* singleton );
+    void cleanupSingletons();
+
+
+    template<typename SingletonImplT, typename InterfaceT = SingletonImplT, typename MutableInterfaceT = InterfaceT>
+    class Singleton : SingletonImplT, public ISingleton {
+
+        static auto getInternal() -> Singleton* {
+            static Singleton* s_instance = nullptr;
+            if( !s_instance ) {
+                s_instance = new Singleton;
+                addSingleton( s_instance );
+            }
+            return s_instance;
+        }
+
+    public:
+        static auto get() -> InterfaceT const& {
+            return *getInternal();
+        }
+        static auto getMutable() -> MutableInterfaceT& {
+            return *getInternal();
+        }
+    };
+
+} // namespace Catch
+
+#endif // CATCH_SINGLETONS_HPP_INCLUDED
+
+
+#ifndef CATCH_STARTUP_EXCEPTION_REGISTRY_HPP_INCLUDED
+#define CATCH_STARTUP_EXCEPTION_REGISTRY_HPP_INCLUDED
+
+
+#include <vector>
+#include <exception>
+
+namespace Catch {
+
+    class StartupExceptionRegistry {
+#if !defined(CATCH_CONFIG_DISABLE_EXCEPTIONS)
+    public:
+        void add(std::exception_ptr const& exception) noexcept;
+        std::vector<std::exception_ptr> const& getExceptions() const noexcept;
+    private:
+        std::vector<std::exception_ptr> m_exceptions;
+#endif
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_STARTUP_EXCEPTION_REGISTRY_HPP_INCLUDED
+
+
+
+#ifndef CATCH_STDSTREAMS_HPP_INCLUDED
+#define CATCH_STDSTREAMS_HPP_INCLUDED
+
+#include <iosfwd>
+
+namespace Catch {
+
+    std::ostream& cout();
+    std::ostream& cerr();
+    std::ostream& clog();
+
+} // namespace Catch
+# ... 3426 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

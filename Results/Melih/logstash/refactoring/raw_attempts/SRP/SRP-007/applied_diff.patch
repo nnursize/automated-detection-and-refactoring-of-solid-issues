@@ -1,0 +1,220 @@
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+index 42771a1..2a80b79 100644
+--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+@@ -75,7 +75,7 @@ public final class Queue implements Closeable {
+     private final CheckpointIO checkpointIO;
+     private final int pageCapacity;
+     private final long maxBytes;
+-    private final Path dirPath;
++    private final QueueManager queueManager;
+     private final int maxUnread;
+     private final int checkpointMaxAcks;
+     private final int checkpointMaxWrites;
+@@ -92,10 +92,6 @@ public final class Queue implements Closeable {
+     private final Condition notFull  = lock.newCondition();
+     private final Condition notEmpty = lock.newCondition();
+ 
+-    // exclusive dir access
+-    private FileLock dirLock;
+-    private final static String LOCK_NAME = ".lock";
+-
+     private static final Logger logger = LogManager.getLogger(Queue.class);
+ 
+     private final Metric metric;
+@@ -108,13 +104,7 @@ public final class Queue implements Closeable {
+     public Queue(Settings settings, Metric metric) {
+         this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);
+         try {
+-            final Path queueDir = Paths.get(settings.getDirPath());
+-            // Files.createDirectories raises a FileAlreadyExistsException
+-            // if queue dir is symlinked, so worth checking against Files.exists
+-            if (Files.exists(queueDir) == false) {
+-                Files.createDirectories(queueDir);
+-            }
+-            this.dirPath = queueDir.toRealPath();
++            this.queueManager = new QueueManager(settings.getDirPath());
+         } catch (final IOException ex) {
+             throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);
+         }
+@@ -143,7 +133,7 @@ public final class Queue implements Closeable {
+     }
+ 
+     public String getDirPath() {
+-        return this.dirPath.toString();
++        return this.queueManager.getDirPath().toString();
+     }
+ 
+     public long getMaxBytes() {
+@@ -187,20 +177,11 @@ public final class Queue implements Closeable {
+ 
+         lock.lock();
+         try {
+-            try {
+-                // verify exclusive access to the dirPath
+-                this.dirLock = FileLockFactory.obtainLock(this.dirPath, LOCK_NAME);
+-            } catch (LockException e) {
+-                throw new LockException("The queue failed to obtain exclusive access, cause: " + e.getMessage());
+-            }
+-
++            this.queueManager.acquireLock();
+             try {
+                 openPages();
+                 this.closed.set(false);
+             } catch (IOException e) {
+-                // upon any exception while opening the queue and after dirlock has been obtained
+-                // we need to make sure to release the dirlock. Calling the close method on a partially
+-                // open queue has no effect because the closed flag is still true.
+                 releaseLockAndSwallow();
+                 throw(e);
+             }
+@@ -213,7 +194,7 @@ public final class Queue implements Closeable {
+         final int headPageNum;
+ 
+         // Upgrade to serialization format V2
+-        QueueUpgrade.upgradeQueueDirectoryToV2(dirPath);
++        this.queueManager.upgrade();
+ 
+         Checkpoint headCheckpoint;
+         try {
+@@ -223,7 +204,7 @@ public final class Queue implements Closeable {
+ 
+             logger.debug("No head checkpoint found at: {}, creating new head page", checkpointIO.headFileName());
+ 
+-            this.ensureDiskAvailable(this.maxBytes, 0);
++            this.queueManager.ensureDiskAvailable(this.maxBytes, 0);
+ 
+             this.seqNum = 0;
+             headPageNum = 0;
+@@ -242,14 +223,14 @@ public final class Queue implements Closeable {
+         // reconstruct all tail pages state upto but excluding the head page
+         for (int pageNum = headCheckpoint.getFirstUnackedPageNum(); pageNum < headCheckpoint.getPageNum(); pageNum++) {
+             final String cpFileName = checkpointIO.tailFileName(pageNum);
+-            if (!dirPath.resolve(cpFileName).toFile().exists()) {
++            if (!this.queueManager.getDirPath().resolve(cpFileName).toFile().exists()) {
+                 continue;
+             }
+             final Checkpoint cp = this.checkpointIO.read(cpFileName);
+ 
+-            logger.debug("opening tail page: {}, in: {}, with checkpoint: {}", pageNum, this.dirPath, cp);
++            logger.debug("opening tail page: {}, in: {}, with checkpoint: {}", pageNum, this.queueManager.getDirPath(), cp);
+ 
+-            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.dirPath);
++            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());
+             // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case
+             // we can purge it and we don't care about its integrity for example if it is of zero-byte file size.
+             if (cp.isFullyAcked()) {
+@@ -272,13 +253,13 @@ public final class Queue implements Closeable {
+         // transform the head page into a tail page only if the headpage is non-empty
+         // in both cases it will be checkpointed to track any changes in the firstUnackedPageNum when reconstructing the tail pages
+ 
+-        logger.debug("opening head page: {}, in: {}, with checkpoint: {}", headCheckpoint.getPageNum(), this.dirPath, headCheckpoint);
++        logger.debug("opening head page: {}, in: {}, with checkpoint: {}", headCheckpoint.getPageNum(), this.queueManager.getDirPath(), headCheckpoint);
+ 
+-        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);
++        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());
+         pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data
+ 
+         pqSizeBytes += (long) pageIO.getHead();
+-        ensureDiskAvailable(this.maxBytes, pqSizeBytes);
++        this.queueManager.ensureDiskAvailable(this.maxBytes, pqSizeBytes);
+ 
+         if (pageIO.getMinSeqNum() != headCheckpoint.getMinSeqNum() || pageIO.getElementCount() != headCheckpoint.getElementCount()) {
+             // the recovered page IO shows different minSeqNum or elementCount than the checkpoint, use the page IO attributes
+@@ -336,7 +317,7 @@ public final class Queue implements Closeable {
+      */
+     private boolean cleanedUpFullyAckedCorruptedPage(Checkpoint headCheckpoint, long pqSizeBytes) throws IOException {
+         if (headCheckpoint.isFullyAcked()) {
+-            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);
++            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());
+             if (pageIO.isCorruptedPage()) {
+                 logger.debug("Queue is fully acked. Found zero byte page.{}. Recreate checkpoint.head and delete corrupted page", headCheckpoint.getPageNum());
+ 
+@@ -350,7 +331,7 @@ public final class Queue implements Closeable {
+                 newCheckpointedHeadpage(headCheckpoint.getPageNum() + 1);
+ 
+                 pqSizeBytes += (long) pageIO.getHead();
+-                ensureDiskAvailable(this.maxBytes, pqSizeBytes);
++                this.queueManager.ensureDiskAvailable(this.maxBytes, pqSizeBytes);
+                 return true;
+             }
+         }
+@@ -404,7 +385,7 @@ public final class Queue implements Closeable {
+      * @throws IOException
+      */
+     private void newCheckpointedHeadpage(int pageNum) throws IOException {
+-        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.dirPath);
++        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());
+         headPageIO.create();
+         logger.debug("created new head page: {}", headPageIO);
+         this.headPage = PageFactory.newHeadPage(pageNum, this, headPageIO);
+@@ -823,7 +804,7 @@ public final class Queue implements Closeable {
+ 
+     private void releaseLockAndSwallow() {
+         try {
+-            FileLockFactory.releaseLock(this.dirLock);
++            this.queueManager.releaseLock();
+         } catch (IOException e) {
+             // log error and ignore
+             logger.error("Queue close releaseLock failed, error={}", e.getMessage());
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java
+@@ -0,0 +1,54 @@
++package org.logstash.ackedqueue;
++
++import java.io.IOException;
++import java.nio.channels.FileLock;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++import org.logstash.FileLockFactory;
++import org.logstash.LockException;
++import org.logstash.common.FsUtil;
++
++public final class QueueManager {
++    private final Path dirPath;
++    private FileLock dirLock;
++    private final static String LOCK_NAME = ".lock";
++
++    public QueueManager(String path) throws IOException {
++        final Path queueDir = Paths.get(path);
++        if (Files.exists(queueDir) == false) {
++            Files.createDirectories(queueDir);
++        }
++        this.dirPath = queueDir.toRealPath();
++    }
++
++    public void upgrade() throws IOException {
++        QueueUpgrade.upgradeQueueDirectoryToV2(dirPath);
++    }
++
++    public void acquireLock() throws IOException {
++        try {
++            this.dirLock = FileLockFactory.obtainLock(this.dirPath, LOCK_NAME);
++        } catch (LockException e) {
++            throw new LockException("The queue failed to obtain exclusive access, cause: " + e.getMessage());
++        }
++    }
++
++    public void releaseLock() throws IOException {
++        if (this.dirLock != null) {
++            FileLockFactory.releaseLock(this.dirLock);
++        }
++    }
++
++    public void ensureDiskAvailable(final long maxPqSize, long currentPqSize) throws IOException {
++        if (!FsUtil.hasFreeSpace(this.dirPath, maxPqSize - currentPqSize)) {
++            throw new IOException(
++                    String.format("Unable to allocate %d more bytes for persisted queue on top of its current usage of %d bytes",
++                            maxPqSize - currentPqSize, currentPqSize));
++        }
++    }
++
++    public Path getDirPath() {
++        return dirPath;
++    }
++}
+\ No newline at end of file

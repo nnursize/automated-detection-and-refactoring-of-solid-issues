@@ -1,0 +1,167 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 703,
+    "line_end": 786,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded list of default TypeAdapterFactory registrations.",
+    "reasoning": "The `createFactories` method explicitly lists and adds a fixed set of `TypeAdapterFactory` instances. To introduce a new default type adapter factory for a new built-in Java type, this method's source code would need to be modified, violating OCP. A more extensible design might involve a discoverable plugin mechanism or a registry for default factories."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+    "entity_name": "JsonWriter.alwaysCreatesValidJsonNumber",
+    "entity_type": "method",
+    "line_start": 437,
+    "line_end": 446,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded instanceof checks for specific Number subclasses.",
+    "reasoning": "The `alwaysCreatesValidJsonNumber` method contains an `instanceof` chain that explicitly checks for various `Number` subclasses. If a new `Number` subclass were introduced that is also guaranteed to produce a valid JSON string representation, this method would need to be modified to include it, violating OCP. This logic is used by `value(Number value)` to optimize validation."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/GsonTypes.java",
+    "entity_name": "GsonTypes.canonicalize",
+    "entity_type": "method",
+    "line_start": 172,
+    "line_end": 187,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Instanceof chain for java.lang.reflect.Type implementations.",
+    "reasoning": "The `canonicalize` method uses a long `if/else if` chain with `instanceof` checks to handle different implementations of `java.lang.reflect.Type`. If a new `Type` implementation (e.g., a future Java language feature like value types or pattern matching types) were introduced, this method would require modification to support it, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/GsonTypes.java",
+    "entity_name": "GsonTypes.getRawType",
+    "entity_type": "method",
+    "line_start": 190,
+    "line_end": 226,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Instanceof chain for java.lang.reflect.Type implementations.",
+    "reasoning": "The `getRawType` method uses a long `if/else if` chain with `instanceof` checks to determine the raw type for different `java.lang.reflect.Type` implementations. Similar to `canonicalize`, any new `Type` implementation would necessitate modifying this method, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/GsonTypes.java",
+    "entity_name": "GsonTypes.equals",
+    "entity_type": "method",
+    "line_start": 231,
+    "line_end": 277,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Instanceof chain for java.lang.reflect.Type implementations.",
+    "reasoning": "The `equals` method implements type-specific equality logic using an `if/else if` chain with `instanceof` checks for various `java.lang.reflect.Type` implementations. Adding support for a new `Type` implementation would require modifying this method, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 108,
+    "line_end": 149,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Conditional logic for special class types, specifically Java Records.",
+    "reasoning": "The `create` method contains an explicit `if (ReflectionHelper.isRecord(raw))` check to provide a specialized adapter for Java Records. If new special class types (e.g., future Java language features) with unique serialization requirements were introduced, this method would need to be modified to add another conditional branch, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.getBoundFields",
+    "entity_type": "method",
+    "line_start": 310,
+    "line_end": 424,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Conditional logic for special class types, specifically Java Records.",
+    "reasoning": "The `getBoundFields` method contains an explicit `if (isRecord)` check to adjust field binding logic for Java Records. Similar to the `create` method, supporting new special class types would require modifying this method to add new conditional logic, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.get",
+    "entity_type": "method",
+    "line_start": 74,
+    "line_end": 141,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded chain of object construction strategies.",
+    "reasoning": "The `get` method implicitly uses an `if/else if` chain to try different strategies for creating an object constructor (e.g., instance creators, special collection constructors, default constructors, unsafe allocator). To add a new object construction strategy, this method's logic would need to be modified, violating OCP. A more flexible design would allow registering new strategies without altering existing code."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newSpecialCollectionConstructor",
+    "entity_type": "method",
+    "line_start": 143,
+    "line_end": 186,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded if/else if chain for specific special collection types.",
+    "reasoning": "The `newSpecialCollectionConstructor` method uses an `if/else if` chain to provide constructors for specific collection types like `EnumSet` and `EnumMap`. If new special collection types (e.g., from the JDK or commonly used libraries) needed custom construction logic, this method would require modification, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newCollectionConstructor",
+    "entity_type": "method",
+    "line_start": 292,
+    "line_end": 310,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded if/else if chain for specific Collection implementations.",
+    "reasoning": "The `newCollectionConstructor` method uses an `if/else if` chain to provide default constructors for various `Collection` implementations (e.g., `ArrayList`, `LinkedHashSet`). To support a new default `Collection` implementation, this method would need to be modified, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newMapConstructor",
+    "entity_type": "method",
+    "line_start": 321,
+    "line_end": 349,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded if/else if chain for specific Map implementations.",
+    "reasoning": "The `newMapConstructor` method uses an `if/else if` chain to provide default constructors for various `Map` implementations (e.g., `LinkedTreeMap`, `LinkedHashMap`). To support a new default `Map` implementation, this method would need to be modified, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.JAVA_TIME_FACTORY.create",
+    "entity_type": "method",
+    "line_start": 362,
+    "line_end": 417,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Long if/else if chain for java.time types.",
+    "reasoning": "The `create` method of `JAVA_TIME_FACTORY` contains a long `if/else if` chain that explicitly checks for each `java.time` type (e.g., `Duration.class`, `Instant.class`, `LocalDate.class`). If a new `java.time` type were to be supported with a default `TypeAdapter`, this method would need to be modified to add another `else if` branch, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/reflect/TypeToken.java",
+    "entity_name": "TypeToken.verifyNoTypeVariable",
+    "entity_type": "method",
+    "line_start": 122,
+    "line_end": 149,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Instanceof chain for java.lang.reflect.Type implementations.",
+    "reasoning": "The `verifyNoTypeVariable` method uses an `if/else if` chain with `instanceof` checks for various `java.lang.reflect.Type` implementations. If a new `Type` implementation were introduced in Java, this validation method would require modification to handle it, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/reflect/TypeToken.java",
+    "entity_name": "TypeToken.isAssignableFrom",
+    "entity_type": "method",
+    "line_start": 176,
+    "line_end": 192,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Instanceof chain for java.lang.reflect.Type implementations.",
+    "reasoning": "The `isAssignableFrom` method uses an `if/else if` chain with `instanceof` checks to determine assignability for different `java.lang.reflect.Type` implementations. Any new `Type` implementation would necessitate modifying this method, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "entity_name": "JsonTreeReader.peek",
+    "entity_type": "method",
+    "line_start": 110,
+    "line_end": 149,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Instanceof chain for JsonElement subclasses.",
+    "reasoning": "The `peek` method contains a long `if/else if` chain with `instanceof` checks to determine the type of the current `JsonElement` on the stack. While the `JsonElement` hierarchy is explicitly discouraged from being extended by users (as per Javadoc and the explicit `MalformedJsonException` for custom subclasses), if the design were to allow and encourage custom `JsonElement` subclasses, this method would require modification for each new subclass, violating OCP."
+  }
+]

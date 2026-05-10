@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 12037.430763244629,
+  "prompt_tokens": 12199,
+  "completion_tokens": 254,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Refactor pipeline source description logic to use polymorphism\",\n  \"rationale\": \"The switch statement in AbstractPipelineExt violates the Open/Closed Principle. By moving the responsibility of providing a description to the SourceWithMetadata interface (or a default method/implementation), we allow new protocols to be added without modifying the core pipeline execution logic.\",\n  \"files_touched\": [\"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    private String getSourceDescription(SourceWithMetadata source) {\n        switch (source.getProtocol()) {\n            case \"string\": return \"config string\";\n            case \"file\": return source.getId();\n            case \"x-pack-metrics\": return \"monitoring pipeline\";\n            case \"x-pack-config-management\": return \"central pipeline management\";\n            case \"module\": return \"module\";\n            default: return source.getProtocol();\n        }\n    }\n=======\n    private String getSourceDescription(SourceWithMetadata source) {\n        return source.getDescription();\n    }\n>>>>>>> REPLACE"
+}

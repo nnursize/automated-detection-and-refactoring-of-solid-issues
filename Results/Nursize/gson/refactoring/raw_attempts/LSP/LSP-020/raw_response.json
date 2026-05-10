@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 3232.982873916626,
+  "prompt_tokens": 2489,
+  "completion_tokens": 297,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove null-check enforcement in NonNullElementWrapperList to comply with List contract\",\n  \"rationale\": \"The NonNullElementWrapperList was enforcing a stricter contract than the List interface by throwing NullPointerException on null elements. Removing these checks allows the class to behave like a standard List, satisfying the Liskov Substitution Principle.\",\n  \"files_touched\": [\"gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java\"]\n}\n```\n\n<<<<<<< SEARCH\n  private E nonNull(E element) {\n    if (element == null) {\n      throw new NullPointerException(\"Element must be non-null\");\n    }\n    return element;\n  }\n\n  @Override\n  public E set(int index, E element) {\n    return delegate.set(index, nonNull(element));\n  }\n\n  @Override\n  public void add(int index, E element) {\n    delegate.add(index, nonNull(element));\n  }\n=======\n  @Override\n  public E set(int index, E element) {\n    return delegate.set(index, element);\n  }\n\n  @Override\n  public void add(int index, E element) {\n    delegate.add(index, element);\n  }\n>>>>>>> REPLACE"
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/models.py",
+    "search_text": "class Response:\n    \"\"\"The :class:`Response <Response>` object, which contains a\n    server's response to an HTTP request.\n    \"\"\"\n\n    __attrs__ = [",
+    "replace_text": "from typing import Protocol, runtime_checkable\n\n@runtime_checkable\nclass IResponseStatus(Protocol):\n    status_code: int\n    ok: bool\n    def raise_for_status(self) -> None: ...\n\n@runtime_checkable\nclass IResponseContent(Protocol):\n    content: bytes\n    text: str\n    def json(self, **kwargs): ...\n    def iter_content(self, chunk_size=1, decode_unicode=False): ...\n\n@runtime_checkable\nclass IResponseResource(Protocol):\n    def close(self) -> None: ...\n\nclass Response:\n    \"\"\"The :class:`Response <Response>` object, which contains a\n    server's response to an HTTP request.\n    \"\"\"\n\n    __attrs__ = ["
+  }
+]

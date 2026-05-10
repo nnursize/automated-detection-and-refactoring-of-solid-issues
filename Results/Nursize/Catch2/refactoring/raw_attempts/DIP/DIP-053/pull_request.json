@@ -1,0 +1,40 @@
+{
+  "issue_id": "DIP-053",
+  "principle": "DIP",
+  "title": "Refactor DIP-053 (DIP): Generator factory `makeGenerators` directly uses `value` and `Generators` con...",
+  "branch": "refactor/DIP-053",
+  "base": "main",
+  "head_commit": "83b3c825c2fcc66cc6ff817cbc5b149ac97eea55",
+  "status": "obsolete",
+  "obsolete_reason": "entity `Catch::Generators::makeGenerators` not found in current source of `extras/catch_amalgamated.hpp` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Generators::makeGenerators",
+    "entity_type": "class",
+    "line_start": 649,
+    "line_end": 677,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Generator factory `makeGenerators` directly uses `value` and `Generators` constructor.",
+    "reasoning": "The `Catch::Generators::makeGenerators` function directly calls `value()` and the `Generators<T>` constructor. This tightly couples the generator creation to specific generator implementations (`SingleValueGenerator`, `Generators`). DIP requires high-level modules to depend on abstractions. The generator creation should ideally accept an `IGenerator` or an abstract factory for generators, rather than directly instantiating these concrete types."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 918.4296131134033
+}

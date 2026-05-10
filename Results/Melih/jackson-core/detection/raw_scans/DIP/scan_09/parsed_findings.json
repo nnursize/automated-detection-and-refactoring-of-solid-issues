@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/sym/ByteQuadsCanonicalizer.java",
+    "entity_name": "ByteQuadsCanonicalizer",
+    "entity_type": "class",
+    "line_start": 217,
+    "line_end": 217,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct dependency on concrete singleton InternCache",
+    "reasoning": "The ByteQuadsCanonicalizer class directly references the concrete singleton InternCache.instance for its interning logic. This couples the symbol table implementation to a specific cache detail rather than an abstraction (like an Interner interface), violating DIP because high-level modules should depend on abstractions rather than concrete implementation details."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory",
+    "entity_type": "class",
+    "line_start": 254,
+    "line_end": 254,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Hardcoded dependency on concrete RecyclerPool implementation",
+    "reasoning": "The TokenStreamFactory constructor hardcodes the initialization of its recycler pool using JsonRecyclerPools.defaultPool(). This couples the high-level factory to a concrete buffer recycling implementation, violating DIP which advocates that such dependencies should be provided through abstractions or external configuration (injection)."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/JsonParserBase.java",
+    "entity_name": "JsonParserBase",
+    "entity_type": "class",
+    "line_start": 78,
+    "line_end": 79,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of concrete stream context and duplicate detector",
+    "reasoning": "The constructor of JsonParserBase directly instantiates concrete implementations of JsonReadContext and DupDetector using static factory methods. This couples the base parser logic to specific implementation details for state tracking and duplicate detection, preventing the substitution of these components with different implementations."
+  }
+]

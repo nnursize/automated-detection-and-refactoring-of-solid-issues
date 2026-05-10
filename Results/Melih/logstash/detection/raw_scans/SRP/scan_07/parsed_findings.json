@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Queue is a 'God Class' handling queue logic, persistence, serialization, and resource management.",
+    "reasoning": "The Queue class violates SRP by encapsulating multiple unrelated responsibilities: 1) High-level queue orchestration (head/tail management), 2) Low-level persistence logic (checkpointing, page recovery, and file purging), 3) Serialization/Deserialization via reflection, 4) Concurrency management (locks/conditions), and 5) Physical resource management (disk space checks and file locking). This makes the class fragile and difficult to maintain as changes to the storage format, serialization strategy, or concurrency model all require modifying this single class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "AbstractPipelineExt manages pipeline execution, metrics, DLQ, and configuration expansion.",
+    "reasoning": "This class handles too many distinct concerns: 1) Pipeline lifecycle and execution state, 2) Complex metric registration and flow calculation logic (e.g., worker utilization, throughput), 3) Dead Letter Queue (DLQ) writer lifecycle and statistics, 4) Configuration variable expansion and secret store access, and 5) Ruby/Java integration. A change in how metrics are calculated or how DLQ is stored should not necessitate changes to the core pipeline execution class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "DeadLetterQueueWriter mixes data persistence with background scheduling and retention policies.",
+    "reasoning": "The class is responsible for: 1) Writing data entries to segments, 2) Managing the lifecycle of file segments (rolling, sealing), 3) Implementing retention policies (age-based and size-based deletion), and 4) Background task scheduling (flushing and file system watching). The retention and cleanup logic should be moved to a separate manager or policy class to decouple data writing from file system maintenance."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event",
+    "entity_type": "class",
+    "line_start": 51,
+    "line_end": 583,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Event class mixes data container logic with serialization and complex field interpolation.",
+    "reasoning": "While primarily a data container, the Event class also handles its own serialization (JSON/CBOR), complex string interpolation (sprintf), and specific business logic for tagging and timestamp parsing. These concerns (especially I/O and formatting) are typically better handled by external Serializer or Formatter classes."
+  }
+]

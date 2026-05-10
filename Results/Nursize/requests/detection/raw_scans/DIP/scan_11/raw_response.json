@@ -1,0 +1,51 @@
+{
+  "scan_id": "requests_DIP_scan_11",
+  "repo_name": "requests",
+  "principle": "DIP",
+  "scan_number": 11,
+  "timestamp": "2026-05-03T11:37:17.301458",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad A...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/api.py\",\n      \"entity_name\": \"request\",\n      \"entity_type\": \"function\",\n      \"line_start\": 14,\n      \"line_end\": 158,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level API functions directly instantiate the concrete Session class.\",\n      \"reasoning\": \"The request function (and other convenience functions like get, post, etc.) directly imports and instantiates 'sessions.Session'. This hard-coded dependency on a concrete class prevents the injection of alternative session implementations or mock objects for testing without global monkey-patching.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.__init__\",\n      \"entity_type\": \"method\",\n      \"line_start\": 391,\n      \"line_end\": 450,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The Session class directly instantiates concrete HTTPAdapter objects.\",\n      \"reasoning\": \"The Session class constructor typically instantiates and mounts HTTPAdapter instances by default. This couples the high-level session management logic to a specific low-level transport implementation (urllib3), violating the principle that high-level modules should depend on abstractions (like BaseAdapter).\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.init_poolmanager\",\n      \"entity_type\": \"method\",\n      \"line_start\": 218,\n      \"line_end\": 242,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"HTTPAdapter directly instantiates the low-level urllib3 PoolManager.\",\n      \"reasoning\": \"The HTTPAdapter class directly instantiates 'urllib3.poolmanager.PoolManager' within its init_poolmanager method. This makes the adapter tightly coupled to a specific connection pooling implementation from an external library, rather than allowing a manager to be injected.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/api.py",
+      "entity_name": "request",
+      "entity_type": "class",
+      "line_start": 14,
+      "line_end": 158,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level API functions directly instantiate the concrete Session class.",
+      "reasoning": "The request function (and other convenience functions like get, post, etc.) directly imports and instantiates 'sessions.Session'. This hard-coded dependency on a concrete class prevents the injection of alternative session implementations or mock objects for testing without global monkey-patching."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.__init__",
+      "entity_type": "method",
+      "line_start": 391,
+      "line_end": 450,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The Session class directly instantiates concrete HTTPAdapter objects.",
+      "reasoning": "The Session class constructor typically instantiates and mounts HTTPAdapter instances by default. This couples the high-level session management logic to a specific low-level transport implementation (urllib3), violating the principle that high-level modules should depend on abstractions (like BaseAdapter)."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.init_poolmanager",
+      "entity_type": "method",
+      "line_start": 218,
+      "line_end": 242,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "HTTPAdapter directly instantiates the low-level urllib3 PoolManager.",
+      "reasoning": "The HTTPAdapter class directly instantiates 'urllib3.poolmanager.PoolManager' within its init_poolmanager method. This makes the adapter tightly coupled to a specific connection pooling implementation from an external library, rather than allowing a manager to be injected."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 33139.37950134277,
+  "error": null
+}

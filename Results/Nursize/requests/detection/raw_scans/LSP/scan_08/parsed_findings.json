@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "class",
+    "line_start": 76,
+    "line_end": 80,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "MockRequest raises NotImplementedError for add_header, a method in the interface it mimics.",
+    "reasoning": "MockRequest is designed to mimic the urllib2.Request interface for compatibility with CookieJar. By raising NotImplementedError for the add_header method, it fails to be a valid substitute for any code expecting the standard request interface, which is a direct violation of the Liskov Substitution Principle."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "class",
+    "line_start": 304,
+    "line_end": 309,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "RequestsCookieJar.__getitem__ raises CookieConflictError instead of KeyError or returning a value.",
+    "reasoning": "As a subclass of MutableMapping, RequestsCookieJar should follow the Mapping contract where __getitem__ returns a value for an existing key or raises KeyError for a missing one. Raising CookieConflictError (a subclass of RuntimeError) for an existing but ambiguous key breaks substitutability for callers expecting standard mapping behavior and exception handling."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__setitem__",
+    "entity_type": "class",
+    "line_start": 311,
+    "line_end": 315,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "RequestsCookieJar.__setitem__ deletes cookies when assigned a None value via the set() method.",
+    "reasoning": "In a standard MutableMapping, assigning None to a key (m[key] = None) is expected to store None as the value. RequestsCookieJar deviates from this by deleting the cookie instead (via its internal set() method), which violates the expected behavior of the Mapping interface it implements and breaks substitutability."
+  }
+]

@@ -441,6 +441,15 @@ class RefactorOrchestrator:
                 apply_result.files_touched
             )
             self._save_diff(out_dir, diff_text)
+            if not diff_text.strip():
+                attempt.status = AttemptStatus.PATCH_FAILED
+                attempt.apply_error = (
+                    "patch applied but produced no net source changes; "
+                    "the LLM replacement was likely identical to the matched text"
+                )
+                self._safe_revert()
+                self._finalize(attempt, issue, out_dir, attempt_started, diff="")
+                return
 
             syntax_err = self.adapter.syntax_check(
                 self.workspace.clone_dir, apply_result.files_touched,
@@ -541,6 +550,15 @@ class RefactorOrchestrator:
         new_failures = sorted(observed - baseline_failures)
         pre_existing = sorted(observed & baseline_failures)
 
+        if not tr.passed and not observed:
+            tr.new_failures = [
+                f"pytest exited with code {tr.return_code} but produced no "
+                "parseable failure node id",
+            ]
+            tr.pre_existing_failures = []
+            tr.passed = False
+            return tr
+
         if observed and not new_failures and baseline_failures_deselected:
             tr.new_failures = []
             tr.pre_existing_failures = pre_existing
@@ -565,6 +583,14 @@ class RefactorOrchestrator:
             observed2 = set(tr2.failed_node_ids) | set(tr2.error_node_ids)
             tr2.new_failures = sorted(observed2 - baseline_failures)
             tr2.pre_existing_failures = sorted(observed2 & baseline_failures)
+            if not tr2.passed and not observed2:
+                tr2.new_failures = [
+                    f"pytest exited with code {tr2.return_code} but produced "
+                    "no parseable failure node id",
+                ]
+                tr2.pre_existing_failures = []
+                tr2.passed = False
+                return tr2
             tr2.passed = not tr2.new_failures
             return tr2
 
@@ -677,6 +703,7 @@ class RefactorOrchestrator:
         return {
             "command": tr.command,
             "passed": tr.passed,
+            "return_code": tr.return_code,
             "total": tr.total,
             "passed_count": tr.passed_count,
             "failed_count": tr.failed_count,

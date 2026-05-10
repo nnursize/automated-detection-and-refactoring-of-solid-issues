@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 10182.888984680176,
+  "prompt_tokens": 6056,
+  "completion_tokens": 431,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Refactor cookiejar_from_dict to accept a factory function for dependency inversion.\",\n  \"rationale\": \"The direct instantiation of RequestsCookieJar inside cookiejar_from_dict couples the factory to a concrete implementation. By allowing an optional factory function (defaulting to RequestsCookieJar), we adhere to the Dependency Inversion Principle, allowing for easier testing and substitution of cookie jar implementations.\",\n  \"files_touched\": [\"src/requests/cookies.py\"]\n}\n```\n\n<<<<<<< SEARCH src/requests/cookies.py\ndef cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):\n    \"\"\"Returns a CookieJar from a key/value dictionary.\n\n    :param cookie_dict: Dict of key/values to insert into CookieJar.\n    :param cookiejar: (optional) A cookiejar to add the cookies to.\n    :param overwrite: (optional) If False, will not replace cookies\n        already in the jar with new ones.\n    :rtype: CookieJar\n    \"\"\"\n    if cookiejar is None:\n        cookiejar = RequestsCookieJar()\n\n    if cookie_dict is not None:\n=======\ndef cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True, jar_factory=RequestsCookieJar):\n    \"\"\"Returns a CookieJar from a key/value dictionary.\n\n    :param cookie_dict: Dict of key/values to insert into CookieJar.\n    :param cookiejar: (optional) A cookiejar to add the cookies to.\n    :param overwrite: (optional) If False, will not replace cookies\n        already in the jar with new ones.\n    :param jar_factory: (optional) A factory function to create a new CookieJar.\n    :rtype: CookieJar\n    \"\"\"\n    if cookiejar is None:\n        cookiejar = jar_factory()\n\n    if cookie_dict is not None:\n>>>>>>> REPLACE"
+}

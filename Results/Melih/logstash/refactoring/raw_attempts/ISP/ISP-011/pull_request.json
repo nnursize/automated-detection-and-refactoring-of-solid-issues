@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-011",
+  "principle": "ISP",
+  "title": "Refactor ISP-011 (ISP): The 'SecretStore' interface combines management, query, and persistence opera...",
+  "branch": "refactor/ISP-011",
+  "base": "main",
+  "head_commit": "c86960ad45d225a0604034d8f0b69a79cde0356a",
+  "status": "obsolete",
+  "obsolete_reason": "entity `org.logstash.secret.store.SecretStore` not found in current source of `logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "org.logstash.secret.store.SecretStore",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 45,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "The 'SecretStore' interface combines management, query, and persistence operations.",
+    "reasoning": "The `SecretStore` interface includes methods for creating/deleting the store (`create`, `delete`), loading (`load`), listing/checking secrets (`list`, `containsSecret`), and persisting/retrieving/purging individual secrets (`persistSecret`, `retrieveSecret`, `purgeSecret`). A client that only needs to read secrets (e.g., for configuration expansion) is forced to depend on methods for modifying the store or secrets, which it does not use. This makes the interface fat for such clients."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 204.04767990112305
+}

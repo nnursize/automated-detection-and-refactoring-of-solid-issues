@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/JsonParserBase.java",
+    "entity_name": "JsonParserBase",
+    "entity_type": "class",
+    "line_start": 74,
+    "line_end": 80,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstract base class depends on a concrete context implementation.",
+    "reasoning": "The abstract class JsonParserBase directly instantiates and depends on the concrete class JsonReadContext via the call to JsonReadContext.createRootContext(dups). This violates DIP as the high-level abstraction (JsonParserBase) depends on a low-level implementation detail (JsonReadContext) instead of an abstraction."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/JsonGeneratorBase.java",
+    "entity_name": "JsonGeneratorBase",
+    "entity_type": "class",
+    "line_start": 164,
+    "line_end": 181,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstract base class depends on a concrete context implementation.",
+    "reasoning": "Similar to the parser base, JsonGeneratorBase directly instantiates and depends on the concrete class JsonWriteContext. Abstractions should not depend on details; the management of the write context should be abstracted or injected."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory",
+    "entity_type": "class",
+    "line_start": 226,
+    "line_end": 237,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Factory class hard-codes dependency on concrete recycler pools.",
+    "reasoning": "The constructor of TokenStreamFactory directly calls JsonRecyclerPools.defaultPool(), coupling the high-level factory abstraction to a specific concrete implementation of buffer recycling. This makes it difficult to substitute different recycling strategies without modifying the factory."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory._createContext",
+    "entity_type": "method",
+    "line_start": 1277,
+    "line_end": 1301,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Factory method directly instantiates a concrete I/O context.",
+    "reasoning": "The method _createContext directly instantiates the concrete class IOContext using the 'new' keyword. This violates DIP because the high-level factory module depends on the low-level implementation details of the I/O context rather than an abstraction or a provider."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 55,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Static constant instantiates a concrete implementation of an interface.",
+    "reasoning": "The EMPTY_WRITE_CONTEXT constant is initialized by directly instantiating ObjectWriteContext.Base. This couples the abstract TokenStreamFactory to a specific default implementation of the write context."
+  }
+]

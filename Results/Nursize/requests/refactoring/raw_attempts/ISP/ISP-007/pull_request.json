@@ -1,0 +1,51 @@
+{
+  "issue_id": "ISP-007",
+  "principle": "ISP",
+  "title": "Refactor ISP-007 (ISP): The `add_headers` method in `HTTPAdapter` has an empty `pass` implementation,...",
+  "branch": "refactor/ISP-007",
+  "base": "main",
+  "head_commit": "2de64a995585a0d6c740cb951d8eee572aa200f6",
+  "status": "llm_error",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": "unhandled error: FatalLLMError: Server unavailable (503) \u2014 skipping to preserve quota: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.add_headers",
+    "entity_type": "class",
+    "line_start": 579,
+    "line_end": 591,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The `add_headers` method in `HTTPAdapter` has an empty `pass` implementation, indicating it's not universally needed by subclasses.",
+    "reasoning": "The Interface Segregation Principle states that clients should not be forced to depend on interfaces they do not use. By providing a `pass` implementation for `add_headers`, `HTTPAdapter` implies this method is part of its interface for subclasses, but it's not universally needed. Subclasses that do not need to add custom headers are still forced to inherit this method, even if they do nothing with it. This method could be extracted into a more specific mixin or interface for adapters that *do* need to add custom headers."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 588,
+        "blank_lines": 108,
+        "comment_lines": 13,
+        "function_count": 24,
+        "avg_cc": 3.29,
+        "max_cc": 14.0,
+        "mi": 47.37
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 1085.2653980255127
+}

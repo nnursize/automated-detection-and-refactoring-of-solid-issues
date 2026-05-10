@@ -1,0 +1,56 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
+index 17865ed..bb26de5 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
+@@ -112,48 +112,15 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
+     }
+     boolean blockInaccessible = filterResult == FilterResult.BLOCK_INACCESSIBLE;
+ 
+-    for (SpecialTypeStrategy strategy : SPECIAL_TYPE_STRATEGIES) {
+-      TypeAdapter<T> adapter = strategy.create(gson, type, raw, blockInaccessible);
+-      if (adapter != null) {
+-        return adapter;
+-      }
++    if (ReflectionHelper.isRecord(raw)) {
++      return (TypeAdapter<T>) new RecordAdapter<>(
++          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);
+     }
+ 
+     ObjectConstructor<T> constructor = constructorConstructor.get(type, true);
+     return new FieldReflectionAdapter<>(
+         constructor, getBoundFields(gson, type, raw, blockInaccessible, false));
+   }
+-
+-  private interface SpecialTypeStrategy {
+-    <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible);
+-  }
+-
+-  private static final List<SpecialTypeStrategy> SPECIAL_TYPE_STRATEGIES = Arrays.asList(
+-      new SpecialTypeStrategy() {
+-        @Override
+-        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible) {
+-          if (ReflectionHelper.isAnonymousOrNonStaticLocal(raw)) {
+-            return new TypeAdapter<T>() {
+-              @Override public T read(JsonReader in) throws IOException { in.skipValue(); return null; }
+-              @Override public void write(JsonWriter out, T value) throws IOException { out.nullValue(); }
+-              @Override public String toString() { return "AnonymousOrNonStaticLocalClassAdapter"; }
+-            };
+-          }
+-          return null;
+-        }
+-      },
+-      new SpecialTypeStrategy() {
+-        @Override
+-        @SuppressWarnings("unchecked")
+-        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible) {
+-          if (ReflectionHelper.isRecord(raw)) {
+-            return (TypeAdapter<T>) new RecordAdapter<>(
+-                raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);
+-          }
+-          return null;
+-        }
+-      }
+-  );
+   }
+ 
+   private static <M extends AccessibleObject & Member> void checkAccessible(

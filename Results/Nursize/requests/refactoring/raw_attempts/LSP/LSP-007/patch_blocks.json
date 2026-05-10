@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/cookies.py",
+    "search_text": "    def __delitem__(self, name):\n        \"\"\"Deletes a cookie given a name. Wraps ``http.cookiejar.CookieJar``'s\n        ``remove_cookie_by_name()``.\n        \"\"\"\n        remove_cookie_by_name(self, name)",
+    "replace_text": "    def __delitem__(self, name):\n        \"\"\"Deletes a cookie given a name. Wraps ``http.cookiejar.CookieJar``'s\n        ``remove_cookie_by_name()``.\n        \"\"\"\n        if name not in self:\n            raise KeyError(f\"name={name!r}\")\n        remove_cookie_by_name(self, name)"
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-058",
+  "principle": "LSP",
+  "title": "Refactor LSP-058 (LSP): Subtype introduces a new precondition by throwing IllegalArgumentException fo...",
+  "branch": "refactor/LSP-058",
+  "base": "main",
+  "head_commit": "4b7c6490166c1b426d2880f4209bea8815b0e088",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9849,
+    "completion_tokens": 861
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.FloatAdapter.write",
+    "entity_type": "method",
+    "line_start": 464,
+    "line_end": 479,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Subtype introduces a new precondition by throwing IllegalArgumentException for NaN/Infinity values.",
+    "reasoning": "The TypeAdapter<Number>.write method does not explicitly state a precondition that floating-point numbers must be finite. By throwing an IllegalArgumentException for NaN or Infinity values when 'strict' is true, FloatAdapter introduces a new precondition that might not be expected by clients using TypeAdapter<Number> polymorphically. While IllegalArgumentException is a RuntimeException and thus doesn't break the method signature, it alters the expected behavior."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove strict floating-point validation in TypeAdapters to maintain Liskov substitutability",
+    "rationale": "The FloatAdapter and DoubleAdapter were throwing IllegalArgumentException for NaN/Infinity values when 'strict' was true. This violates the Liskov Substitution Principle because the base TypeAdapter<Number>.write method does not document such a precondition. By removing the strict validation, we ensure the adapter behaves consistently with the base contract, while still allowing the underlying JsonWriter to handle these values according to its own configuration.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "search_text": "    @Override\n    public void write(JsonWriter out, Number value) throws IOException {\n      if (value == null) {\n        out.nullValue();\n        return;\n      }\n      float floatValue = value.floatValue();\n      if (strict) {\n        checkValidFloatingPoint(floatValue);\n      }\n      // For backward compatibility don't call `JsonWriter.value(float)` because that method has\n      // been newly added and not all custom JsonWriter implementations might override it yet\n      Number floatNumber = value instanceof Float ? value : floatValue;\n      out.value(floatNumber);\n    }\n  }\n\n  private static class DoubleAdapter extends TypeAdapter<Number> {\n    private final boolean strict;\n\n    DoubleAdapter(boolean strict) {\n      this.strict = strict;\n    }\n\n    @Override\n    public Double read(JsonReader in) throws IOException {\n      if (in.peek() == JsonToken.NULL) {\n        in.nextNull();\n        return null;\n      }\n      return in.nextDouble();\n    }\n\n    @Override\n    public void write(JsonWriter out, Number value) throws IOException {\n      if (value == null) {\n        out.nullValue();\n        return;\n      }\n      double doubleValue = value.doubleValue();\n      if (strict) {\n        checkValidFloatingPoint(doubleValue);\n      }\n      out.value(doubleValue);\n    }\n  }\n\n  private static void checkValidFloatingPoint(double value) {\n    if (Double.isNaN(value) || Double.isInfinite(value)) {\n      throw new IllegalArgumentException(\n          value\n              + \" is not a valid double value as per JSON specification. To override this\"\n              + \" behavior, use GsonBuilder.serializeSpecialFloatingPointValues() method.\");\n    }\n  }",
+        "replace_text": "    @Override\n    public void write(JsonWriter out, Number value) throws IOException {\n      if (value == null) {\n        out.nullValue();\n        return;\n      }\n      float floatValue = value.floatValue();\n      // For backward compatibility don't call `JsonWriter.value(float)` because that method has\n      // been newly added and not all custom JsonWriter implementations might override it yet\n      Number floatNumber = value instanceof Float ? value : floatValue;\n      out.value(floatNumber);\n    }\n  }\n\n  private static class DoubleAdapter extends TypeAdapter<Number> {\n    private final boolean strict;\n\n    DoubleAdapter(boolean strict) {\n      this.strict = strict;\n    }\n\n    @Override\n    public Double read(JsonReader in) throws IOException {\n      if (in.peek() == JsonToken.NULL) {\n        in.nextNull();\n        return null;\n      }\n      return in.nextDouble();\n    }\n\n    @Override\n    public void write(JsonWriter out, Number value) throws IOException {\n      if (value == null) {\n        out.nullValue();\n        return;\n      }\n      out.value(value.doubleValue());\n    }\n  }",
+        "search_lines": 55,
+        "replace_lines": 39
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 851,
+        "blank_lines": 107,
+        "comment_lines": 9,
+        "function_count": 73,
+        "avg_cc": 2.05,
+        "max_cc": 78.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 836,
+        "blank_lines": 106,
+        "comment_lines": 9,
+        "function_count": 72,
+        "avg_cc": 2.01,
+        "max_cc": 74.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\nindex 93ddc40..f6f7db9 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n@@ -356,9 +356,6 @@ public final class TypeAdapters {\n         return;\n       }\n       float floatValue = value.floatValue();\n-      if (strict) {\n-        checkValidFloatingPoint(floatValue);\n-      }\n       // For backward compatibility don't call `JsonWriter.value(float)` because that method has\n       // been newly added and not all custom JsonWriter implementations might override it yet\n       Number floatNumber = value instanceof Float ? value : floatValue;\n@@ -388,20 +385,7 @@ public final class TypeAdapters {\n         out.nullValue();\n         return;\n       }\n-      double doubleValue = value.doubleValue();\n-      if (strict) {\n-        checkValidFloatingPoint(doubleValue);\n-      }\n-      out.value(doubleValue);\n-    }\n-  }\n-\n-  private static void checkValidFloatingPoint(double value) {\n-    if (Double.isNaN(value) || Double.isInfinite(value)) {\n-      throw new IllegalArgumentException(\n-          value\n-              + \" is not a valid double value as per JSON specification. To override this\"\n-              + \" behavior, use GsonBuilder.serializeSpecialFloatingPointValues() method.\");\n+      out.value(value.doubleValue());\n     }\n   }\n \n",
+  "duration_ms": 12570.707559585571
+}

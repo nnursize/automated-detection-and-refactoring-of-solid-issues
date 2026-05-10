@@ -1,0 +1,72 @@
+{
+  "issue_id": "OCP-008",
+  "principle": "OCP",
+  "title": "Refactor OCP-008 (OCP): Switch statement on character input requires modification to handle new value...",
+  "branch": "refactor/OCP-008",
+  "base": "main",
+  "head_commit": "830edb6aac4f165c94a5fdc01dc77dc6a23643ba",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3646,
+    "completion_tokens": 553
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.nextNameMatch",
+    "entity_type": "class",
+    "line_start": 932,
+    "line_end": 1003,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Switch statement on character input requires modification to handle new value types",
+    "reasoning": "The nextNameMatch method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types would require modifying this switch block, violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Centralize value parsing logic in `nextNameMatch` by delegating to `_parseValueToken`.",
+    "rationale": "The `nextNameMatch` method contained a `switch` statement for parsing different value types based on the initial character. This duplicated logic already present in `_parseValueToken` and violated the Open/Closed Principle, as adding new value types would require modifying this `switch` block. By delegating to the existing `_parseValueToken` method, we centralize the value parsing logic, making `nextNameMatch` closed for modification while `_parseValueToken` remains open for extension (or is itself refactored to be so). This change maintains existing behavior and public API.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "        JsonToken t;\n        switch (i) {\n        case '-':\n            t = _parseSignedNumber(true);\n            break;\n        case '+':\n            if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {\n                t = _parseSignedNumber(false);\n            } else {\n                t = _handleUnexpectedValue(i);\n            }\n            break;\n        case '.': // [core#611]:\n            t = _parseFloatThatStartsWithPeriod(false, false);\n            break;\n        case '0':\n        case '1':\n        case '2':\n        case '3':\n        case '4':\n        case '5':\n        case '6':\n        case '7':\n        case '8':\n        case '9':\n            t = _parseUnsignedNumber(i);\n            break;\n        case 'f':\n            _matchFalse();\n             t = JsonToken.VALUE_FALSE;\n            break;\n        case 'n':\n            _matchNull();\n            t = JsonToken.VALUE_NULL;\n            break;\n        case 't':\n            _matchTrue();\n            t = JsonToken.VALUE_TRUE;\n            break;\n        }\n        _nextToken = t;\n        return match;",
+        "replace_text": "        JsonToken t = _parseValueToken(i);\n        _nextToken = t;\n        return match;",
+        "search_lines": 42,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3534,
+        "blank_lines": 274,
+        "comment_lines": 282,
+        "function_count": 112,
+        "avg_cc": 9.81,
+        "max_cc": 988.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 16399.667739868164
+}

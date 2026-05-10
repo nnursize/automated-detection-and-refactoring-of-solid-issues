@@ -1,0 +1,337 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: ISP-005
+- **Principle**: Interface Segregation Principle (ISP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `IGeneratorTracker` (current lines L1123-L1130 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 2 independent scans
+
+### Description
+IGeneratorTracker interface has too many methods, potentially forcing implementations to provide unused functionality.
+
+### Reasoning
+The IGeneratorTracker interface appears to have a significant number of methods related to managing generators within the test framework. If a specific use case only requires a subset of these tracking functionalities, implementing the full interface would be unnecessary. This violates ISP by forcing clients to depend on methods they do not use. It could potentially be refactored into smaller interfaces for different aspects of generator tracking.
+
+## Principle reference
+**Interface Segregation Principle** — Clients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.
+
+What typically signals a violation:
+- Abstract base classes or interfaces with too many methods
+- Classes that implement an interface but leave methods as pass or raise NotImplementedError
+- Fat interfaces that could be split into smaller, more focused ones
+- Classes forced to depend on methods they never call
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 1002 earlier lines elided ...
+        }
+        unique_ptr& operator=(unique_ptr&& rhs) noexcept {
+            reset(rhs.release());
+
+            return *this;
+        }
+
+        ~unique_ptr() {
+            delete m_ptr;
+        }
+
+        T& operator*() {
+            assert(m_ptr);
+            return *m_ptr;
+        }
+        T const& operator*() const {
+            assert(m_ptr);
+            return *m_ptr;
+        }
+        T* operator->() noexcept {
+            assert(m_ptr);
+            return m_ptr;
+        }
+        T const* operator->() const noexcept {
+            assert(m_ptr);
+            return m_ptr;
+        }
+
+        T* get() { return m_ptr; }
+        T const* get() const { return m_ptr; }
+
+        void reset(T* ptr = nullptr) {
+            delete m_ptr;
+            m_ptr = ptr;
+        }
+
+        T* release() {
+            auto temp = m_ptr;
+            m_ptr = nullptr;
+            return temp;
+        }
+
+        explicit operator bool() const {
+            return m_ptr != nullptr;
+        }
+
+        friend void swap(unique_ptr& lhs, unique_ptr& rhs) {
+            auto temp = lhs.m_ptr;
+            lhs.m_ptr = rhs.m_ptr;
+            rhs.m_ptr = temp;
+        }
+    };
+
+    //! Specialization to cause compile-time error for arrays
+    template <typename T>
+    class unique_ptr<T[]>;
+
+    template <typename T, typename... Args>
+    unique_ptr<T> make_unique(Args&&... args) {
+        return unique_ptr<T>(new T(CATCH_FORWARD(args)...));
+    }
+
+
+} // end namespace Detail
+} // end namespace Catch
+
+#endif // CATCH_UNIQUE_PTR_HPP_INCLUDED
+
+
+#ifndef CATCH_BENCHMARK_STATS_FWD_HPP_INCLUDED
+#define CATCH_BENCHMARK_STATS_FWD_HPP_INCLUDED
+
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_CLOCK_HPP_INCLUDED
+#define CATCH_CLOCK_HPP_INCLUDED
+
+#include <chrono>
+
+namespace Catch {
+    namespace Benchmark {
+        using IDuration = std::chrono::nanoseconds;
+        using FDuration = std::chrono::duration<double, std::nano>;
+
+        template <typename Clock>
+        using TimePoint = typename Clock::time_point;
+
+        using default_clock = std::chrono::steady_clock;
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_CLOCK_HPP_INCLUDED
+
+namespace Catch {
+
+    // We cannot forward declare the type with default template argument
+    // multiple times, so it is split out into a separate header so that
+    // we can prevent multiple declarations in dependees
+    template <typename Duration = Benchmark::FDuration>
+    struct BenchmarkStats;
+
+} // end namespace Catch
+
+#endif // CATCH_BENCHMARK_STATS_FWD_HPP_INCLUDED
+
+namespace Catch {
+
+    class AssertionResult;
+    struct AssertionInfo;
+    struct SectionInfo;
+    struct SectionEndInfo;
+    struct MessageInfo;
+    struct MessageBuilder;
+    struct Counts;
+    struct AssertionReaction;
+    struct SourceLineInfo;
+
+    class ITransientExpression;
+    class IGeneratorTracker;
+
+    struct BenchmarkInfo;
+
+    namespace Generators {
+        class GeneratorUntypedBase;
+        using GeneratorBasePtr = Catch::Detail::unique_ptr<GeneratorUntypedBase>;
+    }
+
+
+    class IResultCapture {
+    public:
+        virtual ~IResultCapture();
+
+        virtual void notifyAssertionStarted( AssertionInfo const& info ) = 0;
+        virtual bool sectionStarted( StringRef sectionName,
+                                     SourceLineInfo const& sectionLineInfo,
+                                     Counts& assertions ) = 0;
+        virtual void sectionEnded( SectionEndInfo&& endInfo ) = 0;
+        virtual void sectionEndedEarly( SectionEndInfo&& endInfo ) = 0;
+
+        virtual IGeneratorTracker*
+        acquireGeneratorTracker( StringRef generatorName,
+                                 SourceLineInfo const& lineInfo ) = 0;
+        virtual IGeneratorTracker*
+        createGeneratorTracker( StringRef generatorName,
+                                SourceLineInfo lineInfo,
+                                Generators::GeneratorBasePtr&& generator ) = 0;
+
+        virtual void benchmarkPreparing( StringRef name ) = 0;
+        virtual void benchmarkStarting( BenchmarkInfo const& info ) = 0;
+        virtual void benchmarkEnded( BenchmarkStats<> const& stats ) = 0;
+        virtual void benchmarkFailed( StringRef error ) = 0;
+
+        static void pushScopedMessage( MessageInfo&& message );
+        static void popScopedMessage( unsigned int messageId );
+        static void emplaceUnscopedMessage( MessageBuilder&& builder );
+
+        virtual void handleFatalErrorCondition( StringRef message ) = 0;
+
+        virtual void handleExpr
+                (   AssertionInfo const& info,
+                    ITransientExpression const& expr,
+                    AssertionReaction& reaction ) = 0;
+        virtual void handleMessage
+                (   AssertionInfo const& info,
+                    ResultWas::OfType resultType,
+                    std::string&& message,
+                    AssertionReaction& reaction ) = 0;
+        virtual void handleUnexpectedExceptionNotThrown
+                (   AssertionInfo const& info,
+                    AssertionReaction& reaction ) = 0;
+        virtual void handleUnexpectedInflightException
+                (   AssertionInfo const& info,
+                    std::string&& message,
+                    AssertionReaction& reaction ) = 0;
+        virtual void handleIncomplete
+                (   AssertionInfo const& info ) = 0;
+        virtual void handleNonExpr
+                (   AssertionInfo const &info,
+                    ResultWas::OfType resultType,
+                    AssertionReaction &reaction ) = 0;
+
+
+        virtual bool lastAssertionPassed() = 0;
+
+        // Deprecated, do not use:
+        virtual std::string getCurrentTestName() const = 0;
+        virtual const AssertionResult* getLastResult() const = 0;
+        virtual void exceptionEarlyReported() = 0;
+    };
+
+    namespace Detail {
+        [[noreturn]]
+        void missingCaptureInstance();
+    }
+    inline IResultCapture& getResultCapture() {
+        if (auto* capture = getCurrentContext().getResultCapture()) {
+            return *capture;
+        } else {
+            Detail::missingCaptureInstance();
+        }
+    }
+
+}
+
+#endif // CATCH_INTERFACES_CAPTURE_HPP_INCLUDED
+
+
+#ifndef CATCH_INTERFACES_CONFIG_HPP_INCLUDED
+#define CATCH_INTERFACES_CONFIG_HPP_INCLUDED
+
+
+
+#ifndef CATCH_NONCOPYABLE_HPP_INCLUDED
+#define CATCH_NONCOPYABLE_HPP_INCLUDED
+
+namespace Catch {
+    namespace Detail {
+
+        //! Deriving classes become noncopyable and nonmovable
+        class NonCopyable {
+        public:
+            NonCopyable( NonCopyable const& ) = delete;
+            NonCopyable( NonCopyable&& ) = delete;
+            NonCopyable& operator=( NonCopyable const& ) = delete;
+            NonCopyable& operator=( NonCopyable&& ) = delete;
+
+        protected:
+            NonCopyable() noexcept = default;
+        };
+
+    } // namespace Detail
+} // namespace Catch
+
+#endif // CATCH_NONCOPYABLE_HPP_INCLUDED
+
+#include <chrono>
+#include <string>
+#include <vector>
+
+namespace Catch {
+
+    enum class Verbosity {
+        Quiet = 0,
+        Normal,
+        High
+    };
+# ... 13073 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

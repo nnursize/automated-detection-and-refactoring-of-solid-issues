@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 128,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete dependencies in constructor",
+    "reasoning": "The Queue class directly instantiates FileCheckpointIO, which is a low-level implementation detail. It should depend on an abstraction (e.g., CheckpointIO interface) and receive it via dependency injection to allow for easier testing and decoupling."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 110,
+    "line_end": 110,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of concrete compression codec",
+    "reasoning": "The Queue class directly instantiates a compression codec via a factory call within the constructor. This creates a hard dependency on the specific implementation of the compression codec factory, violating DIP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.openPages",
+    "entity_type": "class",
+    "line_start": 194,
+    "line_end": 194,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete MmapPageIOV2",
+    "reasoning": "The openPages method directly instantiates MmapPageIOV2, a low-level implementation detail. High-level logic should depend on the PageIO abstraction, not a specific file-mapped implementation."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.newCheckpointedHeadpage",
+    "entity_type": "class",
+    "line_start": 296,
+    "line_end": 296,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete MmapPageIOV2",
+    "reasoning": "The method directly instantiates MmapPageIOV2. This couples the high-level queue management logic to a specific storage implementation, preventing the use of alternative storage strategies."
+  }
+]

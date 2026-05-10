@@ -1,0 +1,62 @@
+{
+  "scan_id": "logstash_DIP_scan_12",
+  "repo_name": "logstash",
+  "principle": "DIP",
+  "scan_number": 12,
+  "timestamp": "2026-04-19T18:29:21.847475",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 102,\n      \"line_end\": 107,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Hard-coded instantiation of dependencies via constructor\",\n      \"reasoning\": \"The Queue class is responsible for creating its own dependencies (Settings, Metric) via hard-coded constructor logic. It should instead receive these dependencies through constructor injection to allow for easier testing and dependency management.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.createDeadLetterQueueWriterFromSettings\",\n      \"entity_type\": \"class\",\n      \"line_start\": 398,\n      \"line_end\": 398,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"High-level business logic instantiating low-level implementation detail\",\n      \"reasoning\": \"The AbstractPipelineExt class is creating a DeadLetterQueueWriter instance directly. High-level modules should rely on abstractions, not concrete implementations of writers.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\",\n      \"entity_name\": \"CompiledPipeline.CompiledPipeline\",\n      \"entity_type\": \"class\",\n      \"line_start\": 113,\n      \"line_end\": 120,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Direct dependency on concrete PluginFactory implementation\",\n      \"reasoning\": \"The constructor forces a dependency on RubyIntegration.PluginFactory. While an interface, it is highly coupled to Ruby-specific integration logic within a Java compiled pipeline, violating the separation of concerns by leaking infrastructure details into the business logic.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\",\n      \"entity_name\": \"PluginFactoryExt.buildInput\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 122,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Factory method directly instantiating plugins without abstraction injection\",\n      \"reasoning\": \"The method is responsible for instantiating plugins directly. In a DIP-compliant architecture, the factory should utilize a registry or provider pattern where the injection of the plugin implementation is managed outside of the instantiation logic.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.Queue",
+      "entity_type": "class",
+      "line_start": 102,
+      "line_end": 107,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Hard-coded instantiation of dependencies via constructor",
+      "reasoning": "The Queue class is responsible for creating its own dependencies (Settings, Metric) via hard-coded constructor logic. It should instead receive these dependencies through constructor injection to allow for easier testing and dependency management."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.createDeadLetterQueueWriterFromSettings",
+      "entity_type": "class",
+      "line_start": 398,
+      "line_end": 398,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "High-level business logic instantiating low-level implementation detail",
+      "reasoning": "The AbstractPipelineExt class is creating a DeadLetterQueueWriter instance directly. High-level modules should rely on abstractions, not concrete implementations of writers."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+      "entity_name": "CompiledPipeline.CompiledPipeline",
+      "entity_type": "class",
+      "line_start": 113,
+      "line_end": 120,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Direct dependency on concrete PluginFactory implementation",
+      "reasoning": "The constructor forces a dependency on RubyIntegration.PluginFactory. While an interface, it is highly coupled to Ruby-specific integration logic within a Java compiled pipeline, violating the separation of concerns by leaking infrastructure details into the business logic."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+      "entity_name": "PluginFactoryExt.buildInput",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 122,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Factory method directly instantiating plugins without abstraction injection",
+      "reasoning": "The method is responsible for instantiating plugins directly. In a DIP-compliant architecture, the factory should utilize a registry or provider pattern where the injection of the plugin implementation is managed outside of the instantiation logic."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 7524.059295654297,
+  "error": null
+}

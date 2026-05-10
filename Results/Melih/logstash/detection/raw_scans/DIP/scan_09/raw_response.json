@@ -1,0 +1,51 @@
+{
+  "scan_id": "logstash_DIP_scan_09",
+  "repo_name": "logstash",
+  "principle": "DIP",
+  "scan_number": 9,
+  "timestamp": "2026-04-19T17:23:30.630497",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 980,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Queue directly instantiates its dependencies.\",\n      \"reasoning\": \"The Queue class directly instantiates FileCheckpointIO, ArrayList, and uses PageFactory (a static factory) to create Pages. It also directly instantiates MmapPageIOV2. These concrete dependencies should be injected via constructor or provided by an abstraction provider to allow for better testability and decoupling.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 950,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"AbstractPipelineExt directly instantiates low-level implementation classes.\",\n      \"reasoning\": \"The class directly instantiates PluginFactoryExt, PluginMetricsFactoryExt, ExecutionContextFactoryExt, NullMetricExt, DeadLetterQueueWriter, and others. Directly instantiating these concrete dependencies violates DIP, as the pipeline should depend on abstractions (interfaces) for these components.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 109,\n      \"line_end\": 814,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"DeadLetterQueueWriter directly instantiates its scheduler implementation.\",\n      \"reasoning\": \"The constructor defaults to creating a 'FixedRateScheduler' if no service is provided, and the builder logic hardcodes the creation of the scheduler. It should depend on a SchedulerService interface, and the implementation should be injected.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 980,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Queue directly instantiates its dependencies.",
+      "reasoning": "The Queue class directly instantiates FileCheckpointIO, ArrayList, and uses PageFactory (a static factory) to create Pages. It also directly instantiates MmapPageIOV2. These concrete dependencies should be injected via constructor or provided by an abstraction provider to allow for better testability and decoupling."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 950,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "AbstractPipelineExt directly instantiates low-level implementation classes.",
+      "reasoning": "The class directly instantiates PluginFactoryExt, PluginMetricsFactoryExt, ExecutionContextFactoryExt, NullMetricExt, DeadLetterQueueWriter, and others. Directly instantiating these concrete dependencies violates DIP, as the pipeline should depend on abstractions (interfaces) for these components."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 109,
+      "line_end": 814,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "DeadLetterQueueWriter directly instantiates its scheduler implementation.",
+      "reasoning": "The constructor defaults to creating a 'FixedRateScheduler' if no service is provided, and the builder logic hardcodes the creation of the scheduler. It should depend on a SchedulerService interface, and the implementation should be injected."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 4550.19998550415,
+  "error": null
+}

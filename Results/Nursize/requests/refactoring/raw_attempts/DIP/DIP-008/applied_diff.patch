@@ -1,0 +1,22 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 9d14d8c..c37ae71 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -673,7 +673,7 @@ class Response:
+         "request",
+     ]
+ 
+-    def __init__(self):
++    def __init__(self, cookie_jar_factory=cookiejar_from_dict):
+         self._content = False
+         self._content_consumed = False
+         self._next = None
+@@ -706,7 +706,7 @@ class Response:
+         self.reason = None
+ 
+         #: A CookieJar of Cookies the server sent back.
+-        self.cookies = cookiejar_from_dict({})
++        self.cookies = cookie_jar_factory({})
+ 
+         #: The amount of time elapsed between sending the request
+         #: and the arrival of the response (as a timedelta).

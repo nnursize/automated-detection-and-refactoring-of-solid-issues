@@ -1,0 +1,94 @@
+diff --git a/src/requests/adapters.py b/src/requests/adapters.py
+index 8aad06f..2cca2b1 100644
+--- a/src/requests/adapters.py
++++ b/src/requests/adapters.py
+@@ -591,6 +591,44 @@ class HTTPAdapter(BaseAdapter):
+ 
+         return headers
+ 
++    def _handle_exception(self, request, e):
++        """Handles exceptions thrown by urllib3 during a request."""
++        if isinstance(e, (ProtocolError, OSError, ClosedPoolError)):
++            raise ConnectionError(e, request=request)
++
++        if isinstance(e, MaxRetryError):
++            if isinstance(e.reason, ConnectTimeoutError):
++                # TODO: Remove this in 3.0.0: see #2811
++                if not isinstance(e.reason, NewConnectionError):
++                    raise ConnectTimeout(e, request=request)
++
++            if isinstance(e.reason, ResponseError):
++                raise RetryError(e, request=request)
++
++            if isinstance(e.reason, _ProxyError):
++                raise ProxyError(e, request=request)
++
++            if isinstance(e.reason, _SSLError):
++                # This branch is for urllib3 v1.22 and later.
++                raise SSLError(e, request=request)
++
++            raise ConnectionError(e, request=request)
++
++        if isinstance(e, _ProxyError):
++            raise ProxyError(e)
++
++        if isinstance(e, _SSLError):
++            # This branch is for urllib3 versions earlier than v1.22
++            raise SSLError(e, request=request)
++
++        if isinstance(e, ReadTimeoutError):
++            raise ReadTimeout(e, request=request)
++
++        if isinstance(e, _InvalidHeader):
++            raise InvalidHeader(e, request=request)
++
++        raise e
++
+     def send(
+         self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None
+     ):
+@@ -659,42 +697,7 @@ class HTTPAdapter(BaseAdapter):
+                 chunked=chunked,
+             )
+ 
+-        except (ProtocolError, OSError) as err:
+-            raise ConnectionError(err, request=request)
+-
+-        except MaxRetryError as e:
+-            if isinstance(e.reason, ConnectTimeoutError):
+-                # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
+-                    raise ConnectTimeout(e, request=request)
+-
+-            if isinstance(e.reason, ResponseError):
+-                raise RetryError(e, request=request)
+-
+-            if isinstance(e.reason, _ProxyError):
+-                raise ProxyError(e, request=request)
+-
+-            if isinstance(e.reason, _SSLError):
+-                # This branch is for urllib3 v1.22 and later.
+-                raise SSLError(e, request=request)
+-
+-            raise ConnectionError(e, request=request)
+-
+-        except ClosedPoolError as e:
+-            raise ConnectionError(e, request=request)
+-
+-        except _ProxyError as e:
+-            raise ProxyError(e)
+-
+-        except (_SSLError, _HTTPError) as e:
+-            if isinstance(e, _SSLError):
+-                # This branch is for urllib3 versions earlier than v1.22
+-                raise SSLError(e, request=request)
+-            elif isinstance(e, ReadTimeoutError):
+-                raise ReadTimeout(e, request=request)
+-            elif isinstance(e, _InvalidHeader):
+-                raise InvalidHeader(e, request=request)
+-            else:
+-                raise
++        except (ProtocolError, OSError, MaxRetryError, ClosedPoolError, _ProxyError, _SSLError, _HTTPError) as e:
++            self._handle_exception(request, e)
+ 
+         return self.build_response(request, resp)

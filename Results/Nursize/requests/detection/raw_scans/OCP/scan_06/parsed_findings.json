@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.build_digest_header",
+    "entity_type": "method",
+    "line_start": 108,
+    "line_end": 155,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded hash algorithm selection logic prevents extension for new cryptographic algorithms.",
+    "reasoning": "The method uses a series of elif branches to map algorithm names (MD5, SHA, etc.) to specific hashlib functions. Adding support for a new algorithm (e.g., SHA-3) requires modifying this method rather than providing a strategy or registry, violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "method",
+    "line_start": 313,
+    "line_end": 331,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded HTTP redirect policy logic based on status codes.",
+    "reasoning": "The redirect logic (e.g., converting POST to GET on 301/302) is hardcoded with specific status code checks. If new HTTP standards or custom behaviors for specific status codes are required, the core SessionRedirectMixin must be modified rather than extended."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "method",
+    "line_start": 196,
+    "line_end": 228,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded proxy protocol detection for SOCKS support.",
+    "reasoning": "The method explicitly checks if a proxy URL starts with 'socks' to instantiate a SOCKSProxyManager. Adding support for new proxy protocols requires modifying this conditional logic inside the HTTPAdapter class instead of using a protocol-to-manager registry."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "get_encoding_from_headers",
+    "entity_type": "method",
+    "line_start": 463,
+    "line_end": 487,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Hardcoded default encodings for specific Content-Types.",
+    "reasoning": "The function contains hardcoded logic to return 'ISO-8859-1' for 'text' and 'utf-8' for 'application/json'. Adding default encodings for other MIME types requires modifying the function's internal if-statements."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "method",
+    "line_start": 108,
+    "line_end": 175,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Type-dependent length calculation logic using attribute checking chains.",
+    "reasoning": "The function uses a long chain of hasattr/isinstance checks to determine object length (e.g., checking for __len__, len, fileno, tell). To support a new type of stream or object with a unique length-detection mechanism, this utility function must be modified."
+  }
+]

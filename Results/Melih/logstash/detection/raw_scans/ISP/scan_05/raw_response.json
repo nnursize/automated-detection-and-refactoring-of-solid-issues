@@ -1,0 +1,84 @@
+{
+  "scan_id": "logstash_ISP_scan_05",
+  "repo_name": "logstash",
+  "principle": "ISP",
+  "scan_number": 5,
+  "timestamp": "2026-04-19T15:45:20.414492",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Interface Segregation Principle (ISP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these int...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 40,\n      \"line_end\": 744,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'Queue' class acts as a fat interface, forcing clients to depend on methods they do not use.\",\n      \"reasoning\": \"The 'Queue' class combines multiple responsibilities (writing, reading, acknowledging, administrative tasks like opening/closing, and querying detailed state). Clients that only need to perform write operations are forced to depend on methods related to reading, acknowledging, and various state queries, and vice-versa. This broad API surface violates ISP by not segregating the interface into more focused roles like 'QueueWriter', 'QueueReader', and 'QueueAdmin'.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.isShutdownRequested\",\n      \"entity_type\": \"method\",\n      \"line_start\": 601,\n      \"line_end\": 604,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'isShutdownRequested' method in 'AbstractPipelineExt' forces subclasses to implement functionality they may not need.\",\n      \"reasoning\": \"The 'isShutdownRequested()' method in 'AbstractPipelineExt' explicitly throws an 'IllegalStateException' if not overridden by a concrete subclass. This forces all subclasses to provide an implementation for this method, even if a particular subclass (e.g., a temporary pipeline for config validation) does not require or use shutdown request logic. This violates ISP by making clients (subclasses) depend on a method they might not need to implement meaningfully.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"co.elastic.logstash.api.Event\",\n      \"entity_type\": \"interface\",\n      \"line_start\": 36,\n      \"line_end\": 37,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'co.elastic.logstash.api.Event' interface is a fat interface, bundling too many responsibilities.\",\n      \"reasoning\": \"The 'co.elastic.logstash.api.Event' interface defines a large number of methods covering diverse functionalities such as field access, modification, cancellation, timestamp management, tagging, cloning, and merging. Clients (e.g., plugins) that only need a subset of these functionalities (e.g., only reading fields or only tagging) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP by not segregating the interface into more focused roles like 'ReadableEvent', 'WritableEvent', 'CloneableEvent', etc.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java\",\n      \"entity_name\": \"PageIO\",\n      \"entity_type\": \"interface\",\n      \"line_start\": 30,\n      \"line_end\": 31,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'PageIO' interface is a fat interface, bundling too many responsibilities.\",\n      \"reasoning\": \"The 'PageIO' interface defines a broad set of methods related to various aspects of page management, including opening, reading, recovering, creating, activating/deactivating, persisting, purging, writing, and querying page properties. Implementations are forced to provide all these methods. Clients that only require a subset of these functionalities (e.g., only reading from a page or only writing to a page) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\",\n      \"entity_name\": \"RubyIntegration.PluginFactory\",\n      \"entity_type\": \"interface\",\n      \"line_start\": 21,\n      \"line_end\": 22,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'RubyIntegration.PluginFactory' interface is a fat interface, bundling too many plugin building responsibilities.\",\n      \"reasoning\": \"The 'RubyIntegration.PluginFactory' interface defines methods for building all types of Logstash plugins (input, output, filter, codec), as well as methods for building default codecs and codec wrappers. A client that only needs to instantiate a specific type of plugin (e.g., an input plugin) is forced to depend on methods for building all other plugin types and codec-specific utilities, which it does not use. This violates ISP by not segregating the interface into more focused factory roles.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 31,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'MmapPageIOV1' class implements 'PageIO' but explicitly throws UnsupportedOperationException for many methods.\",\n      \"reasoning\": \"The 'MmapPageIOV1' class is designed as a read-only implementation for queue upgrade purposes. However, it implements the broad 'PageIO' interface, which includes methods for writing, creating, persisting, and purging pages. Consequently, 'MmapPageIOV1' explicitly throws 'UnsupportedOperationException' for methods like 'recover', 'create', 'ensurePersisted', 'purge', and 'write', and returns a fixed 'false' for 'hasSpace'. This forces the class to depend on methods it does not use or cannot implement meaningfully, which is a direct violation of ISP, indicating that the 'PageIO' interface is not sufficiently segregated.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 40,
+      "line_end": 744,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The 'Queue' class acts as a fat interface, forcing clients to depend on methods they do not use.",
+      "reasoning": "The 'Queue' class combines multiple responsibilities (writing, reading, acknowledging, administrative tasks like opening/closing, and querying detailed state). Clients that only need to perform write operations are forced to depend on methods related to reading, acknowledging, and various state queries, and vice-versa. This broad API surface violates ISP by not segregating the interface into more focused roles like 'QueueWriter', 'QueueReader', and 'QueueAdmin'."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.isShutdownRequested",
+      "entity_type": "method",
+      "line_start": 601,
+      "line_end": 604,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The 'isShutdownRequested' method in 'AbstractPipelineExt' forces subclasses to implement functionality they may not need.",
+      "reasoning": "The 'isShutdownRequested()' method in 'AbstractPipelineExt' explicitly throws an 'IllegalStateException' if not overridden by a concrete subclass. This forces all subclasses to provide an implementation for this method, even if a particular subclass (e.g., a temporary pipeline for config validation) does not require or use shutdown request logic. This violates ISP by making clients (subclasses) depend on a method they might not need to implement meaningfully."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "co.elastic.logstash.api.Event",
+      "entity_type": "class",
+      "line_start": 36,
+      "line_end": 37,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The 'co.elastic.logstash.api.Event' interface is a fat interface, bundling too many responsibilities.",
+      "reasoning": "The 'co.elastic.logstash.api.Event' interface defines a large number of methods covering diverse functionalities such as field access, modification, cancellation, timestamp management, tagging, cloning, and merging. Clients (e.g., plugins) that only need a subset of these functionalities (e.g., only reading fields or only tagging) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP by not segregating the interface into more focused roles like 'ReadableEvent', 'WritableEvent', 'CloneableEvent', etc."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+      "entity_name": "PageIO",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 31,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The 'PageIO' interface is a fat interface, bundling too many responsibilities.",
+      "reasoning": "The 'PageIO' interface defines a broad set of methods related to various aspects of page management, including opening, reading, recovering, creating, activating/deactivating, persisting, purging, writing, and querying page properties. Implementations are forced to provide all these methods. Clients that only require a subset of these functionalities (e.g., only reading from a page or only writing to a page) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+      "entity_name": "RubyIntegration.PluginFactory",
+      "entity_type": "class",
+      "line_start": 21,
+      "line_end": 22,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The 'RubyIntegration.PluginFactory' interface is a fat interface, bundling too many plugin building responsibilities.",
+      "reasoning": "The 'RubyIntegration.PluginFactory' interface defines methods for building all types of Logstash plugins (input, output, filter, codec), as well as methods for building default codecs and codec wrappers. A client that only needs to instantiate a specific type of plugin (e.g., an input plugin) is forced to depend on methods for building all other plugin types and codec-specific utilities, which it does not use. This violates ISP by not segregating the interface into more focused factory roles."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 31,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The 'MmapPageIOV1' class implements 'PageIO' but explicitly throws UnsupportedOperationException for many methods.",
+      "reasoning": "The 'MmapPageIOV1' class is designed as a read-only implementation for queue upgrade purposes. However, it implements the broad 'PageIO' interface, which includes methods for writing, creating, persisting, and purging pages. Consequently, 'MmapPageIOV1' explicitly throws 'UnsupportedOperationException' for methods like 'recover', 'create', 'ensurePersisted', 'purge', and 'write', and returns a fixed 'false' for 'hasSpace'. This forces the class to depend on methods it does not use or cannot implement meaningfully, which is a direct violation of ISP, indicating that the 'PageIO' interface is not sufficiently segregated."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 46622.95722961426,
+  "error": null
+}

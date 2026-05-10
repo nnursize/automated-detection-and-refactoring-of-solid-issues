@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 3135.067939758301,
+  "prompt_tokens": 3972,
+  "completion_tokens": 329,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Decouple RunContext from concrete IEventListenerPtr by using a generic interface or base class\",\n  \"rationale\": \"The RunContext class was explicitly tied to IEventListenerPtr (a unique_ptr alias). By introducing an IEventListener interface and ensuring the constructor accepts a unique_ptr to that interface, we adhere to the Dependency Inversion Principle, allowing for polymorphic listener injection.\",\n  \"files_touched\": [\"extras/catch_amalgamated.hpp\"]\n}\n```\n\n<<<<<<< SEARCH\n    class IGeneratorTracker;\n    class IConfig;\n    class IEventListener;\n    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;\n    class OutputRedirect;\n=======\n    class IGeneratorTracker;\n    class IConfig;\n    class IEventListener;\n    class OutputRedirect;\n>>>>>>> REPLACE\n\n<<<<<<< SEARCH\n        explicit RunContext( IConfig const* _config, IEventListenerPtr&& reporter );\n=======\n        explicit RunContext( IConfig const* _config, Detail::unique_ptr<IEventListener>&& reporter );\n>>>>>>> REPLACE\n\n<<<<<<< SEARCH\n        Detail::AtomicCounts m_atomicAssertionCount;\n        IEventListenerPtr m_reporter;\n        std::vector<SectionEndInfo> m_unfinishedSections;\n=======\n        Detail::AtomicCounts m_atomicAssertionCount;\n        Detail::unique_ptr<IEventListener> m_reporter;\n        std::vector<SectionEndInfo> m_unfinishedSections;\n>>>>>>> REPLACE"
+}

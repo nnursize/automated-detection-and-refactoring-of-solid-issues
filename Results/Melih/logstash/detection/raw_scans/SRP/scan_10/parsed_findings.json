@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Class handles queue orchestration, page I/O, disk monitoring, and serialization.",
+    "reasoning": "The Queue class violates SRP by mixing high-level queue operations (read/write) with low-level page I/O management (openPages, purgeTailPage), disk space availability monitoring (ensureDiskAvailable), and data serialization/deserialization (deserialize)."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "God class managing pipeline execution, metrics, DLQ, and configuration parsing.",
+    "reasoning": "This class acts as a central hub for pipeline state but also contains logic for metric initialization and storage (storeMetric), Dead Letter Queue (DLQ) writer lifecycle management, and utility functions like duration string parsing (parseToDuration)."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event",
+    "entity_type": "class",
+    "line_start": 51,
+    "line_end": 583,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Data object mixed with serialization and JSON parsing logic.",
+    "reasoning": "The Event class is primarily a data carrier (DTO) for event fields, but it also encapsulates logic for JSON parsing (fromJson/toJson) and binary serialization (serialize/deserialize), which are external formatting concerns that should be handled by separate codec or serializer classes."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/agent.rb",
+    "entity_name": "LogStash",
+    "entity_type": "class",
+    "line_start": 47,
+    "line_end": 195,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Orchestrator class managing pipelines, web server, and metric collection.",
+    "reasoning": "The Agent class (LogStash) is responsible for pipeline orchestration and convergence, but it also directly manages the lifecycle of the internal web server (start_webserver) and the configuration/polling of metric collectors, which are unrelated infrastructure concerns."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Manages DLQ writing, file segmenting, and retention policies.",
+    "reasoning": "This class handles the primary responsibility of writing entries to the DLQ, but it also manages file system maintenance tasks like segment rotation (finalizeSegment), retention policy enforcement (executeAgeRetentionPolicy), and file system watching for deleted notifications."
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "issue_id": "ISP-018",
+  "principle": "ISP",
+  "title": "Refactor ISP-018 (ISP): ConsoleAssertionPrinter handles all assertion result types, potentially forci...",
+  "branch": "refactor/ISP-018",
+  "base": "main",
+  "head_commit": "60e6ea9f85d468a0082681940337680afe0e5039",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8176,
+    "completion_tokens": 1395
+  },
+  "detected_issue": {
+    "file_path": "src/catch2/reporters/catch_reporter_console.cpp",
+    "entity_name": "ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 193,
+    "severity": "low",
+    "scan_count": 3,
+    "description": "ConsoleAssertionPrinter handles all assertion result types, potentially forcing clients to depend on logic for result types they do not encounter.",
+    "reasoning": "The `ConsoleAssertionPrinter` class, like other assertion printers, uses a `switch` statement to cover all `ResultWas::OfType` cases. Clients that use this printer are implicitly coupled to the handling logic for all possible assertion outcomes, even if their tests only generate a specific subset. This constitutes a violation of ISP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor AssertionMetadata::create to use a more modular approach for result type handling",
+    "rationale": "The monolithic switch statement in AssertionMetadata::create forces the class to know about every possible result type. By extracting the logic for different categories of results (Success, Failure, Info/Warning, and Internal Error), we improve maintainability and reduce the coupling of the printer to every specific result type.",
+    "files_touched": [
+      "src/catch2/reporters/catch_reporter_console.cpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/catch2/reporters/catch_reporter_console.cpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/catch2/reporters/catch_reporter_console.cpp",
+        "search_text": "    static AssertionMetadata create(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n        Colour::Code colour = Colour::None;\n        StringRef passOrFail;\n        StringRef messageLabel;\n\n        switch (result.getResultType()) {\n        case ResultWas::Ok:\n            colour = Colour::Success;\n            passOrFail = \"PASSED\"_sr;\n            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n            break;\n        case ResultWas::ExpressionFailed:\n            if (result.isOk()) {\n                colour = Colour::Success;\n                passOrFail = \"FAILED - but was ok\"_sr;\n            } else {\n                colour = Colour::Error;\n                passOrFail = \"FAILED\"_sr;\n            }\n            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n            break;\n        case ResultWas::ThrewException:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            if (messages.size() == 0) messageLabel = \"due to unexpected exception with \"_sr;\n            else if (messages.size() == 1) messageLabel = \"due to unexpected exception with message\"_sr;\n            else messageLabel = \"due to unexpected exception with messages\"_sr;\n            break;\n        case ResultWas::FatalErrorCondition:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            messageLabel = \"due to a fatal error condition\"_sr;\n            break;\n        case ResultWas::DidntThrowException:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            messageLabel = \"because no exception was thrown where one was expected\"_sr;\n            break;\n        case ResultWas::Info:\n            messageLabel = \"info\"_sr;\n            break;\n        case ResultWas::Warning:\n            messageLabel = \"warning\"_sr;\n            break;\n        case ResultWas::ExplicitFailure:\n            passOrFail = \"FAILED\"_sr;\n            colour = Colour::Error;\n            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n            break;\n        case ResultWas::ExplicitSkip:\n            colour = Colour::Skip;\n            passOrFail = \"SKIPPED\"_sr;\n            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n            break;\n        case ResultWas::Unknown:\n        case ResultWas::FailureBit:\n        case ResultWas::Exception:\n            passOrFail = \"** internal error **\"_sr;\n            colour = Colour::Error;\n            break;\n        }\n        return {colour, passOrFail, messageLabel};\n    }",
+        "replace_text": "    static AssertionMetadata create(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n        auto type = result.getResultType();\n        if (type == ResultWas::Ok) {\n            return {Colour::Success, \"PASSED\"_sr, (messages.size() == 1 ? \"with message\"_sr : (messages.size() > 1 ? \"with messages\"_sr : \"\"_sr))};\n        }\n        if (type == ResultWas::Info) return {Colour::None, \"\"_sr, \"info\"_sr};\n        if (type == ResultWas::Warning) return {Colour::None, \"\"_sr, \"warning\"_sr};\n        if (type == ResultWas::ExplicitSkip) {\n            return {Colour::Skip, \"SKIPPED\"_sr, (messages.size() == 1 ? \"explicitly with message\"_sr : (messages.size() > 1 ? \"explicitly with messages\"_sr : \"\"_sr))};\n        }\n        if (type == ResultWas::ExpressionFailed) {\n            return {result.isOk() ? Colour::Success : Colour::Error, result.isOk() ? \"FAILED - but was ok\"_sr : \"FAILED\"_sr, (messages.size() == 1 ? \"with message\"_sr : (messages.size() > 1 ? \"with messages\"_sr : \"\"_sr))};\n        }\n        if (type == ResultWas::ThrewException) {\n            return {Colour::Error, \"FAILED\"_sr, (messages.size() == 0 ? \"due to unexpected exception with \"_sr : (messages.size() == 1 ? \"due to unexpected exception with message\"_sr : \"due to unexpected exception with messages\"_sr))};\n        }\n        if (type == ResultWas::FatalErrorCondition) return {Colour::Error, \"FAILED\"_sr, \"due to a fatal error condition\"_sr};\n        if (type == ResultWas::DidntThrowException) return {Colour::Error, \"FAILED\"_sr, \"because no exception was thrown where one was expected\"_sr};\n        if (type == ResultWas::ExplicitFailure) {\n            return {Colour::Error, \"FAILED\"_sr, (messages.size() == 1 ? \"explicitly with message\"_sr : (messages.size() > 1 ? \"explicitly with messages\"_sr : \"\"_sr))};\n        }\n        return {Colour::Error, \"** internal error **\"_sr, \"\"_sr};\n    }",
+        "search_lines": 67,
+        "replace_lines": 23
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/catch2/reporters/catch_reporter_console.cpp",
+        "loc": 560,
+        "blank_lines": 75,
+        "comment_lines": 30,
+        "function_count": 21,
+        "avg_cc": 5.43,
+        "max_cc": 94.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/catch2/reporters/catch_reporter_console.cpp",
+        "loc": 517,
+        "blank_lines": 74,
+        "comment_lines": 30,
+        "function_count": 21,
+        "avg_cc": 4.76,
+        "max_cc": 80.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/catch2/reporters/catch_reporter_console.cpp b/src/catch2/reporters/catch_reporter_console.cpp\nindex f392f55..46e1660 100644\n--- a/src/catch2/reporters/catch_reporter_console.cpp\n+++ b/src/catch2/reporters/catch_reporter_console.cpp\n@@ -51,71 +51,27 @@ struct AssertionMetadata {\n         : colour(_colour), passOrFail(_passOrFail), messageLabel(_messageLabel) {}\n \n     static AssertionMetadata create(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n-        Colour::Code colour = Colour::None;\n-        StringRef passOrFail;\n-        StringRef messageLabel;\n-\n-        switch (result.getResultType()) {\n-        case ResultWas::Ok:\n-            colour = Colour::Success;\n-            passOrFail = \"PASSED\"_sr;\n-            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n-            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n-            break;\n-        case ResultWas::ExpressionFailed:\n-            if (result.isOk()) {\n-                colour = Colour::Success;\n-                passOrFail = \"FAILED - but was ok\"_sr;\n-            } else {\n-                colour = Colour::Error;\n-                passOrFail = \"FAILED\"_sr;\n-            }\n-            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n-            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n-            break;\n-        case ResultWas::ThrewException:\n-            colour = Colour::Error;\n-            passOrFail = \"FAILED\"_sr;\n-            if (messages.size() == 0) messageLabel = \"due to unexpected exception with \"_sr;\n-            else if (messages.size() == 1) messageLabel = \"due to unexpected exception with message\"_sr;\n-            else messageLabel = \"due to unexpected exception with messages\"_sr;\n-            break;\n-        case ResultWas::FatalErrorCondition:\n-            colour = Colour::Error;\n-            passOrFail = \"FAILED\"_sr;\n-            messageLabel = \"due to a fatal error condition\"_sr;\n-            break;\n-        case ResultWas::DidntThrowException:\n-            colour = Colour::Error;\n-            passOrFail = \"FAILED\"_sr;\n-            messageLabel = \"because no exception was thrown where one was expected\"_sr;\n-            break;\n-        case ResultWas::Info:\n-            messageLabel = \"info\"_sr;\n-            break;\n-        case ResultWas::Warning:\n-            messageLabel = \"warning\"_sr;\n-            break;\n-        case ResultWas::ExplicitFailure:\n-            passOrFail = \"FAILED\"_sr;\n-            colour = Colour::Error;\n-            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n-            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n-            break;\n-        case ResultWas::ExplicitSkip:\n-            colour = Colour::Skip;\n-            passOrFail = \"SKIPPED\"_sr;\n-            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n-            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n-            break;\n-        case ResultWas::Unknown:\n-        case ResultWas::FailureBit:\n-        case ResultWas::Exception:\n-            passOrFail = \"** internal error **\"_sr;\n-            colour = Colour::Error;\n-            break;\n+        auto type = result.getResultType();\n+        if (type == ResultWas::Ok) {\n+            return {Colour::Success, \"PASSED\"_sr, (messages.size() == 1 ? \"with message\"_sr : (messages.size() > 1 ? \"with messages\"_sr : \"\"_sr))};\n         }\n-        return {colour, passOrFail, messageLabel};\n+        if (type == ResultWas::Info) return {Colour::None, \"\"_sr, \"info\"_sr};\n+        if (type == ResultWas::Warning) return {Colour::None, \"\"_sr, \"warning\"_sr};\n+        if (type == ResultWas::ExplicitSkip) {\n+            return {Colour::Skip, \"SKIPPED\"_sr, (messages.size() == 1 ? \"explicitly with message\"_sr : (messages.size() > 1 ? \"explicitly with messages\"_sr : \"\"_sr))};\n+        }\n+        if (type == ResultWas::ExpressionFailed) {\n+            return {result.isOk() ? Colour::Success : Colour::Error, result.isOk() ? \"FAILED - but was ok\"_sr : \"FAILED\"_sr, (messages.size() == 1 ? \"with message\"_sr : (messages.size() > 1 ? \"with messages\"_sr : \"\"_sr))};\n+        }\n+        if (type == ResultWas::ThrewException) {\n+            return {Colour::Error, \"FAILED\"_sr, (messages.size() == 0 ? \"due to unexpected exception with \"_sr : (messages.size() == 1 ? \"due to unexpected exception with message\"_sr : \"due to unexpected exception with messages\"_sr))};\n+        }\n+        if (type == ResultWas::FatalErrorCondition) return {Colour::Error, \"FAILED\"_sr, \"due to a fatal error condition\"_sr};\n+        if (type == ResultWas::DidntThrowException) return {Colour::Error, \"FAILED\"_sr, \"because no exception was thrown where one was expected\"_sr};\n+        if (type == ResultWas::ExplicitFailure) {\n+            return {Colour::Error, \"FAILED\"_sr, (messages.size() == 1 ? \"explicitly with message\"_sr : (messages.size() > 1 ? \"explicitly with messages\"_sr : \"\"_sr))};\n+        }\n+        return {Colour::Error, \"** internal error **\"_sr, \"\"_sr};\n     }\n };\n \n",
+  "duration_ms": 4914.072036743164
+}

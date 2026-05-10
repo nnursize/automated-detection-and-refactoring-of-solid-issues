@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-012",
+  "principle": "DIP",
+  "title": "Refactor DIP-012 (DIP): Base abstraction depends on a concrete subclass implementation detail.",
+  "branch": "refactor/DIP-012",
+  "base": "main",
+  "head_commit": "29fb26dc6739abacd329814707753280ac11a2e7",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5096,
+    "completion_tokens": 254
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/TypeAdapter.java",
+    "entity_name": "TypeAdapter.fromJsonTree",
+    "entity_type": "method",
+    "line_start": 183,
+    "line_end": 190,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Base abstraction depends on a concrete subclass implementation detail.",
+    "reasoning": "The abstract class 'TypeAdapter' directly instantiates 'JsonTreeReader', which is a concrete implementation of 'JsonReader' located in an internal package ('internal.bind'). Abstractions should not depend on details; here, the base class is coupled to a specific implementation of the reading logic, making it difficult to change the tree-reading implementation without modifying the base abstraction."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "",
+    "rationale": "",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/TypeAdapter.java",
+        "loc": 286,
+        "blank_lines": 16,
+        "comment_lines": 20,
+        "function_count": 10,
+        "avg_cc": 4.2,
+        "max_cc": 33.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 4597.146272659302
+}

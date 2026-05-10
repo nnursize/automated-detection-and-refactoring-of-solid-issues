@@ -1,0 +1,30 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 0a5a59e..5a90946 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -10645,7 +10645,6 @@ namespace Catch {
+     class IGeneratorTracker;
+     class IConfig;
+     class IEventListener;
+-    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+     class OutputRedirect;
+ 
+     ///////////////////////////////////////////////////////////////////////////
+@@ -10656,7 +10655,7 @@ namespace Catch {
+         RunContext( RunContext const& ) = delete;
+         RunContext& operator =( RunContext const& ) = delete;
+ 
+-        explicit RunContext( IConfig const* _config, IEventListenerPtr&& reporter );
++        explicit RunContext( IConfig const* _config, Detail::unique_ptr<IEventListener>&& reporter );
+ 
+         ~RunContext() override;
+ 
+@@ -10759,7 +10758,7 @@ namespace Catch {
+         IConfig const* m_config;
+         Totals m_totals;
+         Detail::AtomicCounts m_atomicAssertionCount;
+-        IEventListenerPtr m_reporter;
++        Detail::unique_ptr<IEventListener> m_reporter;
+         std::vector<SectionEndInfo> m_unfinishedSections;
+         std::vector<ITracker*> m_activeSections;
+         TrackerContext m_trackerContext;

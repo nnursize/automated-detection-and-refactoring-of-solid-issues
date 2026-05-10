@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters",
+    "entity_type": "class",
+    "line_start": 60,
+    "line_end": 1081,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Bundles many unrelated TypeAdapter and TypeAdapterFactory instances for diverse built-in types.",
+    "reasoning": "The TypeAdapters class acts as a single point of aggregation for a large number of individual type adaptation responsibilities (e.g., for Class, BitSet, Boolean, Number, String, URL, URI, UUID, Currency, Calendar, Locale, JsonElement, etc.). While each individual adapter (or factory) might adhere to SRP, the TypeAdapters class itself has multiple reasons to change: whenever support for a new built-in type needs to be added, or an existing built-in type's adaptation logic changes. This makes it a 'God class' for type adapters, violating the principle that a class should have only one reason to change. A more granular design might separate these into categories (e.g., PrimitiveTypeAdapters, UtilityTypeAdapters, NetworkTypeAdapters)."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters",
+    "entity_type": "class",
+    "line_start": 44,
+    "line_end": 449,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Aggregates type adapters and conversion logic for many distinct java.time types.",
+    "reasoning": "Similar to TypeAdapters, this class centralizes the adaptation logic for numerous java.time API types (Duration, Instant, LocalDate, LocalTime, LocalDateTime, MonthDay, OffsetDateTime, OffsetTime, Period, Year, YearMonth, ZoneId, ZonedDateTime). Each of these types represents a distinct responsibility for serialization/deserialization. If a new java.time type is introduced or the serialization logic for an existing one changes, this single class would need modification. This violates SRP by having multiple reasons to change due to the unrelated nature of the many java.time types it handles."
+  }
+]

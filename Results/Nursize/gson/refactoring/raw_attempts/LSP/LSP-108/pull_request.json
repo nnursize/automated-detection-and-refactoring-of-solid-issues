@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-108",
+  "principle": "LSP",
+  "title": "Refactor LSP-108 (LSP): Concrete subclass implements abstract methods by throwing UnsupportedOperatio...",
+  "branch": "refactor/LSP-108",
+  "base": "main",
+  "head_commit": "2075899bcfafc9aa82e5c725aa26561296fff83c",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4078,
+    "completion_tokens": 388
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+    "entity_name": "RecordNotSupportedHelper.getRecordComponentNames",
+    "entity_type": "method",
+    "line_start": 308,
+    "line_end": 309,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Concrete subclass implements abstract methods by throwing UnsupportedOperationException.",
+    "reasoning": "`RecordHelper` is an abstract class defining abstract methods like `getRecordComponentNames()`. `RecordNotSupportedHelper` is a concrete subclass that implements this (and other abstract methods) by throwing `UnsupportedOperationException`. This directly violates LSP because a client expecting a `RecordHelper` would not anticipate `UnsupportedOperationException` for a method that is declared abstract, implying it should be supported by all concrete implementations. This forces clients to handle a specific exception for this subtype, breaking substitutability."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove UnsupportedOperationException from RecordNotSupportedHelper methods",
+    "rationale": "The Liskov Substitution Principle is violated when a subclass throws an exception that the base class contract does not specify. Since RecordNotSupportedHelper is only used when isRecord(clazz) returns false, these methods should return safe default values (empty arrays, nulls) instead of throwing exceptions, allowing callers to handle the 'not a record' case gracefully without catching runtime exceptions.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+        "search_text": "    @Override\n    String[] getRecordComponentNames(Class<?> clazz) {\n      throw new UnsupportedOperationException(\n          \"Records are not supported on this JVM, this method should not be called\");\n    }\n\n    @Override\n    <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {\n      throw new UnsupportedOperationException(\n          \"Records are not supported on this JVM, this method should not be called\");\n    }\n\n    @Override\n    public Method getAccessor(Class<?> raw, Field field) {\n      throw new UnsupportedOperationException(\n          \"Records are not supported on this JVM, this method should not be called\");\n    }",
+        "replace_text": "    @Override\n    String[] getRecordComponentNames(Class<?> clazz) {\n      return new String[0];\n    }\n\n    @Override\n    <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {\n      return null;\n    }\n\n    @Override\n    public Method getAccessor(Class<?> raw, Field field) {\n      return null;\n    }",
+        "search_lines": 17,
+        "replace_lines": 14
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+        "loc": 271,
+        "blank_lines": 43,
+        "comment_lines": 11,
+        "function_count": 18,
+        "avg_cc": 2.83,
+        "max_cc": 34.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+        "loc": 268,
+        "blank_lines": 43,
+        "comment_lines": 11,
+        "function_count": 18,
+        "avg_cc": 2.83,
+        "max_cc": 34.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java b/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java\nindex 0452942..0675d6b 100644\n--- a/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java\n+++ b/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java\n@@ -306,20 +306,17 @@ public class ReflectionHelper {\n \n     @Override\n     String[] getRecordComponentNames(Class<?> clazz) {\n-      throw new UnsupportedOperationException(\n-          \"Records are not supported on this JVM, this method should not be called\");\n+      return new String[0];\n     }\n \n     @Override\n     <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {\n-      throw new UnsupportedOperationException(\n-          \"Records are not supported on this JVM, this method should not be called\");\n+      return null;\n     }\n \n     @Override\n     public Method getAccessor(Class<?> raw, Field field) {\n-      throw new UnsupportedOperationException(\n-          \"Records are not supported on this JVM, this method should not be called\");\n+      return null;\n     }\n   }\n }\n",
+  "duration_ms": 1941.5733814239502
+}

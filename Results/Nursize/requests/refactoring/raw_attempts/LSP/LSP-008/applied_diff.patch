@@ -1,0 +1,30 @@
+diff --git a/src/requests/auth.py b/src/requests/auth.py
+index 3aa7f83..4b277b9 100644
+--- a/src/requests/auth.py
++++ b/src/requests/auth.py
+@@ -96,9 +96,24 @@ class HTTPBasicAuth(AuthBase):
+         return r
+ 
+ 
+-class HTTPProxyAuth(HTTPBasicAuth):
++class HTTPProxyAuth(AuthBase):
+     """Attaches HTTP Proxy Authentication to a given Request object."""
+ 
++    def __init__(self, username, password):
++        self.username = username
++        self.password = password
++
++    def __eq__(self, other):
++        return all(
++            [
++                self.username == getattr(other, "username", None),
++                self.password == getattr(other, "password", None),
++            ]
++        )
++
++    def __ne__(self, other):
++        return not self == other
++
+     def __call__(self, r):
+         r.headers["Proxy-Authorization"] = _basic_auth_str(self.username, self.password)
+         return r

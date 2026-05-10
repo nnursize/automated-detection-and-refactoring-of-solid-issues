@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::TestCaseTracking::ITracker",
+    "entity_type": "class",
+    "line_start": 4950,
+    "line_end": 4962,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Manual type-checking via isSectionTracker and isGeneratorTracker",
+    "reasoning": "The base class ITracker provides virtual methods specifically to identify its own subclasses (SectionTracker, GeneratorTracker). This is a 'Switch Statements on type' smell that indicates the base class is not fully substitutable. Callers (like RunContext) rely on these flags to perform type-specific logic or downcasting, breaking the abstraction provided by the base interface."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Clara::Detail::BoundRef",
+    "entity_type": "class",
+    "line_start": 2315,
+    "line_end": 2316,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Type-checking flags isContainer and isFlag in base class",
+    "reasoning": "The BoundRef base class includes methods to query whether a subtype is a container or a flag. This 'Type-checking' smell allows the command-line parser to handle subclasses differently based on their specific nature rather than through a uniform polymorphic interface. This violates LSP as the base type cannot be used without the caller knowing the specific properties of the subtype."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ITransientExpression",
+    "entity_type": "class",
+    "line_start": 3370,
+    "line_end": 3370,
+    "principle": "LSP",
+    "severity": "low",
+    "description": "Type-checking flag isBinaryExpression in base class",
+    "reasoning": "The base class ITransientExpression uses a boolean flag m_isBinaryExpression to distinguish between unary and binary expressions. This is a 'Type-checking' smell. While the class provides a virtual streamReconstructedExpression method, the existence of this flag suggests that external logic (like AssertionResultData) may branch based on the specific subtype, which undermines the substitutability of the base class."
+  }
+]

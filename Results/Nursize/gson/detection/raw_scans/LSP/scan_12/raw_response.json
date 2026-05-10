@@ -1,0 +1,84 @@
+{
+  "scan_id": "gson_LSP_scan_12",
+  "repo_name": "gson",
+  "principle": "LSP",
+  "scan_number": 12,
+  "timestamp": "2026-05-02T15:39:27.944095",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsNumber\",\n      \"entity_type\": \"method\",\n      \"line_start\": 236,\n      \"line_end\": 236,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Base class method contract potentially violated by subtypes throwing UnsupportedOperationException.\",\n      \"reasoning\": \"The abstract class `JsonElement` defines concrete methods like `getAsNumber()`. However, its concrete subtypes such as `JsonArray`, `JsonObject`, and `JsonNull` cannot logically represent a single primitive number. If these subtypes override `getAsNumber()` to throw `UnsupportedOperationException` or `IllegalStateException` (as `JsonPrimitive` does in some cases), they violate LSP because they cannot be substituted for `JsonElement` without altering the correctness of the program (a client expecting a number might get an unexpected exception).\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonPrimitive.java\",\n      \"entity_name\": \"JsonPrimitive.getAsNumber\",\n      \"entity_type\": \"method\",\n      \"line_start\": 139,\n      \"line_end\": 145,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype method throws UnsupportedOperationException, violating base class contract.\",\n      \"reasoning\": \"`JsonPrimitive` extends `JsonElement`. While `JsonElement` defines `getAsNumber()`, `JsonPrimitive.getAsNumber()` explicitly throws `UnsupportedOperationException(\\\"Primitive is neither a number nor a string\\\")` if the underlying value is not a number or string. This means `JsonPrimitive` cannot always be substituted for `JsonElement` when `getAsNumber()` is called, as it alters the expected behavior by throwing an exception, violating the Liskov Substitution Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\",\n      \"entity_name\": \"JsonTreeReader.close\",\n      \"entity_type\": \"method\",\n      \"line_start\": 298,\n      \"line_end\": 298,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype alters base class contract by throwing AssertionError in close() method.\",\n      \"reasoning\": \"`JsonTreeReader` extends `JsonReader`, which implements `Closeable`. The `close()` method in `JsonReader` (inherited from `Closeable`) implies resource cleanup. `JsonTreeReader` overrides `close()` to throw an `AssertionError`. This is a severe LSP violation because a client expecting to close a `JsonReader` (or any `Closeable`) would not anticipate an `AssertionError`, which typically signals a programming bug rather than a controlled exception or a no-op.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java\",\n      \"entity_name\": \"RecordNotSupportedHelper\",\n      \"entity_type\": \"class\",\n      \"line_start\": 300,\n      \"line_end\": 324,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype implements abstract methods by throwing UnsupportedOperationException.\",\n      \"reasoning\": \"`RecordNotSupportedHelper` is a concrete subclass of `RecordHelper`, which defines abstract methods like `isRecord`, `getRecordComponentNames`, `getCanonicalRecordConstructor`, and `getAccessor`. `RecordNotSupportedHelper` implements these methods by throwing `UnsupportedOperationException`. This directly violates LSP because it signals that the subtype cannot fulfill the contract defined by its base type, preventing it from being substituted transparently.\"\n    },\n    {\n      \"file_path\": \"gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\",\n      \"entity_name\": \"ProtoTypeAdapter.deserialize\",\n      \"entity_type\": \"method\",\n      \"line_start\": 287,\n      \"line_end\": 355,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype restricts deserialization contract by throwing IllegalStateException for non-generated messages.\",\n      \"reasoning\": \"`ProtoTypeAdapter` implements `JsonDeserializer<Message>`. Its `deserialize` method throws `IllegalStateException(\\\"only generated messages are supported\\\")`. This alters the contract of `JsonDeserializer<Message>`, which implies the ability to deserialize any `Message`. By imposing a stricter precondition (only 'generated' messages), `ProtoTypeAdapter` is not fully substitutable for a generic `JsonDeserializer<Message>`, violating LSP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java\",\n      \"entity_name\": \"LinkedTreeMap.readObject\",\n      \"entity_type\": \"method\",\n      \"line_start\": 681,\n      \"line_end\": 685,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subtype's readObject method throws InvalidObjectException, limiting Serializable contract.\",\n      \"reasoning\": \"`LinkedTreeMap` does not explicitly implement `Serializable` in the skeleton, but `readObject` is a method for custom deserialization for `Serializable` classes. Throwing `InvalidObjectException(\\\"Deserialization is unsupported\\\")` in `readObject` means that if `LinkedTreeMap` is treated as a `Serializable` type (e.g., if a superclass is `Serializable`), it cannot be fully deserialized. This violates the implicit contract of `Serializable` for standard Java deserialization, even if `Serializable` is a marker interface.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsNumber",
+      "entity_type": "method",
+      "line_start": 236,
+      "line_end": 236,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Base class method contract potentially violated by subtypes throwing UnsupportedOperationException.",
+      "reasoning": "The abstract class `JsonElement` defines concrete methods like `getAsNumber()`. However, its concrete subtypes such as `JsonArray`, `JsonObject`, and `JsonNull` cannot logically represent a single primitive number. If these subtypes override `getAsNumber()` to throw `UnsupportedOperationException` or `IllegalStateException` (as `JsonPrimitive` does in some cases), they violate LSP because they cannot be substituted for `JsonElement` without altering the correctness of the program (a client expecting a number might get an unexpected exception)."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonPrimitive.java",
+      "entity_name": "JsonPrimitive.getAsNumber",
+      "entity_type": "method",
+      "line_start": 139,
+      "line_end": 145,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype method throws UnsupportedOperationException, violating base class contract.",
+      "reasoning": "`JsonPrimitive` extends `JsonElement`. While `JsonElement` defines `getAsNumber()`, `JsonPrimitive.getAsNumber()` explicitly throws `UnsupportedOperationException(\"Primitive is neither a number nor a string\")` if the underlying value is not a number or string. This means `JsonPrimitive` cannot always be substituted for `JsonElement` when `getAsNumber()` is called, as it alters the expected behavior by throwing an exception, violating the Liskov Substitution Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+      "entity_name": "JsonTreeReader.close",
+      "entity_type": "method",
+      "line_start": 298,
+      "line_end": 298,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype alters base class contract by throwing AssertionError in close() method.",
+      "reasoning": "`JsonTreeReader` extends `JsonReader`, which implements `Closeable`. The `close()` method in `JsonReader` (inherited from `Closeable`) implies resource cleanup. `JsonTreeReader` overrides `close()` to throw an `AssertionError`. This is a severe LSP violation because a client expecting to close a `JsonReader` (or any `Closeable`) would not anticipate an `AssertionError`, which typically signals a programming bug rather than a controlled exception or a no-op."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+      "entity_name": "RecordNotSupportedHelper",
+      "entity_type": "class",
+      "line_start": 300,
+      "line_end": 324,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype implements abstract methods by throwing UnsupportedOperationException.",
+      "reasoning": "`RecordNotSupportedHelper` is a concrete subclass of `RecordHelper`, which defines abstract methods like `isRecord`, `getRecordComponentNames`, `getCanonicalRecordConstructor`, and `getAccessor`. `RecordNotSupportedHelper` implements these methods by throwing `UnsupportedOperationException`. This directly violates LSP because it signals that the subtype cannot fulfill the contract defined by its base type, preventing it from being substituted transparently."
+    },
+    {
+      "file_path": "gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+      "entity_name": "ProtoTypeAdapter.deserialize",
+      "entity_type": "method",
+      "line_start": 287,
+      "line_end": 355,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype restricts deserialization contract by throwing IllegalStateException for non-generated messages.",
+      "reasoning": "`ProtoTypeAdapter` implements `JsonDeserializer<Message>`. Its `deserialize` method throws `IllegalStateException(\"only generated messages are supported\")`. This alters the contract of `JsonDeserializer<Message>`, which implies the ability to deserialize any `Message`. By imposing a stricter precondition (only 'generated' messages), `ProtoTypeAdapter` is not fully substitutable for a generic `JsonDeserializer<Message>`, violating LSP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+      "entity_name": "LinkedTreeMap.readObject",
+      "entity_type": "method",
+      "line_start": 681,
+      "line_end": 685,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subtype's readObject method throws InvalidObjectException, limiting Serializable contract.",
+      "reasoning": "`LinkedTreeMap` does not explicitly implement `Serializable` in the skeleton, but `readObject` is a method for custom deserialization for `Serializable` classes. Throwing `InvalidObjectException(\"Deserialization is unsupported\")` in `readObject` means that if `LinkedTreeMap` is treated as a `Serializable` type (e.g., if a superclass is `Serializable`), it cannot be fully deserialized. This violates the implicit contract of `Serializable` for standard Java deserialization, even if `Serializable` is a marker interface."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 29303.884029388428,
+  "error": null
+}

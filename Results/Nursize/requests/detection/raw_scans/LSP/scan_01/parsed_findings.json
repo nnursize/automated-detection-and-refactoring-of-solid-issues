@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/structures.py",
+    "entity_name": "LookupDict.__getitem__",
+    "entity_type": "class",
+    "line_start": 101,
+    "line_end": 104,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass method returns None instead of raising KeyError for missing keys.",
+    "reasoning": "LookupDict inherits from the built-in dict. The contract for dict.__getitem__ is to raise a KeyError when a key is not found. LookupDict overrides this to return None, which breaks the expectations of any code using it as a standard dictionary substitute, potentially leading to AttributeError or silent failures elsewhere."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "class",
+    "line_start": 88,
+    "line_end": 92,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass nullifies a method from the base interface by raising NotImplementedError.",
+    "reasoning": "MockRequest is explicitly designed to mimic the interface of urllib2.Request (as stated in its docstring). By raising NotImplementedError for add_header, it fails to be a valid substitute for the type it mimics. If a component expecting a urllib2.Request calls add_header, the program will crash, violating the principle that subtypes must be substitutable for their base types."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth",
+    "entity_type": "class",
+    "line_start": 103,
+    "line_end": 108,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass overrides method to change the side-effect (header modified) of the parent class.",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth. While HTTPBasicAuth modifies the 'Authorization' header to provide credentials to the destination server, HTTPProxyAuth modifies the 'Proxy-Authorization' header. A consumer expecting an HTTPBasicAuth object to perform server-level authentication will find the request unauthenticated if an HTTPProxyAuth object is substituted, as the expected 'Authorization' header will be missing."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "class",
+    "line_start": 396,
+    "line_end": 402,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass method raises a specialized exception not present in the base class contract.",
+    "reasoning": "RequestsCookieJar inherits from cookielib.CookieJar and MutableMapping. Its __getitem__ implementation raises CookieConflictError if multiple cookies match a name. A standard Mapping or dict contract expects either the value or a KeyError. Introducing a new exception type for a standard access operation breaks the substitution contract for callers expecting standard mapping behavior."
+  }
+]

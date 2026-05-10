@@ -1,0 +1,40 @@
+{
+  "scan_id": "gson_SRP_scan_03",
+  "repo_name": "gson",
+  "principle": "SRP",
+  "scan_number": 3,
+  "timestamp": "2026-05-01T23:40:50.123752",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persiste...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/Gson.java\",\n      \"entity_name\": \"Gson\",\n      \"entity_type\": \"class\",\n      \"line_start\": 48,\n      \"line_end\": 744,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Gson class is responsible for object serialization/deserialization, managing a type adapter cache, and configuring JSON I/O streams.\",\n      \"reasoning\": \"The core responsibility of Gson is to coordinate object graph serialization and deserialization. However, it also directly holds and applies numerous configuration settings (e.g., `serializeNulls`, `htmlSafe`, `formattingStyle`, `strictness`) that dictate how the underlying `JsonReader` and `JsonWriter` instances are configured. This mixes the high-level object mapping responsibility with the more granular responsibility of configuring I/O stream behavior. A change in JSON formatting rules or parsing strictness requires modifying `Gson`, which is distinct from changes to its core object mapping logic.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters\",\n      \"entity_type\": \"class\",\n      \"line_start\": 27,\n      \"line_end\": 579,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The TypeAdapters class acts as a monolithic registry and factory for a vast array of unrelated basic Java types.\",\n      \"reasoning\": \"This class bundles a multitude of distinct concerns: providing static `TypeAdapter` instances for various primitives, wrappers, standard library types (e.g., `BitSet`, `URL`, `Locale`, `Calendar`, atomic types), custom number parsing logic (`checkValidFloatingPoint`, `IntegerFieldsTypeAdapter`), and factory methods for creating generic type adapter factories. A change in the default adapter for any of these types, the logic for handling floating-point numbers, or the factory creation mechanism would all necessitate changes to this single class. This is a clear violation of SRP, indicating a 'God class' symptom.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/GsonBuilder.java\",\n      \"entity_name\": \"GsonBuilder.createFactories\",\n      \"entity_type\": \"method\",\n      \"line_start\": 395,\n      \"line_end\": 465,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The createFactories method assembles the entire default chain of TypeAdapterFactory instances used by Gson.\",\n      \"reasoning\": \"This method is responsible for knowing",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+      "entity_name": "Gson",
+      "entity_type": "class",
+      "line_start": 48,
+      "line_end": 744,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The Gson class is responsible for object serialization/deserialization, managing a type adapter cache, and configuring JSON I/O streams.",
+      "reasoning": "The core responsibility of Gson is to coordinate object graph serialization and deserialization. However, it also directly holds and applies numerous configuration settings (e.g., `serializeNulls`, `htmlSafe`, `formattingStyle`, `strictness`) that dictate how the underlying `JsonReader` and `JsonWriter` instances are configured. This mixes the high-level object mapping responsibility with the more granular responsibility of configuring I/O stream behavior. A change in JSON formatting rules or parsing strictness requires modifying `Gson`, which is distinct from changes to its core object mapping logic."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters",
+      "entity_type": "class",
+      "line_start": 27,
+      "line_end": 579,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The TypeAdapters class acts as a monolithic registry and factory for a vast array of unrelated basic Java types.",
+      "reasoning": "This class bundles a multitude of distinct concerns: providing static `TypeAdapter` instances for various primitives, wrappers, standard library types (e.g., `BitSet`, `URL`, `Locale`, `Calendar`, atomic types), custom number parsing logic (`checkValidFloatingPoint`, `IntegerFieldsTypeAdapter`), and factory methods for creating generic type adapter factories. A change in the default adapter for any of these types, the logic for handling floating-point numbers, or the factory creation mechanism would all necessitate changes to this single class. This is a clear violation of SRP, indicating a 'God class' symptom."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 71022.21035957336,
+  "error": null
+}

@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-007",
+  "principle": "OCP",
+  "title": "Refactor OCP-007 (OCP): Conditional logic for encoding request parameters based on type.",
+  "branch": "refactor/OCP-007",
+  "base": "main",
+  "head_commit": "1d657244b1c4cc0c16944153f3d3c966d8ea4deb",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9963,
+    "completion_tokens": 664
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "RequestEncodingMixin._encode_params",
+    "entity_type": "method",
+    "line_start": 50,
+    "line_end": 70,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Conditional logic for encoding request parameters based on type.",
+    "reasoning": "This method uses a series of `if/elif` statements and `isinstance`/`hasattr` checks to determine how to encode different types of `data`. If a new type of data (e.g., a custom object that knows how to encode itself) needs to be supported, this method would require modification to add new conditional branches, violating OCP. This could be refactored using a strategy pattern or a dispatch table."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor _encode_params to use a dispatch table for OCP compliance",
+    "rationale": "Replaced the if/elif chain with a dispatch table approach. This allows adding new encoding strategies without modifying the core logic of _encode_params, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "src/requests/models.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/models.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/models.py",
+        "search_text": "    @staticmethod\n    def _encode_params(data):\n        \"\"\"Encode parameters in a piece of data.\n\n        Will successfully encode parameters when passed as a dict or a list of\n        2-tuples. Order is retained if data is a list of 2-tuples but arbitrary\n        if parameters are supplied as a dict.\n        \"\"\"\n\n        if isinstance(data, (str, bytes)):\n            return data\n        elif hasattr(data, \"read\"):\n            return data\n        elif hasattr(data, \"__iter__\"):\n            result = []\n            for k, vs in to_key_val_list(data):\n                if isinstance(vs, basestring) or not hasattr(vs, \"__iter__\"):\n                    vs = [vs]\n                for v in vs:\n                    if v is not None:\n                        result.append(\n                            (\n                                k.encode(\"utf-8\") if isinstance(k, str) else k,\n                                v.encode(\"utf-8\") if isinstance(v, str) else v,\n                            )\n                        )\n            return urlencode(result, doseq=True)\n        else:\n            return data",
+        "replace_text": "    @staticmethod\n    def _encode_params(data):\n        \"\"\"Encode parameters in a piece of data.\n\n        Will successfully encode parameters when passed as a dict or a list of\n        2-tuples. Order is retained if data is a list of 2-tuples but arbitrary\n        if parameters are supplied as a dict.\n        \"\"\"\n\n        def _encode_iterable(data):\n            result = []\n            for k, vs in to_key_val_list(data):\n                if isinstance(vs, basestring) or not hasattr(vs, \"__iter__\"):\n                    vs = [vs]\n                for v in vs:\n                    if v is not None:\n                        result.append(\n                            (\n                                k.encode(\"utf-8\") if isinstance(k, str) else k,\n                                v.encode(\"utf-8\") if isinstance(v, str) else v,\n                            )\n                        )\n            return urlencode(result, doseq=True)\n\n        dispatch = {\n            lambda d: isinstance(d, (str, bytes)): lambda d: d,\n            lambda d: hasattr(d, \"read\"): lambda d: d,\n            lambda d: hasattr(d, \"__iter__\"): _encode_iterable,\n        }\n\n        for condition, action in dispatch.items():\n            if condition(data):\n                return action(data)\n\n        return data",
+        "search_lines": 29,
+        "replace_lines": 35
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 166489.56274986267,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:478: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.70s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 13:22:38] \"GET /get HTTP/1.1\" 200 222\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 746,
+        "blank_lines": 183,
+        "comment_lines": 100,
+        "function_count": 45,
+        "avg_cc": 4.46,
+        "max_cc": 21.0,
+        "mi": 20.13
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 749,
+        "blank_lines": 186,
+        "comment_lines": 100,
+        "function_count": 46,
+        "avg_cc": 4.24,
+        "max_cc": 21.0,
+        "mi": 21.18
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/models.py b/src/requests/models.py\nindex 1264d02..7aac429 100644\n--- a/src/requests/models.py\n+++ b/src/requests/models.py\n@@ -114,11 +114,7 @@ class RequestEncodingMixin:\n         if parameters are supplied as a dict.\n         \"\"\"\n \n-        if isinstance(data, (str, bytes)):\n-            return data\n-        elif hasattr(data, \"read\"):\n-            return data\n-        elif hasattr(data, \"__iter__\"):\n+        def _encode_iterable(data):\n             result = []\n             for k, vs in to_key_val_list(data):\n                 if isinstance(vs, basestring) or not hasattr(vs, \"__iter__\"):\n@@ -132,8 +128,18 @@ class RequestEncodingMixin:\n                             )\n                         )\n             return urlencode(result, doseq=True)\n-        else:\n-            return data\n+\n+        dispatch = {\n+            lambda d: isinstance(d, (str, bytes)): lambda d: d,\n+            lambda d: hasattr(d, \"read\"): lambda d: d,\n+            lambda d: hasattr(d, \"__iter__\"): _encode_iterable,\n+        }\n+\n+        for condition, action in dispatch.items():\n+            if condition(data):\n+                return action(data)\n+\n+        return data\n \n     @staticmethod\n     def _encode_files(files, data):\n",
+  "duration_ms": 176108.38842391968
+}

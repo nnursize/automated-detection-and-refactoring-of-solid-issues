@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Queue class manages high-level queue logic, low-level file IO, directory locking, and serialization.",
+    "reasoning": "The class is responsible for multiple unrelated concerns: 1) High-level queue semantics (write/read/ack), 2) Low-level file system management (directory creation, disk space checks), 3) Concurrency and locking (ReentrantLock and FileLock), 4) Serialization logic via reflection (finding and invoking 'deserialize'), and 5) Queue upgrade logic. This makes the class a 'God Object' for the queue subsystem."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "AbstractPipelineExt acts as a God class for pipeline management, metrics, and DLQ coordination.",
+    "reasoning": "This class handles pipeline lifecycle management, plugin instantiation, complex metric registration/calculation (flow metrics), Dead Letter Queue (DLQ) setup, and configuration expansion. It even contains utility logic for parsing time durations (parseToDuration). It has too many reasons to change, ranging from changes in how metrics are reported to how plugins are initialized."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "DeadLetterQueueWriter mixes event writing with maintenance tasks and filesystem monitoring.",
+    "reasoning": "Beyond the responsibility of writing entries to disk, this class handles: 1) Retention policy enforcement (age and size-based deletion), 2) Filesystem monitoring via WatchService to react to external file deletions, and 3) Internal scheduling for flushes. Maintenance of the queue (cleanup) should be decoupled from the writer logic."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event",
+    "entity_type": "class",
+    "line_start": 51,
+    "line_end": 583,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Event class mixes business data encapsulation with serialization and formatting logic.",
+    "reasoning": "The class is primarily a data container for Logstash events, but it also encapsulates logic for serializing/deserializing itself to/from JSON and CBOR (toJson, fromJson, serialize, deserialize). Additionally, it contains business logic for string interpolation (sprintf) and specific tagging behaviors for failures."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "JavaKeyStore",
+    "entity_type": "class",
+    "line_start": 77,
+    "line_end": 447,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "JavaKeyStore handles secret management and low-level OS file permission management.",
+    "reasoning": "The class manages the KeyStore lifecycle but also contains specific logic for setting POSIX file attributes/permissions and handling OS-specific file locking (Windows vs. Unix). These low-level OS concerns should be abstracted away from the secret storage logic."
+  }
+]

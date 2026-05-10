@@ -1,0 +1,57 @@
+diff --git a/src/requests/adapters.py b/src/requests/adapters.py
+index 2cca2b1..e72309e 100644
+--- a/src/requests/adapters.py
++++ b/src/requests/adapters.py
+@@ -243,7 +243,10 @@ class HTTPAdapter(BaseAdapter):
+ 
+     def _create_proxy_manager(self, proxy, **proxy_kwargs):
+         """Creates a urllib3 ProxyManager for the given proxy."""
+-        if proxy.lower().startswith("socks"):
++        proxy_url = parse_url(proxy)
++        scheme = proxy_url.scheme or "http"
++
++        def create_socks_manager(proxy, **kwargs):
+             username, password = get_auth_from_url(proxy)
+             return SOCKSProxyManager(
+                 proxy,
+@@ -252,18 +255,30 @@ class HTTPAdapter(BaseAdapter):
+                 num_pools=self._pool_connections,
+                 maxsize=self._pool_maxsize,
+                 block=self._pool_block,
+-                **proxy_kwargs,
++                **kwargs,
+             )
+ 
+-        proxy_headers = self.proxy_headers(proxy)
+-        return proxy_from_url(
+-            proxy,
+-            proxy_headers=proxy_headers,
+-            num_pools=self._pool_connections,
+-            maxsize=self._pool_maxsize,
+-            block=self._pool_block,
+-            **proxy_kwargs,
+-        )
++        def create_http_manager(proxy, **kwargs):
++            proxy_headers = self.proxy_headers(proxy)
++            return proxy_from_url(
++                proxy,
++                proxy_headers=proxy_headers,
++                num_pools=self._pool_connections,
++                maxsize=self._pool_maxsize,
++                block=self._pool_block,
++                **kwargs,
++            )
++
++        proxy_managers = {
++            "socks": create_socks_manager,
++            "socks4": create_socks_manager,
++            "socks5": create_socks_manager,
++            "http": create_http_manager,
++            "https": create_http_manager,
++        }
++
++        manager_factory = proxy_managers.get(scheme.lower(), create_http_manager)
++        return manager_factory(proxy, **proxy_kwargs)
+ 
+     def proxy_manager_for(self, proxy, **proxy_kwargs):
+         """Return urllib3 ProxyManager for the given proxy.

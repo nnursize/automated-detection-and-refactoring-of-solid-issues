@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_DIP_scan_10",
+  "repo_name": "jackson-core",
+  "principle": "DIP",
+  "scan_number": 10,
+  "timestamp": "2026-05-02T20:50:01.427778",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java\",\n      \"entity_name\": \"ByteSourceJsonBootstrapper.constructParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 283,\n      \"line_end\": 300,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete UTF8StreamJsonParser.\",\n      \"reasoning\": \"The constructParser method directly instantiates UTF8StreamJsonParser using the 'new' keyword. This violates DIP because a high-level component responsible for bootstrapping should depend on the JsonParser abstraction rather than a specific low-level implementation.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/io/IOContext.java\",\n      \"entity_name\": \"IOContext.constructTextBuffer\",\n      \"entity_type\": \"class\",\n      \"line_start\": 214,\n      \"line_end\": 221,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete TextBuffer implementations.\",\n      \"reasoning\": \"The constructTextBuffer and constructReadConstrainedTextBuffer methods directly instantiate TextBuffer and ReadConstrainedTextBuffer. This prevents the inversion of control where alternative buffer strategies could be injected into the context.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/base/TextualTSFactory.java\",\n      \"entity_name\": \"TextualTSFactory._createWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 339,\n      \"line_end\": 346,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Direct instantiation of concrete UTF8Writer.\",\n      \"reasoning\": \"The _createWriter method directly instantiates UTF8Writer, coupling the factory to a specific implementation of the Writer abstraction instead of allowing for the injection of different writer types.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/io/NumberInput.java\",\n      \"entity_name\": \"NumberInput\",\n      \"entity_type\": \"class\",\n      \"line_start\": 16,\n      \"line_end\": 629,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Coupling to external concrete parsing libraries.\",\n      \"reasoning\": \"NumberInput directly imports and depends on concrete classes from the ch.randelshofer.fastdoubleparser package. This makes a core utility module depend on specific low-",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java",
+      "entity_name": "ByteSourceJsonBootstrapper.constructParser",
+      "entity_type": "class",
+      "line_start": 283,
+      "line_end": 300,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete UTF8StreamJsonParser.",
+      "reasoning": "The constructParser method directly instantiates UTF8StreamJsonParser using the 'new' keyword. This violates DIP because a high-level component responsible for bootstrapping should depend on the JsonParser abstraction rather than a specific low-level implementation."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+      "entity_name": "IOContext.constructTextBuffer",
+      "entity_type": "class",
+      "line_start": 214,
+      "line_end": 221,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete TextBuffer implementations.",
+      "reasoning": "The constructTextBuffer and constructReadConstrainedTextBuffer methods directly instantiate TextBuffer and ReadConstrainedTextBuffer. This prevents the inversion of control where alternative buffer strategies could be injected into the context."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+      "entity_name": "TextualTSFactory._createWriter",
+      "entity_type": "class",
+      "line_start": 339,
+      "line_end": 346,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Direct instantiation of concrete UTF8Writer.",
+      "reasoning": "The _createWriter method directly instantiates UTF8Writer, coupling the factory to a specific implementation of the Writer abstraction instead of allowing for the injection of different writer types."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 84418.49160194397,
+  "error": null
+}

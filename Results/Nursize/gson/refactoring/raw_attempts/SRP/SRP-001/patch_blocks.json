@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "search_text": "  private int pos = 0;\n  private int limit = 0;\n\n  private int lineNumber = 0;\n  private int lineStart = 0;\n\n  int peeked = PEEKED_NONE;",
+    "replace_text": "  private int pos = 0;\n  private int limit = 0;\n\n  private final JsonLocationTracker locationTracker = new JsonLocationTracker();\n\n  int peeked = PEEKED_NONE;"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "search_text": "  /** Creates a new instance that reads a JSON-encoded stream from {@code in}. */\n  public JsonReader(Reader in) {\n    this.in = Objects.requireNonNull(in, \"in == null\");\n  }",
+    "replace_text": "  /** Creates a new instance that reads a JSON-encoded stream from {@code in}. */\n  public JsonReader(Reader in) {\n    this.in = Objects.requireNonNull(in, \"in == null\");\n  }\n\n  private IOException syntaxError(String message) throws IOException {\n    throw new MalformedJsonException(locationTracker.getMessage(message, pos));\n  }"
+  },
+  {
+    "kind": "create",
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java",
+    "search_text": null,
+    "replace_text": "package com.google.gson.stream;\n\n/**\n * Tracks the current location (line and column) in a JSON stream for error reporting.\n */\nfinal class JsonLocationTracker {\n  private int lineNumber = 0;\n  private int lineStart = 0;\n\n  public void incrementLine() {\n    lineNumber++;\n  }\n\n  public void setLineStart(int pos) {\n    lineStart = pos;\n  }\n\n  public int getLineNumber() {\n    return lineNumber + 1;\n  }\n\n  public int getColumnNumber(int pos) {\n    return pos - lineStart + 1;\n  }\n\n  public String getMessage(String message, int pos) {\n    return message + \" at line \" + getLineNumber() + \" column \" + getColumnNumber(pos) + \" path \" + \"\";\n  }\n}"
+  }
+]

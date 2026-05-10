@@ -1,0 +1,24 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index c37ae71..4048e98 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -24,6 +24,10 @@ from urllib3.fields import RequestField
+ from urllib3.filepost import encode_multipart_formdata
+ from urllib3.util import parse_url
+ 
++def _encode_multipart_data(fields):
++    """Abstraction for encoding multipart form data."""
++    return encode_multipart_formdata(fields)
++
+ from ._internal_utils import to_native_string, unicode_is_ascii
+ from .auth import HTTPBasicAuth
+ from .compat import (
+@@ -205,7 +209,7 @@ class RequestEncodingMixin:
+             rf.make_multipart(content_type=ft)
+             new_fields.append(rf)
+ 
+-        body, content_type = encode_multipart_formdata(new_fields)
++        body, content_type = _encode_multipart_data(new_fields)
+ 
+         return body, content_type
+ 

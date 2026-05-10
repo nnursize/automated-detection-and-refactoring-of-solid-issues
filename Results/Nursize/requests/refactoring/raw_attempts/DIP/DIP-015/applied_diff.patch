@@ -1,0 +1,29 @@
+diff --git a/src/requests/api.py b/src/requests/api.py
+index de8f75d..55d060f 100644
+--- a/src/requests/api.py
++++ b/src/requests/api.py
+@@ -10,6 +10,9 @@ This module implements the Requests API.
+ 
+ from . import sessions
+ 
++# Default session factory
++session_factory = sessions.Session
++
+ 
+ def request(method, url, **kwargs):
+     """Constructs and sends a :class:`Request <Request>`.
+@@ -53,12 +56,12 @@ def request(method, url, **kwargs):
+       <Response [200]>
+     """
+ 
+-    session_factory = kwargs.pop("session_factory", sessions.Session)
++    factory = kwargs.pop("session_factory", session_factory)
+ 
+     # By using the 'with' statement we are sure the session is closed, thus we
+     # avoid leaving sockets open which can trigger a ResourceWarning in some
+     # cases, and look like a memory leak in others.
+-    with session_factory() as session:
++    with factory() as session:
+         return session.request(method=method, url=url, **kwargs)
+ 
+ 

@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-003",
+  "principle": "DIP",
+  "title": "Refactor DIP-003 (DIP): Function `getRegistryHub` accesses a static global variable `RegistryHub::get...",
+  "branch": "refactor/DIP-003",
+  "base": "main",
+  "head_commit": "91212601f6f7dd58e6b220399f1d42c679969fd9",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3113,
+    "completion_tokens": 231
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::getRegistryHub",
+    "entity_type": "class",
+    "line_start": 667,
+    "line_end": 667,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Function `getRegistryHub` accesses a static global variable `RegistryHub::getRegistryHub()`.",
+    "reasoning": "The `Catch::getRegistryHub` function accesses a static global variable via `RegistryHub::getRegistryHub()`. This means that all modules calling `getRegistryHub` have a hardcoded dependency on this specific global instance. DIP requires that high-level modules depend on abstractions, not concrete global instances. This coupling makes it difficult to test modules in isolation or to provide alternative implementations of the registry."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a RegistryHubProvider to decouple global registry access",
+    "rationale": "The current implementation of `getRegistryHub` forces a hard dependency on a static global instance. By introducing a provider interface, we allow for dependency injection and better testability, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    IRegistryHub const& getRegistryHub();\n    IMutableRegistryHub& getMutableRegistryHub();\n    void cleanUp();\n    std::string translateActiveException();\n\n}",
+        "replace_text": "    IRegistryHub const& getRegistryHub();\n    IMutableRegistryHub& getMutableRegistryHub();\n    void cleanUp();\n    std::string translateActiveException();\n\n    class IRegistryHubProvider {\n    public:\n        virtual ~IRegistryHubProvider() = default;\n        virtual IRegistryHub const& getRegistryHub() const = 0;\n    };\n\n}",
+        "search_lines": 6,
+        "replace_lines": 12
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10514,
+        "blank_lines": 3083,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.0,
+        "max_cc": 1276.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10519,
+        "blank_lines": 3084,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.0,
+        "max_cc": 1276.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex 5a90946..043baf9 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -1380,6 +1380,12 @@ namespace Catch {\n     void cleanUp();\n     std::string translateActiveException();\n \n+    class IRegistryHubProvider {\n+    public:\n+        virtual ~IRegistryHubProvider() = default;\n+        virtual IRegistryHub const& getRegistryHub() const = 0;\n+    };\n+\n }\n \n #endif // CATCH_INTERFACES_REGISTRY_HUB_HPP_INCLUDED\n",
+  "duration_ms": 3647.6027965545654
+}

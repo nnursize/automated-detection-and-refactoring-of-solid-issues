@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-023",
+  "principle": "DIP",
+  "title": "Refactor DIP-023 (DIP): Hard-codes the instantiation of concrete Map implementations like LinkedTreeMap.",
+  "branch": "refactor/DIP-023",
+  "base": "main",
+  "head_commit": "4bf2dc60510151703176448dbf43c7fa29b0c143",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5907,
+    "completion_tokens": 603
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newMapConstructor",
+    "entity_type": "method",
+    "line_start": 344,
+    "line_end": 365,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Hard-codes the instantiation of concrete Map implementations like LinkedTreeMap.",
+    "reasoning": "The method directly instantiates concrete classes like LinkedTreeMap instead of using an abstraction or a configurable provider. This couples the high-level instantiation logic to specific low-level data structures, making it difficult to change default implementations without modifying the internal factory."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor Map instantiation to use a registry of suppliers to decouple from concrete implementations.",
+    "rationale": "The previous implementation hard-coded concrete Map classes within the `MAP_CREATORS` list. By moving these to a static map of suppliers, we decouple the factory logic from specific implementations, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "search_text": "  private static final List<MapCreator> MAP_CREATORS = List.of(\n      (type, rawType) -> {\n        if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {\n          return () -> new LinkedTreeMap<>();\n        }\n        return null;\n      },\n      (type, rawType) -> {\n        if (LinkedHashMap.class.isAssignableFrom(rawType)) return LinkedHashMap::new;\n        if (TreeMap.class.isAssignableFrom(rawType)) return TreeMap::new;\n        if (ConcurrentHashMap.class.isAssignableFrom(rawType)) return ConcurrentHashMap::new;\n        if (ConcurrentSkipListMap.class.isAssignableFrom(rawType)) return ConcurrentSkipListMap::new;\n        return null;\n      }\n  );\n\n  private static ObjectConstructor<? extends Map<?, Object>> newMapConstructor(\n      Type type, Class<?> rawType) {\n    for (MapCreator creator : MAP_CREATORS) {\n      ObjectConstructor<? extends Map<?, Object>> constructor = creator.create(type, rawType);\n      if (constructor != null) return constructor;\n    }\n    return null;\n  }",
+        "replace_text": "  private static final Map<Class<?>, java.util.function.Supplier<Map<Object, Object>>> MAP_CONSTRUCTORS = Map.of(\n      LinkedHashMap.class, LinkedHashMap::new,\n      TreeMap.class, TreeMap::new,\n      ConcurrentHashMap.class, ConcurrentHashMap::new,\n      ConcurrentSkipListMap.class, ConcurrentSkipListMap::new\n  );\n\n  private static ObjectConstructor<? extends Map<?, Object>> newMapConstructor(\n      Type type, Class<?> rawType) {\n    if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {\n      return LinkedTreeMap::new;\n    }\n    for (Map.Entry<Class<?>, java.util.function.Supplier<Map<Object, Object>>> entry : MAP_CONSTRUCTORS.entrySet()) {\n      if (entry.getKey().isAssignableFrom(rawType)) {\n        return entry.getValue()::get;\n      }\n    }\n    return null;\n  }",
+        "search_lines": 24,
+        "replace_lines": 19
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "loc": 387,
+        "blank_lines": 48,
+        "comment_lines": 30,
+        "function_count": 13,
+        "avg_cc": 7.23,
+        "max_cc": 82.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "loc": 382,
+        "blank_lines": 48,
+        "comment_lines": 30,
+        "function_count": 13,
+        "avg_cc": 6.92,
+        "max_cc": 78.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\nindex 7e39836..8f8207e 100644\n--- a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\n+++ b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\n@@ -356,27 +356,22 @@ public final class ConstructorConstructor {\n     ObjectConstructor<? extends Map<?, Object>> create(Type type, Class<?> rawType);\n   }\n \n-  private static final List<MapCreator> MAP_CREATORS = List.of(\n-      (type, rawType) -> {\n-        if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {\n-          return () -> new LinkedTreeMap<>();\n-        }\n-        return null;\n-      },\n-      (type, rawType) -> {\n-        if (LinkedHashMap.class.isAssignableFrom(rawType)) return LinkedHashMap::new;\n-        if (TreeMap.class.isAssignableFrom(rawType)) return TreeMap::new;\n-        if (ConcurrentHashMap.class.isAssignableFrom(rawType)) return ConcurrentHashMap::new;\n-        if (ConcurrentSkipListMap.class.isAssignableFrom(rawType)) return ConcurrentSkipListMap::new;\n-        return null;\n-      }\n+  private static final Map<Class<?>, java.util.function.Supplier<Map<Object, Object>>> MAP_CONSTRUCTORS = Map.of(\n+      LinkedHashMap.class, LinkedHashMap::new,\n+      TreeMap.class, TreeMap::new,\n+      ConcurrentHashMap.class, ConcurrentHashMap::new,\n+      ConcurrentSkipListMap.class, ConcurrentSkipListMap::new\n   );\n \n   private static ObjectConstructor<? extends Map<?, Object>> newMapConstructor(\n       Type type, Class<?> rawType) {\n-    for (MapCreator creator : MAP_CREATORS) {\n-      ObjectConstructor<? extends Map<?, Object>> constructor = creator.create(type, rawType);\n-      if (constructor != null) return constructor;\n+    if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {\n+      return LinkedTreeMap::new;\n+    }\n+    for (Map.Entry<Class<?>, java.util.function.Supplier<Map<Object, Object>>> entry : MAP_CONSTRUCTORS.entrySet()) {\n+      if (entry.getKey().isAssignableFrom(rawType)) {\n+        return entry.getValue()::get;\n+      }\n     }\n     return null;\n   }\n",
+  "duration_ms": 3102.587938308716
+}

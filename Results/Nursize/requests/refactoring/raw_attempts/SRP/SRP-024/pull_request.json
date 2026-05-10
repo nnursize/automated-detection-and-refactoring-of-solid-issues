@@ -1,0 +1,108 @@
+{
+  "issue_id": "SRP-024",
+  "principle": "SRP",
+  "title": "Refactor SRP-024 (SRP): Orchestrates sending a PreparedRequest, including connection retrieval, TLS v...",
+  "branch": "refactor/SRP-024",
+  "base": "main",
+  "head_commit": "d73b93322ad291bb743e2710fbbc2684175c5be5",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7925,
+    "completion_tokens": 1216
+  },
+  "detected_issue": {
+    "file_path": "src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "method",
+    "line_start": 380,
+    "line_end": 458,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Orchestrates sending a PreparedRequest, including connection retrieval, TLS verification, URL formatting, header modification, timeout conversion, exception handling, and response building.",
+    "reasoning": "This is a 'god method' that encapsulates the entire process of sending a `PreparedRequest` via `urllib3`. Its responsibilities include: 1) Retrieving the `urllib3` connection (`get_connection_with_tls_context`). 2) Performing TLS certificate verification (`cert_verify`). 3) Determining the request URL format (`request_url`). 4) Adding connection-specific headers (`add_headers`). 5) Handling chunked encoding. 6) Converting Requests' timeout format to `urllib3.TimeoutSauce`. 7) Executing the `conn.urlopen` call. 8) Catching and re-raising a wide array of `urllib3` exceptions as `requests` exceptions. 9) Building the `requests.Response` object (`build_response`). Each of these is a significant, distinct responsibility."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract exception handling from HTTPAdapter.send into a dedicated helper method.",
+    "rationale": "The HTTPAdapter.send method is a 'god method' that handles too many concerns. Extracting the complex exception-handling logic into a private helper method (_handle_exception) reduces the cognitive load and size of the primary send method, adhering better to the Single Responsibility Principle.",
+    "files_touched": [
+      "src/requests/adapters.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/adapters.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "        except (ProtocolError, OSError) as err:\n            raise ConnectionError(err, request=request)\n\n        except MaxRetryError as e:\n            if isinstance(e.reason, ConnectTimeoutError):\n                # TODO: Remove this in 3.0.0: see #2811\n                if not isinstance(e.reason, NewConnectionError):\n                    raise ConnectTimeout(e, request=request)\n\n            if isinstance(e.reason, ResponseError):\n                raise RetryError(e, request=request)\n\n            if isinstance(e.reason, _ProxyError):\n                raise ProxyError(e, request=request)\n\n            if isinstance(e.reason, _SSLError):\n                # This branch is for urllib3 v1.22 and later.\n                raise SSLError(e, request=request)\n\n            raise ConnectionError(e, request=request)\n\n        except ClosedPoolError as e:\n            raise ConnectionError(e, request=request)\n\n        except _ProxyError as e:\n            raise ProxyError(e)\n\n        except (_SSLError, _HTTPError) as e:\n            if isinstance(e, _SSLError):\n                # This branch is for urllib3 versions earlier than v1.22\n                raise SSLError(e, request=request)\n            elif isinstance(e, ReadTimeoutError):\n                raise ReadTimeout(e, request=request)\n            elif isinstance(e, _InvalidHeader):\n                raise InvalidHeader(e, request=request)\n            else:\n                raise",
+        "replace_text": "        except (ProtocolError, OSError, MaxRetryError, ClosedPoolError, _ProxyError, _SSLError, _HTTPError) as e:\n            self._handle_exception(request, e)",
+        "search_lines": 37,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "    def proxy_headers(self, proxy):\n        \"\"\"Returns a dictionary of the headers to add to any request sent\n        through a proxy. This works with urllib3 magic to ensure that they are\n        correctly sent to the proxy, rather than in a tunnelled request if\n        CONNECT is being used.\n\n        This should not be called from user code, and is only exposed for use\n        when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        :param proxy: The url of the proxy being used for this request.\n        :rtype: dict\n        \"\"\"\n        headers = {}\n        username, password = get_auth_from_url(proxy)\n\n        if username:\n            headers[\"Proxy-Authorization\"] = _basic_auth_str(username, password)\n\n        return headers",
+        "replace_text": "    def proxy_headers(self, proxy):\n        \"\"\"Returns a dictionary of the headers to add to any request sent\n        through a proxy. This works with urllib3 magic to ensure that they are\n        correctly sent to the proxy, rather than in a tunnelled request if\n        CONNECT is being used.\n\n        This should not be called from user code, and is only exposed for use\n        when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        :param proxy: The url of the proxy being used for this request.\n        :rtype: dict\n        \"\"\"\n        headers = {}\n        username, password = get_auth_from_url(proxy)\n\n        if username:\n            headers[\"Proxy-Authorization\"] = _basic_auth_str(username, password)\n\n        return headers\n\n    def _handle_exception(self, request, e):\n        \"\"\"Handles exceptions thrown by urllib3 during a request.\"\"\"\n        if isinstance(e, (ProtocolError, OSError, ClosedPoolError)):\n            raise ConnectionError(e, request=request)\n\n        if isinstance(e, MaxRetryError):\n            if isinstance(e.reason, ConnectTimeoutError):\n                # TODO: Remove this in 3.0.0: see #2811\n                if not isinstance(e.reason, NewConnectionError):\n                    raise ConnectTimeout(e, request=request)\n\n            if isinstance(e.reason, ResponseError):\n                raise RetryError(e, request=request)\n\n            if isinstance(e.reason, _ProxyError):\n                raise ProxyError(e, request=request)\n\n            if isinstance(e.reason, _SSLError):\n                # This branch is for urllib3 v1.22 and later.\n                raise SSLError(e, request=request)\n\n            raise ConnectionError(e, request=request)\n\n        if isinstance(e, _ProxyError):\n            raise ProxyError(e)\n\n        if isinstance(e, _SSLError):\n            # This branch is for urllib3 versions earlier than v1.22\n            raise SSLError(e, request=request)\n\n        if isinstance(e, ReadTimeoutError):\n            raise ReadTimeout(e, request=request)\n\n        if isinstance(e, _InvalidHeader):\n            raise InvalidHeader(e, request=request)\n\n        raise e",
+        "search_lines": 20,
+        "replace_lines": 58
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165957.80682563782,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [SSL: TLSV1_ALERT_UNKNOWN_CA] tlsv1 alert unknown ca (_ssl.c:1006)\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:482: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.17s (0:02:45)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 575,
+        "blank_lines": 109,
+        "comment_lines": 16,
+        "function_count": 21,
+        "avg_cc": 3.61,
+        "max_cc": 19.0,
+        "mi": 47.34
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 575,
+        "blank_lines": 112,
+        "comment_lines": 16,
+        "function_count": 22,
+        "avg_cc": 3.42,
+        "max_cc": 14.0,
+        "mi": 47.34
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/adapters.py b/src/requests/adapters.py\nindex 8aad06f..2cca2b1 100644\n--- a/src/requests/adapters.py\n+++ b/src/requests/adapters.py\n@@ -591,6 +591,44 @@ class HTTPAdapter(BaseAdapter):\n \n         return headers\n \n+    def _handle_exception(self, request, e):\n+        \"\"\"Handles exceptions thrown by urllib3 during a request.\"\"\"\n+        if isinstance(e, (ProtocolError, OSError, ClosedPoolError)):\n+            raise ConnectionError(e, request=request)\n+\n+        if isinstance(e, MaxRetryError):\n+            if isinstance(e.reason, ConnectTimeoutError):\n+                # TODO: Remove this in 3.0.0: see #2811\n+                if not isinstance(e.reason, NewConnectionError):\n+                    raise ConnectTimeout(e, request=request)\n+\n+            if isinstance(e.reason, ResponseError):\n+                raise RetryError(e, request=request)\n+\n+            if isinstance(e.reason, _ProxyError):\n+                raise ProxyError(e, request=request)\n+\n+            if isinstance(e.reason, _SSLError):\n+                # This branch is for urllib3 v1.22 and later.\n+                raise SSLError(e, request=request)\n+\n+            raise ConnectionError(e, request=request)\n+\n+        if isinstance(e, _ProxyError):\n+            raise ProxyError(e)\n+\n+        if isinstance(e, _SSLError):\n+            # This branch is for urllib3 versions earlier than v1.22\n+            raise SSLError(e, request=request)\n+\n+        if isinstance(e, ReadTimeoutError):\n+            raise ReadTimeout(e, request=request)\n+\n+        if isinstance(e, _InvalidHeader):\n+            raise InvalidHeader(e, request=request)\n+\n+        raise e\n+\n     def send(\n         self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None\n     ):\n@@ -659,42 +697,7 @@ class HTTPAdapter(BaseAdapter):\n                 chunked=chunked,\n             )\n \n-        except (ProtocolError, OSError) as err:\n-            raise ConnectionError(err, request=request)\n-\n-        except MaxRetryError as e:\n-            if isinstance(e.reason, ConnectTimeoutError):\n-                # TODO: Remove this in 3.0.0: see #2811\n-                if not isinstance(e.reason, NewConnectionError):\n-                    raise ConnectTimeout(e, request=request)\n-\n-            if isinstance(e.reason, ResponseError):\n-                raise RetryError(e, request=request)\n-\n-            if isinstance(e.reason, _ProxyError):\n-                raise ProxyError(e, request=request)\n-\n-            if isinstance(e.reason, _SSLError):\n-                # This branch is for urllib3 v1.22 and later.\n-                raise SSLError(e, request=request)\n-\n-            raise ConnectionError(e, request=request)\n-\n-        except ClosedPoolError as e:\n-            raise ConnectionError(e, request=request)\n-\n-        except _ProxyError as e:\n-            raise ProxyError(e)\n-\n-        except (_SSLError, _HTTPError) as e:\n-            if isinstance(e, _SSLError):\n-                # This branch is for urllib3 versions earlier than v1.22\n-                raise SSLError(e, request=request)\n-            elif isinstance(e, ReadTimeoutError):\n-                raise ReadTimeout(e, request=request)\n-            elif isinstance(e, _InvalidHeader):\n-                raise InvalidHeader(e, request=request)\n-            else:\n-                raise\n+        except (ProtocolError, OSError, MaxRetryError, ClosedPoolError, _ProxyError, _SSLError, _HTTPError) as e:\n+            self._handle_exception(request, e)\n \n         return self.build_response(request, resp)\n",
+  "duration_ms": 170537.36352920532
+}

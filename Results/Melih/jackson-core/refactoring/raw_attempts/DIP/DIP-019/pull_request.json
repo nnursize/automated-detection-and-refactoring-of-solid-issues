@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-019",
+  "principle": "DIP",
+  "title": "Refactor DIP-019 (DIP): Factory method directly instantiates a concrete I/O context.",
+  "branch": "refactor/DIP-019",
+  "base": "main",
+  "head_commit": "70ee934d5eea670f5238a219cd3df955090a48c2",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14340,
+    "completion_tokens": 739
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory._createContext",
+    "entity_type": "method",
+    "line_start": 1277,
+    "line_end": 1301,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Factory method directly instantiates a concrete I/O context.",
+    "reasoning": "The method _createContext directly instantiates the concrete class IOContext using the 'new' keyword. This violates DIP because the high-level factory module depends on the low-level implementation details of the I/O context rather than an abstraction or a provider."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce IOContextFactory to decouple TokenStreamFactory from concrete IOContext instantiation",
+    "rationale": "The TokenStreamFactory was directly instantiating DefaultIOContextFactory. By introducing an IOContextFactory interface (or using the existing one if it were an interface, but here we define a field/method to allow injection/override), we adhere to DIP. Since I cannot change the constructor of DefaultIOContextFactory without potentially breaking other code, I will add a protected field to TokenStreamFactory that holds the factory instance, allowing it to be configured or overridden, and use that instead of 'new'.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "loc": 1276,
+        "blank_lines": 124,
+        "comment_lines": 21,
+        "function_count": 51,
+        "avg_cc": 4.41,
+        "max_cc": 175.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3089.6918773651123
+}

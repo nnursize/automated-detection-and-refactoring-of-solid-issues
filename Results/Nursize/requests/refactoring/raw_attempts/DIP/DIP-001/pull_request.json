@@ -1,0 +1,100 @@
+{
+  "issue_id": "DIP-001",
+  "principle": "DIP",
+  "title": "Refactor DIP-001 (DIP): High-level API function directly instantiates a concrete Session object.",
+  "branch": "refactor/DIP-001",
+  "base": "main",
+  "head_commit": "df1c98c0f7887d6ea7d9f5981c9416c487131d24",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3067,
+    "completion_tokens": 1690
+  },
+  "detected_issue": {
+    "file_path": "src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 37,
+    "severity": "high",
+    "scan_count": 7,
+    "description": "High-level API function directly instantiates a concrete Session object.",
+    "reasoning": "The top-level `request` function, which is the primary entry point for users, directly creates an instance of `sessions.Session`. This tightly couples the high-level API to a concrete implementation of the session management. If the `Session` class needed to be replaced or extended with a different implementation (e.g., for testing or custom behavior), this core API function would require modification. DIP suggests that high-level modules should depend on abstractions, not concrete details."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject session factory into request function to decouple from concrete Session class",
+    "rationale": "By allowing the session class to be passed as an optional argument (defaulting to the existing implementation), we invert the dependency. This allows for dependency injection in testing scenarios while maintaining the existing public API behavior.",
+    "files_touched": [
+      "src/requests/api.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/api.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/api.py",
+        "search_text": "def request(method, url, **kwargs):\n    \"\"\"Constructs and sends a :class:`Request <Request>`.\n\n    :param method: method for the new :class:`Request` object: ``GET``, ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.\n    :param url: URL for the new :class:`Request` object.\n    :param params: (optional) Dictionary, list of tuples or bytes to send\n        in the query string for the :class:`Request`.\n    :param data: (optional) Dictionary, list of tuples, bytes, or file-like\n        object to send in the body of the :class:`Request`.\n    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.\n    :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.\n    :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.\n    :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': file-tuple}``) for multipart encoding upload.\n        ``file-tuple`` can be a 2-tuple ``('filename', fileobj)``, 3-tuple ``('filename', fileobj, 'content_type')``\n        or a 4-tuple ``('filename', fileobj, 'content_type', custom_headers)``, where ``'content_type'`` is a string\n        defining the content type of the given file and ``custom_headers`` a dict-like object containing additional headers\n        to add for the file.\n    :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.\n    :param timeout: (optional) How many seconds to wait for the server to send data\n        before giving up, as a float, or a :ref:`(connect timeout, read\n        timeout) <timeouts>` tuple.\n    :type timeout: float or tuple\n    :param allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection. Defaults to ``True``.\n    :type allow_redirects: bool\n    :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.\n    :param verify: (optional) Either a boolean, in which case it controls whether we verify\n            the server's TLS certificate, or a string, in which case it must be a path\n            to a CA bundle to use. Defaults to ``True``.\n    :param stream: (optional) if ``False``, the response content will be immediately downloaded.\n    :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.\n    :return: :class:`Response <Response>` object\n    :rtype: requests.Response\n\n    Usage::\n\n      >>> import requests\n      >>> req = requests.request('GET', 'https://httpbin.org/get')\n      >>> req\n      <Response [200]>\n    \"\"\"\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with sessions.Session() as session:\n        return session.request(method=method, url=url, **kwargs)",
+        "replace_text": "def request(method, url, **kwargs):\n    \"\"\"Constructs and sends a :class:`Request <Request>`.\n\n    :param method: method for the new :class:`Request` object: ``GET``, ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.\n    :param url: URL for the new :class:`Request` object.\n    :param params: (optional) Dictionary, list of tuples or bytes to send\n        in the query string for the :class:`Request`.\n    :param data: (optional) Dictionary, list of tuples, bytes, or file-like\n        object to send in the body of the :class:`Request`.\n    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.\n    :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.\n    :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.\n    :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': file-tuple}``) for multipart encoding upload.\n        ``file-tuple`` can be a 2-tuple ``('filename', fileobj)``, 3-tuple ``('filename', fileobj, 'content_type')``\n        or a 4-tuple ``('filename', fileobj, 'content_type', custom_headers)``, where ``'content_type'`` is a string\n        defining the content type of the given file and ``custom_headers`` a dict-like object containing additional headers\n        to add for the file.\n    :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.\n    :param timeout: (optional) How many seconds to wait for the server to send data\n        before giving up, as a float, or a :ref:`(connect timeout, read\n        timeout) <timeouts>` tuple.\n    :type timeout: float or tuple\n    :param allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection. Defaults to ``True``.\n    :type allow_redirects: bool\n    :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.\n    :param verify: (optional) Either a boolean, in which case it controls whether we verify\n            the server's TLS certificate, or a string, in which case it must be a path\n            to a CA bundle to use. Defaults to ``True``.\n    :param stream: (optional) if ``False``, the response content will be immediately downloaded.\n    :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.\n    :param session_factory: (optional) A callable that returns a session object. Defaults to :class:`sessions.Session`.\n    :return: :class:`Response <Response>` object\n    :rtype: requests.Response\n\n    Usage::\n\n      >>> import requests\n      >>> req = requests.request('GET', 'https://httpbin.org/get')\n      >>> req\n      <Response [200]>\n    \"\"\"\n\n    session_factory = kwargs.pop(\"session_factory\", sessions.Session)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with session_factory() as session:\n        return session.request(method=method, url=url, **kwargs)",
+        "search_lines": 46,
+        "replace_lines": 49
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165602.82492637634,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.77s (0:02:44)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/api.py",
+        "loc": 117,
+        "blank_lines": 37,
+        "comment_lines": 3,
+        "function_count": 8,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 100.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/api.py",
+        "loc": 119,
+        "blank_lines": 38,
+        "comment_lines": 3,
+        "function_count": 8,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 100.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/api.py b/src/requests/api.py\nindex 5960744..de8f75d 100644\n--- a/src/requests/api.py\n+++ b/src/requests/api.py\n@@ -41,6 +41,7 @@ def request(method, url, **kwargs):\n             to a CA bundle to use. Defaults to ``True``.\n     :param stream: (optional) if ``False``, the response content will be immediately downloaded.\n     :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.\n+    :param session_factory: (optional) A callable that returns a session object. Defaults to :class:`sessions.Session`.\n     :return: :class:`Response <Response>` object\n     :rtype: requests.Response\n \n@@ -52,10 +53,12 @@ def request(method, url, **kwargs):\n       <Response [200]>\n     \"\"\"\n \n+    session_factory = kwargs.pop(\"session_factory\", sessions.Session)\n+\n     # By using the 'with' statement we are sure the session is closed, thus we\n     # avoid leaving sockets open which can trigger a ResourceWarning in some\n     # cases, and look like a memory leak in others.\n-    with sessions.Session() as session:\n+    with session_factory() as session:\n         return session.request(method=method, url=url, **kwargs)\n \n \n",
+  "duration_ms": 173104.10356521606
+}

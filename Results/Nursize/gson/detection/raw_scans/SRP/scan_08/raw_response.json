@@ -1,0 +1,29 @@
+{
+  "scan_id": "gson_SRP_scan_08",
+  "repo_name": "gson",
+  "principle": "SRP",
+  "scan_number": 8,
+  "timestamp": "2026-05-02T12:19:38.521503",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Single Responsibility Principle (SRP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a cla...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java\",\n      \"entity_name\": \"ParseBenchmark\",\n      \"entity_type\": \"class\",\n      \"line_start\": 58,\n      \"line_end\": 467,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class defines data model POJOs (e.g., Tweet, User, Feed) in addition to orchestrating JSON parsing benchmarks.\",\n      \"reasoning\": \"The primary responsibility of `ParseBenchmark` is to set up and run performance benchmarks for JSON parsing. However, it also contains the full definitions of several data model classes (`Tweet`, `User`, `Feed`, `Link`, `Item`, `Content`, `ReaderUser`) that represent the structure of the JSON documents being parsed. These data models constitute a separate concern; their reason for change (changes in JSON data structure) is distinct from the reason for change of the benchmarking logic (changes in benchmarking methodology or libraries being tested). Separating these data models into their own files or a dedicated data package would improve cohesion.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java",
+      "entity_name": "ParseBenchmark",
+      "entity_type": "class",
+      "line_start": 58,
+      "line_end": 467,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class defines data model POJOs (e.g., Tweet, User, Feed) in addition to orchestrating JSON parsing benchmarks.",
+      "reasoning": "The primary responsibility of `ParseBenchmark` is to set up and run performance benchmarks for JSON parsing. However, it also contains the full definitions of several data model classes (`Tweet`, `User`, `Feed`, `Link`, `Item`, `Content`, `ReaderUser`) that represent the structure of the JSON documents being parsed. These data models constitute a separate concern; their reason for change (changes in JSON data structure) is distinct from the reason for change of the benchmarking logic (changes in benchmarking methodology or libraries being tested). Separating these data models into their own files or a dedicated data package would improve cohesion."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 55185.70399284363,
+  "error": null
+}

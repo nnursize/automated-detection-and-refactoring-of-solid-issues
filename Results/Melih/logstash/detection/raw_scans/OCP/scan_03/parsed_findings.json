@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "EventCondition.Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 111,
+    "line_end": 136,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Long instanceof/if-else chain for compiling boolean expressions.",
+    "reasoning": "The method buildCondition uses an explicit if-else chain to check for specific subclasses of BooleanExpression (Eq, RegexEq, In, Or, And, etc.). Adding a new type of boolean operator or expression to the Logstash configuration language requires modifying this central compiler method, rather than allowing the expressions to define their own compilation logic via polymorphism or a Visitor pattern."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/config/mixin.rb",
+    "entity_name": "LogStash::Config::Mixin::DSL.validate_value",
+    "entity_type": "method",
+    "line_start": 358,
+    "line_end": 494,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Massive case statement for configuration value validation.",
+    "reasoning": "The validate_value method contains a hardcoded list of validator symbols (:codec, :hash, :string, :boolean, etc.). To add a new validation type to Logstash, a developer must modify this specific method and insert a new branch into the case statement. This logic should be encapsulated in validator objects that register themselves in a registry."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 697,
+    "line_end": 716,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded switch statement for configuration source protocols.",
+    "reasoning": "The method switches on string values for the 'protocol' variable (string, file, x-pack-metrics, etc.) to return a description. Adding a new configuration source (e.g., an S3 or HTTP source) requires modifying this class. This is a violation as it lacks a plugin mechanism or polymorphic dispatch for source metadata providers."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/cli/SecretStoreCli.java",
+    "entity_name": "SecretStoreCli.command",
+    "entity_type": "method",
+    "line_start": 178,
+    "line_end": 251,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on Command enum for CLI execution.",
+    "reasoning": "The command execution logic is tied directly to a switch statement over the Command enum. Adding a new CLI command for secret management requires modifying this switch block. A more OCP-compliant approach would use a Command pattern where each command is an object registered with the CLI runner."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/health/PipelineIndicator.java",
+    "entity_name": "PipelineIndicator.StatusProbe.analyze",
+    "entity_type": "method",
+    "line_start": 157,
+    "line_end": 198,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on pipeline states in health reporting.",
+    "reasoning": "The analyze method hardcodes the logic for every possible pipeline state (LOADING, RUNNING, FINISHED, etc.). If the Logstash core introduces a new state (e.g., PAUSED or RELOADING), this health monitoring logic must be manually updated. The logic for status analysis should be delegated to the state objects themselves or a state-specific analyzer registry."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt.plugin",
+    "entity_type": "method",
+    "line_start": 220,
+    "line_end": 250,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded logic for different plugin types (Input, Output, Filter).",
+    "reasoning": "The plugin creation method uses if-else logic to determine how to wrap or delegate different plugin types. Introducing a new core plugin category would require modifying this method. While the implementation uses some creator objects, the high-level orchestration remains closed to new types without modification."
+  }
+]

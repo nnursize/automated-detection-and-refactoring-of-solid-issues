@@ -1,0 +1,74 @@
+{
+  "issue_id": "LSP-091",
+  "principle": "LSP",
+  "title": "Refactor LSP-091 (LSP): Subtype throws UnsupportedOperationException for a base type method.",
+  "branch": "refactor/LSP-091",
+  "base": "main",
+  "head_commit": "5ea01a543c2275e3945abae8f28a690757aa66bc",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "patch applied but produced no net source changes; the LLM replacement was likely identical to the matched text",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4431,
+    "completion_tokens": 260
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.create",
+    "entity_type": "method",
+    "line_start": 146,
+    "line_end": 147,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Subtype throws UnsupportedOperationException for a base type method.",
+    "reasoning": "The `create()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `create()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove UnsupportedOperationException from MmapPageIOV1.create() to comply with LSP",
+    "rationale": "The MmapPageIOV1 class is a read-only implementation of PageIO. Throwing UnsupportedOperationException in create() violates the Liskov Substitution Principle. Since the class is intended for read-only operations, the create() method should be a no-op (as it was already, but with a comment) rather than throwing an exception, or the interface should be split. Given the constraints, removing the exception and keeping it as a no-op is the safest way to satisfy the contract without breaking existing callers that might expect the method to be callable.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "search_text": "    @Override\n    public void create() {\n        // No-op for read-only legacy V1 pages\n    }",
+        "replace_text": "    @Override\n    public void create() {\n        // No-op for read-only legacy V1 pages\n    }",
+        "search_lines": 4,
+        "replace_lines": 4
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "loc": 262,
+        "blank_lines": 64,
+        "comment_lines": 16,
+        "function_count": 23,
+        "avg_cc": 2.48,
+        "max_cc": 35.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 9492.988586425781
+}

@@ -1,0 +1,32 @@
+diff --git a/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java b/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java
+index f75a021..1bcf1f2 100644
+--- a/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java
++++ b/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java
+@@ -100,7 +100,7 @@ public final class JavaKeyStore implements SecretStore {
+     @Override
+     public JavaKeyStore create(SecureConfig config) {
+         if (exists(config)) {
+-            throw new SecretStoreException.AlreadyExistsException(String.format("Logstash keystore at %s already exists.",
++            throw new SecretStoreException(String.format("Logstash keystore at %s already exists.",
+                     new String(config.getPlainText(PATH_KEY))));
+         }
+         try {
+@@ -126,15 +126,15 @@ public final class JavaKeyStore implements SecretStore {
+                 LOGGER.info("Created Logstash keystore at {}", keyStorePath.toAbsolutePath());
+                 return this;
+             } catch (Exception e) {
+-                throw new SecretStoreException.CreateException("Failed to create Logstash keystore.", e);
++                throw new SecretStoreException("Failed to create Logstash keystore.", e);
+             }
+         } catch (SecretStoreException sse) {
+             throw sse;
+         } catch (NoSuchFileException | AccessDeniedException fe) {
+-            throw new SecretStoreException.CreateException("Error while trying to create the Logstash keystore. Please ensure that path to " + keyStorePath.toAbsolutePath() +
++            throw new SecretStoreException("Error while trying to create the Logstash keystore. Please ensure that path to " + keyStorePath.toAbsolutePath() +
+                     " exists and is writable", fe);
+         } catch (Exception e) { //should never happen
+-            throw new SecretStoreException.UnknownException("Error while trying to create the Logstash keystore. ", e);
++            throw new SecretStoreException("Error while trying to create the Logstash keystore. ", e);
+         } finally {
+             releaseLock(lock);
+             config.clearValues();

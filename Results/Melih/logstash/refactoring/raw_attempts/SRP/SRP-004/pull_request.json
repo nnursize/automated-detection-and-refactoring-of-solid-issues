@@ -1,0 +1,120 @@
+{
+  "issue_id": "SRP-004",
+  "principle": "SRP",
+  "title": "Refactor SRP-004 (SRP): Mixes pipeline state management with low-level metric registration and DLQ in...",
+  "branch": "refactor/SRP-004",
+  "base": "main",
+  "head_commit": "760a3466dd57f852746b849db04782bab403b287",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 12791,
+    "completion_tokens": 2401
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 88,
+    "line_end": 650,
+    "severity": "medium",
+    "scan_count": 10,
+    "description": "Mixes pipeline state management with low-level metric registration and DLQ instantiation.",
+    "reasoning": "This class manages the high-level execution state of a pipeline but also contains detailed logic for: 1) Instantiating specific DeadLetterQueueWriter implementations based on settings, 2) Manually registering a wide array of flow metrics into specific namespaces, and 3) Handling JRuby/Java bridge concerns. The metric registration logic is particularly verbose and unrelated to the core responsibility of pipeline execution."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract DLQ management logic to a dedicated helper class",
+    "rationale": "The AbstractPipelineExt class was violating SRP by handling DLQ instantiation and management logic. Extracting this into a dedicated DeadLetterQueueManager class reduces the complexity of the pipeline class and isolates the DLQ-specific concerns.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java"
+    ],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "search_text": "    private transient DeadLetterQueueWriter javaDlqWriter;\n\n    public AbstractPipelineExt(final Ruby runtime, final RubyClass metaClass) {",
+        "replace_text": "    private transient DeadLetterQueueWriter javaDlqWriter;\n    private transient DeadLetterQueueManager dlqManager;\n\n    public AbstractPipelineExt(final Ruby runtime, final RubyClass metaClass) {",
+        "search_lines": 3,
+        "replace_lines": 4
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "search_text": "    @JRubyMethod(name = \"dlq_writer\")\n    public final IRubyObject dlqWriter(final ThreadContext context) {\n        if (dlqWriter == null) {\n            if (dlqEnabled(context).isTrue()) {\n                javaDlqWriter = createDeadLetterQueueWriterFromSettings(context);\n                dlqWriter = JavaUtil.convertJavaToUsableRubyObject(context.runtime, javaDlqWriter);\n            } else {\n                dlqWriter = RubyUtil.DUMMY_DLQ_WRITER_CLASS.callMethod(context, \"new\");\n            }\n        }\n        return dlqWriter;\n    }\n\n    private DeadLetterQueueWriter createDeadLetterQueueWriterFromSettings(ThreadContext context) {\n        final QueueStorageType storageType = QueueStorageType.parse(getSetting(context, \"dead_letter_queue.storage_policy\").asJavaString());\n\n        String dlqPath = getSetting(context, \"path.dead_letter_queue\").asJavaString();\n        long dlqMaxBytes = getSetting(context, \"dead_letter_queue.max_bytes\").convertToInteger().getLongValue();\n        Duration dlqFlushInterval = Duration.ofMillis(getSetting(context, \"dead_letter_queue.flush_interval\").convertToInteger().getLongValue());\n\n        if (hasSetting(context, \"dead_letter_queue.retain.age\") && !getSetting(context, \"dead_letter_queue.retain.age\").isNil()) {\n            // convert to Duration\n            final Duration age = parseToDuration(getSetting(context, \"dead_letter_queue.retain.age\").convertToString().toString());\n            return DeadLetterQueueFactory.getWriter(pipelineId.asJavaString(), dlqPath, dlqMaxBytes,\n                    dlqFlushInterval, storageType, age);\n        }\n\n        return DeadLetterQueueFactory.getWriter(pipelineId.asJavaString(), dlqPath, dlqMaxBytes, dlqFlushInterval, storageType);\n    }\n\n    /**\n     * Convert time strings like 3d or 4h or 5m to a duration\n     * */\n    @VisibleForTesting\n    static Duration parseToDuration(String timeStr) {\n        final Matcher matcher = Pattern.compile(\"(?<value>\\\\d+)\\\\s*(?<time>[dhms])\").matcher(timeStr);\n        if (!matcher.matches()) {\n            throw new IllegalArgumentException(\"Expected a time specification in the form <number>[d,h,m,s], e.g. 3m, but found [\" + timeStr + \"]\");\n        }\n        final int value = Integer.parseInt(matcher.group(\"value\"));\n        final String timeSpecifier = matcher.group(\"time\");\n        final TemporalUnit unit;\n        switch (timeSpecifier) {\n            case \"d\": unit = ChronoUnit.DAYS; break;\n            case \"h\": unit = ChronoUnit.HOURS; break;\n            case \"m\": unit = ChronoUnit.MINUTES; break;\n            case \"s\": unit = ChronoUnit.SECONDS; break;\n            default: throw new IllegalStateException(\"Expected a time unit specification from d,h,m,s but found: [\" + timeSpecifier + \"]\");\n        }\n        return Duration.of(value, unit);\n    }",
+        "replace_text": "    @JRubyMethod(name = \"dlq_writer\")\n    public final IRubyObject dlqWriter(final ThreadContext context) {\n        if (dlqWriter == null) {\n            if (dlqEnabled(context).isTrue()) {\n                if (dlqManager == null) {\n                    dlqManager = new DeadLetterQueueManager(pipelineId.asJavaString());\n                }\n                javaDlqWriter = dlqManager.createWriter(context, settings);\n                dlqWriter = JavaUtil.convertJavaToUsableRubyObject(context.runtime, javaDlqWriter);\n            } else {\n                dlqWriter = RubyUtil.DUMMY_DLQ_WRITER_CLASS.callMethod(context, \"new\");\n            }\n        }\n        return dlqWriter;\n    }",
+        "search_lines": 51,
+        "replace_lines": 15
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "search_text": "    @JRubyMethod(name = \"close_dlq_writer\")\n    public final IRubyObject closeDlqWriter(final ThreadContext context) {\n        dlqWriter.callMethod(context, \"close\");\n        if (dlqEnabled(context).isTrue()) {\n            DeadLetterQueueFactory.release(pipelineId.asJavaString());\n        }\n        return context.nil;\n    }",
+        "replace_text": "    @JRubyMethod(name = \"close_dlq_writer\")\n    public final IRubyObject closeDlqWriter(final ThreadContext context) {\n        dlqWriter.callMethod(context, \"close\");\n        if (dlqEnabled(context).isTrue() && dlqManager != null) {\n            dlqManager.release();\n        }\n        return context.nil;\n    }",
+        "search_lines": 8,
+        "replace_lines": 8
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java",
+        "new_content": "package org.logstash.execution;\n\nimport org.apache.logging.log4j.LogManager;\nimport org.apache.logging.log4j.Logger;\nimport org.jruby.runtime.ThreadContext;\nimport org.jruby.runtime.builtin.IRubyObject;\nimport org.logstash.RubyUtil;\nimport org.logstash.common.DeadLetterQueueFactory;\nimport org.logstash.common.io.DeadLetterQueueWriter;\nimport org.logstash.common.io.QueueStorageType;\nimport org.jruby.javasupport.JavaUtil;\n\nimport java.time.Duration;\nimport java.time.temporal.ChronoUnit;\nimport java.time.temporal.TemporalUnit;\nimport java.util.regex.Matcher;\nimport java.util.regex.Pattern;\n\npublic class DeadLetterQueueManager {\n    private static final Logger LOGGER = LogManager.getLogger(DeadLetterQueueManager.class);\n    private final String pipelineId;\n\n    public DeadLetterQueueManager(String pipelineId) {\n        this.pipelineId = pipelineId;\n    }\n\n    public DeadLetterQueueWriter createWriter(ThreadContext context, IRubyObject settings) {\n        final QueueStorageType storageType = QueueStorageType.parse(getSetting(context, settings, \"dead_letter_queue.storage_policy\").asJavaString());\n        String dlqPath = getSetting(context, settings, \"path.dead_letter_queue\").asJavaString();\n        long dlqMaxBytes = getSetting(context, settings, \"dead_letter_queue.max_bytes\").convertToInteger().getLongValue();\n        Duration dlqFlushInterval = Duration.ofMillis(getSetting(context, settings, \"dead_letter_queue.flush_interval\").convertToInteger().getLongValue());\n\n        if (hasSetting(context, settings, \"dead_letter_queue.retain.age\") && !getSetting(context, settings, \"dead_letter_queue.retain.age\").isNil()) {\n            final Duration age = parseToDuration(getSetting(context, settings, \"dead_letter_queue.retain.age\").convertToString().toString());\n            return DeadLetterQueueFactory.getWriter(pipelineId, dlqPath, dlqMaxBytes, dlqFlushInterval, storageType, age);\n        }\n        return DeadLetterQueueFactory.getWriter(pipelineId, dlqPath, dlqMaxBytes, dlqFlushInterval, storageType);\n    }\n\n    public void release() {\n        DeadLetterQueueFactory.release(pipelineId);\n    }\n\n    private IRubyObject getSetting(ThreadContext context, IRubyObject settings, String name) {\n        return settings.callMethod(context, \"get_value\", context.runtime.newString(name));\n    }\n\n    private boolean hasSetting(ThreadContext context, IRubyObject settings, String name) {\n        return settings.callMethod(context, \"registered?\", context.runtime.newString(name)) == context.tru;\n    }\n\n    public static Duration parseToDuration(String timeStr) {\n        final Matcher matcher = Pattern.compile(\"(?<value>\\\\d+)\\\\s*(?<time>[dhms])\").matcher(timeStr);\n        if (!matcher.matches()) {\n            throw new IllegalArgumentException(\"Expected a time specification in the form <number>[d,h,m,s], e.g. 3m, but found [\" + timeStr + \"]\");\n        }\n        final int value = Integer.parseInt(matcher.group(\"value\"));\n        final String timeSpecifier = matcher.group(\"time\");\n        final TemporalUnit unit;\n        switch (timeSpecifier) {\n            case \"d\": unit = ChronoUnit.DAYS; break;\n            case \"h\": unit = ChronoUnit.HOURS; break;\n            case \"m\": unit = ChronoUnit.MINUTES; break;\n            case \"s\": unit = ChronoUnit.SECONDS; break;\n            default: throw new IllegalStateException(\"Expected a time unit specification from d,h,m,s but found: [\" + timeSpecifier + \"]\");\n        }\n        return Duration.of(value, unit);\n    }\n}",
+        "new_content_lines": 69
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 806,
+        "blank_lines": 139,
+        "comment_lines": 5,
+        "function_count": 63,
+        "avg_cc": 1.87,
+        "max_cc": 56.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 777,
+        "blank_lines": 134,
+        "comment_lines": 4,
+        "function_count": 61,
+        "avg_cc": 1.82,
+        "max_cc": 51.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java",
+        "loc": 59,
+        "blank_lines": 10,
+        "comment_lines": 0,
+        "function_count": 5,
+        "avg_cc": 2.4,
+        "max_cc": 8.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\nindex b90b77d..9573eff 100644\n--- a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\n+++ b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\n@@ -170,6 +170,7 @@ public class AbstractPipelineExt extends RubyBasicObject {\n \n     private String lastErrorEvaluationReceived = \"\";\n     private transient DeadLetterQueueWriter javaDlqWriter;\n+    private transient DeadLetterQueueManager dlqManager;\n \n     public AbstractPipelineExt(final Ruby runtime, final RubyClass metaClass) {\n         super(runtime, metaClass);\n@@ -387,7 +388,10 @@ public class AbstractPipelineExt extends RubyBasicObject {\n     public final IRubyObject dlqWriter(final ThreadContext context) {\n         if (dlqWriter == null) {\n             if (dlqEnabled(context).isTrue()) {\n-                javaDlqWriter = createDeadLetterQueueWriterFromSettings(context);\n+                if (dlqManager == null) {\n+                    dlqManager = new DeadLetterQueueManager(pipelineId.asJavaString());\n+                }\n+                javaDlqWriter = dlqManager.createWriter(context, settings);\n                 dlqWriter = JavaUtil.convertJavaToUsableRubyObject(context.runtime, javaDlqWriter);\n             } else {\n                 dlqWriter = RubyUtil.DUMMY_DLQ_WRITER_CLASS.callMethod(context, \"new\");\n@@ -396,45 +400,6 @@ public class AbstractPipelineExt extends RubyBasicObject {\n         return dlqWriter;\n     }\n \n-    private DeadLetterQueueWriter createDeadLetterQueueWriterFromSettings(ThreadContext context) {\n-        final QueueStorageType storageType = QueueStorageType.parse(getSetting(context, \"dead_letter_queue.storage_policy\").asJavaString());\n-\n-        String dlqPath = getSetting(context, \"path.dead_letter_queue\").asJavaString();\n-        long dlqMaxBytes = getSetting(context, \"dead_letter_queue.max_bytes\").convertToInteger().getLongValue();\n-        Duration dlqFlushInterval = Duration.ofMillis(getSetting(context, \"dead_letter_queue.flush_interval\").convertToInteger().getLongValue());\n-\n-        if (hasSetting(context, \"dead_letter_queue.retain.age\") && !getSetting(context, \"dead_letter_queue.retain.age\").isNil()) {\n-            // convert to Duration\n-            final Duration age = parseToDuration(getSetting(context, \"dead_letter_queue.retain.age\").convertToString().toString());\n-            return DeadLetterQueueFactory.getWriter(pipelineId.asJavaString(), dlqPath, dlqMaxBytes,\n-                    dlqFlushInterval, storageType, age);\n-        }\n-\n-        return DeadLetterQueueFactory.getWriter(pipelineId.asJavaString(), dlqPath, dlqMaxBytes, dlqFlushInterval, storageType);\n-    }\n-\n-    /**\n-     * Convert time strings like 3d or 4h or 5m to a duration\n-     * */\n-    @VisibleForTesting\n-    static Duration parseToDuration(String timeStr) {\n-        final Matcher matcher = Pattern.compile(\"(?<value>\\\\d+)\\\\s*(?<time>[dhms])\").matcher(timeStr);\n-        if (!matcher.matches()) {\n-            throw new IllegalArgumentException(\"Expected a time specification in the form <number>[d,h,m,s], e.g. 3m, but found [\" + timeStr + \"]\");\n-        }\n-        final int value = Integer.parseInt(matcher.group(\"value\"));\n-        final String timeSpecifier = matcher.group(\"time\");\n-        final TemporalUnit unit;\n-        switch (timeSpecifier) {\n-            case \"d\": unit = ChronoUnit.DAYS; break;\n-            case \"h\": unit = ChronoUnit.HOURS; break;\n-            case \"m\": unit = ChronoUnit.MINUTES; break;\n-            case \"s\": unit = ChronoUnit.SECONDS; break;\n-            default: throw new IllegalStateException(\"Expected a time unit specification from d,h,m,s but found: [\" + timeSpecifier + \"]\");\n-        }\n-        return Duration.of(value, unit);\n-    }\n-\n     @JRubyMethod(name = \"dlq_enabled?\")\n     public final IRubyObject dlqEnabled(final ThreadContext context) {\n         return getSetting(context, \"dead_letter_queue.enable\");\n@@ -443,8 +408,8 @@ public class AbstractPipelineExt extends RubyBasicObject {\n     @JRubyMethod(name = \"close_dlq_writer\")\n     public final IRubyObject closeDlqWriter(final ThreadContext context) {\n         dlqWriter.callMethod(context, \"close\");\n-        if (dlqEnabled(context).isTrue()) {\n-            DeadLetterQueueFactory.release(pipelineId.asJavaString());\n+        if (dlqEnabled(context).isTrue() && dlqManager != null) {\n+            dlqManager.release();\n         }\n         return context.nil;\n     }\ndiff --git a/logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java b/logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/execution/DeadLetterQueueManager.java\n@@ -0,0 +1,69 @@\n+package org.logstash.execution;\n+\n+import org.apache.logging.log4j.LogManager;\n+import org.apache.logging.log4j.Logger;\n+import org.jruby.runtime.ThreadContext;\n+import org.jruby.runtime.builtin.IRubyObject;\n+import org.logstash.RubyUtil;\n+import org.logstash.common.DeadLetterQueueFactory;\n+import org.logstash.common.io.DeadLetterQueueWriter;\n+import org.logstash.common.io.QueueStorageType;\n+import org.jruby.javasupport.JavaUtil;\n+\n+import java.time.Duration;\n+import java.time.temporal.ChronoUnit;\n+import java.time.temporal.TemporalUnit;\n+import java.util.regex.Matcher;\n+import java.util.regex.Pattern;\n+\n+public class DeadLetterQueueManager {\n+    private static final Logger LOGGER = LogManager.getLogger(DeadLetterQueueManager.class);\n+    private final String pipelineId;\n+\n+    public DeadLetterQueueManager(String pipelineId) {\n+        this.pipelineId = pipelineId;\n+    }\n+\n+    public DeadLetterQueueWriter createWriter(ThreadContext context, IRubyObject settings) {\n+        final QueueStorageType storageType = QueueStorageType.parse(getSetting(context, settings, \"dead_letter_queue.storage_policy\").asJavaString());\n+        String dlqPath = getSetting(context, settings, \"path.dead_letter_queue\").asJavaString();\n+        long dlqMaxBytes = getSetting(context, settings, \"dead_letter_queue.max_bytes\").convertToInteger().getLongValue();\n+        Duration dlqFlushInterval = Duration.ofMillis(getSetting(context, settings, \"dead_letter_queue.flush_interval\").convertToInteger().getLongValue());\n+\n+        if (hasSetting(context, settings, \"dead_letter_queue.retain.age\") && !getSetting(context, settings, \"dead_letter_queue.retain.age\").isNil()) {\n+            final Duration age = parseToDuration(getSetting(context, settings, \"dead_letter_queue.retain.age\").convertToString().toString());\n+            return DeadLetterQueueFactory.getWriter(pipelineId, dlqPath, dlqMaxBytes, dlqFlushInterval, storageType, age);\n+        }\n+        return DeadLetterQueueFactory.getWriter(pipelineId, dlqPath, dlqMaxBytes, dlqFlushInterval, storageType);\n+    }\n+\n+    public void release() {\n+        DeadLetterQueueFactory.release(pipelineId);\n+    }\n+\n+    private IRubyObject getSetting(ThreadContext context, IRubyObject settings, String name) {\n+        return settings.callMethod(context, \"get_value\", context.runtime.newString(name));\n+    }\n+\n+    private boolean hasSetting(ThreadContext context, IRubyObject settings, String name) {\n+        return settings.callMethod(context, \"registered?\", context.runtime.newString(name)) == context.tru;\n+    }\n+\n+    public static Duration parseToDuration(String timeStr) {\n+        final Matcher matcher = Pattern.compile(\"(?<value>\\\\d+)\\\\s*(?<time>[dhms])\").matcher(timeStr);\n+        if (!matcher.matches()) {\n+            throw new IllegalArgumentException(\"Expected a time specification in the form <number>[d,h,m,s], e.g. 3m, but found [\" + timeStr + \"]\");\n+        }\n+        final int value = Integer.parseInt(matcher.group(\"value\"));\n+        final String timeSpecifier = matcher.group(\"time\");\n+        final TemporalUnit unit;\n+        switch (timeSpecifier) {\n+            case \"d\": unit = ChronoUnit.DAYS; break;\n+            case \"h\": unit = ChronoUnit.HOURS; break;\n+            case \"m\": unit = ChronoUnit.MINUTES; break;\n+            case \"s\": unit = ChronoUnit.SECONDS; break;\n+            default: throw new IllegalStateException(\"Expected a time unit specification from d,h,m,s but found: [\" + timeSpecifier + \"]\");\n+        }\n+        return Duration.of(value, unit);\n+    }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 22090.916633605957
+}

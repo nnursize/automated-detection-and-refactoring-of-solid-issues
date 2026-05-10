@@ -1,0 +1,61 @@
+{
+  "issue_id": "OCP-020",
+  "principle": "OCP",
+  "title": "Refactor OCP-020 (OCP): Hardcoded switch on configuration protocol strings",
+  "branch": "refactor/OCP-020",
+  "base": "main",
+  "head_commit": "705051ab73604540c6a9008bdafefcf491c9fc04",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 12262,
+    "completion_tokens": 722
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 582,
+    "line_end": 605,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Hardcoded switch on configuration protocol strings",
+    "reasoning": "The method uses a switch statement to map protocol strings ('string', 'file', 'x-pack-metrics', etc.) to human-readable descriptions. This violates OCP because introducing a new configuration source requires modifying the core pipeline class. Instead, the source metadata objects should provide their own descriptive details polymorphically."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor pipeline source details to use polymorphic description method",
+    "rationale": "The switch statement in AbstractPipelineExt.getPipelineSourceDetails violates the Open/Closed Principle. By moving the responsibility of providing a description to the SourceWithMetadata class (or a new interface), we allow new source types to be added without modifying the core pipeline logic.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 777,
+        "blank_lines": 134,
+        "comment_lines": 4,
+        "function_count": 61,
+        "avg_cc": 1.82,
+        "max_cc": 51.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 23629.46367263794
+}

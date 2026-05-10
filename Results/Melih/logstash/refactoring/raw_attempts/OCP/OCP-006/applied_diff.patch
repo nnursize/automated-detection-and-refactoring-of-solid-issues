@@ -1,0 +1,90 @@
+diff --git a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
+index db0aaf2..75ac666 100644
+--- a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
++++ b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
+@@ -62,27 +62,6 @@ public final class PluginFactoryExt extends RubyBasicObject
+ 
+     private final transient Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> pluginCreatorsRegistry = new HashMap<>(4);
+ 
+-    @JRubyMethod(name = "filter_delegator", meta = true, required = 5)
+-    public static IRubyObject filterDelegator(final ThreadContext context,
+-                                              final IRubyObject recv, final IRubyObject... args) {
+-        //  filterDelegatorClass, klass, rubyArgs, typeScopedMetric, executionCntx
+-        final RubyClass filterDelegatorClass = (RubyClass) args[0];
+-        final RubyClass klass = (RubyClass) args[1];
+-        final RubyHash arguments = (RubyHash) args[2];
+-        final AbstractMetricExt typeScopedMetric = (AbstractMetricExt) args[3];
+-        final ExecutionContextExt executionContext = (ExecutionContextExt) args[4];
+-
+-        final IRubyObject filterInstance = ContextualizerExt.initializePlugin(context, executionContext, klass, arguments);
+-
+-        final RubyString id = (RubyString) arguments.op_aref(context, ID_KEY);
+-        filterInstance.callMethod(
+-                context, "metric=",
+-                typeScopedMetric.namespace(context, id.intern())
+-        );
+-
+-        return filterDelegatorClass.newInstance(context, filterInstance, id, Block.NULL_BLOCK);
+-    }
+-
+     public PluginFactoryExt(final Ruby runtime, final RubyClass metaClass) {
+         this(runtime, metaClass, new PluginLookup(PluginRegistry.getInstance()));
+     }
+@@ -110,7 +89,7 @@ public final class PluginFactoryExt extends RubyBasicObject
+         this.filterDelegatorClass = filterClass;
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.INPUT, new InputPluginCreator(this));
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.CODEC, new CodecPluginCreator());
+-        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator());
++        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator(filterClass));
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));
+         this.configVariables = ConfigVariableExpander.withoutSecret(envVars);
+         this.idGenerator = new PluginIdGenerator(lir, this.configVariables);
+@@ -230,8 +209,12 @@ public final class PluginFactoryExt extends RubyBasicObject
+         final AbstractNamespacedMetricExt typeScopedMetric = metrics.create(context, type.rubyLabel());
+ 
+         final PluginLookup.PluginClass pluginClass = pluginResolver.resolve(type, name);
+-        if (pluginClass.language() == PluginLookup.PluginLanguage.RUBY) {
++        AbstractPluginCreator<? extends Plugin> pluginCreator = pluginCreatorsRegistry.get(type);
++        if (pluginCreator == null) {
++            throw new IllegalStateException("Unable to create plugin: " + pluginClass.toReadableString());
++        }
+ 
++        if (pluginClass.language() == PluginLookup.PluginLanguage.RUBY) {
+             final Map<String, Object> newArgs = new HashMap<>(args);
+             newArgs.put("id", id);
+             final RubyClass klass = (RubyClass) pluginClass.klass();
+@@ -240,33 +223,8 @@ public final class PluginFactoryExt extends RubyBasicObject
+             );
+             final RubyHash rubyArgs = RubyHash.newHash(context.runtime);
+             rubyArgs.putAll(newArgs);
+-            if (type == PluginLookup.PluginType.OUTPUT) {
+-                return new OutputDelegatorExt(context.runtime, RubyUtil.RUBY_OUTPUT_DELEGATOR_CLASS).initialize(
+-                        context,
+-                        new IRubyObject[]{
+-                                klass, typeScopedMetric, executionCntx,
+-                                OutputStrategyExt.OutputStrategyRegistryExt.instance(context, null),
+-                                rubyArgs
+-                        }
+-                );
+-            } else if (type == PluginLookup.PluginType.FILTER) {
+-                return filterDelegator(
+-                        context, null,
+-                        filterDelegatorClass, klass, rubyArgs, typeScopedMetric, executionCntx);
+-            } else {
+-                final IRubyObject pluginInstance = ContextualizerExt.initializePlugin(context, executionCntx, klass, rubyArgs);
+-
+-                final AbstractNamespacedMetricExt scopedMetric = typeScopedMetric.namespace(context, RubyUtil.RUBY.newString(id).intern());
+-                scopedMetric.gauge(context, MetricKeys.NAME_KEY, pluginInstance.callMethod(context, "config_name"));
+-                pluginInstance.callMethod(context, "metric=", scopedMetric);
+-                return pluginInstance;
+-            }
++            return pluginCreator.createRubyDelegator(context, klass, rubyArgs, typeScopedMetric, executionCntx);
+         } else {
+-            AbstractPluginCreator<? extends Plugin> pluginCreator = pluginCreatorsRegistry.get(type);
+-            if (pluginCreator == null) {
+-                throw new IllegalStateException("Unable to create plugin: " + pluginClass.toReadableString());
+-            }
+-
+             Context contextWithMetrics = executionContextFactory.toContext(type, metrics.getRoot(context));
+             return pluginCreator.createDelegator(name, convertToJavaCoercible(args), id, typeScopedMetric, pluginClass, contextWithMetrics);
+         }

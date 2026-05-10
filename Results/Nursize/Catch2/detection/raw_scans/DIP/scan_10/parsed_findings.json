@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IRegistryHub",
+    "entity_type": "class",
+    "line_start": 1286,
+    "line_end": 1298,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Interface depends on concrete implementation types.",
+    "reasoning": "The IRegistryHub abstraction (implemented by RegistryHub at amalgamated.cpp:1104) defines methods that return concrete types like ReporterRegistry (L1111) instead of abstract interfaces. This violates DIP because the high-level abstraction depends on low-level concrete details, forcing all consumers of the hub to also depend on those concrete classes."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 10661,
+    "line_end": 10786,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level execution logic depends on concrete platform-specific handlers.",
+    "reasoning": "RunContext is a high-level module responsible for test execution flow. It directly depends on and instantiates FatalConditionHandler (L9723), which is a low-level component for platform-specific signal/exception handling. This coupling prevents the execution logic from being tested or used in environments without that specific low-level implementation."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 4952,
+    "line_end": 4992,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "High-level Session class depends on a concrete third-party parser.",
+    "reasoning": "The Session class directly references and exposes Clara::Parser in its public API (L4980, L4982). This couples the library's primary high-level entry point to a specific concrete implementation of a command-line parser, violating the principle that high-level modules should depend on abstractions."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "IConfig",
+    "entity_type": "class",
+    "line_start": 1223,
+    "line_end": 1256,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Fat interface forces broad dependencies on unrelated configuration details.",
+    "reasoning": "IConfig (and its implementation Config at L3804) is a bloated interface containing dozens of unrelated methods (benchmarking, sharding, reporting, filtering). This forces high-level modules that need only a small subset of configuration to depend on a massive, concrete-heavy abstraction, violating the spirit of DIP where abstractions should be lean and role-specific."
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-006",
+  "principle": "DIP",
+  "title": "Refactor DIP-006 (DIP): High-level module depends on low-level implementation MmapPageIOV2",
+  "branch": "refactor/DIP-006",
+  "base": "main",
+  "head_commit": "9a878ad613aae5bbddc1aa63a6ab4228ce0cdde5",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11094,
+    "completion_tokens": 248
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.openPages",
+    "entity_type": "method",
+    "line_start": 172,
+    "line_end": 222,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "High-level module depends on low-level implementation MmapPageIOV2",
+    "reasoning": "The Queue class directly instantiates MmapPageIOV2, a concrete implementation for file I/O. This couples the high-level business logic of the queue to a specific storage implementation, violating the Dependency Inversion Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove unused import of MmapPageIOV2 to reduce coupling",
+    "rationale": "The class Queue was importing MmapPageIOV2, which is a low-level implementation detail. While the code did not explicitly instantiate it in the provided snippet (it uses PageIOFactory), the import itself creates an unnecessary dependency on a concrete implementation. Removing it enforces the dependency inversion principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "import org.logstash.ackedqueue.io.CheckpointIO;\nimport org.logstash.ackedqueue.io.FileCheckpointIO;\nimport org.logstash.ackedqueue.io.MmapPageIOV2;\nimport org.logstash.ackedqueue.io.PageIO;",
+        "replace_text": "import org.logstash.ackedqueue.io.CheckpointIO;\nimport org.logstash.ackedqueue.io.FileCheckpointIO;\nimport org.logstash.ackedqueue.io.PageIO;",
+        "search_lines": 4,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 734,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 733,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\nindex bfff445..9c3ecdb 100644\n--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n@@ -44,7 +44,6 @@ import org.logstash.FileLockFactory;\n import org.logstash.LockException;\n import org.logstash.ackedqueue.io.CheckpointIO;\n import org.logstash.ackedqueue.io.FileCheckpointIO;\n-import org.logstash.ackedqueue.io.MmapPageIOV2;\n import org.logstash.ackedqueue.io.PageIO;\n import org.logstash.common.FsUtil;\n import org.logstash.plugins.NamespacedMetricImpl;\n",
+  "duration_ms": 19976.128339767456
+}

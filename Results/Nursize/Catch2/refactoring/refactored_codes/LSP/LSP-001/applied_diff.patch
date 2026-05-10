@@ -1,0 +1,22 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index a2c9599..e2f758a 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -10421,6 +10421,9 @@ namespace TestCaseTracking {
+         //! Returns true iff tracker has started
+         bool hasStarted() const;
+ 
++        virtual bool isSectionTracker() const { return false; }
++        virtual bool isGeneratorTracker() const { return false; }
++
+         // actions
+         virtual void close() = 0; // Successfully complete
+         virtual void fail() = 0;
+@@ -10503,6 +10506,7 @@ namespace TestCaseTracking {
+         SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );
+ 
+         bool isComplete() const override;
++        bool isSectionTracker() const override { return true; }
+ 
+         static SectionTracker& acquire( TrackerContext& ctx, NameAndLocationRef const& nameAndLocation );
+ 

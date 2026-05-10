@@ -1,0 +1,38 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 7cf84e8..a2c9599 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -4509,8 +4509,6 @@ namespace Catch {
+ 
+             struct BoundRef : Catch::Detail::NonCopyable {
+                 virtual ~BoundRef() = default;
+-                virtual bool isContainer() const;
+-                virtual bool isFlag() const;
+             };
+             struct BoundValueRefBase : BoundRef {
+                 virtual auto setValue( std::string const& arg )
+@@ -4518,7 +4516,6 @@ namespace Catch {
+             };
+             struct BoundFlagRefBase : BoundRef {
+                 virtual auto setFlag( bool flag ) -> ParserResult = 0;
+-                bool isFlag() const override;
+             };
+ 
+             template <typename T> struct BoundValueRef : BoundValueRefBase {
+@@ -4537,8 +4534,6 @@ namespace Catch {
+ 
+                 explicit BoundValueRef( std::vector<T>& ref ): m_ref( ref ) {}
+ 
+-                auto isContainer() const -> bool override { return true; }
+-
+                 auto setValue( std::string const& arg )
+                     -> ParserResult override {
+                     T temp;
+@@ -4605,7 +4600,6 @@ namespace Catch {
+ 
+             template <typename L> struct BoundManyLambda : BoundLambda<L> {
+                 explicit BoundManyLambda( L const& lambda ): BoundLambda<L>( lambda ) {}
+-                bool isContainer() const override { return true; }
+             };
+ 
+             template <typename L> struct BoundFlagLambda : BoundFlagRefBase {

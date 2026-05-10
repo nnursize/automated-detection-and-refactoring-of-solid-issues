@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "EventCondition.Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 98,
+    "line_end": 124,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Switch-on-type smell via instanceof chain for expression compilation",
+    "reasoning": "The method uses a long if-else if chain with 'instanceof' checks to determine how to compile different logical expressions (Eq, RegexEq, In, Or, And, etc.). Adding a new type of boolean expression to the Logstash IR (Intermediate Representation) requires modifying this central compiler logic rather than allowing the expression types to define their own compilation behavior or using a visitor pattern, violating the requirement to be closed for modification."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 582,
+    "line_end": 605,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded switch on configuration protocol strings",
+    "reasoning": "The method uses a switch statement to map protocol strings ('string', 'file', 'x-pack-metrics', etc.) to human-readable descriptions. This violates OCP because introducing a new configuration source requires modifying the core pipeline class. Instead, the source metadata objects should provide their own descriptive details polymorphically."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.parseTimestamp",
+    "entity_type": "method",
+    "line_start": 347,
+    "line_end": 367,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Instanceof chain for type-dependent timestamp parsing",
+    "reasoning": "The logic for converting objects to Timestamps relies on an explicit list of supported types (String, RubyString, DateTime, Date, etc.) checked via instanceof. Adding support for new date/time libraries or custom types requires modifying this core method, making the system rigid and closed to extension without modification."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/agent.rb",
+    "entity_name": "LogStash::Agent#dispatch_events",
+    "entity_type": "method",
+    "line_start": 443,
+    "line_end": 453,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Case statement on PipelineAction subclasses",
+    "reasoning": "The Agent dispatches events based on the specific class of the PipelineAction (Create, Reload, Stop). This switch-on-type smell means that adding a new type of pipeline lifecycle action (e.g., 'Pause' or 'Resume') requires modifying the Agent's event loop logic, indicating that the action hierarchy is not effectively utilizing polymorphism to handle its own side effects."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+    "entity_name": "FieldReference.setEscapeStyle",
+    "entity_type": "method",
+    "line_start": 51,
+    "line_end": 64,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Hardcoded switch for selecting escape handlers",
+    "reasoning": "The method uses a switch statement to assign a static ESCAPE_HANDLER based on a string specification ('none', 'percent', 'ampersand'). Adding a new escaping style requires modifying this class. While the impact is low, it represents a classic OCP violation where a factory or registry would be more extensible."
+  }
+]

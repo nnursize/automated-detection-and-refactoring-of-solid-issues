@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-003",
+  "principle": "ISP",
+  "title": "Refactor ISP-003 (ISP): MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for s...",
+  "branch": "refactor/ISP-003",
+  "base": "main",
+  "head_commit": "22b093a1453fbe4f3f30563aa4cab10cf4907391",
+  "status": "obsolete",
+  "obsolete_reason": "entity `PageIO` not found in current source of `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "PageIO",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 240,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The `PageIO` interface defines a broad set of operations for page management (reading, writing, creating, recovering, persisting, purging, checking space, activating, deactivating, closing). The `MmapPageIOV1` class, which represents an older version of page I/O, explicitly throws `UnsupportedOperationException` for several methods (`recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`, `hasSpace()`). This is a textbook violation of ISP, as `MmapPageIOV1` is forced to implement methods that are not relevant to its specific functionality (read-only for an older format). This indicates that `PageIO` is too broad and should be segregated into smaller, more specific interfaces, such as `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `CreatablePageIO`, `PersistablePageIO`, `PurgeablePageIO`, and `SpaceCheckablePageIO`."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 31.517982482910156
+}

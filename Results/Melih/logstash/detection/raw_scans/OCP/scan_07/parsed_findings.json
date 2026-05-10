@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 115,
+    "line_end": 143,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The buildCondition method uses a long instanceof chain to dispatch compilation logic based on expression types.",
+    "reasoning": "Adding a new type of BooleanExpression requires modifying this central compiler method to add a new branch. This violates OCP as the class is not closed for modification when extending the language's expression set. A better approach would be a visitor pattern or polymorphic dispatch on the expression objects themselves."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 868,
+    "line_end": 887,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "The method uses a switch statement on hardcoded protocol strings to determine source details.",
+    "reasoning": "Adding a new configuration source protocol (e.g., 'http' or 's3') requires modifying this method to add a new case to the switch statement. This logic should be encapsulated within the SourceWithMetadata implementations or a registry of detail providers."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.parseTimestamp",
+    "entity_type": "method",
+    "line_start": 465,
+    "line_end": 486,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "The method uses an instanceof chain to handle conversion from various date/time types to Logstash Timestamps.",
+    "reasoning": "Supporting a new date-like object type (e.g., a new Joda-Time variant or a specific Ruby date type) requires modifying this method. This makes the Event class fragile and dependent on every possible input type rather than using a polymorphic conversion interface."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.openPages",
+    "entity_type": "method",
+    "line_start": 165,
+    "line_end": 260,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "The Queue class is tightly coupled to the concrete MmapPageIOV2 implementation.",
+    "reasoning": "The method openPages (and others like newCheckpointedHeadpage) explicitly instantiates MmapPageIOV2. If a new storage format or a V3 version of the page IO is introduced, the core Queue class must be modified. This should be abstracted behind a PageIO factory or injected via settings."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.collectStats",
+    "entity_type": "method",
+    "line_start": 579,
+    "line_end": 604,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "The method uses an instanceof check to collect specific metrics for Acked Queues.",
+    "reasoning": "The statistics collection logic is aware of specific queue implementations (JRubyWrappedAckedQueueExt). Adding a new queue type with different metrics requires modifying the pipeline's core stats collection logic instead of the queue providing its own metrics via a standard interface."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/graph/Graph.java",
+    "entity_name": "Graph.uniqueHash",
+    "entity_type": "method",
+    "line_start": 433,
+    "line_end": 440,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "The uniqueHash method explicitly filters out specific vertex types by class name.",
+    "reasoning": "The method contains hardcoded logic to ignore QueueVertex and SeparatorVertex. If new internal vertex types are added that should not contribute to the hash, this method must be modified. This logic should be a property of the Vertex itself (e.g., a boolean isHashable() method)."
+  }
+]

@@ -1,0 +1,112 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "org.logstash.config.ir.compiler.EventCondition.Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 90,
+    "line_end": 117,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded instanceof chain for BooleanExpression compilation",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the buildCondition method uses an explicit instanceof chain to dispatch compilation logic for different BooleanExpression types. Adding a new expression type to the IR requires modifying this central compiler method rather than extending the system through polymorphism or a visitor pattern."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/config/mixin.rb",
+    "entity_name": "LogStash::Config::Mixin::DSL.validate_value",
+    "entity_type": "method",
+    "line_start": 351,
+    "line_end": 500,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded case statement for configuration validators",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the validate_value method uses a massive case statement to handle all possible configuration validators. Adding a new validator type (e.g., :sha_256_hex) requires modifying this core mixin file instead of registering a new validator object in a registry."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/agent.rb",
+    "entity_name": "LogStash::Agent.dispatch_events",
+    "entity_type": "method",
+    "line_start": 457,
+    "line_end": 468,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Case statement for PipelineAction event dispatching",
+    "reasoning": "Switch Statements on type smell -> OCP violation because dispatch_events uses a case statement to handle different PipelineAction types (Create, Reload, Stop). Introducing a new action type requires modifying the Agent's event dispatching logic and several other metric-related methods in the same class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+    "entity_name": "org.logstash.FieldReference.setEscapeStyle",
+    "entity_type": "method",
+    "line_start": 53,
+    "line_end": 68,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement for FieldReference escape style configuration",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the setEscapeStyle method uses a hardcoded switch statement to map strings to EscapeHandler constants. Adding a new escape style requires modifying this class rather than allowing external registration of handlers."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/health/PipelineIndicator.java",
+    "entity_name": "org.logstash.health.PipelineIndicator.StatusProbe.analyze",
+    "entity_type": "method",
+    "line_start": 169,
+    "line_end": 211,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on pipeline state for health analysis",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the analyze method uses a switch statement on the pipeline state enum. Adding a new state to the pipeline lifecycle requires modifying the health analysis logic within this probe."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/compiler/lscl.rb",
+    "entity_name": "LogStashCompilerLSCLGrammar::LogStash::Compiler::LSCL::AST::Plugin.plugin_type_enum",
+    "entity_type": "method",
+    "line_start": 115,
+    "line_end": 126,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Case statement mapping section types to Java enums",
+    "reasoning": "Switch Statements on type smell -> OCP violation because plugin_type_enum uses a case statement to map section types to Java Enums. Adding a new top-level plugin category requires modifying the AST node logic."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "org.logstash.execution.AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 620,
+    "line_end": 640,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on protocol for pipeline source details",
+    "reasoning": "Switch Statements on type smell -> OCP violation because getPipelineSourceDetails uses a hardcoded switch on the protocol string. Adding new configuration source types (e.g., a new remote config provider) requires modifying the pipeline metadata logic."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/cli/SecretStoreCli.java",
+    "entity_name": "org.logstash.secret.cli.SecretStoreCli.command",
+    "entity_type": "method",
+    "line_start": 189,
+    "line_end": 286,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement for CLI command dispatching",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the command method uses a switch statement to dispatch CLI logic based on the command type. Adding a new keystore command requires modifying the central CLI entry point."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "org.logstash.plugins.factory.PluginFactoryExt.plugin",
+    "entity_type": "method",
+    "line_start": 169,
+    "line_end": 216,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Type checking for plugin delegator initialization",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the plugin method explicitly checks for OUTPUT and FILTER types to apply specific delegator logic. Adding a new plugin type that requires custom initialization requires modifying the factory."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "org.logstash.Event.getUnconvertedField",
+    "entity_type": "method",
+    "line_start": 165,
+    "line_end": 174,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Switch statement on field type for storage access",
+    "reasoning": "Switch Statements on type smell -> OCP violation because the method uses a switch on field types (META_PARENT, META_CHILD, etc.) to determine storage access. Adding new event storage scopes requires modifying multiple core methods in the Event class."
+  }
+]

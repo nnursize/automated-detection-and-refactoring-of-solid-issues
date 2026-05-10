@@ -1,0 +1,19 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 5d97b63..9d14d8c 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -301,9 +301,12 @@ class Request(RegisterOnlyHooksMixin):
+     def __repr__(self):
+         return f"<Request [{self.method}]>"
+ 
+-    def prepare(self):
++    def prepare(self, prepared_request_class=None):
+         """Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it."""
+-        p = PreparedRequest()
++        if prepared_request_class is None:
++            prepared_request_class = PreparedRequest
++
++        p = prepared_request_class()
+         p.prepare(
+             method=self.method,
+             url=self.url,

@@ -1,0 +1,349 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-010
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+- **Entity**: `UTF8JsonGenerator.writeRawUTF8String` (current lines L642-L642 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+Subclass violates LSP by throwing UnsupportedOperationException for a method defined in the base contract.
+
+### Reasoning
+The JsonGenerator (base) class defines writeRawUTF8String as an abstract method, implying it is part of the contract for all generators. The UTF8JsonGenerator implementation throws an UnsupportedOperationException, meaning it is not substitutable for a general JsonGenerator where this method is expected to work.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+```java
+# ... 521 earlier lines elided ...
+    {
+        _verifyValueWrite(WRITE_STRING);
+        if (text == null) {
+            _writeNull();
+            return this;
+        }
+        // First: if we can't guarantee it all fits, quoted, within output, offline
+        final int len = text.length();
+        if (len > _outputMaxContiguous) { // nope: off-line handling
+            _writeStringSegments(text, true);
+            return this;
+        }
+        if ((_outputTail + len) >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        _writeStringSegment(text, 0, len); // we checked space already above
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeString(Reader reader, int len) throws JacksonException {
+        _verifyValueWrite(WRITE_STRING);
+        if (reader == null) {
+            return _reportError("null reader");
+        }
+
+        int toRead = (len >= 0) ? len : Integer.MAX_VALUE;
+        final char[] buf = _charBuffer;
+
+        // Add leading quote
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+
+        // read
+        while (toRead > 0){
+            int toReadNow = Math.min(toRead, buf.length);
+            int numRead;
+
+            try {
+                numRead = reader.read(buf, 0, toReadNow);
+            } catch (IOException e) {
+                throw _wrapIOFailure(e);
+            }
+            if(numRead <= 0){
+                break;
+            }
+            if ((_outputTail + len) >= _outputEnd) {
+                _flushBuffer();
+            }
+            _writeStringSegments(buf, 0, numRead);
+            //decrease tracker
+            toRead -= numRead;
+        }
+
+        // Add trailing quote
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+
+        if (toRead > 0 && len >= 0){
+            _reportError("Didn't read enough from reader");
+        }
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeString(char[] text, int offset, int len) throws JacksonException
+    {
+        _verifyValueWrite(WRITE_STRING);
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        // One or multiple segments?
+        if (len <= _outputMaxContiguous) {
+            if ((_outputTail + len) > _outputEnd) { // caller must ensure enough space
+                _flushBuffer();
+            }
+            _writeStringSegment(text, offset, len);
+        } else {
+            _writeStringSegments(text, offset, len);
+        }
+        // And finally, closing quotes
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeString(SerializableString text) throws JacksonException
+    {
+        _verifyValueWrite(WRITE_STRING);
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        int len = text.appendQuotedUTF8(_outputBuffer, _outputTail);
+        if (len < 0) {
+            _writeBytes(text.asQuotedUTF8());
+        } else {
+            _outputTail += len;
+        }
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeRawUTF8String(byte[] text, int offset, int len) throws JacksonException
+    {
+        _checkRangeBoundsForByteArray(text, offset, len);
+        _verifyValueWrite(WRITE_STRING);
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        _writeBytes(text, offset, len);
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeUTF8String(byte[] text, int offset, int len) throws JacksonException
+    {
+        _checkRangeBoundsForByteArray(text, offset, len);
+        _verifyValueWrite(WRITE_STRING);
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        // One or multiple segments?
+        if (len <= _outputMaxContiguous) {
+            _writeUTF8Segment(text, offset, len);
+        } else {
+            _writeUTF8Segments(text, offset, len);
+        }
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return this;
+    }
+
+    /*
+    /**********************************************************************
+    /* Output method implementations, unprocessed ("raw")
+    /**********************************************************************
+     */
+
+    @Override
+    public JsonGenerator writeRaw(String text) throws JacksonException {
+        final int len = text.length();
+        final char[] buf = _charBuffer;
+        if (len <= buf.length) {
+            text.getChars(0, len, buf, 0);
+            writeRaw(buf, 0, len);
+        } else {
+            writeRaw(text, 0, len);
+        }
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeRaw(String text, int offset, int len) throws JacksonException
+    {
+        _checkRangeBoundsForString(text, offset, len);
+
+        final char[] buf = _charBuffer;
+        final int cbufLen = buf.length;
+        // minor optimization: see if we can just get and copy
+        if (len <= cbufLen) {
+            text.getChars(offset, offset+len, buf, 0);
+            writeRaw(buf, 0, len);
+            return this;
+        }
+
+        // If not, need segmented approach. For speed, let's also use input buffer
+        // size that is guaranteed to fit in output buffer; each char can expand to
+        // at most 3 bytes, so at most 1/3 of buffer size.
+        final int maxChunk = Math.min(cbufLen,
+                (_outputEnd >> 2) + (_outputEnd >> 4)); // == (1/4 + 1/16) == 5/16
+        final int maxBytes = maxChunk * 3;
+
+        while (len > 0) {
+            int len2 = Math.min(maxChunk, len);
+            text.getChars(offset, offset+len2, buf, 0);
+            if ((_outputTail + maxBytes) > _outputEnd) {
+                _flushBuffer();
+            }
+            // If this is NOT the last segment and if the last character looks like
+            // split surrogate second half, drop it
+            // 21-Mar-2017, tatu: Note that we could check for either `len` or `len2`;
+            //    point here is really that we only "punt" surrogate if it is NOT the
+            //    only character left; otherwise we'd end up with a poison pill if the
+            //    very last character was unpaired first-surrogate
+            if (len2 > 1) {
+                char ch = buf[len2-1];
+                if ((ch >= SURR1_FIRST) && (ch <= SURR1_LAST)) {
+                    --len2;
+                }
+            }
+            _writeRawSegment(buf, 0, len2);
+            offset += len2;
+            len -= len2;
+        }
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeRaw(SerializableString text) throws JacksonException
+    {
+        int len = text.appendUnquotedUTF8(_outputBuffer, _outputTail);
+        if (len < 0) {
+            _writeBytes(text.asUnquotedUTF8());
+        } else {
+            _outputTail += len;
+        }
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeRawValue(SerializableString text) throws JacksonException {
+        _verifyValueWrite(WRITE_RAW);
+        int len = text.appendUnquotedUTF8(_outputBuffer, _outputTail);
+        if (len < 0) {
+            _writeBytes(text.asUnquotedUTF8());
+# ... 1602 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/json/Base64CharInput.java`
+- `src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java`
+- `src/main/java/tools/jackson/core/json/CharOutputTarget.java`
+- `src/main/java/tools/jackson/core/json/DupDetector.java`
+- `src/main/java/tools/jackson/core/json/JsonFactory.java`
+- `src/main/java/tools/jackson/core/json/JsonFactoryBuilder.java`
+- `src/main/java/tools/jackson/core/json/JsonGeneratorBase.java`
+- `src/main/java/tools/jackson/core/json/JsonParserBase.java`
+- `src/main/java/tools/jackson/core/json/JsonReadContext.java`
+- `src/main/java/tools/jackson/core/json/JsonReadFeature.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteContext.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteFeature.java`
+- `src/main/java/tools/jackson/core/json/package-info.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedBase64StreamDecoder.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8Base64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedBase64Encoder.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

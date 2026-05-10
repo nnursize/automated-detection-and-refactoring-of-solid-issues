@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder",
+    "entity_type": "class",
+    "line_start": 92,
+    "line_end": 1076,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Directly instantiates numerous concrete TypeAdapterFactory and internal utility implementations.",
+    "reasoning": "The GsonBuilder class directly instantiates multiple low-level implementation details such as ReflectiveTypeAdapterFactory, CollectionTypeAdapterFactory, and ConstructorConstructor using the 'new' keyword. This creates a tight coupling between the high-level configuration API and specific internal modules, violating the principle that high-level modules should depend on abstractions rather than concrete details."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 465,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Hard-codes dependencies on concrete collection and map implementations.",
+    "reasoning": "The class directly instantiates concrete classes like LinkedTreeMap, ArrayList, and LinkedHashSet within its factory methods (e.g., newCollectionConstructor, newMapConstructor). This couples the object construction abstraction (ObjectConstructor) to specific concrete details, making it difficult to swap or mock these implementations for specialized use cases or testing."
+  },
+  {
+    "file_path": "gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java",
+    "entity_name": "ParseBenchmark",
+    "entity_type": "class",
+    "line_start": 58,
+    "line_end": 467,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Directly instantiates Gson and ObjectMapper dependencies in benchmark parser implementations.",
+    "reasoning": "The inner classes GsonBindParser and JacksonBindParser directly instantiate their respective library entry points (Gson and ObjectMapper) instead of receiving them through injection. This hard-coding of dependencies makes the benchmark components tightly coupled to specific library versions and configurations, reducing substitutability."
+  }
+]

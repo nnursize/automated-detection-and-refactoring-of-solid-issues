@@ -1,0 +1,51 @@
+{
+  "scan_id": "Catch2_SRP_scan_01",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 1,
+  "timestamp": "2026-05-02T00:10:04.667949",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following c++ source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persisten...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Benchmark::Benchmark\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1000,\n      \"line_end\": 1058,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'Benchmark' class combines benchmark definition, preparation, execution orchestration, and error handling/reporting.\",\n      \"reasoning\": \"This class has multiple reasons to change: if the way benchmarks are defined changes, if the preparation logic (e.g., iteration calculation) changes, if the execution flow changes, or if the error reporting mechanism changes. It acts as a 'God object' for the entire benchmarking process, rather than delegating these distinct responsibilities to separate components.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 2010,\n      \"line_end\": 2059,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'Session' class is responsible for command-line parsing, configuration management, and overall test run orchestration.\",\n      \"reasoning\": \"This class serves as the main entry point for the Catch2 framework, combining responsibilities for parsing command-line arguments (`applyCommandLine`), managing the global configuration (`m_configData`, `m_config`), and orchestrating the entire test execution flow (`run`, `runInternal`). Changes to any of these distinct areas (CLI syntax, configuration options, or test execution lifecycle) would require modifications to this single class, violating SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3050,\n      \"line_end\": 3140,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'RunContext' class handles assertion capture, section tracking, generator tracking, benchmark event forwarding, output redirection, fatal condition handling, and test case orchestration.\",\n      \"reasoning\": \"While all these responsibilities are related to the execution of a test, they are distinct concerns. 'RunContext' not only captures and reports assertion results but also manages the lifecycle and state of sections, generators, output redirection, and fatal error handlers. For example, output redirection and fatal condition handling could be separate, injectable components that 'RunContext' *uses* rather than directly managing their internal logic and lifecycle. This broad scope makes the class highly susceptible to changes from multiple unrelated sources.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Benchmark::Benchmark",
+      "entity_type": "class",
+      "line_start": 1000,
+      "line_end": 1058,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The 'Benchmark' class combines benchmark definition, preparation, execution orchestration, and error handling/reporting.",
+      "reasoning": "This class has multiple reasons to change: if the way benchmarks are defined changes, if the preparation logic (e.g., iteration calculation) changes, if the execution flow changes, or if the error reporting mechanism changes. It acts as a 'God object' for the entire benchmarking process, rather than delegating these distinct responsibilities to separate components."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Session",
+      "entity_type": "class",
+      "line_start": 2010,
+      "line_end": 2059,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The 'Session' class is responsible for command-line parsing, configuration management, and overall test run orchestration.",
+      "reasoning": "This class serves as the main entry point for the Catch2 framework, combining responsibilities for parsing command-line arguments (`applyCommandLine`), managing the global configuration (`m_configData`, `m_config`), and orchestrating the entire test execution flow (`run`, `runInternal`). Changes to any of these distinct areas (CLI syntax, configuration options, or test execution lifecycle) would require modifications to this single class, violating SRP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::RunContext",
+      "entity_type": "class",
+      "line_start": 3050,
+      "line_end": 3140,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The 'RunContext' class handles assertion capture, section tracking, generator tracking, benchmark event forwarding, output redirection, fatal condition handling, and test case orchestration.",
+      "reasoning": "While all these responsibilities are related to the execution of a test, they are distinct concerns. 'RunContext' not only captures and reports assertion results but also manages the lifecycle and state of sections, generators, output redirection, and fatal error handlers. For example, output redirection and fatal condition handling could be separate, injectable components that 'RunContext' *uses* rather than directly managing their internal logic and lifecycle. This broad scope makes the class highly susceptible to changes from multiple unrelated sources."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 28605.825901031494,
+  "error": null
+}

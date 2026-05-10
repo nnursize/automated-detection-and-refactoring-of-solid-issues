@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import LanguageAdapter
+from .c_cpp_adapter import CCppAdapter
 from .java_gradle_adapter import JavaGradleAdapter
 from .java_maven_adapter import JavaMavenAdapter
 from .python_adapter import PythonAdapter
@@ -24,6 +25,8 @@ def get_adapter(language: str, refactor_config, workspace_root: Path | None = No
             python_executable=refactor_config.python_executable,
             install_extras=refactor_config.install_extras,
         )
+    if lang in ("c", "c++", "cpp", "cxx", "cc"):
+        return CCppAdapter()
     if lang in ("java", "kotlin", "kt", "jvm"):
         bs = (refactor_config.build_system or "").lower()
         if not bs and workspace_root is not None:
@@ -62,6 +65,7 @@ def get_adapter(language: str, refactor_config, workspace_root: Path | None = No
 
 __all__ = [
     "LanguageAdapter",
+    "CCppAdapter",
     "PythonAdapter",
     "JavaMavenAdapter",
     "JavaGradleAdapter",

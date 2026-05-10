@@ -1,0 +1,62 @@
+{
+  "scan_id": "jackson-core_OCP_scan_08",
+  "repo_name": "jackson-core",
+  "principle": "OCP",
+  "scan_number": 8,
+  "timestamp": "2026-04-18T21:34:15.095728",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyi...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.nextToken\",\n      \"entity_type\": \"class\",\n      \"line_start\": 447,\n      \"line_end\": 537,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on token IDs requires modification for every new token type\",\n      \"reasoning\": \"The nextToken() method uses a switch-case block based on character/token identifiers. Adding new JSON token types or modifying existing ones requires direct modification of this central parsing logic, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._getText2\",\n      \"entity_type\": \"class\",\n      \"line_start\": 308,\n      \"line_end\": 322,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on token IDs forces modification for new token types\",\n      \"reasoning\": \"The _getText2 method uses a switch statement on token IDs. If new token types are introduced into the Jackson core, this method must be updated to handle them, which is a classic violation of OCP.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator.copyCurrentEvent\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1022,\n      \"line_end\": 1066,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on token IDs requires modification for new token types\",\n      \"reasoning\": \"The copyCurrentEvent method uses a switch statement to dispatch logic based on token IDs. Adding new token types necessitates modifying this method, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator._prependOrWriteCharacterEscape\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1073,\n      \"line_end\": 1157,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded logic for character escaping limits extensibility\",\n      \"reasoning\": \"The method uses rigid branching logic to handle character escapes. Introducing new escape strategies or complex character handling requires modifying this core logic instead of being able to inject an strategy.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.nextToken",
+      "entity_type": "class",
+      "line_start": 447,
+      "line_end": 537,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on token IDs requires modification for every new token type",
+      "reasoning": "The nextToken() method uses a switch-case block based on character/token identifiers. Adding new JSON token types or modifying existing ones requires direct modification of this central parsing logic, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._getText2",
+      "entity_type": "class",
+      "line_start": 308,
+      "line_end": 322,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on token IDs forces modification for new token types",
+      "reasoning": "The _getText2 method uses a switch statement on token IDs. If new token types are introduced into the Jackson core, this method must be updated to handle them, which is a classic violation of OCP."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator.copyCurrentEvent",
+      "entity_type": "class",
+      "line_start": 1022,
+      "line_end": 1066,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on token IDs requires modification for new token types",
+      "reasoning": "The copyCurrentEvent method uses a switch statement to dispatch logic based on token IDs. Adding new token types necessitates modifying this method, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator._prependOrWriteCharacterEscape",
+      "entity_type": "class",
+      "line_start": 1073,
+      "line_end": 1157,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded logic for character escaping limits extensibility",
+      "reasoning": "The method uses rigid branching logic to handle character escapes. Introducing new escape strategies or complex character handling requires modifying this core logic instead of being able to inject an strategy."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3710.7181549072266,
+  "error": null
+}

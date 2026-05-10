@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 493,
+    "line_end": 493,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implements binary data handling that may not be supported by all JsonParser implementations",
+    "reasoning": "The JsonParser base class contract implies a generic streaming parser. By implementing getBinaryValue specifically for UTF8StreamJsonParser, it forces clients to assume binary data support, which might not be present in other implementations of JsonParser, leading to potential UnsupportedOperationException if called on other types."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 363,
+    "line_end": 363,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Redefinition of binary data access logic in a specific parser implementation",
+    "reasoning": "Similar to UTF8StreamJsonParser, this implementation provides specialized binary handling that deviates from the base JsonParser contract, potentially violating expected behavior for generic parsers that do not support DataInput-based streaming."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 462,
+    "line_end": 462,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Reader-based parser forcing binary conversion logic",
+    "reasoning": "Providing binary value extraction from a character-based Reader violates the expected performance and behavior contract of a generic JsonParser, as it forces base64 decoding on character data which is not native to character streams."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+    "entity_name": "GeneratorBase.writeString",
+    "entity_type": "class",
+    "line_start": 229,
+    "line_end": 231,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclasses are forced to throw UnsupportedOperationException for specific write methods",
+    "reasoning": "The base class provides an implementation that throws UnsupportedOperationException for methods like writeString(Reader, int). This breaks the substitutability principle because a client expects a working JsonGenerator implementation, not one that fails at runtime for standard interface methods."
+  }
+]

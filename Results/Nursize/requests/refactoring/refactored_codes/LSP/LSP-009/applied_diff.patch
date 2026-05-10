@@ -1,0 +1,37 @@
+diff --git a/src/requests/structures.py b/src/requests/structures.py
+index 188e13e..1621a61 100644
+--- a/src/requests/structures.py
++++ b/src/requests/structures.py
+@@ -80,20 +80,24 @@ class CaseInsensitiveDict(MutableMapping):
+         return str(dict(self.items()))
+ 
+ 
+-class LookupDict(dict):
++class LookupDict(Mapping):
+     """Dictionary lookup object."""
+ 
+     def __init__(self, name=None):
+         self.name = name
+-        super().__init__()
+-
+-    def __repr__(self):
+-        return f"<lookup '{self.name}'>"
++        self._items = {}
+ 
+     def __getitem__(self, key):
+-        # We allow fall-through here, so values default to None
++        return self._items.get(key)
++
++    def __iter__(self):
++        return iter(self._items)
+ 
+-        return self.__dict__.get(key, None)
++    def __len__(self):
++        return len(self._items)
++
++    def __repr__(self):
++        return f"<lookup '{self.name}'>"
+ 
+     def get(self, key, default=None):
+-        return self.__dict__.get(key, default)
++        return self._items.get(key, default)

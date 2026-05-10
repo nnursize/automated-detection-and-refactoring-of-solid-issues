@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/api.py",
+    "search_text": "from . import sessions\n\n\ndef request(method, url, **kwargs):",
+    "replace_text": "from . import sessions\n\n# Default session factory\nsession_factory = sessions.Session\n\n\ndef request(method, url, **kwargs):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/api.py",
+    "search_text": "    session_factory = kwargs.pop(\"session_factory\", sessions.Session)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with session_factory() as session:\n        return session.request(method=method, url=url, **kwargs)",
+    "replace_text": "    factory = kwargs.pop(\"session_factory\", session_factory)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with factory() as session:\n        return session.request(method=method, url=url, **kwargs)"
+  }
+]

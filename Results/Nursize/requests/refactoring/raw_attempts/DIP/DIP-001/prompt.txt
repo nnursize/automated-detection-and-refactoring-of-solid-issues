@@ -1,0 +1,262 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-001
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `src/requests/api.py`
+- **Entity**: `request` (current lines L14-L59 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 7 independent scans
+
+### Description
+High-level API function directly instantiates a concrete Session object.
+
+### Reasoning
+The top-level `request` function, which is the primary entry point for users, directly creates an instance of `sessions.Session`. This tightly couples the high-level API to a concrete implementation of the session management. If the `Session` class needed to be replaced or extended with a different implementation (e.g., for testing or custom behavior), this core API function would require modification. DIP suggests that high-level modules should depend on abstractions, not concrete details.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/requests/api.py`
+```python
+"""
+requests.api
+~~~~~~~~~~~~
+
+This module implements the Requests API.
+
+:copyright: (c) 2012 by Kenneth Reitz.
+:license: Apache2, see LICENSE for more details.
+"""
+
+from . import sessions
+
+
+def request(method, url, **kwargs):
+    """Constructs and sends a :class:`Request <Request>`.
+
+    :param method: method for the new :class:`Request` object: ``GET``, ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.
+    :param url: URL for the new :class:`Request` object.
+    :param params: (optional) Dictionary, list of tuples or bytes to send
+        in the query string for the :class:`Request`.
+    :param data: (optional) Dictionary, list of tuples, bytes, or file-like
+        object to send in the body of the :class:`Request`.
+    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.
+    :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
+    :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.
+    :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': file-tuple}``) for multipart encoding upload.
+        ``file-tuple`` can be a 2-tuple ``('filename', fileobj)``, 3-tuple ``('filename', fileobj, 'content_type')``
+        or a 4-tuple ``('filename', fileobj, 'content_type', custom_headers)``, where ``'content_type'`` is a string
+        defining the content type of the given file and ``custom_headers`` a dict-like object containing additional headers
+        to add for the file.
+    :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
+    :param timeout: (optional) How many seconds to wait for the server to send data
+        before giving up, as a float, or a :ref:`(connect timeout, read
+        timeout) <timeouts>` tuple.
+    :type timeout: float or tuple
+    :param allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection. Defaults to ``True``.
+    :type allow_redirects: bool
+    :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
+    :param verify: (optional) Either a boolean, in which case it controls whether we verify
+            the server's TLS certificate, or a string, in which case it must be a path
+            to a CA bundle to use. Defaults to ``True``.
+    :param stream: (optional) if ``False``, the response content will be immediately downloaded.
+    :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+
+    Usage::
+
+      >>> import requests
+      >>> req = requests.request('GET', 'https://httpbin.org/get')
+      >>> req
+      <Response [200]>
+    """
+
+    # By using the 'with' statement we are sure the session is closed, thus we
+    # avoid leaving sockets open which can trigger a ResourceWarning in some
+    # cases, and look like a memory leak in others.
+    with sessions.Session() as session:
+        return session.request(method=method, url=url, **kwargs)
+
+
+def get(url, params=None, **kwargs):
+    r"""Sends a GET request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param params: (optional) Dictionary, list of tuples or bytes to send
+        in the query string for the :class:`Request`.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request("get", url, params=params, **kwargs)
+
+
+def options(url, **kwargs):
+    r"""Sends an OPTIONS request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request("options", url, **kwargs)
+
+
+def head(url, **kwargs):
+    r"""Sends a HEAD request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param \*\*kwargs: Optional arguments that ``request`` takes. If
+        `allow_redirects` is not provided, it will be set to `False` (as
+        opposed to the default :meth:`request` behavior).
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    kwargs.setdefault("allow_redirects", False)
+    return request("head", url, **kwargs)
+
+
+def post(url, data=None, json=None, **kwargs):
+    r"""Sends a POST request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param data: (optional) Dictionary, list of tuples, bytes, or file-like
+        object to send in the body of the :class:`Request`.
+    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request("post", url, data=data, json=json, **kwargs)
+
+
+def put(url, data=None, **kwargs):
+    r"""Sends a PUT request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param data: (optional) Dictionary, list of tuples, bytes, or file-like
+        object to send in the body of the :class:`Request`.
+    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request("put", url, data=data, **kwargs)
+
+
+def patch(url, data=None, **kwargs):
+    r"""Sends a PATCH request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param data: (optional) Dictionary, list of tuples, bytes, or file-like
+        object to send in the body of the :class:`Request`.
+    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request("patch", url, data=data, **kwargs)
+
+
+def delete(url, **kwargs):
+    r"""Sends a DELETE request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request("delete", url, **kwargs)
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/requests/__init__.py`
+- `src/requests/__version__.py`
+- `src/requests/_internal_utils.py`
+- `src/requests/adapters.py`
+- `src/requests/auth.py`
+- `src/requests/certs.py`
+- `src/requests/compat.py`
+- `src/requests/cookies.py`
+- `src/requests/exceptions.py`
+- `src/requests/help.py`
+- `src/requests/hooks.py`
+- `src/requests/models.py`
+- `src/requests/packages.py`
+- `src/requests/sessions.py`
+- `src/requests/status_codes.py`
+- `src/requests/structures.py`
+- `src/requests/utils.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

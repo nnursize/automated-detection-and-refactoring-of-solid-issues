@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+    "entity_name": "RubyUtil",
+    "entity_type": "class",
+    "line_start": 272,
+    "line_end": 561,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded registration of JRuby extension classes.",
+    "reasoning": "The `RubyUtil` class contains numerous direct calls to `setupLogstashClass` for specific JRuby extension classes (e.g., `ShutdownWatcherExt`, `JRubyWrappedWriteClientExt`, `JrubyMemoryReadClientExt`). If a new JRuby extension class is introduced, this class must be modified to include another `setupLogstashClass` call, violating the Open/Closed Principle. A more OCP-compliant approach would involve a dynamic discovery mechanism or a pluggable registry where extensions can register themselves without requiring changes to `RubyUtil`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 140,
+    "line_end": 178,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Implements `PageIO` but throws `UnsupportedOperationException` for multiple methods.",
+    "reasoning": "The `MmapPageIOV1` class throws `UnsupportedOperationException` for several methods inherited from the `PageIO` interface (e.g., `recover`, `create`, `ensurePersisted`, `purge`, `write`). This indicates that the `PageIO` interface is 'fat', forcing `MmapPageIOV1` to implement operations that are not applicable to its specific version. This violates the Open/Closed Principle (and often the Liskov Substitution Principle), as `PageIO` is not closed for modification if new versions introduce operations that older versions cannot meaningfully support, or if new `PageIO` implementations are added that only need a subset of the interface's functionality. The `PageIO` interface should be segregated into smaller, role-specific interfaces."
+  }
+]

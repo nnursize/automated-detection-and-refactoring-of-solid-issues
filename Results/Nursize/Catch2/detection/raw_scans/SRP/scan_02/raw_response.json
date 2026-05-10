@@ -1,0 +1,161 @@
+{
+  "scan_id": "Catch2_SRP_scan_02",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 2,
+  "timestamp": "2026-05-02T00:11:38.796208",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following c++ source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persisten...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::IResultCapture\",\n      \"entity_type\": \"class\",\n      \"line_start\": 357,\n      \"line_end\": 417,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Interface combines responsibilities for assertion handling, section tracking, generator tracking, and benchmark reporting.\",\n      \"reasoning\": \"The `IResultCapture` interface defines methods for handling a wide array of distinct events: assertion lifecycle (`notifyAssertionStarted`, `handleExpr`, `handleMessage`, etc.), section lifecycle (`sectionStarted`, `sectionEnded`), generator lifecycle (`acquireGeneratorTracker`, `createGeneratorTracker`), and benchmark events (`benchmarkPreparing`, `benchmarkStarting`, `benchmarkEnded`, `benchmarkFailed`). These are separate reasons for a concrete implementation to change, making it difficult for any single class implementing this interface to adhere to SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::IConfig\",\n      \"entity_type\": \"class\",\n      \"line_start\": 447,\n      \"line_end\": 489,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Interface exposes a broad range of configuration settings for test execution, output, and benchmarking.\",\n      \"reasoning\": \"The `IConfig` interface defines getters for numerous unrelated configuration aspects, including general test run options (e.g., `allowThrows`, `includeSuccessfulResults`), warning settings (`warnAboutMissingAssertions`), execution order (`runOrder`, `rngSeed`), output formatting (`showInvisibles`, `showDurations`, `defaultColourMode`, `verbosity`), and specific benchmark parameters (`skipBenchmarks`, `benchmarkSamples`). A class implementing this interface would need to change for any modification to these distinct configuration categories, violating SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Benchmark::Benchmark\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1039,\n      \"line_end\": 1109,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class combines benchmark definition, preparation, execution, and error handling/reporting.\",\n      \"reasoning\": \"The `Benchmark` class stores the benchmark name and function (`fun`), prepares the execution plan (`prepare` method, involving timing and iteration calculation), executes the benchmark (`run` method, which interacts with `IConfig` and `IResultCapture`), and handles exceptions during execution. These are distinct responsibilities: defining a benchmark, planning its execution, performing the execution, and reporting/error handling. Changes to any of these aspects would require modifying this single class.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Config\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1583,\n      \"line_end\": 1642,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class combines configuration data storage, reporter specification processing, test specification management, and environment variable reading.\",\n      \"reasoning\": \"The `Config` class holds raw configuration data (`m_data`), processes reporter specifications (`m_processedReporterSpecs`), manages test specifications (`m_testSpec`, `m_hasTestFilters`), and reads environment variables (`readBazelEnvVars`). These are distinct concerns. Changes to how CLI arguments are parsed, how reporter configurations are interpreted, how test filters are applied, or how environment variables influence settings would all require modifications to this class.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 2189,\n      \"line_end\": 2228,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class acts as a 'God object' for the entire test application, orchestrating CLI parsing, configuration, and test execution.\",\n      \"reasoning\": \"The `Session` class is responsible for applying command-line arguments (`applyCommandLine`), managing configuration (`useConfigData`, `configData`, `config`), orchestrating the entire test run lifecycle (`run`, `runInternal`), displaying help, and handling startup exceptions. This combines multiple high-level responsibilities that should ideally be delegated to separate components, such as a CLI parser, a configuration manager, and a test runner.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::AssertionHandler\",\n      \"entity_type\": \"class\",\n      \"line_start\": 2866,\n      \"line_end\": 2919,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class mixes assertion result processing, reaction determination, and reporting to the result capture mechanism.\",\n      \"reasoning\": \"The `AssertionHandler` class is responsible for storing assertion metadata (`m_assertionInfo`), determining the appropriate reaction to an assertion (e.g., debug break, throw, skip via `m_reaction`), and then interacting with the `IResultCapture` interface to report the various outcomes (`handleExpr`, `handleMessage`, `handleUnexpectedExceptionNotThrown`, etc.). These are distinct concerns that could be separated into an assertion evaluation component, a policy for reaction, and a dedicated reporter proxy.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::IEventListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 4181,\n      \"line_end\": 4268,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Interface defines an extremely broad range of events, covering almost all aspects of the test run lifecycle and reporting.\",\n      \"reasoning\": \"The `IEventListener` interface includes methods for test run, test case, section, assertion, and benchmark lifecycles, as well as error handling and various listing operations. This vast scope means any concrete implementation of this interface will inherently violate SRP by having to provide logic for many unrelated types of events. Changes to any part of the test framework's event model would necessitate changes to this interface and all its implementers.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::ReporterBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5110,\n      \"line_end\": 5163,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base class for reporters combines stream management, console colouring, custom option storage, and default listing logic.\",\n      \"reasoning\": \"The `ReporterBase` class manages the output stream (`m_wrapped_stream`, `m_stream`), handles console colouring (`m_colour`), stores custom reporter options (`m_customOptions`), and provides default implementations for listing reporters, listeners, tests, and tags. These are distinct concerns. A change in how output streams are managed, how colours are applied, how options are processed, or how any of the listings are formatted would require modifications to this class.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 4725,\n      \"line_end\": 4825,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class serves as a 'God object' for test execution, combining result capture, reporting, state management, and system-level interactions.\",\n      \"reasoning\": \"The `RunContext` class implements `IResultCapture`, handling all assertion types, messages, exceptions, sections, generators, and benchmarks. It orchestrates test execution, manages test run state and totals, interacts with the reporter, manages section tracking, handles output redirection, and manages fatal conditions. It also caches numerous configuration values. This class has far too many reasons to change, making it a severe SRP violation. It combines core execution logic, result capture, reporting, state management, and interaction with various system-level features (output, fatal errors).\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Section\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3086,\n      \"line_end\": 3109,\n      \"principle\": \"SRP\",\n      \"severity\": \"low\",\n      \"description\": \"Class manages section metadata, assertion counts, execution inclusion logic, and timing.\",\n      \"reasoning\": \"While all aspects are related to a 'section', managing assertion counts (`m_assertions`) and timing (`m_timer`) are distinct concerns from the basic lifecycle and conditional execution (`m_sectionIncluded`) of a section. A change in how assertions are counted or how timing is performed would affect this class, even if the core section logic remains unchanged.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::JsonReporter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5410,\n      \"line_end\": 5489,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Class manages complex JSON output tree state (stacks of writers) alongside handling diverse test events.\",\n      \"reasoning\": \"The `JsonReporter` class maintains multiple stacks of `JsonObjectWriter` and `JsonArrayWriter` to manage the nesting and formatting of JSON output. This complex state management for structured output is a distinct responsibility from simply receiving and transforming test events into a report. Changes to JSON formatting rules or the internal state management of the JSON writers would directly impact this class, separate from changes to the test event model.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::JunitReporter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5510,\n      \"line_end\": 5543,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Class combines XML document generation, standard output/error buffering, and specific error condition tracking with test event reporting.\",\n      \"reasoning\": \"The `JunitReporter` class uses an `XmlWriter` for generating JUnit XML, buffers standard output and error (`stdOutForSuite`, `stdErrForSuite`), and tracks specific error conditions (`unexpectedExceptions`, `m_okToFail`). These responsibilities (XML writing, I/O buffering, error state management) are distinct from the core logic of receiving and translating test events into a report. Separating these concerns would make the class more robust to changes in XML schema, I/O handling, or error tracking mechanisms.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::XmlReporter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5693,\n      \"line_end\": 5740,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Class combines XML document generation and section depth tracking with test event reporting.\",\n      \"reasoning\": \"Similar to `JunitReporter`, the `XmlReporter` class uses an `XmlWriter` for generating XML output and tracks section depth (`m_sectionDepth`) to manage the XML structure. The responsibility of generating a well-formed XML document (including indentation and element closing) is distinct from the core logic of processing test events. Decoupling the XML serialization logic into a separate component would improve maintainability.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::IResultCapture",
+      "entity_type": "class",
+      "line_start": 357,
+      "line_end": 417,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Interface combines responsibilities for assertion handling, section tracking, generator tracking, and benchmark reporting.",
+      "reasoning": "The `IResultCapture` interface defines methods for handling a wide array of distinct events: assertion lifecycle (`notifyAssertionStarted`, `handleExpr`, `handleMessage`, etc.), section lifecycle (`sectionStarted`, `sectionEnded`), generator lifecycle (`acquireGeneratorTracker`, `createGeneratorTracker`), and benchmark events (`benchmarkPreparing`, `benchmarkStarting`, `benchmarkEnded`, `benchmarkFailed`). These are separate reasons for a concrete implementation to change, making it difficult for any single class implementing this interface to adhere to SRP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::IConfig",
+      "entity_type": "class",
+      "line_start": 447,
+      "line_end": 489,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Interface exposes a broad range of configuration settings for test execution, output, and benchmarking.",
+      "reasoning": "The `IConfig` interface defines getters for numerous unrelated configuration aspects, including general test run options (e.g., `allowThrows`, `includeSuccessfulResults`), warning settings (`warnAboutMissingAssertions`), execution order (`runOrder`, `rngSeed`), output formatting (`showInvisibles`, `showDurations`, `defaultColourMode`, `verbosity`), and specific benchmark parameters (`skipBenchmarks`, `benchmarkSamples`). A class implementing this interface would need to change for any modification to these distinct configuration categories, violating SRP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Benchmark::Benchmark",
+      "entity_type": "class",
+      "line_start": 1039,
+      "line_end": 1109,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class combines benchmark definition, preparation, execution, and error handling/reporting.",
+      "reasoning": "The `Benchmark` class stores the benchmark name and function (`fun`), prepares the execution plan (`prepare` method, involving timing and iteration calculation), executes the benchmark (`run` method, which interacts with `IConfig` and `IResultCapture`), and handles exceptions during execution. These are distinct responsibilities: defining a benchmark, planning its execution, performing the execution, and reporting/error handling. Changes to any of these aspects would require modifying this single class."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Config",
+      "entity_type": "class",
+      "line_start": 1583,
+      "line_end": 1642,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class combines configuration data storage, reporter specification processing, test specification management, and environment variable reading.",
+      "reasoning": "The `Config` class holds raw configuration data (`m_data`), processes reporter specifications (`m_processedReporterSpecs`), manages test specifications (`m_testSpec`, `m_hasTestFilters`), and reads environment variables (`readBazelEnvVars`). These are distinct concerns. Changes to how CLI arguments are parsed, how reporter configurations are interpreted, how test filters are applied, or how environment variables influence settings would all require modifications to this class."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Session",
+      "entity_type": "class",
+      "line_start": 2189,
+      "line_end": 2228,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class acts as a 'God object' for the entire test application, orchestrating CLI parsing, configuration, and test execution.",
+      "reasoning": "The `Session` class is responsible for applying command-line arguments (`applyCommandLine`), managing configuration (`useConfigData`, `configData`, `config`), orchestrating the entire test run lifecycle (`run`, `runInternal`), displaying help, and handling startup exceptions. This combines multiple high-level responsibilities that should ideally be delegated to separate components, such as a CLI parser, a configuration manager, and a test runner."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::AssertionHandler",
+      "entity_type": "class",
+      "line_start": 2866,
+      "line_end": 2919,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class mixes assertion result processing, reaction determination, and reporting to the result capture mechanism.",
+      "reasoning": "The `AssertionHandler` class is responsible for storing assertion metadata (`m_assertionInfo`), determining the appropriate reaction to an assertion (e.g., debug break, throw, skip via `m_reaction`), and then interacting with the `IResultCapture` interface to report the various outcomes (`handleExpr`, `handleMessage`, `handleUnexpectedExceptionNotThrown`, etc.). These are distinct concerns that could be separated into an assertion evaluation component, a policy for reaction, and a dedicated reporter proxy."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::IEventListener",
+      "entity_type": "class",
+      "line_start": 4181,
+      "line_end": 4268,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Interface defines an extremely broad range of events, covering almost all aspects of the test run lifecycle and reporting.",
+      "reasoning": "The `IEventListener` interface includes methods for test run, test case, section, assertion, and benchmark lifecycles, as well as error handling and various listing operations. This vast scope means any concrete implementation of this interface will inherently violate SRP by having to provide logic for many unrelated types of events. Changes to any part of the test framework's event model would necessitate changes to this interface and all its implementers."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::ReporterBase",
+      "entity_type": "class",
+      "line_start": 5110,
+      "line_end": 5163,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Base class for reporters combines stream management, console colouring, custom option storage, and default listing logic.",
+      "reasoning": "The `ReporterBase` class manages the output stream (`m_wrapped_stream`, `m_stream`), handles console colouring (`m_colour`), stores custom reporter options (`m_customOptions`), and provides default implementations for listing reporters, listeners, tests, and tags. These are distinct concerns. A change in how output streams are managed, how colours are applied, how options are processed, or how any of the listings are formatted would require modifications to this class."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::RunContext",
+      "entity_type": "class",
+      "line_start": 4725,
+      "line_end": 4825,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class serves as a 'God object' for test execution, combining result capture, reporting, state management, and system-level interactions.",
+      "reasoning": "The `RunContext` class implements `IResultCapture`, handling all assertion types, messages, exceptions, sections, generators, and benchmarks. It orchestrates test execution, manages test run state and totals, interacts with the reporter, manages section tracking, handles output redirection, and manages fatal conditions. It also caches numerous configuration values. This class has far too many reasons to change, making it a severe SRP violation. It combines core execution logic, result capture, reporting, state management, and interaction with various system-level features (output, fatal errors)."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Section",
+      "entity_type": "class",
+      "line_start": 3086,
+      "line_end": 3109,
+      "principle": "SRP",
+      "severity": "low",
+      "description": "Class manages section metadata, assertion counts, execution inclusion logic, and timing.",
+      "reasoning": "While all aspects are related to a 'section', managing assertion counts (`m_assertions`) and timing (`m_timer`) are distinct concerns from the basic lifecycle and conditional execution (`m_sectionIncluded`) of a section. A change in how assertions are counted or how timing is performed would affect this class, even if the core section logic remains unchanged."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::JsonReporter",
+      "entity_type": "class",
+      "line_start": 5410,
+      "line_end": 5489,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Class manages complex JSON output tree state (stacks of writers) alongside handling diverse test events.",
+      "reasoning": "The `JsonReporter` class maintains multiple stacks of `JsonObjectWriter` and `JsonArrayWriter` to manage the nesting and formatting of JSON output. This complex state management for structured output is a distinct responsibility from simply receiving and transforming test events into a report. Changes to JSON formatting rules or the internal state management of the JSON writers would directly impact this class, separate from changes to the test event model."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::JunitReporter",
+      "entity_type": "class",
+      "line_start": 5510,
+      "line_end": 5543,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Class combines XML document generation, standard output/error buffering, and specific error condition tracking with test event reporting.",
+      "reasoning": "The `JunitReporter` class uses an `XmlWriter` for generating JUnit XML, buffers standard output and error (`stdOutForSuite`, `stdErrForSuite`), and tracks specific error conditions (`unexpectedExceptions`, `m_okToFail`). These responsibilities (XML writing, I/O buffering, error state management) are distinct from the core logic of receiving and translating test events into a report. Separating these concerns would make the class more robust to changes in XML schema, I/O handling, or error tracking mechanisms."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::XmlReporter",
+      "entity_type": "class",
+      "line_start": 5693,
+      "line_end": 5740,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Class combines XML document generation and section depth tracking with test event reporting.",
+      "reasoning": "Similar to `JunitReporter`, the `XmlReporter` class uses an `XmlWriter` for generating XML output and tracks section depth (`m_sectionDepth`) to manage the XML structure. The responsibility of generating a well-formed XML document (including indentation and element closing) is distinct from the core logic of processing test events. Decoupling the XML serialization logic into a separate component would improve maintainability."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 34098.23989868164,
+  "error": null
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS",
+    "entity_type": "class",
+    "line_start": 44,
+    "line_end": 60,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "TypeAdapter for Class objects throws UnsupportedOperationException for both read and write.",
+    "reasoning": "The `TypeAdapter` interface forces `TypeAdapters.CLASS` to implement both `read` and `write` methods, even though it explicitly throws `UnsupportedOperationException` for both. This indicates that the `TypeAdapter` interface is too broad, as this specific client does not genuinely support either serialization or deserialization of `Class` objects, yet must provide method bodies."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 80,
+    "line_end": 99,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "TypeAdapter for anonymous or non-static local classes performs no meaningful conversion (skips value / writes null).",
+    "reasoning": "When `ReflectiveTypeAdapterFactory.create` encounters an anonymous or non-static local class, it returns a `TypeAdapter` implementation whose `read` method just calls `in.skipValue()` and `write` method just calls `out.nullValue()`. This indicates that the `TypeAdapter` interface is too broad, as this specific adapter does not perform meaningful type-specific conversion, but rather an 'ignore' or 'null' strategy. Clients are forced to use `read` and `write` methods that do not fulfill the contract of converting the type, effectively depending on methods they 'don't use' for actual conversion."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 53,
+    "line_end": 285,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Abstract JsonElement class acts as a fat interface, forcing subclasses to implement getAs* methods that are not applicable to their type.",
+    "reasoning": "The `JsonElement` abstract class defines numerous `getAs...()` methods. Subclasses like `JsonObject`, `JsonArray`, and `JsonNull` often throw `UnsupportedOperationException` for many of these methods or delegate them in a way that might still lead to exceptions (e.g., `JsonArray` delegates primitive `getAs*` methods to its single element). This forces these clients (the subclasses) to depend on and provide implementations for methods that are not relevant to their specific JSON type, violating ISP. A client wanting to check if an element is an object (`isJsonObject()`) should not be forced to provide a `getAsDouble()` implementation for it."
+  },
+  {
+    "file_path": "gson/extras/src/main/java/com/google/gson/graph/GraphAdapterBuilder.java",
+    "entity_name": "GraphAdapterBuilder.Factory.createInstance",
+    "entity_type": "method",
+    "line_start": 218,
+    "line_end": 226,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "InstanceCreator.createInstance method conditionally throws IllegalStateException, indicating it's not always supported for direct client use.",
+    "reasoning": "`GraphAdapterBuilder.Factory` implements `InstanceCreator<Object>`, but its `createInstance(Type type)` method throws an `IllegalStateException` if `graph.nextCreate` is null. This indicates that the `createInstance` method is not intended for direct public use by any client, but rather for a very specific internal flow, forcing this client to implement a method that is only conditionally usable."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonStreamParser.java",
+    "entity_name": "JsonStreamParser.remove",
+    "entity_type": "method",
+    "line_start": 98,
+    "line_end": 101,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JsonStreamParser implements Iterator but throws UnsupportedOperationException for the remove() method.",
+    "reasoning": "`JsonStreamParser` implements `Iterator<JsonElement>` but its `remove()` method throws an `UnsupportedOperationException`. A stream parser is designed for reading elements sequentially, not for modifying the underlying collection. Therefore, the `remove()` method is not applicable to its functionality. This forces `JsonStreamParser` to implement a method it does not support, violating ISP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.DummyTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 40,
+    "line_end": 43,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "DummyTypeAdapterFactory implements TypeAdapterFactory but throws AssertionError for the create() method.",
+    "reasoning": "`DummyTypeAdapterFactory` implements `TypeAdapterFactory` but its `create()` method throws an `AssertionError`. This class is used as a sentinel and is not intended to actually create type adapters. The `TypeAdapterFactory` interface, by requiring `create()`, forces this dummy class to provide a method implementation that is fundamentally a no-op or an error, rather than performing its stated purpose."
+  }
+]

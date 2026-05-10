@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "    private void newCheckpointedHeadpage(int pageNum) throws IOException {\n        PageIO headPageIO = PageIOFactory.create(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n        headPageIO.create();\n        logger.debug(\"created new head page: {}\", headPageIO);\n        this.headPage = PageFactory.newHeadPage(pageNum, this, headPageIO);\n        this.headPage.forceCheckpoint();\n    }",
+    "replace_text": "    private void newCheckpointedHeadpage(int pageNum) throws IOException {\n        PageIO headPageIO = PageIOFactory.create(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n        headPageIO.create();\n        logger.debug(\"created new head page: {}\", headPageIO);\n        this.headPage = PageFactory.newHeadPage(headPageIO.getPageNum(), this, headPageIO);\n        this.headPage.forceCheckpoint();\n    }"
+  }
+]

@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-012",
+  "principle": "ISP",
+  "title": "Refactor ISP-012 (ISP): The GeneratorBase class is forced to implement writeString from a Reader but...",
+  "branch": "refactor/ISP-012",
+  "base": "main",
+  "head_commit": "d5e5fd92e8534a70406271f72c8d497a33ebeeba",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5359,
+    "completion_tokens": 202
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+    "entity_name": "GeneratorBase.writeString(Reader reader, int len)",
+    "entity_type": "method",
+    "line_start": 229,
+    "line_end": 231,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The GeneratorBase class is forced to implement writeString from a Reader but explicitly reports it as an unsupported operation.",
+    "reasoning": "The 'JsonGenerator' interface mandates a method for writing string content from a 'Reader'. 'GeneratorBase', a common abstract base for generators, explicitly calls '_reportUnsupportedOperation()' for 'writeString(Reader, int)'. This indicates that this method is not universally supported by all generator types (e.g., byte-based generators might not handle character readers efficiently), making the 'JsonGenerator' interface too large and forcing implementations to declare methods they do not support."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove unsupported writeString(Reader, int) from GeneratorBase",
+    "rationale": "The method writeString(Reader, int) is not universally supported by all JsonGenerator implementations. By removing it from the base class, we avoid forcing implementations to override it just to throw an exception, adhering to the Interface Segregation Principle. This method should be moved to a more specific interface (e.g., ReaderBasedGenerator) or handled via optional capability checks.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "loc": 387,
+        "blank_lines": 74,
+        "comment_lines": 33,
+        "function_count": 23,
+        "avg_cc": 2.87,
+        "max_cc": 44.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 1632.8985691070557
+}

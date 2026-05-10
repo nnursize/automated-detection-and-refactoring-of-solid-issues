@@ -1,0 +1,61 @@
+{
+  "issue_id": "OCP-018",
+  "principle": "OCP",
+  "title": "Refactor OCP-018 (OCP): Switch statement on token ID requires modification to handle new token types",
+  "branch": "refactor/OCP-018",
+  "base": "main",
+  "head_commit": "68ce7e9ad175b8602bc625a892c37584b60ad05f",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4021,
+    "completion_tokens": 778
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator.copyCurrentEvent",
+    "entity_type": "class",
+    "line_start": 863,
+    "line_end": 905,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Switch statement on token ID requires modification to handle new token types",
+    "reasoning": "The copyCurrentEvent method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Remove redundant `copyCurrentStructure` method with switch statement, delegating full logic to `JsonStreamCopier`.",
+    "rationale": "The `JsonGenerator` class contained two `copyCurrentStructure` methods. One `public JsonParser copyCurrentStructure(JsonParser p)` correctly delegates to `JsonStreamCopier.copyCurrentStructure(p, this)`. The other `public void copyCurrentStructure(JsonParser p)` implemented similar logic using a switch statement on token IDs, violating the Open/Closed Principle (OCP) as new token types would require modifying this switch. By removing the redundant `void` method and its associated Javadoc, we centralize the stream copying logic within `JsonStreamCopier`, ensuring `JsonGenerator` is closed for modification with respect to new token types while maintaining existing behavior through the delegated public API.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "loc": 2247,
+        "blank_lines": 162,
+        "comment_lines": 33,
+        "function_count": 66,
+        "avg_cc": 8.52,
+        "max_cc": 497.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 33970.306158065796
+}

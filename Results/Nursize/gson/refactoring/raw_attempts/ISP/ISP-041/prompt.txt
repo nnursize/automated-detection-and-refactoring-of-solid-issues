@@ -1,0 +1,311 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: ISP-041
+- **Principle**: Interface Segregation Principle (ISP)
+- **File**: `gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java`
+- **Entity**: `DummyTypeAdapterFactory.create` (current lines L40-L40 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+DummyTypeAdapterFactory.create() throws AssertionError, indicating it should not be used.
+
+### Reasoning
+The DummyTypeAdapterFactory implements the TypeAdapterFactory interface but its create() method explicitly throws an AssertionError with the message 'Factory should not be used'. This clearly indicates that the class is forced to implement a method from an interface that it does not meaningfully support, serving merely as a placeholder or a 'dummy' implementation, which is a direct violation of ISP.
+
+## Principle reference
+**Interface Segregation Principle** — Clients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.
+
+What typically signals a violation:
+- Abstract base classes or interfaces with too many methods
+- Classes that implement an interface but leave methods as pass or raise NotImplementedError
+- Fat interfaces that could be split into smaller, more focused ones
+- Classes forced to depend on methods they never call
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java`
+```java
+/*
+ * Copyright (C) 2014 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson.internal.bind;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonSerializer;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.internal.ConstructorConstructor;
+import com.google.gson.reflect.TypeToken;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * Given a type T, looks for the annotation {@link JsonAdapter} and uses an instance of the
+ * specified class as the default type adapter.
+ *
+ * @since 2.3
+ */
+public final class JsonAdapterAnnotationTypeAdapterFactory implements TypeAdapterFactory {
+  private static class DummyTypeAdapterFactory implements TypeAdapterFactory {
+    @Override
+    public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+      throw new AssertionError("Factory should not be used");
+    }
+  }
+
+  /** Factory used for {@link TreeTypeAdapter}s created for {@code @JsonAdapter} on a class. */
+  private static final TypeAdapterFactory TREE_TYPE_CLASS_DUMMY_FACTORY =
+      new DummyTypeAdapterFactory();
+
+  /** Factory used for {@link TreeTypeAdapter}s created for {@code @JsonAdapter} on a field. */
+  private static final TypeAdapterFactory TREE_TYPE_FIELD_DUMMY_FACTORY =
+      new DummyTypeAdapterFactory();
+
+  private final ConstructorConstructor constructorConstructor;
+
+  /**
+   * For a class, if it is annotated with {@code @JsonAdapter} and refers to a {@link
+   * TypeAdapterFactory}, stores the factory instance in case it has been requested already. Has to
+   * be a {@link ConcurrentMap} because {@link Gson} guarantees to be thread-safe.
+   */
+  // Note: In case these strong reference to TypeAdapterFactory instances are considered
+  // a memory leak in the future, could consider switching to WeakReference<TypeAdapterFactory>
+  private final ConcurrentMap<Class<?>, TypeAdapterFactory> adapterFactoryMap;
+
+  public JsonAdapterAnnotationTypeAdapterFactory(ConstructorConstructor constructorConstructor) {
+    this.constructorConstructor = constructorConstructor;
+    this.adapterFactoryMap = new ConcurrentHashMap<>();
+  }
+
+  // Separate helper method to make sure callers retrieve annotation in a consistent way
+  private static JsonAdapter getAnnotation(Class<?> rawType) {
+    return rawType.getAnnotation(JsonAdapter.class);
+  }
+
+  // this is not safe; requires that user has specified correct adapter class for @JsonAdapter
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> targetType) {
+    Class<? super T> rawType = targetType.getRawType();
+    JsonAdapter annotation = getAnnotation(rawType);
+    if (annotation == null) {
+      return null;
+    }
+    return (TypeAdapter<T>)
+        getTypeAdapter(constructorConstructor, gson, targetType, annotation, true);
+  }
+
+  // Separate helper method to make sure callers create adapter in a consistent way
+  private static Object createAdapter(
+      ConstructorConstructor constructorConstructor, Class<?> adapterClass) {
+    // TODO: The exception messages created by ConstructorConstructor are currently written in the
+    // context of deserialization and for example suggest usage of TypeAdapter, which would not work
+    // for @JsonAdapter usage
+    // TODO: Should probably not allow usage of Unsafe; instances might be in broken state and
+    // calling adapter methods on them might lead to confusing exceptions
+    boolean allowUnsafe = true;
+    return constructorConstructor.get(TypeToken.get(adapterClass), allowUnsafe).construct();
+  }
+
+  private TypeAdapterFactory putFactoryAndGetCurrent(Class<?> rawType, TypeAdapterFactory factory) {
+    // Uses putIfAbsent in case multiple threads concurrently create factory
+    TypeAdapterFactory existingFactory = adapterFactoryMap.putIfAbsent(rawType, factory);
+    return existingFactory != null ? existingFactory : factory;
+  }
+
+  TypeAdapter<?> getTypeAdapter(
+      ConstructorConstructor constructorConstructor,
+      Gson gson,
+      TypeToken<?> type,
+      JsonAdapter annotation,
+      boolean isClassAnnotation) {
+    Object instance = createAdapter(constructorConstructor, annotation.value());
+
+    TypeAdapter<?> typeAdapter;
+    boolean nullSafe = annotation.nullSafe();
+    if (instance instanceof TypeAdapter) {
+      typeAdapter = (TypeAdapter<?>) instance;
+    } else if (instance instanceof TypeAdapterFactory) {
+      TypeAdapterFactory factory = (TypeAdapterFactory) instance;
+
+      if (isClassAnnotation) {
+        factory = putFactoryAndGetCurrent(type.getRawType(), factory);
+      }
+
+      typeAdapter = factory.create(gson, type);
+    } else if (instance instanceof JsonSerializer || instance instanceof JsonDeserializer) {
+      JsonSerializer<?> serializer =
+          instance instanceof JsonSerializer ? (JsonSerializer<?>) instance : null;
+      JsonDeserializer<?> deserializer =
+          instance instanceof JsonDeserializer ? (JsonDeserializer<?>) instance : null;
+
+      // Uses dummy factory instances because TreeTypeAdapter needs a 'skipPast' factory for
+      // `Gson.getDelegateAdapter` call and has to differentiate there whether TreeTypeAdapter was
+      // created for @JsonAdapter on class or field
+      TypeAdapterFactory skipPast;
+      if (isClassAnnotation) {
+        skipPast = TREE_TYPE_CLASS_DUMMY_FACTORY;
+      } else {
+        skipPast = TREE_TYPE_FIELD_DUMMY_FACTORY;
+      }
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      TypeAdapter<?> tempAdapter =
+          new TreeTypeAdapter(serializer, deserializer, gson, type, skipPast, nullSafe);
+      typeAdapter = tempAdapter;
+
+      // TreeTypeAdapter handles nullSafe; don't additionally call `nullSafe()`
+      nullSafe = false;
+    } else {
+      throw new IllegalArgumentException(
+          "Invalid attempt to bind an instance of "
+              + instance.getClass().getName()
+              + " as a @JsonAdapter for "
+              + type.toString()
+              + ". @JsonAdapter value must be a TypeAdapter, TypeAdapterFactory,"
+              + " JsonSerializer or JsonDeserializer.");
+    }
+
+    if (typeAdapter != null && nullSafe) {
+      typeAdapter = typeAdapter.nullSafe();
+    }
+
+    return typeAdapter;
+  }
+
+  /**
+   * Returns whether {@code factory} is a type adapter factory created for {@code @JsonAdapter}
+   * placed on {@code type}.
+   */
+  public boolean isClassJsonAdapterFactory(TypeToken<?> type, TypeAdapterFactory factory) {
+    Objects.requireNonNull(type);
+    Objects.requireNonNull(factory);
+
+    if (factory == TREE_TYPE_CLASS_DUMMY_FACTORY) {
+      return true;
+    }
+
+    // Using raw type to match behavior of `create(Gson, TypeToken<T>)` above
+    Class<?> rawType = type.getRawType();
+
+    TypeAdapterFactory existingFactory = adapterFactoryMap.get(rawType);
+    if (existingFactory != null) {
+      // Checks for reference equality, like it is done by `Gson.getDelegateAdapter`
+      return existingFactory == factory;
+    }
+
+    // If no factory has been created for the type yet check manually for a @JsonAdapter annotation
+    // which specifies a TypeAdapterFactory
+    // Otherwise behavior would not be consistent, depending on whether or not adapter had been
+    // requested before call to `isClassJsonAdapterFactory` was made
+    JsonAdapter annotation = getAnnotation(rawType);
+    if (annotation == null) {
+      return false;
+    }
+
+    Class<?> adapterClass = annotation.value();
+    if (!TypeAdapterFactory.class.isAssignableFrom(adapterClass)) {
+      return false;
+    }
+
+    Object adapter = createAdapter(constructorConstructor, adapterClass);
+    TypeAdapterFactory newFactory = (TypeAdapterFactory) adapter;
+
+    return putFactoryAndGetCurrent(rawType, newFactory) == factory;
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/internal/bind/ArrayTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/BasicTypeAdapters.java`
+- `gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java`
+- `gson/src/main/java/com/google/gson/internal/bind/CollectionTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/EnumTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java`
+- `gson/src/main/java/com/google/gson/internal/bind/IgnoreJRERequirement.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonTreeWriter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/MapTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/NumberTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/SerializationDelegatingTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TreeTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

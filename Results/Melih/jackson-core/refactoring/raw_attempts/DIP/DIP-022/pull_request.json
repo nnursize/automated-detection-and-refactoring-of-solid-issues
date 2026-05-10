@@ -1,0 +1,104 @@
+{
+  "issue_id": "DIP-022",
+  "principle": "DIP",
+  "title": "Refactor DIP-022 (DIP): Direct instantiation of concrete TextBuffer implementations.",
+  "branch": "refactor/DIP-022",
+  "base": "main",
+  "head_commit": "1f88f255084094074ecf93ddbee18e92dd16b388",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5080,
+    "completion_tokens": 608
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+    "entity_name": "IOContext.constructTextBuffer",
+    "entity_type": "class",
+    "line_start": 214,
+    "line_end": 221,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Direct instantiation of concrete TextBuffer implementations.",
+    "reasoning": "The constructTextBuffer and constructReadConstrainedTextBuffer methods directly instantiate TextBuffer and ReadConstrainedTextBuffer. This prevents the inversion of control where alternative buffer strategies could be injected into the context."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a TextBufferFactory to decouple IOContext from concrete TextBuffer implementations.",
+    "rationale": "The IOContext class was directly instantiating TextBuffer and ReadConstrainedTextBuffer. By introducing a factory interface and a default implementation, we allow the creation logic to be abstracted, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/io/IOContext.java",
+      "src/main/java/tools/jackson/core/io/TextBufferFactory.java"
+    ],
+    "files_created": [
+      "src/main/java/tools/jackson/core/io/TextBufferFactory.java"
+    ],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/io/IOContext.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+        "search_text": "    /*\n    /**********************************************************************\n    /* Public API, buffer management\n    /**********************************************************************\n     */\n\n    public TextBuffer constructTextBuffer() {\n        return new TextBuffer(_bufferRecycler);\n    }\n\n    public TextBuffer constructReadConstrainedTextBuffer() {\n        return new ReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);\n    }",
+        "replace_text": "    /*\n    /**********************************************************************\n    /* Public API, buffer management\n    /**********************************************************************\n     */\n\n    public TextBuffer constructTextBuffer() {\n        return TextBufferFactory.DEFAULT.constructTextBuffer(_bufferRecycler);\n    }\n\n    public TextBuffer constructReadConstrainedTextBuffer() {\n        return TextBufferFactory.DEFAULT.constructReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);\n    }",
+        "search_lines": 13,
+        "replace_lines": 13
+      },
+      {
+        "kind": "create",
+        "file_path": "src/main/java/tools/jackson/core/io/TextBufferFactory.java",
+        "new_content": "package tools.jackson.core.io;\n\nimport tools.jackson.core.StreamReadConstraints;\nimport tools.jackson.core.util.BufferRecycler;\nimport tools.jackson.core.util.ReadConstrainedTextBuffer;\nimport tools.jackson.core.util.TextBuffer;\n\n/**\n * Factory for creating {@link TextBuffer} instances.\n */\npublic interface TextBufferFactory {\n    TextBuffer constructTextBuffer(BufferRecycler recycler);\n    TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler);\n\n    TextBufferFactory DEFAULT = new TextBufferFactory() {\n        @Override\n        public TextBuffer constructTextBuffer(BufferRecycler recycler) {\n            return new TextBuffer(recycler);\n        }\n\n        @Override\n        public TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler) {\n            return new ReadConstrainedTextBuffer(src, recycler);\n        }\n    };\n}",
+        "new_content_lines": 26
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/io/IOContext.java",
+        "loc": 351,
+        "blank_lines": 55,
+        "comment_lines": 10,
+        "function_count": 32,
+        "avg_cc": 2.66,
+        "max_cc": 54.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/io/IOContext.java",
+        "loc": 351,
+        "blank_lines": 55,
+        "comment_lines": 10,
+        "function_count": 32,
+        "avg_cc": 2.66,
+        "max_cc": 54.0,
+        "mi": 0.0
+      },
+      {
+        "file": "src/main/java/tools/jackson/core/io/TextBufferFactory.java",
+        "loc": 22,
+        "blank_lines": 4,
+        "comment_lines": 0,
+        "function_count": 2,
+        "avg_cc": 1.5,
+        "max_cc": 2.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/io/IOContext.java b/src/main/java/tools/jackson/core/io/IOContext.java\nindex 9304ec4..396abe6 100644\n--- a/src/main/java/tools/jackson/core/io/IOContext.java\n+++ b/src/main/java/tools/jackson/core/io/IOContext.java\n@@ -213,11 +213,11 @@ public class IOContext implements AutoCloseable\n      */\n \n     public TextBuffer constructTextBuffer() {\n-        return new TextBuffer(_bufferRecycler);\n+        return TextBufferFactory.DEFAULT.constructTextBuffer(_bufferRecycler);\n     }\n \n     public TextBuffer constructReadConstrainedTextBuffer() {\n-        return new ReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);\n+        return TextBufferFactory.DEFAULT.constructReadConstrainedTextBuffer(_streamReadConstraints, _bufferRecycler);\n     }\n \n     /**\ndiff --git a/src/main/java/tools/jackson/core/io/TextBufferFactory.java b/src/main/java/tools/jackson/core/io/TextBufferFactory.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/src/main/java/tools/jackson/core/io/TextBufferFactory.java\n@@ -0,0 +1,26 @@\n+package tools.jackson.core.io;\n+\n+import tools.jackson.core.StreamReadConstraints;\n+import tools.jackson.core.util.BufferRecycler;\n+import tools.jackson.core.util.ReadConstrainedTextBuffer;\n+import tools.jackson.core.util.TextBuffer;\n+\n+/**\n+ * Factory for creating {@link TextBuffer} instances.\n+ */\n+public interface TextBufferFactory {\n+    TextBuffer constructTextBuffer(BufferRecycler recycler);\n+    TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler);\n+\n+    TextBufferFactory DEFAULT = new TextBufferFactory() {\n+        @Override\n+        public TextBuffer constructTextBuffer(BufferRecycler recycler) {\n+            return new TextBuffer(recycler);\n+        }\n+\n+        @Override\n+        public TextBuffer constructReadConstrainedTextBuffer(StreamReadConstraints src, BufferRecycler recycler) {\n+            return new ReadConstrainedTextBuffer(src, recycler);\n+        }\n+    };\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 2688.9727115631104
+}

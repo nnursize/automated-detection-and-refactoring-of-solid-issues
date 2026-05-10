@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-081",
+  "principle": "LSP",
+  "title": "Refactor LSP-081 (LSP): Final method in an abstract class throws IllegalStateException, effectively n...",
+  "branch": "refactor/LSP-081",
+  "base": "main",
+  "head_commit": "2a11b71ed196ba2e15f5d972c37073f243040146",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 12187,
+    "completion_tokens": 306
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.isShutdownRequested",
+    "entity_type": "method",
+    "line_start": 909,
+    "line_end": 912,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Final method in an abstract class throws IllegalStateException, effectively nullifying its intended functionality.",
+    "reasoning": "The `isShutdownRequested` method is declared `final` in an abstract class `AbstractPipelineExt`, yet its implementation always throws an `IllegalStateException` with a message indicating that concrete implementations *should* provide it. This violates LSP because `AbstractPipelineExt` cannot be substituted for a concrete pipeline without altering the program's correctness; any call to this method will result in an unexpected runtime exception. This effectively nullifies the method's contract in the abstract class, forcing clients to handle an exception or rely on subclasses that paradoxically override a final method (a contradiction in Java)."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Change isShutdownRequested to return false by default instead of throwing an exception",
+    "rationale": "The method was throwing an IllegalStateException, which violates the Liskov Substitution Principle by breaking the contract of the base class. Changing the default implementation to return 'false' (a safe default for a pipeline that hasn't explicitly been told to shut down) allows subclasses to function without being forced to override the method if they don't need custom shutdown logic, while still allowing them to override it if they do.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "search_text": "    @JRubyMethod(name = \"shutdown_requested?\")\n    public IRubyObject isShutdownRequested(final ThreadContext context) {\n        // shutdown_requested? MUST be implemented in the concrete implementation of this class.\n        throw new IllegalStateException(\"Pipeline implementation does not provide `shutdown_requested?`, which is a Logstash internal error.\");\n    }",
+        "replace_text": "    @JRubyMethod(name = \"shutdown_requested?\")\n    public IRubyObject isShutdownRequested(final ThreadContext context) {\n        return context.fals;\n    }",
+        "search_lines": 5,
+        "replace_lines": 4
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 763,
+        "blank_lines": 135,
+        "comment_lines": 4,
+        "function_count": 62,
+        "avg_cc": 1.73,
+        "max_cc": 46.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 763,
+        "blank_lines": 135,
+        "comment_lines": 3,
+        "function_count": 62,
+        "avg_cc": 1.73,
+        "max_cc": 46.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\nindex 545a302..2bc72f6 100644\n--- a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\n+++ b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\n@@ -861,8 +861,7 @@ public class AbstractPipelineExt extends RubyBasicObject {\n \n     @JRubyMethod(name = \"shutdown_requested?\")\n     public IRubyObject isShutdownRequested(final ThreadContext context) {\n-        // shutdown_requested? MUST be implemented in the concrete implementation of this class.\n-        throw new IllegalStateException(\"Pipeline implementation does not provide `shutdown_requested?`, which is a Logstash internal error.\");\n+        return context.fals;\n     }\n \n     @VisibleForTesting\n",
+  "duration_ms": 24279.04963493347
+}

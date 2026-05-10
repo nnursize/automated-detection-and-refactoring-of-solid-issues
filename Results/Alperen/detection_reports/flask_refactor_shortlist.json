@@ -1,0 +1,1144 @@
+{
+  "repo_name": "flask",
+  "per_principle_quota": 12,
+  "total_selected": 59,
+  "total_quota": 60,
+  "short_of_quota": {
+    "DIP": {
+      "have": 11,
+      "need": 12
+    }
+  },
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-001",
+        "rank": 1,
+        "scan_count": 11,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.send_static_file",
+        "entity_type": "method",
+        "line_start": 306,
+        "line_end": 316,
+        "description": "The Flask application directly implements static file serving logic.",
+        "reasoning": "The primary responsibility of the Flask application is to manage the web application's lifecycle, routing, and configuration. Directly implementing static file serving (I/O and HTTP serving logic) is a separate concern that could be delegated to a dedicated static file handler or utility.",
+        "first_detected_scan": "flask_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_01",
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_06",
+          "flask_SRP_scan_07",
+          "flask_SRP_scan_08",
+          "flask_SRP_scan_09",
+          "flask_SRP_scan_10",
+          "flask_SRP_scan_11",
+          "flask_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-040",
+        "rank": 2,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "src/flask/sansio/blueprints.py",
+        "entity_name": "Blueprint.register",
+        "entity_type": "method",
+        "line_start": 160,
+        "line_end": 230,
+        "description": "The 'register' method is responsible for both defining the blueprint's components and orchestrating their integration into the main 'App' object, including merging various types of functions and static files.",
+        "reasoning": "This method goes beyond simply registering a blueprint; it acts as a complex 'registrar' that merges the blueprint's URL rules, error handlers, request hooks, template context processors, URL value preprocessors, URL defaults, and CLI commands into the main `App`. This orchestration of integration logic is a distinct responsibility from merely defining the blueprint's own components, leading to a God Class smell and tight coupling (Inappropriate Intimacy) with the `App`'s internal structure.",
+        "first_detected_scan": "flask_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_06",
+          "flask_SRP_scan_08",
+          "flask_SRP_scan_10",
+          "flask_SRP_scan_11",
+          "flask_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-025",
+        "rank": 3,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/app.py",
+        "entity_name": "App.auto_find_instance_path",
+        "entity_type": "method",
+        "line_start": 401,
+        "line_end": 408,
+        "description": "Automatically locates the application's instance path, mixing file system path resolution with core app logic.",
+        "reasoning": "This method deals with file system path discovery logic, which is a concern separate from the core responsibilities of a web application (like request processing or routing). This logic could be externalized to a path utility helper.",
+        "first_detected_scan": "flask_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_06",
+          "flask_SRP_scan_07",
+          "flask_SRP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "SRP-004",
+        "rank": 4,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.run",
+        "entity_type": "method",
+        "line_start": 409,
+        "line_end": 486,
+        "description": "The Flask application directly implements the logic for running a development server.",
+        "reasoning": "Starting and managing a development server is an operational concern, distinct from the application's core responsibilities of routing, request handling, and configuration. This method mixes application definition with server management, which could be delegated to a separate server runner utility.",
+        "first_detected_scan": "flask_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_01",
+          "flask_SRP_scan_02",
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "SRP-030",
+        "rank": 5,
+        "scan_count": 5,
+        "severity": "low",
+        "file_path": "src/flask/sansio/scaffold.py",
+        "entity_name": "Scaffold.static_folder",
+        "entity_type": "class",
+        "line_start": 169,
+        "line_end": 175,
+        "description": "Property for resolving the absolute path of the static folder, mixing path resolution with component registration.",
+        "reasoning": "While `Scaffold` needs to know about a static folder path, the logic for resolving it (joining `root_path`) is a path manipulation concern. This could be handled by a dedicated path utility rather than being a property of a class primarily focused on registering application components.",
+        "first_detected_scan": "flask_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_06",
+          "flask_SRP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "SRP-014",
+        "rank": 6,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/blueprints.py",
+        "entity_name": "Blueprint.get_send_file_max_age",
+        "entity_type": "method",
+        "line_start": 105,
+        "line_end": 120,
+        "description": "The 'get_send_file_max_age' method handles specific logic for determining cache control for static files within a blueprint.",
+        "reasoning": "The primary responsibility of a Blueprint is to modularize application components and their registration. This method, however, implements specific logic for static file caching. This is a duplication of concerns already present in the `Flask` class and represents a distinct 'static file serving' responsibility. Changes to static file caching would affect this method, independent of the blueprint's core registration logic.",
+        "first_detected_scan": "flask_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_02",
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_10",
+          "flask_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-036",
+        "rank": 7,
+        "scan_count": 4,
+        "severity": "low",
+        "file_path": "src/flask/json/provider.py",
+        "entity_name": "JSONProvider.response",
+        "entity_type": "method",
+        "line_start": 98,
+        "line_end": 105,
+        "description": "Combines JSON serialization with HTTP response object creation.",
+        "reasoning": "This method takes serialized JSON data and wraps it into an HTTP response object with the appropriate mimetype. While convenient for JSON APIs, it technically mixes the responsibility of 'data serialization' with 'HTTP response construction'. This is a common pattern in web frameworks for convenience, but it's a slight blend of concerns.",
+        "first_detected_scan": "flask_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_10",
+          "flask_SRP_scan_11",
+          "flask_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-046",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/flask/config.py",
+        "entity_name": "Config",
+        "entity_type": "class",
+        "line_start": 35,
+        "line_end": 241,
+        "description": "The 'Config' class acts as a dictionary for configuration storage but also implements numerous strategies for loading configuration from environment variables, Python files, generic files, and objects.",
+        "reasoning": "The `Config` class has multiple reasons to change. It's a data structure for storing configuration, but it also knows how to load itself from various external sources (environment variables, Python files, generic files, Python objects). Each loading strategy (e.g., `from_envvar`, `from_pyfile`, `from_object`, `from_file`, `from_prefixed_env`) represents a distinct responsibility. Changes to any of these loading mechanisms would require modifying this class, violating SRP and exhibiting a God Class smell.",
+        "first_detected_scan": "flask_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-043",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/flask/ctx.py",
+        "entity_name": "AppContext",
+        "entity_type": "class",
+        "line_start": 98,
+        "line_end": 280,
+        "description": "The 'AppContext' class manages the entire lifecycle of application and request contexts, including state, session initialization, routing, and teardown orchestration.",
+        "reasoning": "The `AppContext` class is responsible for managing the state of the application and request contexts, initializing the session (`_get_session`), performing URL routing (`match_request`), and orchestrating the execution of multiple teardown functions (`pop`). These are distinct responsibilities that contribute to a God Class smell. Changes to session management, routing, or teardown logic would all require modifications to this class.",
+        "first_detected_scan": "flask_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-044",
+        "rank": 10,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/flask/sessions.py",
+        "entity_name": "SessionInterface",
+        "entity_type": "class",
+        "line_start": 78,
+        "line_end": 166,
+        "description": "The 'SessionInterface' class defines the core contract for session storage and also provides a comprehensive set of methods for configuring all aspects of the session cookie.",
+        "reasoning": "This class has two primary reasons to change: if the abstract contract for session storage (opening/saving sessions) needs to evolve, or if any aspect of session cookie configuration (name, domain, path, security flags, expiration logic, when to set the cookie) needs to change. These are distinct responsibilities, violating SRP. The cookie configuration could be extracted into a dedicated `SessionCookieConfigurator`.",
+        "first_detected_scan": "flask_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_04",
+          "flask_SRP_scan_05",
+          "flask_SRP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "SRP-005",
+        "rank": 11,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.test_client",
+        "entity_type": "method",
+        "line_start": 488,
+        "line_end": 536,
+        "description": "The Flask application provides methods for creating a test client.",
+        "reasoning": "Testing utilities are a separate concern from the core application's runtime responsibilities. While convenient, the application object should ideally focus on its primary role, and testing client creation could be handled by a dedicated testing factory or module.",
+        "first_detected_scan": "flask_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_01",
+          "flask_SRP_scan_03",
+          "flask_SRP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "SRP-061",
+        "rank": 12,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/cli.py",
+        "entity_name": "FlaskGroup.get_command",
+        "entity_type": "method",
+        "line_start": 590,
+        "line_end": 614,
+        "description": "The 'get_command' method combines responsibilities for loading plugin commands, loading the Flask application, and pushing an application context, in addition to its primary role of retrieving a CLI command.",
+        "reasoning": "This method is responsible for multiple distinct operations: first, it ensures plugin commands are loaded; then, it attempts to load the Flask application (which involves complex logic delegated to 'ScriptInfo'); and finally, it pushes an application context. Each of these is a separate 'reason to change'. If the plugin loading mechanism changes, or the app loading strategy changes, or the context management for CLI changes, this method would need modification. This violates SRP by coupling command retrieval with application and context lifecycle management.",
+        "first_detected_scan": "flask_SRP_scan_07",
+        "duplicate_scan_ids": [
+          "flask_SRP_scan_07",
+          "flask_SRP_scan_08",
+          "flask_SRP_scan_09"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-001",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.make_response",
+        "entity_type": "method",
+        "line_start": 1007,
+        "line_end": 1069,
+        "description": "The method uses a long if/elif/else chain to convert various return types into a Response object.",
+        "reasoning": "This method explicitly checks the type of the return value (e.g., tuple, str, bytes, dict, list, BaseResponse, callable) using `isinstance` and `len` checks. If a new type of return value needs to be supported (e.g., a custom object that should be serialized in a specific way), this method would require modification to add a new `elif` branch. This directly violates OCP, as it's not open for extension without modification. A more OCP-compliant design would involve a registry of response converters or a chain of responsibility pattern where new converters can be added without altering this core dispatch logic.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_02",
+          "flask_OCP_scan_10",
+          "flask_OCP_scan_11",
+          "flask_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-002",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/cli.py",
+        "entity_name": "find_best_app",
+        "entity_type": "class",
+        "line_start": 41,
+        "line_end": 79,
+        "description": "Hardcoded logic to discover Flask application instances or factory functions by specific names.",
+        "reasoning": "The function explicitly searches for attributes named 'app', 'application', 'create_app', and 'make_app'. If a new convention for naming application instances or factory functions were introduced (e.g., 'get_app', 'my_flask_app'), this function would need to be modified to include the new names. This makes the app discovery mechanism closed for extension to new naming conventions without modification.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_02",
+          "flask_OCP_scan_03",
+          "flask_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-003",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/cli.py",
+        "entity_name": "find_app_by_string",
+        "entity_type": "class",
+        "line_start": 94,
+        "line_end": 142,
+        "description": "Fixed parsing logic for app string and type-checking for attribute handling.",
+        "reasoning": "The function uses `isinstance(expr, ast.Name)` and `isinstance(expr, ast.Call)` to determine how to interpret the `app_name` string. It also explicitly checks `inspect.isfunction(attr)` to decide whether to call the attribute. If new ways of specifying the app (e.g., a class reference that needs instantiation with specific arguments) or new types of attributes were to be supported, this method would require modification, violating OCP.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_02",
+          "flask_OCP_scan_03",
+          "flask_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-008",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/app.py",
+        "entity_name": "App.select_jinja_autoescape",
+        "entity_type": "method",
+        "line_start": 404,
+        "line_end": 408,
+        "description": "Hardcoded list of file extensions to determine Jinja autoescape behavior.",
+        "reasoning": "The method uses `filename.lower().endswith(('.html', '.htm', '.xml', '.xhtml', '.svg'))` to decide whether to enable autoescaping. If new file extensions should automatically trigger autoescaping, this list would need to be modified. This makes the autoescape logic closed for extension to new file types without direct modification.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_10",
+          "flask_OCP_scan_11",
+          "flask_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-011",
+        "rank": 5,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/blueprints.py",
+        "entity_name": "Blueprint.register",
+        "entity_type": "method",
+        "line_start": 161,
+        "line_end": 236,
+        "description": "Contains multiple if/elif/else blocks for handling blueprint registration options and nested blueprints.",
+        "reasoning": "This method has several conditional branches for `name in app.blueprints`, `self.has_static_folder`, and the `cli_resolved_group` (`if cli_resolved_group is None:`, `elif cli_resolved_group is _sentinel:`, `else:`). It also has conditional logic for merging `url_prefix` and `subdomain` for nested blueprints. While some of this is for merging configuration, the explicit `if/elif/else` for `cli_group` and the fixed logic for static folders mean that adding new blueprint registration behaviors or CLI group handling strategies would require modifying this method, violating OCP.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_02",
+          "flask_OCP_scan_10",
+          "flask_OCP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "OCP-010",
+        "rank": 6,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/scaffold.py",
+        "entity_name": "Scaffold._get_exc_class_and_code",
+        "entity_type": "class",
+        "line_start": 401,
+        "line_end": 435,
+        "description": "Fixed logic for determining exception class and HTTP code from various input types.",
+        "reasoning": "The method uses `isinstance(exc_class_or_code, int)` to distinguish between integer codes and exception classes. It also performs `issubclass` checks for `Exception` and `HTTPException`. If new ways of specifying error handlers (e.g., a custom error object that encapsulates both code and class) were introduced, this method would need modification, violating OCP.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_10",
+          "flask_OCP_scan_11",
+          "flask_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-027",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.make_response",
+        "entity_type": "method",
+        "line_start": 818,
+        "line_end": 907,
+        "description": "Extensive if/elif chain with isinstance checks for various return types to convert to a Response object.",
+        "reasoning": "This method is a classic OCP violation. It uses multiple 'isinstance' checks and 'len' checks on tuples ('if isinstance(rv, tuple):', 'if len_rv == 3:', 'elif len_rv == 2:', 'if isinstance(rv[1], ...)'), and other types ('if isinstance(rv, (str, bytes, ...))', 'elif isinstance(rv, (dict, list))', 'elif isinstance(rv, BaseResponse) or callable(rv)'). To support a new return type (e.g., a custom data object that should be automatically serialized), this method must be modified by adding a new 'elif' branch, which directly violates OCP. A more extensible design would use a registry of converters.",
+        "first_detected_scan": "flask_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_03",
+          "flask_OCP_scan_04",
+          "flask_OCP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "OCP-013",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/flask/json/provider.py",
+        "entity_name": "DefaultJSONProvider._default",
+        "entity_type": "class",
+        "line_start": 100,
+        "line_end": 113,
+        "description": "A series of if statements to handle custom JSON serialization for specific Python types.",
+        "reasoning": "This function uses a sequence of `if isinstance(o, type):` checks to handle serialization for `date`, `Decimal`, `UUID`, `dataclasses.dataclass`, and objects with `__html__` methods. If a new Python type needs custom JSON serialization, this function must be modified to add another `if` condition. This is a clear violation of OCP, as it's closed for extension to new serializable types without modification. A more OCP-compliant approach would involve a registry of custom serializers that can be extended.",
+        "first_detected_scan": "flask_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_01",
+          "flask_OCP_scan_02",
+          "flask_OCP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "OCP-042",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/cli.py",
+        "entity_name": "FlaskGroup.get_command",
+        "entity_type": "method",
+        "line_start": 609,
+        "line_end": 609,
+        "description": "The `get_command` method might contain logic to find commands that needs modification to support new command discovery mechanisms.",
+        "reasoning": "This method is responsible for retrieving commands. If new ways of discovering or registering commands are introduced, and they require direct modification of `get_command`, it violates OCP. A more extensible design might use a plugin system or a command registry.",
+        "first_detected_scan": "flask_OCP_scan_10",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_10",
+          "flask_OCP_scan_11",
+          "flask_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-033",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.make_response",
+        "entity_type": "method",
+        "line_start": 920,
+        "line_end": 977,
+        "description": "The method uses extensive type-checking and conditional logic to convert various return values into a Response object.",
+        "reasoning": "The `make_response` method contains a long series of `isinstance` checks and `if/elif/else` branches (`isinstance(rv, tuple)`, `len_rv == 3`, `isinstance(rv[1], ...)`, `isinstance(rv, (str, bytes, ...))`, `isinstance(rv, (dict, list))`, `isinstance(rv, BaseResponse) or callable(rv)`). To support a new custom return type from a view function (e.g., a custom object that Flask should automatically serialize), this method would need to be modified by adding new `elif` branches. This directly violates the Open/Closed Principle, as extending the system's capabilities requires modifying existing, tested code rather than adding new, extensible components (e.g., using a pluggable strategy pattern or a chain of responsibility).",
+        "first_detected_scan": "flask_OCP_scan_06",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_06",
+          "flask_OCP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "OCP-020",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.create_url_adapter",
+        "entity_type": "method",
+        "line_start": 361,
+        "line_end": 393,
+        "description": "Conditional logic based on host_matching and subdomain_matching config flags.",
+        "reasoning": "The method contains explicit 'if' and 'elif' statements that check the values of 'self.url_map.host_matching' and 'self.subdomain_matching'. If new URL matching strategies or configuration options were to be introduced (e.g., path-based matching, domain aliases), this method would require modification to add new conditional branches, violating OCP.",
+        "first_detected_scan": "flask_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_03",
+          "flask_OCP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "OCP-022",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.run",
+        "entity_type": "method",
+        "line_start": 448,
+        "line_end": 509,
+        "description": "Multiple conditional branches for configuration, environment variables, and argument handling.",
+        "reasoning": "The 'run' method contains several 'if' statements checking environment variables ('FLASK_RUN_FROM_CLI', 'FLASK_DEBUG'), and configuration values ('SERVER_NAME', 'host', 'port'). If new ways of configuring the server (e.g., from a database, or a new environment variable) or new server parameters were introduced, this method would require modification to incorporate them, violating OCP.",
+        "first_detected_scan": "flask_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_OCP_scan_03",
+          "flask_OCP_scan_07"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-027",
+        "rank": 1,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/blueprints.py",
+        "entity_name": "Blueprint.app_template_filter",
+        "entity_type": "method",
+        "line_start": 450,
+        "line_end": 450,
+        "description": "Abstract method `app_template_filter` in base class `Blueprint` is not implemented by subclasses.",
+        "reasoning": "The `Blueprint` class defines `app_template_filter` as an abstract method (`@abstract`). Any subclass of `Blueprint` must provide a concrete implementation. Failure to do so means that instances of such a subclass cannot be used where a `Blueprint` instance is expected and app-level template filters are applied, violating the LSP.",
+        "first_detected_scan": "flask_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_10",
+          "flask_LSP_scan_11",
+          "flask_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-024",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/scaffold.py",
+        "entity_name": "Scaffold._check_setup_finished",
+        "entity_type": "method",
+        "line_start": 71,
+        "line_end": 77,
+        "description": "Subclasses must implement _check_setup_finished to prevent modification after registration.",
+        "reasoning": "The `_check_setup_finished` method is intended to raise an error if setup methods are called after the scaffold has been registered. The base `Scaffold` class raises `NotImplementedError`. Any subclass that overrides setup methods (like `add_url_rule`, `before_request`, etc.) must also implement `_check_setup_finished` to enforce the invariant that configuration should not change after registration. Failure to do so means the subclass is not substitutable for a scaffold that enforces this rule, violating the LSP.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05",
+          "flask_LSP_scan_10",
+          "flask_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-022",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "low",
+        "file_path": "src/flask/sansio/app.py",
+        "entity_name": "App.create_jinja_environment",
+        "entity_type": "method",
+        "line_start": 246,
+        "line_end": 255,
+        "description": "Subclass must implement create_jinja_environment to provide a Jinja environment.",
+        "reasoning": "The `create_jinja_environment` method is declared in the base `App` class but raises `NotImplementedError`. Any subclass that intends to use templating must override this method. Failure to do so means the subclass is not substitutable for a class that correctly provides a Jinja environment, violating the LSP.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05",
+          "flask_LSP_scan_10",
+          "flask_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-001",
+        "rank": 4,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.handle_http_exception",
+        "entity_type": "method",
+        "line_start": 510,
+        "line_end": 531,
+        "description": "Subclass might override handle_http_exception and not handle RoutingException or RequestRedirect correctly.",
+        "reasoning": "The `handle_http_exception` method in `Flask` has specific logic to handle `RoutingException` and `RequestRedirect`. If a subclass overrides this method, it must ensure that it correctly handles these cases or reimplements the same logic. Failure to do so could lead to unexpected behavior or errors when routing exceptions occur, violating the LSP because the subclass's behavior is not substitutable for the base class's in all scenarios.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05",
+          "flask_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-017",
+        "rank": 5,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.wsgi_app",
+        "entity_type": "method",
+        "line_start": 1331,
+        "line_end": 1368,
+        "description": "Subclass might override wsgi_app and not correctly handle the WSGI application lifecycle, including context management and exception handling.",
+        "reasoning": "The `wsgi_app` method is the core WSGI application interface. It manages the application and request contexts, calls `full_dispatch_request`, handles exceptions via `handle_exception`, and returns the WSGI iterable response. Overriding this method incorrectly, especially regarding context pushing/popping, exception handling, or the final WSGI response, would fundamentally break the WSGI contract and violate the LSP. Any deviation from the expected WSGI application behavior would be a severe LSP violation.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-025",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/flask/views.py",
+        "entity_name": "View.dispatch_request",
+        "entity_type": "method",
+        "line_start": 67,
+        "line_end": 72,
+        "description": "Subclasses must implement dispatch_request to define view logic.",
+        "reasoning": "The `dispatch_request` method is the core of a class-based view, defining its behavior. The base `View` class raises `NotImplementedError`. Any subclass that intends to be used as a view must override this method. Failure to do so means the subclass cannot fulfill the contract of providing request handling logic, making it non-substitutable for a functional view, thus violating the LSP.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-002",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.handle_user_exception",
+        "entity_type": "method",
+        "line_start": 534,
+        "line_end": 557,
+        "description": "Subclass might override handle_user_exception and not correctly delegate HTTP exceptions or handle error handlers.",
+        "reasoning": "The `handle_user_exception` method checks for `BadRequestKeyError` and `HTTPException`. If a subclass overrides this method, it must ensure it correctly delegates `HTTPException` to `handle_http_exception` and properly finds and calls error handlers. If it fails to do so, or if it changes the behavior of how exceptions are trapped or handled, it would violate the LSP by not being substitutable for the base class's exception handling.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-003",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.handle_exception",
+        "entity_type": "method",
+        "line_start": 560,
+        "line_end": 619,
+        "description": "Subclass might override handle_exception and alter the propagation of exceptions or the finalization of requests.",
+        "reasoning": "The `handle_exception` method determines whether to propagate exceptions based on `PROPAGATE_EXCEPTIONS`, `testing`, and `debug` flags. It also logs exceptions and potentially calls error handlers before finalizing the request. If a subclass overrides this method and changes this logic, especially regarding exception propagation or the finalization of the request (which includes calling `finalize_request`), it could lead to unexpected behavior where exceptions are either not handled as expected or the response is not finalized correctly, violating the LSP.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-005",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.dispatch_request",
+        "entity_type": "method",
+        "line_start": 633,
+        "line_end": 662,
+        "description": "Subclass might override dispatch_request and not handle routing exceptions, OPTIONS requests, or view function dispatching correctly.",
+        "reasoning": "The `dispatch_request` method handles routing exceptions, provides automatic OPTIONS responses, and dispatches to the appropriate view function. If a subclass overrides this method and alters this behavior, for instance, by not properly handling `routing_exception`, not providing automatic OPTIONS responses when expected, or failing to dispatch to the correct view function, it would violate the LSP. Callers rely on this method to correctly route and execute the request.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-006",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.full_dispatch_request",
+        "entity_type": "method",
+        "line_start": 665,
+        "line_end": 695,
+        "description": "Subclass might override full_dispatch_request and alter the request lifecycle, including preprocessing, dispatching, exception handling, and finalization.",
+        "reasoning": "The `full_dispatch_request` method orchestrates the entire request lifecycle: sending `request_started` signal, calling `preprocess_request`, handling user exceptions via `handle_user_exception`, dispatching the request via `dispatch_request`, and finalizing the response via `finalize_request`. Overriding this method without maintaining the same sequence and handling of these steps (especially exception handling and signal sending) would break the contract and violate the LSP.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-007",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.finalize_request",
+        "entity_type": "method",
+        "line_start": 698,
+        "line_end": 729,
+        "description": "Subclass might override finalize_request and not correctly process the response or send the request_finished signal.",
+        "reasoning": "The `finalize_request` method is responsible for converting the return value into a response object, processing the response (e.g., calling `process_response`), sending the `request_finished` signal, and handling potential errors during finalization. If a subclass overrides this method and fails to perform these actions correctly, especially the response processing and signal sending, it would violate the LSP because the program expects these final steps to occur.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-011",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.url_for",
+        "entity_type": "method",
+        "line_start": 896,
+        "line_end": 971,
+        "description": "Subclass might override url_for and not correctly generate URLs or handle URL build errors.",
+        "reasoning": "The `url_for` method generates URLs based on endpoints and values. It handles context-aware URL generation and calls `handle_url_build_error` for `BuildError`. If a subclass overrides `url_for` and changes the URL generation logic, or how it handles build errors (e.g., by not calling `handle_url_build_error` or returning incorrect values), it could lead to broken links or unexpected errors, violating the LSP.",
+        "first_detected_scan": "flask_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_LSP_scan_05"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-074",
+        "rank": 1,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/flask/sessions.py",
+        "entity_name": "SessionInterface",
+        "entity_type": "class",
+        "line_start": 72,
+        "line_end": 250,
+        "description": "The SessionInterface defines many configuration getters and core methods, potentially forcing implementers to provide unused functionality.",
+        "reasoning": "The `SessionInterface` defines a comprehensive set of methods for managing sessions, including getters for cookie parameters (name, domain, path, httponly, secure, samesite, partitioned), expiration time, and the core `open_session`/`save_session`. Implementers who only need a simple session storage might be forced to provide implementations for all these cookie-related getters, even if they don't use cookies or have their own storage mechanism. This violates ISP by having a large interface.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03",
+          "flask_ISP_scan_05",
+          "flask_ISP_scan_10",
+          "flask_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-001",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.handle_http_exception",
+        "entity_type": "method",
+        "line_start": 488,
+        "line_end": 503,
+        "description": "The handle_http_exception method handles both routing exceptions and other HTTP exceptions, violating ISP.",
+        "reasoning": "The `handle_http_exception` method is responsible for handling all `HTTPException` subclasses, including routing-specific exceptions like `RequestRedirect` and general HTTP exceptions. This broad responsibility forces clients (or subclasses) to be aware of and potentially handle routing-specific logic when they only intend to deal with general HTTP exceptions. A more segregated approach would separate the handling of routing exceptions from other HTTP exceptions.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03",
+          "flask_ISP_scan_09",
+          "flask_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-083",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/ctx.py",
+        "entity_name": "AppContext",
+        "entity_type": "class",
+        "line_start": 260,
+        "line_end": 525,
+        "description": "AppContext violates ISP by merging request-specific functionality into a general application context.",
+        "reasoning": "After merging RequestContext into AppContext (as noted in the class docstring for version 3.2), the class now contains methods and properties such as 'request', 'session', and 'match_request' that are only valid when a request is present. Clients using the context in a non-request environment (such as CLI commands or background tasks) are forced to depend on a 'fat' interface where these members are non-functional and raise RuntimeError if accessed. This violates the principle that clients should not be forced to depend on interfaces they do not use, and that interfaces should be split into smaller, more focused ones.",
+        "first_detected_scan": "flask_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_07",
+          "flask_ISP_scan_08",
+          "flask_ISP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "ISP-079",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/json/provider.py",
+        "entity_name": "JSONProvider",
+        "entity_type": "class",
+        "line_start": 24,
+        "line_end": 97,
+        "description": "Fat interface mixing JSON serialization with Flask-specific HTTP response logic.",
+        "reasoning": "The JSONProvider interface combines two distinct responsibilities: raw JSON serialization/deserialization (dumps/loads) and the construction of Flask-specific HTTP responses (the response method). This forces a provider implementation to depend on the Flask Response class and HTTP-level concerns, even if its primary purpose is simply to interface with a specific JSON library for serialization.",
+        "first_detected_scan": "flask_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_05",
+          "flask_ISP_scan_06",
+          "flask_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-044",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/scaffold.py",
+        "entity_name": "Scaffold.add_url_rule",
+        "entity_type": "method",
+        "line_start": 328,
+        "line_end": 379,
+        "description": "The add_url_rule method handles methods, endpoint naming, automatic OPTIONS, defaults, and rule object creation, violating ISP.",
+        "reasoning": "The `add_url_rule` method in `Scaffold` (which `Flask` and `Blueprint` inherit from) handles methods, endpoint naming, automatic OPTIONS, defaults, and the creation of the `Rule` object. This broad interface means that clients customizing one aspect might be coupled to others. For instance, a client only interested in endpoint naming must still be aware of method handling and default values.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03",
+          "flask_ISP_scan_11",
+          "flask_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-027",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/app.py",
+        "entity_name": "App.create_jinja_environment",
+        "entity_type": "method",
+        "line_start": 336,
+        "line_end": 359,
+        "description": "The create_jinja_environment method configures Jinja with autoescape and auto_reload based on app debug status, potentially forcing unwanted configurations.",
+        "reasoning": "The `create_jinja_environment` method decides whether to enable `autoescape` and `auto_reload` based on the application's debug status and configuration. A subclass that wants to customize the Jinja environment but doesn't want Flask's default autoescape or auto-reload behavior might find it difficult to override these settings without overriding the entire method. This forces clients to depend on the logic for these specific Jinja features.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03",
+          "flask_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-084",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/flask/sessions.py",
+        "entity_name": "NullSession",
+        "entity_type": "class",
+        "line_start": 83,
+        "line_end": 97,
+        "description": "NullSession implements a mutable session interface only to disable it by raising errors.",
+        "reasoning": "NullSession is forced to implement mutation methods like __setitem__, pop, and clear from the session interface (inherited via SecureCookieSession), but it overrides them to call _fail. This forces the class to adhere to a broad interface it cannot support, which is a direct violation of ISP.",
+        "first_detected_scan": "flask_ISP_scan_11",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.handle_user_exception",
+        "entity_type": "method",
+        "line_start": 505,
+        "line_end": 528,
+        "description": "The handle_user_exception method handles general exceptions and HTTP exceptions, violating ISP.",
+        "reasoning": "The `handle_user_exception` method is designed to handle both general `Exception` types and `HTTPException` types. It first checks if the exception is an `HTTPException` and, if so, forwards it to `handle_http_exception`. This creates a dependency on `handle_http_exception` for a subset of exceptions, rather than having a dedicated handler for user-defined exceptions that are not HTTP exceptions. This can lead to classes needing to be aware of the `handle_http_exception` method even if they only intend to handle general exceptions.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "ISP-003",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.handle_exception",
+        "entity_type": "method",
+        "line_start": 530,
+        "line_end": 571,
+        "description": "The handle_exception method handles unhandled exceptions and propagates them, potentially involving other handlers, violating ISP.",
+        "reasoning": "The `handle_exception` method is a catch-all for exceptions that don't have specific handlers. It also includes logic for propagating exceptions based on `PROPAGATE_EXCEPTIONS` and potentially calls `log_exception` and `finalize_request`. This broad scope makes it difficult for subclasses or clients to override specific aspects of exception handling without affecting the entire flow. A more segregated approach would break down these responsibilities into smaller, more focused methods.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "ISP-005",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.dispatch_request",
+        "entity_type": "method",
+        "line_start": 580,
+        "line_end": 595,
+        "description": "The dispatch_request method handles routing exceptions, OPTIONS responses, and view function calls, violating ISP.",
+        "reasoning": "The `dispatch_request` method is responsible for multiple distinct tasks: handling routing exceptions (`raise_routing_exception`), generating default OPTIONS responses (`make_default_options_response`), and dispatching to the actual view function. This violates ISP because a client might only be interested in customizing the view function dispatch and should not be forced to depend on or be aware of the logic for handling routing exceptions or OPTIONS requests.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "ISP-006",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.full_dispatch_request",
+        "entity_type": "method",
+        "line_start": 597,
+        "line_end": 619,
+        "description": "The full_dispatch_request method orchestrates request processing, including preprocessing, dispatching, and exception handling, violating ISP.",
+        "reasoning": "The `full_dispatch_request` method acts as a central orchestrator for the entire request lifecycle. It calls `preprocess_request`, `dispatch_request`, `handle_user_exception`, and `finalize_request`. This means any customization of request processing, even if only for preprocessing, requires interacting with or being aware of the broader dispatch, exception, and finalization logic. Separating these concerns would allow for more focused overrides.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.finalize_request",
+        "entity_type": "method",
+        "line_start": 621,
+        "line_end": 637,
+        "description": "The finalize_request method handles response creation, postprocessing, and signal sending, violating ISP.",
+        "reasoning": "The `finalize_request` method is responsible for converting a return value into a response (`make_response`), processing the response (`process_response`), sending signals (`request_finished`), and handling potential errors during finalization. This bundles several distinct responsibilities. A client interested only in modifying the response object might be coupled to the signal-sending mechanism or the error handling during finalization.",
+        "first_detected_scan": "flask_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "flask_ISP_scan_03"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-001",
+        "rank": 1,
+        "scan_count": 12,
+        "severity": "high",
+        "file_path": "src/flask/app.py",
+        "entity_name": "Flask.__init__",
+        "entity_type": "class",
+        "line_start": 288,
+        "line_end": 288,
+        "description": "Direct instantiation of CLI command group",
+        "reasoning": "The Flask class directly instantiates cli.AppGroup in its constructor. This creates a tight coupling between the high-level application class and the low-level CLI implementation detail, violating the principle that high-level modules should not depend on low-level modules.",
+        "first_detected_scan": "flask_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_01",
+          "flask_DIP_scan_02",
+          "flask_DIP_scan_03",
+          "flask_DIP_scan_04",
+          "flask_DIP_scan_05",
+          "flask_DIP_scan_06",
+          "flask_DIP_scan_07",
+          "flask_DIP_scan_08",
+          "flask_DIP_scan_09",
+          "flask_DIP_scan_10",
+          "flask_DIP_scan_11",
+          "flask_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-003",
+        "rank": 2,
+        "scan_count": 8,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/app.py",
+        "entity_name": "App.__init__",
+        "entity_type": "class",
+        "line_start": 214,
+        "line_end": 214,
+        "description": "Direct instantiation of JSONProvider via json_provider_class",
+        "reasoning": "The App class instantiates its own JSON provider during initialization. This violates DIP because the high-level App class is responsible for creating its own low-level utility for JSON processing, rather than receiving a provider through dependency injection.",
+        "first_detected_scan": "flask_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_02",
+          "flask_DIP_scan_03",
+          "flask_DIP_scan_04",
+          "flask_DIP_scan_05",
+          "flask_DIP_scan_06",
+          "flask_DIP_scan_10",
+          "flask_DIP_scan_11",
+          "flask_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-002",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "src/flask/blueprints.py",
+        "entity_name": "Blueprint.__init__",
+        "entity_type": "class",
+        "line_start": 48,
+        "line_end": 48,
+        "description": "Direct instantiation of CLI AppGroup in Blueprint",
+        "reasoning": "The Blueprint class directly instantiates AppGroup in its __init__ method. This creates a hard-coded dependency on the CLI implementation, preventing the use of blueprints in environments where the CLI component might not be desired or might need to be different.",
+        "first_detected_scan": "flask_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_01",
+          "flask_DIP_scan_02",
+          "flask_DIP_scan_03",
+          "flask_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/flask/ctx.py",
+        "entity_name": "AppContext.__init__",
+        "entity_type": "class",
+        "line_start": 215,
+        "line_end": 215,
+        "description": "Direct instantiation of the globals container (_AppCtxGlobals)",
+        "reasoning": "AppContext directly instantiates the concrete class for request globals (via app.app_ctx_globals_class). This couples the context management logic to a specific implementation of the storage container.",
+        "first_detected_scan": "flask_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_02",
+          "flask_DIP_scan_11",
+          "flask_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-009",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/flask/json/provider.py",
+        "entity_name": "JSONProvider",
+        "entity_type": "class",
+        "line_start": 19,
+        "line_end": 105,
+        "description": "Low-level JSON provider depends on the concrete high-level App class.",
+        "reasoning": "The JSONProvider (a low-level utility) is initialized with a concrete App instance, creating a bidirectional coupling between high-level application logic and low-level JSON serialization details.",
+        "first_detected_scan": "flask_DIP_scan_11",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_11",
+          "flask_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-005",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/flask/cli.py",
+        "entity_name": "FlaskGroup.make_context",
+        "entity_type": "class",
+        "line_start": 651,
+        "line_end": 671,
+        "description": "Direct instantiation of ScriptInfo within the method.",
+        "reasoning": "The method directly instantiates ScriptInfo instead of receiving it through injection or using a configurable factory. This tight coupling prevents the substitution of alternative script information handlers.",
+        "first_detected_scan": "flask_DIP_scan_07",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_07",
+          "flask_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-007",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/flask/config.py",
+        "entity_name": "Config.from_pyfile",
+        "entity_type": "class",
+        "line_start": 187,
+        "line_end": 187,
+        "description": "High-level configuration class depends on low-level file system details.",
+        "reasoning": "The Config class contains methods that directly interact with the file system and Python's import machinery to load settings. This couples the configuration abstraction to specific storage and format details, violating the rule that high-level modules should not depend on low-level details.",
+        "first_detected_scan": "flask_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "DIP-010",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/flask/templating.py",
+        "entity_name": "Environment",
+        "entity_type": "class",
+        "line_start": 36,
+        "line_end": 46,
+        "description": "Templating environment depends on the concrete App class.",
+        "reasoning": "The Jinja Environment implementation depends directly on the high-level App class, violating the principle that low-level details should not depend on high-level modules unless through abstractions.",
+        "first_detected_scan": "flask_DIP_scan_11",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-006",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/sansio/scaffold.py",
+        "entity_name": "Scaffold.jinja_loader",
+        "entity_type": "class",
+        "line_start": 240,
+        "line_end": 249,
+        "description": "Direct instantiation of a concrete template loader.",
+        "reasoning": "The jinja_loader property directly instantiates FileSystemLoader. This couples the Scaffold class (and its children, Flask and Blueprint) to a specific filesystem-based template loading mechanism rather than an abstraction.",
+        "first_detected_scan": "flask_DIP_scan_08",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-008",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/sessions.py",
+        "entity_name": "SessionInterface.make_null_session",
+        "entity_type": "class",
+        "line_start": 150,
+        "line_end": 150,
+        "description": "Abstraction depends on concrete implementation detail (NullSession).",
+        "reasoning": "The SessionInterface (an abstraction) directly instantiates NullSession (a concrete detail). Furthermore, its methods depend on the concrete Flask class, creating a circular dependency where the abstraction depends on specific implementation details.",
+        "first_detected_scan": "flask_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "DIP-011",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/flask/templating.py",
+        "entity_name": "DispatchingJinjaLoader",
+        "entity_type": "class",
+        "line_start": 49,
+        "line_end": 120,
+        "description": "Low-level template loader depends on the high-level App object.",
+        "reasoning": "The Jinja loader is a low-level utility for file/resource access, but it depends directly on the App instance (L54). This dependency should be inverted by passing only the necessary abstractions (like a list of search paths) rather than the entire application object.",
+        "first_detected_scan": "flask_DIP_scan_12",
+        "duplicate_scan_ids": [
+          "flask_DIP_scan_12"
+        ]
+      }
+    ]
+  }
+}

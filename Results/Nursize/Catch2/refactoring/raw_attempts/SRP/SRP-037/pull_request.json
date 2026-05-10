@@ -1,0 +1,72 @@
+{
+  "issue_id": "SRP-037",
+  "principle": "SRP",
+  "title": "Refactor SRP-037 (SRP): The IResultCapture interface provides a single point for reporting all types...",
+  "branch": "refactor/SRP-037",
+  "base": "main",
+  "head_commit": "35e191d1c2f08e9b285da19cba8ba76d54d727e1",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in extras/catch_amalgamated.hpp (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3861,
+    "completion_tokens": 766
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IResultCapture",
+    "entity_type": "class",
+    "line_start": 725,
+    "line_end": 783,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The IResultCapture interface provides a single point for reporting all types of events during a test run, including assertion outcomes, section lifecycle events, generator interactions, benchmark results, and general messages.",
+    "reasoning": "This interface is overly broad, encompassing many distinct event reporting responsibilities. Any change to the structure or content of assertion reporting, section management, or benchmark event notifications would require modifications to this single interface and all its implementers, violating SRP. It should be decomposed into smaller, more focused interfaces."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Decompose IResultCapture into specialized interfaces",
+    "rationale": "The IResultCapture interface was a 'God interface' violating the Single Responsibility Principle. By splitting it into IAssertionCapture, ISectionCapture, and IMessageCapture, we adhere to the Interface Segregation Principle and improve maintainability.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class IResultCapture {\n    public:\n        virtual ~IResultCapture();\n\n        virtual void notifyAssertionPassed( AssertionStats const& stats ) = 0;\n        virtual void notifyAssertionFailed( AssertionStats const& stats ) = 0;\n        virtual void notifyAssertionEnded( AssertionStats const& stats ) = 0;\n        virtual void notifySectionEntered( SectionInfo const& sectionInfo, Counts& assertions ) = 0;\n        virtual void notifySectionEnded( SectionStats const& sectionStats ) = 0;\n        virtual void notifyGeneratorException( StringRef generatorName, std::exception_ptr exception ) = 0;\n        virtual void notifyBenchmarkStarted( BenchmarkInfo const& info ) = 0;\n        virtual void notifyBenchmarkEnded( BenchmarkStats<> const& stats ) = 0;\n        virtual void notifyFatalErrorEncountered( StringRef message ) = 0;\n        virtual void notifyMessage( MessageInfo const& message ) = 0;\n        virtual void notifyMakeAssertionFailure( AssertionResultData const& resultData ) = 0;\n        virtual bool notifyShouldSuppressFailure( StringRef className ) = 0;\n        virtual bool notifySectionShouldBeSkipped( StringRef sectionName ) = 0;\n    };",
+        "replace_text": "    class IAssertionCapture {\n    public:\n        virtual ~IAssertionCapture();\n        virtual void notifyAssertionPassed( AssertionStats const& stats ) = 0;\n        virtual void notifyAssertionFailed( AssertionStats const& stats ) = 0;\n        virtual void notifyAssertionEnded( AssertionStats const& stats ) = 0;\n        virtual void notifyMakeAssertionFailure( AssertionResultData const& resultData ) = 0;\n        virtual bool notifyShouldSuppressFailure( StringRef className ) = 0;\n    };\n\n    class ISectionCapture {\n    public:\n        virtual ~ISectionCapture();\n        virtual void notifySectionEntered( SectionInfo const& sectionInfo, Counts& assertions ) = 0;\n        virtual void notifySectionEnded( SectionStats const& sectionStats ) = 0;\n        virtual bool notifySectionShouldBeSkipped( StringRef sectionName ) = 0;\n    };\n\n    class IMessageCapture {\n    public:\n        virtual ~IMessageCapture();\n        virtual void notifyMessage( MessageInfo const& message ) = 0;\n        virtual void notifyFatalErrorEncountered( StringRef message ) = 0;\n        virtual void notifyGeneratorException( StringRef generatorName, std::exception_ptr exception ) = 0;\n    };\n\n    class IBenchmarkCapture {\n    public:\n        virtual ~IBenchmarkCapture();\n        virtual void notifyBenchmarkStarted( BenchmarkInfo const& info ) = 0;\n        virtual void notifyBenchmarkEnded( BenchmarkStats<> const& stats ) = 0;\n    };\n\n    class IResultCapture : public IAssertionCapture, public ISectionCapture, public IMessageCapture, public IBenchmarkCapture {\n    public:\n        ~IResultCapture() override = default;\n    };",
+        "search_lines": 18,
+        "replace_lines": 37
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10495,
+        "blank_lines": 3086,
+        "comment_lines": 748,
+        "function_count": 3,
+        "avg_cc": 433.67,
+        "max_cc": 1299.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 20035.64977645874
+}

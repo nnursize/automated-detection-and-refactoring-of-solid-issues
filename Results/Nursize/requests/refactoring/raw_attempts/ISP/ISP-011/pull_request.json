@@ -1,0 +1,100 @@
+{
+  "issue_id": "ISP-011",
+  "principle": "ISP",
+  "title": "Refactor ISP-011 (ISP): The Response class presents a broad API combining multiple concerns like cont...",
+  "branch": "refactor/ISP-011",
+  "base": "main",
+  "head_commit": "b69752944cb8fd517f087ba0a9729e95aafbea76",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10076,
+    "completion_tokens": 333
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "Response",
+    "entity_type": "class",
+    "line_start": 642,
+    "line_end": 1041,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "The Response class presents a broad API combining multiple concerns like content access, status checking, and resource management.",
+    "reasoning": "The Response class includes methods for various client needs (e.g., `iter_content` for streaming, `json` for JSON parsing, `ok` for status, `close` for resource management). Clients interacting with a Response object are forced to depend on the entire broad interface, even if they only require a subset of its functionalities (e.g., only checking status or only streaming content). This suggests the API could be segregated into more role-specific interfaces (e.g., IResponseStatus, IResponseContent, IResponseResource) to allow clients to depend only on what they use."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Segregate Response interface into smaller, role-specific protocols",
+    "rationale": "The Response class is a 'fat' interface. By introducing Protocols (IResponseStatus, IResponseContent, IResponseResource), we allow clients to depend on specific capabilities (e.g., just checking status or just accessing content) rather than the entire Response object, adhering to the Interface Segregation Principle.",
+    "files_touched": [
+      "src/requests/models.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/models.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/models.py",
+        "search_text": "class Response:\n    \"\"\"The :class:`Response <Response>` object, which contains a\n    server's response to an HTTP request.\n    \"\"\"\n\n    __attrs__ = [",
+        "replace_text": "from typing import Protocol, runtime_checkable\n\n@runtime_checkable\nclass IResponseStatus(Protocol):\n    status_code: int\n    ok: bool\n    def raise_for_status(self) -> None: ...\n\n@runtime_checkable\nclass IResponseContent(Protocol):\n    content: bytes\n    text: str\n    def json(self, **kwargs): ...\n    def iter_content(self, chunk_size=1, decode_unicode=False): ...\n\n@runtime_checkable\nclass IResponseResource(Protocol):\n    def close(self) -> None: ...\n\nclass Response:\n    \"\"\"The :class:`Response <Response>` object, which contains a\n    server's response to an HTTP request.\n    \"\"\"\n\n    __attrs__ = [",
+        "search_lines": 6,
+        "replace_lines": 25
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165055.5636882782,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [SSL: TLSV1_ALERT_UNKNOWN_CA] tlsv1 alert unknown ca (_ssl.c:1006)\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.12s (0:02:44)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 748,
+        "blank_lines": 189,
+        "comment_lines": 99,
+        "function_count": 47,
+        "avg_cc": 4.2,
+        "max_cc": 19.0,
+        "mi": 21.45
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 763,
+        "blank_lines": 193,
+        "comment_lines": 99,
+        "function_count": 51,
+        "avg_cc": 3.86,
+        "max_cc": 19.0,
+        "mi": 20.36
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/models.py b/src/requests/models.py\nindex 50a372b..5d97b63 100644\n--- a/src/requests/models.py\n+++ b/src/requests/models.py\n@@ -633,6 +633,25 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n             self.register_hook(event, hooks[event])\n \n \n+from typing import Protocol, runtime_checkable\n+\n+@runtime_checkable\n+class IResponseStatus(Protocol):\n+    status_code: int\n+    ok: bool\n+    def raise_for_status(self) -> None: ...\n+\n+@runtime_checkable\n+class IResponseContent(Protocol):\n+    content: bytes\n+    text: str\n+    def json(self, **kwargs): ...\n+    def iter_content(self, chunk_size=1, decode_unicode=False): ...\n+\n+@runtime_checkable\n+class IResponseResource(Protocol):\n+    def close(self) -> None: ...\n+\n class Response:\n     \"\"\"The :class:`Response <Response>` object, which contains a\n     server's response to an HTTP request.\n",
+  "duration_ms": 174931.16927146912
+}

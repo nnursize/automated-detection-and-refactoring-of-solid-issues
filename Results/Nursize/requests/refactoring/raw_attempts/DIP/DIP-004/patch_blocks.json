@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/adapters.py",
+    "search_text": "    def __init__(\n        self,\n        pool_connections=DEFAULT_POOLSIZE,\n        pool_maxsize=DEFAULT_POOLSIZE,\n        max_retries=DEFAULT_RETRIES,\n        pool_block=DEFAULT_POOLBLOCK,\n    ):\n        if max_retries == DEFAULT_RETRIES:\n            self.max_retries = Retry(0, read=False)\n        else:\n            self.max_retries = Retry.from_int(max_retries)\n        self.config = {}\n        self.proxy_manager = {}\n\n        super().__init__()\n\n        self._pool_connections = pool_connections\n        self._pool_maxsize = pool_maxsize\n        self._pool_block = pool_block\n\n        self.init_poolmanager(pool_connections, maxsize=pool_maxsize, block=pool_block)",
+    "replace_text": "    def __init__(\n        self,\n        pool_connections=DEFAULT_POOLSIZE,\n        pool_maxsize=DEFAULT_POOLSIZE,\n        max_retries=DEFAULT_RETRIES,\n        pool_block=DEFAULT_POOLBLOCK,\n        response_cls=Response,\n    ):\n        if max_retries == DEFAULT_RETRIES:\n            self.max_retries = Retry(0, read=False)\n        else:\n            self.max_retries = Retry.from_int(max_retries)\n        self.config = {}\n        self.proxy_manager = {}\n        self.response_cls = response_cls\n\n        super().__init__()\n\n        self._pool_connections = pool_connections\n        self._pool_maxsize = pool_maxsize\n        self._pool_block = pool_block\n\n        self.init_poolmanager(pool_connections, pool_maxsize, block=pool_block)"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/adapters.py",
+    "search_text": "    def build_response(self, req, resp):\n        \"\"\"Builds a :class:`Response <requests.Response>` object from a urllib3\n        response. This should not be called from user code, and is only exposed\n        for use when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`\n\n        :param req: The :class:`PreparedRequest <PreparedRequest>` used to generate the response.\n        :param resp: The urllib3 response object.\n        :rtype: requests.Response\n        \"\"\"\n        response = Response()\n\n        # Fallback to None if there's no status_code, for whatever reason.",
+    "replace_text": "    def build_response(self, req, resp):\n        \"\"\"Builds a :class:`Response <requests.Response>` object from a urllib3\n        response. This should not be called from user code, and is only exposed\n        for use when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`\n\n        :param req: The :class:`PreparedRequest <PreparedRequest>` used to generate the response.\n        :param resp: The urllib3 response object.\n        :rtype: requests.Response\n        \"\"\"\n        response = self.response_cls()\n\n        # Fallback to None if there's no status_code, for whatever reason."
+  }
+]

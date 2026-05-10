@@ -1,0 +1,36 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
+index 93ddc40..f6f7db9 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
+@@ -356,9 +356,6 @@ public final class TypeAdapters {
+         return;
+       }
+       float floatValue = value.floatValue();
+-      if (strict) {
+-        checkValidFloatingPoint(floatValue);
+-      }
+       // For backward compatibility don't call `JsonWriter.value(float)` because that method has
+       // been newly added and not all custom JsonWriter implementations might override it yet
+       Number floatNumber = value instanceof Float ? value : floatValue;
+@@ -388,20 +385,7 @@ public final class TypeAdapters {
+         out.nullValue();
+         return;
+       }
+-      double doubleValue = value.doubleValue();
+-      if (strict) {
+-        checkValidFloatingPoint(doubleValue);
+-      }
+-      out.value(doubleValue);
+-    }
+-  }
+-
+-  private static void checkValidFloatingPoint(double value) {
+-    if (Double.isNaN(value) || Double.isInfinite(value)) {
+-      throw new IllegalArgumentException(
+-          value
+-              + " is not a valid double value as per JSON specification. To override this"
+-              + " behavior, use GsonBuilder.serializeSpecialFloatingPointValues() method.");
++      out.value(value.doubleValue());
+     }
+   }
+ 

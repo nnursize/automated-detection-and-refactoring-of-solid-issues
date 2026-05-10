@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/cookies.py",
+    "search_text": "def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):\n    \"\"\"Returns a CookieJar from a key/value dictionary.\n\n    :param cookie_dict: Dict of key/values to insert into CookieJar.\n    :param cookiejar: (optional) A cookiejar to add the cookies to.\n    :param overwrite: (optional) If False, will not replace cookies\n        already in the jar with new ones.\n    :rtype: CookieJar\n    \"\"\"\n    if cookiejar is None:\n        cookiejar = RequestsCookieJar()\n\n    if cookie_dict is not None:",
+    "replace_text": "def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True, jar_factory=RequestsCookieJar):\n    \"\"\"Returns a CookieJar from a key/value dictionary.\n\n    :param cookie_dict: Dict of key/values to insert into CookieJar.\n    :param cookiejar: (optional) A cookiejar to add the cookies to.\n    :param overwrite: (optional) If False, will not replace cookies\n        already in the jar with new ones.\n    :param jar_factory: (optional) A factory function to create a new CookieJar.\n    :rtype: CookieJar\n    \"\"\"\n    if cookiejar is None:\n        cookiejar = jar_factory()\n\n    if cookie_dict is not None:"
+  }
+]

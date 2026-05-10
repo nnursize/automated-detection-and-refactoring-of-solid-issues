@@ -1,0 +1,204 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-009
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `src/requests/structures.py`
+- **Entity**: `LookupDict` (current lines L83-L99 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+LookupDict inherits from dict but breaks the contract of __getitem__ and uses a different storage mechanism.
+
+### Reasoning
+LookupDict inherits from the built-in 'dict' but overrides '__getitem__' to return None instead of raising a KeyError when a key is missing. Furthermore, it retrieves values from the instance's '__dict__' instead of the dictionary's actual internal storage. This breaks the fundamental contract of the dict type, as code expecting a dictionary and using standard error handling (try-except KeyError) will fail to detect missing keys, potentially leading to TypeErrors or incorrect logic downstream.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/requests/structures.py`
+```python
+"""
+requests.structures
+~~~~~~~~~~~~~~~~~~~
+
+Data structures that power Requests.
+"""
+
+from collections import OrderedDict
+
+from .compat import Mapping, MutableMapping
+
+
+class CaseInsensitiveDict(MutableMapping):
+    """A case-insensitive ``dict``-like object.
+
+    Implements all methods and operations of
+    ``MutableMapping`` as well as dict's ``copy``. Also
+    provides ``lower_items``.
+
+    All keys are expected to be strings. The structure remembers the
+    case of the last key to be set, and ``iter(instance)``,
+    ``keys()``, ``items()``, ``iterkeys()``, and ``iteritems()``
+    will contain case-sensitive keys. However, querying and contains
+    testing is case insensitive::
+
+        cid = CaseInsensitiveDict()
+        cid['Accept'] = 'application/json'
+        cid['aCCEPT'] == 'application/json'  # True
+        list(cid) == ['Accept']  # True
+
+    For example, ``headers['content-encoding']`` will return the
+    value of a ``'Content-Encoding'`` response header, regardless
+    of how the header name was originally stored.
+
+    If the constructor, ``.update``, or equality comparison
+    operations are given keys that have equal ``.lower()``s, the
+    behavior is undefined.
+    """
+
+    def __init__(self, data=None, **kwargs):
+        self._store = OrderedDict()
+        if data is None:
+            data = {}
+        self.update(data, **kwargs)
+
+    def __setitem__(self, key, value):
+        # Use the lowercased key for lookups, but store the actual
+        # key alongside the value.
+        self._store[key.lower()] = (key, value)
+
+    def __getitem__(self, key):
+        return self._store[key.lower()][1]
+
+    def __delitem__(self, key):
+        del self._store[key.lower()]
+
+    def __iter__(self):
+        return (casedkey for casedkey, mappedvalue in self._store.values())
+
+    def __len__(self):
+        return len(self._store)
+
+    def lower_items(self):
+        """Like iteritems(), but with all lowercase keys."""
+        return ((lowerkey, keyval[1]) for (lowerkey, keyval) in self._store.items())
+
+    def __eq__(self, other):
+        if isinstance(other, Mapping):
+            other = CaseInsensitiveDict(other)
+        else:
+            return NotImplemented
+        # Compare insensitively
+        return dict(self.lower_items()) == dict(other.lower_items())
+
+    # Copy is required
+    def copy(self):
+        return CaseInsensitiveDict(self._store.values())
+
+    def __repr__(self):
+        return str(dict(self.items()))
+
+
+class LookupDict(dict):
+    """Dictionary lookup object."""
+
+    def __init__(self, name=None):
+        self.name = name
+        super().__init__()
+
+    def __repr__(self):
+        return f"<lookup '{self.name}'>"
+
+    def __getitem__(self, key):
+        # We allow fall-through here, so values default to None
+
+        return self.__dict__.get(key, None)
+
+    def get(self, key, default=None):
+        return self.__dict__.get(key, default)
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/requests/__init__.py`
+- `src/requests/__version__.py`
+- `src/requests/_internal_utils.py`
+- `src/requests/adapters.py`
+- `src/requests/api.py`
+- `src/requests/auth.py`
+- `src/requests/certs.py`
+- `src/requests/compat.py`
+- `src/requests/cookies.py`
+- `src/requests/exceptions.py`
+- `src/requests/help.py`
+- `src/requests/hooks.py`
+- `src/requests/models.py`
+- `src/requests/packages.py`
+- `src/requests/sessions.py`
+- `src/requests/status_codes.py`
+- `src/requests/utils.py`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

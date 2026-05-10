@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "logstash-core/lib/logstash/compiler/lscl.rb",
+    "entity_name": "LogStashCompilerLSCLGrammar::LogStash::Compiler::LSCL::AST::MethodCall.expr",
+    "entity_type": "method",
+    "line_start": 305,
+    "line_end": 305,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "MethodCall module is forced to implement 'expr' method which is explicitly marked as unused.",
+    "reasoning": "The comment 'Not implemented because no one uses this' for the `expr` method within the `MethodCall` module indicates that `MethodCall` is part of a larger conceptual interface (likely inherited or implicitly expected by the AST structure) that requires an `expr` method. However, `MethodCall` itself does not need or use this functionality, forcing it to implement a method it doesn't utilize. This is a clear violation of the Interface Segregation Principle, as clients (in this case, `MethodCall`) should not be forced to depend on interfaces they do not use."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "org.logstash.ackedqueue.io.MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 29,
+    "line_end": 222,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface but throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, and `write()`. This is a textbook violation of the Interface Segregation Principle. It indicates that the `PageIO` interface is 'fat' and groups together responsibilities (reading, writing, lifecycle management, recovery) that are not universally applicable to all its implementations. `MmapPageIOV1` only supports reading, but is forced to provide implementations for writing, creating, and other operations it does not support. The `PageIO` interface should be segregated into smaller, more focused interfaces (e.g., `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `LifecyclePageIO`) so that clients are only forced to depend on methods relevant to their specific needs."
+  }
+]

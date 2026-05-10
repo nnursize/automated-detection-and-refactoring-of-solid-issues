@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-112",
+  "principle": "LSP",
+  "title": "Refactor LSP-112 (LSP): Subtype strengthens precondition by restricting input types not specified in...",
+  "branch": "refactor/LSP-112",
+  "base": "main",
+  "head_commit": "222eae250a0a4feb4064c8fb9cf8f3b5d4154aba",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5636,
+    "completion_tokens": 253
+  },
+  "detected_issue": {
+    "file_path": "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+    "entity_name": "ProtoTypeAdapter.deserialize",
+    "entity_type": "method",
+    "line_start": 295,
+    "line_end": 295,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Subtype strengthens precondition by restricting input types not specified in the base interface.",
+    "reasoning": "`ProtoTypeAdapter` implements `JsonDeserializer<Message>`. Its `deserialize` method throws an `IllegalStateException` with the message 'only generated messages are supported'. The `JsonDeserializer` interface's `deserialize` method contract does not specify such a restriction on the `Message` type. By imposing this stronger precondition, `ProtoTypeAdapter` violates LSP, as it cannot be substituted for a general `JsonDeserializer<Message>` without potentially causing unexpected runtime errors for clients providing non-generated `Message` types."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove the unsupported DynamicMessage check in ProtoTypeAdapter.deserialize",
+    "rationale": "The check for DynamicMessage was an arbitrary restriction that violated the Liskov Substitution Principle by narrowing the contract of the JsonDeserializer interface. Removing it allows the adapter to attempt deserialization for any Message type, which is consistent with the interface contract.",
+    "files_touched": [
+      "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+        "search_text": "      @SuppressWarnings(\"unchecked\")\n      Class<? extends Message> protoClass = (Class<? extends Message>) typeOfT;\n\n      if (DynamicMessage.class.isAssignableFrom(protoClass)) {\n        throw new IllegalStateException(\"only generated messages are supported\");\n      }\n\n      // Invoke the ProtoClass.newBuilder() method",
+        "replace_text": "      @SuppressWarnings(\"unchecked\")\n      Class<? extends Message> protoClass = (Class<? extends Message>) typeOfT;\n\n      // Invoke the ProtoClass.newBuilder() method",
+        "search_lines": 8,
+        "replace_lines": 4
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+        "loc": 404,
+        "blank_lines": 33,
+        "comment_lines": 14,
+        "function_count": 14,
+        "avg_cc": 4.64,
+        "max_cc": 52.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+        "loc": 401,
+        "blank_lines": 32,
+        "comment_lines": 14,
+        "function_count": 14,
+        "avg_cc": 4.57,
+        "max_cc": 51.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java b/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\nindex 620046a..4f99233 100644\n--- a/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\n+++ b/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\n@@ -291,10 +291,6 @@ public class ProtoTypeAdapter implements JsonSerializer<Message>, JsonDeserializ\n       @SuppressWarnings(\"unchecked\")\n       Class<? extends Message> protoClass = (Class<? extends Message>) typeOfT;\n \n-      if (DynamicMessage.class.isAssignableFrom(protoClass)) {\n-        throw new IllegalStateException(\"only generated messages are supported\");\n-      }\n-\n       // Invoke the ProtoClass.newBuilder() method\n       Message.Builder protoBuilder =\n           (Message.Builder) getCachedMethod(protoClass, \"newBuilder\").invoke(null);\n",
+  "duration_ms": 17712.105751037598
+}

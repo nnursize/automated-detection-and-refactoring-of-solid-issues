@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_SRP_scan_11",
+  "repo_name": "requests",
+  "principle": "SRP",
+  "scan_number": 11,
+  "timestamp": "2026-05-03T00:29:05.457687",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"RequestEncodingMixin\",\n      \"entity_type\": \"class\",\n      \"line_start\": 86,\n      \"line_end\": 205,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The mixin combines URL path construction with two distinct data encoding strategies (parameters and files).\",\n      \"reasoning\": \"The `path_url` property is concerned with URL path generation. `_encode_params` handles encoding for URL query parameters or form-urlencoded data. `_encode_files` handles the more complex multipart/form-data encoding, which often involves file I/O and specific MIME type formatting. These are distinct responsibilities related to different aspects of request data preparation (URL structure vs. body content encoding) and different encoding mechanisms. A class or mixin should ideally encapsulate one specific encoding or formatting concern.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response\",\n      \"entity_type\": \"class\",\n      \"line_start\": 642,\n      \"line_end\": 1041,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Response class acts as a 'God object' by handling multiple distinct concerns beyond just representing an HTTP response.\",\n      \"reasoning\": \"This class is responsible for: (1) Data representation (status, headers, raw body), (2) Diverse content access and decoding (raw bytes, text, JSON parsing, encoding detection via `content`, `text`, `json`, `iter_content`, `iter_lines`, `apparent_encoding`), (3) HTTP semantic properties (`ok`, `is_redirect`, `is_permanent_redirect`, `next`), (4) Header parsing (`links`), (5) Error handling (`raise_for_status`), and (6) Resource management (`close`). Each of these is a separate reason for the class to change. For example, changes in JSON parsing logic, new ways to handle redirects, or different resource management strategies would all require modifying this single class.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 145,\n      \"line_end\": 698,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The HTTPAdapter class is a 'God adapter' that combines connection pooling, proxy management, SSL verification, request modification, and response building responsibilities.\",\n      \"reasoning\": \"This class has too many distinct reasons to change. It handles: (1) Connection pooling and management (`init_poolmanager`, `get_connection`, `close`), (2) Proxy configuration and header generation (`proxy_manager_for`, `proxy_headers`), (3) SSL/TLS certificate verification (`cert_verify`, `get_connection_with_tls_context`), (4) Request pre-processing and header addition (`add_headers`, `request_url`), (5) Response post-processing and transformation (`build_response`), and (6) The core request sending logic (`send`). A change in any of these areas (e.g., how proxies are configured, new SSL verification methods, different connection pooling strategies) would necessitate modifying this single adapter class, violating SRP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"RequestsCookieJar\",\n      \"entity_type\": \"class\",\n      \"line_start\": 176,\n      \"line_end\": 437,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The RequestsCookieJar class combines the complex rule-based behavior of a cookielib.CookieJar with the generic key-value interface of a MutableMapping.\",\n      \"reasoning\": \"By inheriting from both `cookielib.CookieJar` and `MutableMapping`, this class takes on two distinct responsibilities. `cookielib.CookieJar` enforces specific rules for cookie management (domains, paths, expiry, security, etc.). `MutableMapping`, however, implies a simple key-value store. This dual interface can lead to confusion and inconsistencies: `set_cookie` respects `cookielib` rules, while `__setitem__` (from `MutableMapping`) might bypass or handle these rules differently, potentially corrupting the cookie state. The class has two separate reasons to change: modifications to cookie-specific logic or changes to how a generic dictionary-like object should behave.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "RequestEncodingMixin",
+      "entity_type": "class",
+      "line_start": 86,
+      "line_end": 205,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The mixin combines URL path construction with two distinct data encoding strategies (parameters and files).",
+      "reasoning": "The `path_url` property is concerned with URL path generation. `_encode_params` handles encoding for URL query parameters or form-urlencoded data. `_encode_files` handles the more complex multipart/form-data encoding, which often involves file I/O and specific MIME type formatting. These are distinct responsibilities related to different aspects of request data preparation (URL structure vs. body content encoding) and different encoding mechanisms. A class or mixin should ideally encapsulate one specific encoding or formatting concern."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Response",
+      "entity_type": "class",
+      "line_start": 642,
+      "line_end": 1041,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Response class acts as a 'God object' by handling multiple distinct concerns beyond just representing an HTTP response.",
+      "reasoning": "This class is responsible for: (1) Data representation (status, headers, raw body), (2) Diverse content access and decoding (raw bytes, text, JSON parsing, encoding detection via `content`, `text`, `json`, `iter_content`, `iter_lines`, `apparent_encoding`), (3) HTTP semantic properties (`ok`, `is_redirect`, `is_permanent_redirect`, `next`), (4) Header parsing (`links`), (5) Error handling (`raise_for_status`), and (6) Resource management (`close`). Each of these is a separate reason for the class to change. For example, changes in JSON parsing logic, new ways to handle redirects, or different resource management strategies would all require modifying this single class."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter",
+      "entity_type": "class",
+      "line_start": 145,
+      "line_end": 698,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The HTTPAdapter class is a 'God adapter' that combines connection pooling, proxy management, SSL verification, request modification, and response building responsibilities.",
+      "reasoning": "This class has too many distinct reasons to change. It handles: (1) Connection pooling and management (`init_poolmanager`, `get_connection`, `close`), (2) Proxy configuration and header generation (`proxy_manager_for`, `proxy_headers`), (3) SSL/TLS certificate verification (`cert_verify`, `get_connection_with_tls_context`), (4) Request pre-processing and header addition (`add_headers`, `request_url`), (5) Response post-processing and transformation (`build_response`), and (6) The core request sending logic (`send`). A change in any of these areas (e.g., how proxies are configured, new SSL verification methods, different connection pooling strategies) would necessitate modifying this single adapter class, violating SRP."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "RequestsCookieJar",
+      "entity_type": "class",
+      "line_start": 176,
+      "line_end": 437,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The RequestsCookieJar class combines the complex rule-based behavior of a cookielib.CookieJar with the generic key-value interface of a MutableMapping.",
+      "reasoning": "By inheriting from both `cookielib.CookieJar` and `MutableMapping`, this class takes on two distinct responsibilities. `cookielib.CookieJar` enforces specific rules for cookie management (domains, paths, expiry, security, etc.). `MutableMapping`, however, implies a simple key-value store. This dual interface can lead to confusion and inconsistencies: `set_cookie` respects `cookielib` rules, while `__setitem__` (from `MutableMapping`) might bypass or handle these rules differently, potentially corrupting the cookie state. The class has two separate reasons to change: modifications to cookie-specific logic or changes to how a generic dictionary-like object should behave."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 30680.667638778687,
+  "error": null
+}

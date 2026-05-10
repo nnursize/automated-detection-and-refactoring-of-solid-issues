@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-004",
+  "principle": "ISP",
+  "title": "Refactor ISP-004 (ISP): ReaderBasedJsonParser implements the large JsonParser interface, forcing the...",
+  "branch": "refactor/ISP-004",
+  "base": "main",
+  "head_commit": "5650ed69e32cc1205ea2281f12c8a5b6bcfeaebf",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7841,
+    "completion_tokens": 785
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser",
+    "entity_type": "class",
+    "line_start": 17,
+    "line_end": 1150,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "ReaderBasedJsonParser implements the large JsonParser interface, forcing the inclusion of methods for binary data and non-blocking parsing that are not its primary purpose.",
+    "reasoning": "ReaderBasedJsonParser is a character-based parser. The JsonParser interface is fat, containing methods for binary, stream, and async parsing. This forces the implementation to carry the overhead and complexity of an interface that covers diverse parsing models beyond character-based reading."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "",
+    "rationale": "",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "loc": 2604,
+        "blank_lines": 201,
+        "comment_lines": 176,
+        "function_count": 85,
+        "avg_cc": 9.92,
+        "max_cc": 759.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3879.5166015625
+}

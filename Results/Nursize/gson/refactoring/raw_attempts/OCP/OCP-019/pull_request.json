@@ -1,0 +1,83 @@
+{
+  "issue_id": "OCP-019",
+  "principle": "OCP",
+  "title": "Refactor OCP-019 (OCP): Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+  "branch": "refactor/OCP-019",
+  "base": "main",
+  "head_commit": "21b80c980a1afe6992adfb66be8905cb326980f4",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14107,
+    "completion_tokens": 2704
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 444,
+    "line_end": 506,
+    "severity": "high",
+    "scan_count": 4,
+    "description": "Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+    "reasoning": "The `createFactories()` method explicitly adds a long, ordered list of built-in `TypeAdapterFactory` instances. Any new fundamental type adapter or change in the default serialization behavior for core types would require modifying this method to add or reorder factories, making it closed for extension."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract built-in TypeAdapterFactories into a registry to satisfy OCP",
+    "rationale": "The hardcoded list of factories in GsonBuilder.createFactories violates OCP. By moving the registration of built-in factories to a dedicated class (BuiltInTypeAdapterFactories), we allow the list to be managed independently of the builder's logic, making it easier to extend without modifying the builder itself.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java"
+    ],
+    "files_created": [
+      "gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java"
+    ],
+    "files_modified": [],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "create",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java",
+        "new_content": "package com.google.gson.internal.bind;\n\nimport com.google.gson.TypeAdapterFactory;\nimport com.google.gson.internal.ConstructorConstructor;\nimport com.google.gson.internal.Excluder;\nimport com.google.gson.internal.sql.SqlTypesSupport;\nimport com.google.gson.ToNumberStrategy;\nimport com.google.gson.TypeAdapter;\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.concurrent.atomic.AtomicLong;\nimport java.util.concurrent.atomic.AtomicLongArray;\n\npublic final class BuiltInTypeAdapterFactories {\n  private BuiltInTypeAdapterFactories() {}\n\n  public static List<TypeAdapterFactory> getFactories(\n      ConstructorConstructor constructorConstructor,\n      Excluder excluder,\n      ToNumberStrategy objectToNumberStrategy,\n      ToNumberStrategy numberToNumberStrategy,\n      TypeAdapter<Number> longAdapter,\n      TypeAdapter<Number> doubleAdapter,\n      TypeAdapter<Number> floatAdapter,\n      boolean complexMapKeySerialization,\n      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory) {\n    List<TypeAdapterFactory> factories = new ArrayList<>();\n    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n    factories.add(ObjectTypeAdapter.getFactory(objectToNumberStrategy));\n    factories.add(excluder);\n    factories.add(new CollectionTypeAdapterFactory(constructorConstructor));\n    factories.add(new MapTypeAdapterFactory(constructorConstructor, complexMapKeySerialization));\n    factories.add(jsonAdapterFactory);\n    factories.add(TypeAdapters.ENUM_FACTORY);\n    \n    factories.add(TypeAdapters.STRING_FACTORY);\n    factories.add(TypeAdapters.INTEGER_FACTORY);\n    factories.add(TypeAdapters.BOOLEAN_FACTORY);\n    factories.add(TypeAdapters.BYTE_FACTORY);\n    factories.add(TypeAdapters.SHORT_FACTORY);\n    factories.add(TypeAdapters.newFactory(long.class, Long.class, longAdapter));\n    factories.add(TypeAdapters.newFactory(double.class, Double.class, doubleAdapter));\n    factories.add(TypeAdapters.newFactory(float.class, Float.class, floatAdapter));\n    factories.add(NumberTypeAdapter.getFactory(numberToNumberStrategy));\n    factories.add(TypeAdapters.ATOMIC_INTEGER_FACTORY);\n    factories.add(TypeAdapters.ATOMIC_BOOLEAN_FACTORY);\n    factories.add(TypeAdapters.newFactory(AtomicLong.class, TypeAdapters.atomicLongAdapter(longAdapter)));\n    factories.add(TypeAdapters.newFactory(AtomicLongArray.class, TypeAdapters.atomicLongArrayAdapter(longAdapter)));\n    factories.add(TypeAdapters.ATOMIC_INTEGER_ARRAY_FACTORY);\n    factories.add(TypeAdapters.CHARACTER_FACTORY);\n    factories.add(TypeAdapters.STRING_BUILDER_FACTORY);\n    factories.add(TypeAdapters.STRING_BUFFER_FACTORY);\n    factories.add(TypeAdapters.BIG_DECIMAL_FACTORY);\n    factories.add(TypeAdapters.BIG_INTEGER_FACTORY);\n    factories.add(TypeAdapters.LAZILY_PARSED_NUMBER_FACTORY);\n    factories.add(TypeAdapters.URL_FACTORY);\n    factories.add(TypeAdapters.URI_FACTORY);\n    factories.add(TypeAdapters.UUID_FACTORY);\n    factories.add(TypeAdapters.CURRENCY_FACTORY);\n    factories.add(TypeAdapters.LOCALE_FACTORY);\n    factories.add(TypeAdapters.INET_ADDRESS_FACTORY);\n    factories.add(TypeAdapters.BIT_SET_FACTORY);\n    factories.add(DefaultDateTypeAdapter.DEFAULT_STYLE_FACTORY);\n    factories.add(TypeAdapters.CALENDAR_FACTORY);\n    TypeAdapterFactory javaTimeFactory = TypeAdapters.javaTimeTypeAdapterFactory();\n    if (javaTimeFactory != null) {\n      factories.add(javaTimeFactory);\n    }\n    factories.addAll(SqlTypesSupport.SQL_TYPE_FACTORIES);\n    factories.add(ArrayTypeAdapter.FACTORY);\n    factories.add(TypeAdapters.CLASS_FACTORY);\n    return factories;\n  }\n}",
+        "new_content_lines": 74
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "loc": 998,
+        "blank_lines": 66,
+        "comment_lines": 13,
+        "function_count": 38,
+        "avg_cc": 4.24,
+        "max_cc": 124.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java",
+        "loc": 70,
+        "blank_lines": 4,
+        "comment_lines": 0,
+        "function_count": 1,
+        "avg_cc": 2.0,
+        "max_cc": 2.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java b/gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java\n@@ -0,0 +1,74 @@\n+package com.google.gson.internal.bind;\n+\n+import com.google.gson.TypeAdapterFactory;\n+import com.google.gson.internal.ConstructorConstructor;\n+import com.google.gson.internal.Excluder;\n+import com.google.gson.internal.sql.SqlTypesSupport;\n+import com.google.gson.ToNumberStrategy;\n+import com.google.gson.TypeAdapter;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.concurrent.atomic.AtomicLong;\n+import java.util.concurrent.atomic.AtomicLongArray;\n+\n+public final class BuiltInTypeAdapterFactories {\n+  private BuiltInTypeAdapterFactories() {}\n+\n+  public static List<TypeAdapterFactory> getFactories(\n+      ConstructorConstructor constructorConstructor,\n+      Excluder excluder,\n+      ToNumberStrategy objectToNumberStrategy,\n+      ToNumberStrategy numberToNumberStrategy,\n+      TypeAdapter<Number> longAdapter,\n+      TypeAdapter<Number> doubleAdapter,\n+      TypeAdapter<Number> floatAdapter,\n+      boolean complexMapKeySerialization,\n+      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory) {\n+    List<TypeAdapterFactory> factories = new ArrayList<>();\n+    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n+    factories.add(ObjectTypeAdapter.getFactory(objectToNumberStrategy));\n+    factories.add(excluder);\n+    factories.add(new CollectionTypeAdapterFactory(constructorConstructor));\n+    factories.add(new MapTypeAdapterFactory(constructorConstructor, complexMapKeySerialization));\n+    factories.add(jsonAdapterFactory);\n+    factories.add(TypeAdapters.ENUM_FACTORY);\n+    \n+    factories.add(TypeAdapters.STRING_FACTORY);\n+    factories.add(TypeAdapters.INTEGER_FACTORY);\n+    factories.add(TypeAdapters.BOOLEAN_FACTORY);\n+    factories.add(TypeAdapters.BYTE_FACTORY);\n+    factories.add(TypeAdapters.SHORT_FACTORY);\n+    factories.add(TypeAdapters.newFactory(long.class, Long.class, longAdapter));\n+    factories.add(TypeAdapters.newFactory(double.class, Double.class, doubleAdapter));\n+    factories.add(TypeAdapters.newFactory(float.class, Float.class, floatAdapter));\n+    factories.add(NumberTypeAdapter.getFactory(numberToNumberStrategy));\n+    factories.add(TypeAdapters.ATOMIC_INTEGER_FACTORY);\n+    factories.add(TypeAdapters.ATOMIC_BOOLEAN_FACTORY);\n+    factories.add(TypeAdapters.newFactory(AtomicLong.class, TypeAdapters.atomicLongAdapter(longAdapter)));\n+    factories.add(TypeAdapters.newFactory(AtomicLongArray.class, TypeAdapters.atomicLongArrayAdapter(longAdapter)));\n+    factories.add(TypeAdapters.ATOMIC_INTEGER_ARRAY_FACTORY);\n+    factories.add(TypeAdapters.CHARACTER_FACTORY);\n+    factories.add(TypeAdapters.STRING_BUILDER_FACTORY);\n+    factories.add(TypeAdapters.STRING_BUFFER_FACTORY);\n+    factories.add(TypeAdapters.BIG_DECIMAL_FACTORY);\n+    factories.add(TypeAdapters.BIG_INTEGER_FACTORY);\n+    factories.add(TypeAdapters.LAZILY_PARSED_NUMBER_FACTORY);\n+    factories.add(TypeAdapters.URL_FACTORY);\n+    factories.add(TypeAdapters.URI_FACTORY);\n+    factories.add(TypeAdapters.UUID_FACTORY);\n+    factories.add(TypeAdapters.CURRENCY_FACTORY);\n+    factories.add(TypeAdapters.LOCALE_FACTORY);\n+    factories.add(TypeAdapters.INET_ADDRESS_FACTORY);\n+    factories.add(TypeAdapters.BIT_SET_FACTORY);\n+    factories.add(DefaultDateTypeAdapter.DEFAULT_STYLE_FACTORY);\n+    factories.add(TypeAdapters.CALENDAR_FACTORY);\n+    TypeAdapterFactory javaTimeFactory = TypeAdapters.javaTimeTypeAdapterFactory();\n+    if (javaTimeFactory != null) {\n+      factories.add(javaTimeFactory);\n+    }\n+    factories.addAll(SqlTypesSupport.SQL_TYPE_FACTORIES);\n+    factories.add(ArrayTypeAdapter.FACTORY);\n+    factories.add(TypeAdapters.CLASS_FACTORY);\n+    return factories;\n+  }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 38126.29461288452
+}

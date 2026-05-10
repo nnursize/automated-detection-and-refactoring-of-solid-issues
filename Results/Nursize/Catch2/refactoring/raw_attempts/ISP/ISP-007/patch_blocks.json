@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "    class IResultCapture;\n    class ITestConfig;",
+    "replace_text": "    class IAssertionCapture;\n    class IMessageCapture;\n    class ISectionCapture;\n    class IResultCapture;\n    class ITestConfig;"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "    class IResultCaptureProvider {\n    public:\n        virtual ~IResultCaptureProvider() = default;\n        virtual IResultCapture* getResultCapture() const = 0;\n    };",
+    "replace_text": "    class IAssertionCapture {\n    public:\n        virtual ~IAssertionCapture() = default;\n        // ... methods for assertions ...\n    };\n\n    class IMessageCapture {\n    public:\n        virtual ~IMessageCapture() = default;\n        // ... methods for messages ...\n    };\n\n    class ISectionCapture {\n    public:\n        virtual ~ISectionCapture() = default;\n        // ... methods for sections ...\n    };\n\n    class IResultCapture : public IAssertionCapture, public IMessageCapture, public ISectionCapture {\n    public:\n        ~IResultCapture() override = default;\n    };\n\n    class IResultCaptureProvider {\n    public:\n        virtual ~IResultCaptureProvider() = default;\n        virtual IResultCapture* getResultCapture() const = 0;\n    };"
+  }
+]

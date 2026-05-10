@@ -1,0 +1,440 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-012
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `gson/src/main/java/com/google/gson/TypeAdapter.java`
+- **Entity**: `TypeAdapter.fromJsonTree` (current lines L241-L241 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 4 independent scans
+
+### Description
+Base abstraction depends on a concrete subclass implementation detail.
+
+### Reasoning
+The abstract class 'TypeAdapter' directly instantiates 'JsonTreeReader', which is a concrete implementation of 'JsonReader' located in an internal package ('internal.bind'). Abstractions should not depend on details; here, the base class is coupled to a specific implementation of the reading logic, making it difficult to change the tree-reading implementation without modifying the base abstraction.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/TypeAdapter.java`
+```java
+/*
+ * Copyright (C) 2011 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson;
+
+import com.google.gson.internal.Streams;
+import com.google.gson.internal.bind.JsonTreeReader;
+import com.google.gson.internal.bind.JsonTreeWriter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
+
+/**
+ * Converts Java objects to and from JSON.
+ *
+ * <h2>Defining a type's JSON form</h2>
+ *
+ * By default Gson converts application classes to JSON using its built-in type adapters. If Gson's
+ * default JSON conversion isn't appropriate for a type, extend this class to customize the
+ * conversion. Here's an example of a type adapter for an (X,Y) coordinate point:
+ *
+ * <pre>{@code
+ * public class PointAdapter extends TypeAdapter<Point> {
+ *   public Point read(JsonReader reader) throws IOException {
+ *     if (reader.peek() == JsonToken.NULL) {
+ *       reader.nextNull();
+ *       return null;
+ *     }
+ *     String xy = reader.nextString();
+ *     String[] parts = xy.split(",");
+ *     int x = Integer.parseInt(parts[0]);
+ *     int y = Integer.parseInt(parts[1]);
+ *     return new Point(x, y);
+ *   }
+ *   public void write(JsonWriter writer, Point value) throws IOException {
+ *     if (value == null) {
+ *       writer.nullValue();
+ *       return;
+ *     }
+ *     String xy = value.getX() + "," + value.getY();
+ *     writer.value(xy);
+ *   }
+ * }
+ * }</pre>
+ *
+ * With this type adapter installed, Gson will convert {@code Points} to JSON as strings like {@code
+ * "5,8"} rather than objects like {@code {"x":5,"y":8}}. In this case the type adapter binds a rich
+ * Java class to a compact JSON value.
+ *
+ * <p>The {@link #read(JsonReader) read()} method must read exactly one value and {@link
+ * #write(JsonWriter,Object) write()} must write exactly one value. For primitive types this is
+ * means readers should make exactly one call to {@code nextBoolean()}, {@code nextDouble()}, {@code
+ * nextInt()}, {@code nextLong()}, {@code nextString()} or {@code nextNull()}. Writers should make
+ * exactly one call to one of {@code value()} or {@code nullValue()}. For arrays, type adapters
+ * should start with a call to {@code beginArray()}, convert all elements, and finish with a call to
+ * {@code endArray()}. For objects, they should start with {@code beginObject()}, convert the
+ * object, and finish with {@code endObject()}. Failing to convert a value or converting too many
+ * values may cause the application to crash.
+ *
+ * <p>Type adapters should be prepared to read null from the stream and write it to the stream.
+ * Alternatively, they should use {@link #nullSafe()} method while registering the type adapter with
+ * Gson. If your {@code Gson} instance has been configured to {@link GsonBuilder#serializeNulls()},
+ * these nulls will be written to the final document. Otherwise the value (and the corresponding
+ * name when writing to a JSON object) will be omitted automatically. In either case your type
+ * adapter must handle null.
+ *
+ * <p>Type adapters should be stateless and thread-safe, otherwise the thread-safety guarantees of
+ * {@link Gson} might not apply.
+ *
+ * <p>To use a custom type adapter with Gson, you must <i>register</i> it with a {@link
+ * GsonBuilder}:
+ *
+ * <pre>{@code
+ * GsonBuilder builder = new GsonBuilder();
+ * builder.registerTypeAdapter(Point.class, new PointAdapter());
+ * // if PointAdapter didn't check for nulls in its read/write methods, you should instead use
+ * // builder.registerTypeAdapter(Point.class, new PointAdapter().nullSafe());
+ * ...
+ * Gson gson = builder.create();
+ * }</pre>
+ *
+ * @since 2.1
+ */
+// non-Javadoc:
+//
+// <h2>JSON Conversion</h2>
+// <p>A type adapter registered with Gson is automatically invoked while serializing
+// or deserializing JSON. However, you can also use type adapters directly to serialize
+// and deserialize JSON. Here is an example for deserialization: <pre>{@code
+//   String json = "{'origin':'0,0','points':['1,2','3,4']}";
+//   TypeAdapter<Graph> graphAdapter = gson.getAdapter(Graph.class);
+//   Graph graph = graphAdapter.fromJson(json);
+// }</pre>
+// And an example for serialization: <pre>{@code
+//   Graph graph = new Graph(...);
+//   TypeAdapter<Graph> graphAdapter = gson.getAdapter(Graph.class);
+//   String json = graphAdapter.toJson(graph);
+// }</pre>
+//
+// <p>Type adapters are <strong>type-specific</strong>. For example, a {@code
+// TypeAdapter<Date>} can convert {@code Date} instances to JSON and JSON to
+// instances of {@code Date}, but cannot convert any other types.
+//
+public abstract class TypeAdapter<T> {
+
+  public TypeAdapter() {}
+
+  /**
+   * Writes one JSON value (an array, object, string, number, boolean or null) for {@code value}.
+   *
+   * @param value the Java object to write. May be null.
+   */
+  public abstract void write(JsonWriter out, T value) throws IOException;
+
+  /**
+   * Converts {@code value} to a JSON document and writes it to {@code out}.
+   *
+   * <p>A {@link JsonWriter} with default configuration is used for writing the JSON data. To
+   * customize this behavior, create a {@link JsonWriter}, configure it and then use {@link
+   * #write(JsonWriter, Object)} instead.
+   *
+   * @param value the Java object to convert. May be {@code null}.
+   * @since 2.2
+   */
+  public final void toJson(Writer out, T value) throws IOException {
+    JsonWriter writer = new JsonWriter(out);
+    write(writer, value);
+  }
+
+  /**
+   * Converts {@code value} to a JSON document.
+   *
+   * <p>A {@link JsonWriter} with default configuration is used for writing the JSON data. To
+   * customize this behavior, create a {@link JsonWriter}, configure it and then use {@link
+   * #write(JsonWriter, Object)} instead.
+   *
+   * @throws JsonIOException wrapping {@code IOException}s thrown by {@link #write(JsonWriter,
+   *     Object)}
+   * @param value the Java object to convert. May be {@code null}.
+   * @since 2.2
+   */
+  public final String toJson(T value) {
+    StringBuilder stringBuilder = new StringBuilder();
+    try {
+      toJson(Streams.writerForAppendable(stringBuilder), value);
+    } catch (IOException e) {
+      throw new JsonIOException(e);
+    }
+    return stringBuilder.toString();
+  }
+
+  /**
+   * Converts {@code value} to a JSON tree.
+   *
+   * @param value the Java object to convert. May be {@code null}.
+   * @return the converted JSON tree. May be {@link JsonNull}.
+   * @throws JsonIOException wrapping {@code IOException}s thrown by {@link #write(JsonWriter,
+   *     Object)}
+   * @since 2.2
+   */
+  public final JsonElement toJsonTree(T value) {
+    try {
+      JsonTreeWriter jsonWriter = new JsonTreeWriter();
+      write(jsonWriter, value);
+      return jsonWriter.get();
+    } catch (IOException e) {
+      throw new JsonIOException(e);
+    }
+  }
+
+  /**
+   * Reads one JSON value (an array, object, string, number, boolean or null) and converts it to a
+   * Java object. Returns the converted object.
+   *
+   * @return the converted Java object. May be {@code null}.
+   */
+  public abstract T read(JsonReader in) throws IOException;
+
+  /**
+   * Converts the JSON document in {@code in} to a Java object.
+   *
+   * <p>A {@link JsonReader} with default configuration (that is with {@link
+   * Strictness#LEGACY_STRICT} as strictness) is used for reading the JSON data. To customize this
+   * behavior, create a {@link JsonReader}, configure it and then use {@link #read(JsonReader)}
+   * instead.
+   *
+   * <p>No exception is thrown if the JSON data has multiple top-level JSON elements, or if there is
+   * trailing data.
+   *
+   * @return the converted Java object. May be {@code null}.
+   * @since 2.2
+   */
+  public final T fromJson(Reader in) throws IOException {
+    JsonReader reader = new JsonReader(in);
+    return read(reader);
+  }
+
+  /**
+   * Converts the JSON document in {@code json} to a Java object.
+   *
+   * <p>A {@link JsonReader} with default configuration (that is with {@link
+   * Strictness#LEGACY_STRICT} as strictness) is used for reading the JSON data. To customize this
+   * behavior, create a {@link JsonReader}, configure it and then use {@link #read(JsonReader)}
+   * instead.
+   *
+   * <p>No exception is thrown if the JSON data has multiple top-level JSON elements, or if there is
+   * trailing data.
+   *
+   * @return the converted Java object. May be {@code null}.
+   * @since 2.2
+   */
+  public final T fromJson(String json) throws IOException {
+    return fromJson(new StringReader(json));
+  }
+
+  /**
+   * Converts {@code jsonTree} to a Java object.
+   *
+   * @param jsonTree the JSON element to convert. May be {@link JsonNull}.
+   * @return the converted Java object. May be {@code null}.
+   * @throws JsonIOException wrapping {@code IOException}s thrown by {@link #read(JsonReader)}
+   * @since 2.2
+   */
+  public final T fromJsonTree(JsonElement jsonTree) {
+    try {
+      JsonReader jsonReader = new JsonTreeReader(jsonTree);
+      return read(jsonReader);
+    } catch (IOException e) {
+      throw new JsonIOException(e);
+    }
+  }
+
+  /**
+   * This wrapper method is used to make a type adapter null tolerant. In general, a type adapter is
+   * required to handle nulls in write and read methods. Here is how this is typically done:<br>
+   *
+   * <pre>{@code
+   * Gson gson = new GsonBuilder().registerTypeAdapter(Foo.class,
+   *   new TypeAdapter<Foo>() {
+   *     public Foo read(JsonReader in) throws IOException {
+   *       if (in.peek() == JsonToken.NULL) {
+   *         in.nextNull();
+   *         return null;
+   *       }
+   *       // read a Foo from in and return it
+   *     }
+   *     public void write(JsonWriter out, Foo src) throws IOException {
+   *       if (src == null) {
+   *         out.nullValue();
+   *         return;
+   *       }
+   *       // write src as JSON to out
+   *     }
+   *   }).create();
+   * }</pre>
+   *
+   * You can avoid this boilerplate handling of nulls by wrapping your type adapter with this
+   * method. Here is how we will rewrite the above example:
+   *
+   * <pre>{@code
+   * Gson gson = new GsonBuilder().registerTypeAdapter(Foo.class,
+   *   new TypeAdapter<Foo>() {
+   *     public Foo read(JsonReader in) throws IOException {
+   *       // read a Foo from in and return it
+   *     }
+   *     public void write(JsonWriter out, Foo src) throws IOException {
+   *       // write src as JSON to out
+   *     }
+   *   }.nullSafe()).create();
+   * }</pre>
+   *
+   * Note that we didn't need to check for nulls in our type adapter after we used nullSafe.
+   */
+  public final TypeAdapter<T> nullSafe() {
+    if (!(this instanceof TypeAdapter.NullSafeTypeAdapter)) {
+      return new NullSafeTypeAdapter();
+    }
+    return this;
+  }
+
+  private final class NullSafeTypeAdapter extends TypeAdapter<T> {
+    @Override
+    public void write(JsonWriter out, T value) throws IOException {
+      if (value == null) {
+        out.nullValue();
+      } else {
+        TypeAdapter.this.write(out, value);
+      }
+    }
+
+    @Override
+    public T read(JsonReader reader) throws IOException {
+      if (reader.peek() == JsonToken.NULL) {
+        reader.nextNull();
+        return null;
+      }
+      return TypeAdapter.this.read(reader);
+    }
+
+    @Override
+    public String toString() {
+      return "NullSafeTypeAdapter[" + TypeAdapter.this + "]";
+    }
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/ExclusionStrategy.java`
+- `gson/src/main/java/com/google/gson/FieldAttributes.java`
+- `gson/src/main/java/com/google/gson/FieldNamingPolicy.java`
+- `gson/src/main/java/com/google/gson/FieldNamingStrategy.java`
+- `gson/src/main/java/com/google/gson/FormattingStyle.java`
+- `gson/src/main/java/com/google/gson/Gson.java`
+- `gson/src/main/java/com/google/gson/GsonBuilder.java`
+- `gson/src/main/java/com/google/gson/InstanceCreator.java`
+- `gson/src/main/java/com/google/gson/JsonArray.java`
+- `gson/src/main/java/com/google/gson/JsonDeserializationContext.java`
+- `gson/src/main/java/com/google/gson/JsonDeserializer.java`
+- `gson/src/main/java/com/google/gson/JsonElement.java`
+- `gson/src/main/java/com/google/gson/JsonIOException.java`
+- `gson/src/main/java/com/google/gson/JsonNull.java`
+- `gson/src/main/java/com/google/gson/JsonObject.java`
+- `gson/src/main/java/com/google/gson/JsonParseException.java`
+- `gson/src/main/java/com/google/gson/JsonParser.java`
+- `gson/src/main/java/com/google/gson/JsonPrimitive.java`
+- `gson/src/main/java/com/google/gson/JsonPrimitiveValue.java`
+- `gson/src/main/java/com/google/gson/JsonSerializationContext.java`
+- `gson/src/main/java/com/google/gson/JsonSerializer.java`
+- `gson/src/main/java/com/google/gson/JsonStreamParser.java`
+- `gson/src/main/java/com/google/gson/JsonSyntaxException.java`
+- `gson/src/main/java/com/google/gson/JsonWriterSettings.java`
+- `gson/src/main/java/com/google/gson/LongSerializationPolicy.java`
+- `gson/src/main/java/com/google/gson/package-info.java`
+- `gson/src/main/java/com/google/gson/ReflectionAccessFilter.java`
+- `gson/src/main/java/com/google/gson/Strictness.java`
+- `gson/src/main/java/com/google/gson/ToNumberPolicy.java`
+- `gson/src/main/java/com/google/gson/ToNumberStrategy.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

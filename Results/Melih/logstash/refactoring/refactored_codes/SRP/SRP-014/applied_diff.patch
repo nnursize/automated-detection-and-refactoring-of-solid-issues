@@ -1,0 +1,63 @@
+diff --git a/logstash-core/src/main/java/org/logstash/secret/store/backend/FileSystemHelper.java b/logstash-core/src/main/java/org/logstash/secret/store/backend/FileSystemHelper.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/secret/store/backend/FileSystemHelper.java
+@@ -0,0 +1,56 @@
++/*
++ * Licensed to Elasticsearch B.V. under one or more contributor
++ * license agreements. See the NOTICE file distributed with
++ * this work for additional information regarding copyright
++ * ownership. Elasticsearch B.V. licenses this file to you under
++ * the Apache License, Version 2.0 (the "License"); you may
++ * not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *	http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing,
++ * software distributed under the License is distributed on an
++ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++ * KIND, either express or implied.  See the License for the
++ * specific language governing permissions and limitations
++ * under the License.
++ */
++
++package org.logstash.secret.store.backend;
++
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.nio.channels.FileLock;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.attribute.PosixFileAttributeView;
++import java.nio.file.attribute.PosixFilePermissions;
++
++public final class FileSystemHelper {
++    private static final boolean IS_WINDOWS = System.getProperty("os.name").startsWith("Windows");
++
++    public static void setPosixPermissions(Path path, String permissions) throws IOException {
++        PosixFileAttributeView attrs = Files.getFileAttributeView(path, PosixFileAttributeView.class);
++        if (attrs != null) {
++            attrs.setPermissions(PosixFilePermissions.fromString(permissions));
++        }
++    }
++
++    public static FileLock lockFile(FileOutputStream fos, Path path) throws IOException {
++        if (!IS_WINDOWS) {
++            FileLock fileLock = fos.getChannel().tryLock();
++            if (fileLock == null) {
++                throw new IllegalStateException("Can not save Logstash keystore. Some other process has locked on the file: " + path.toAbsolutePath());
++            }
++            return fileLock;
++        }
++        return null;
++    }
++
++    public static void releaseLock(FileLock fileLock) throws IOException {
++        if (fileLock != null && fileLock.isValid()) {
++            fileLock.release();
++        }
++    }
++}
+\ No newline at end of file

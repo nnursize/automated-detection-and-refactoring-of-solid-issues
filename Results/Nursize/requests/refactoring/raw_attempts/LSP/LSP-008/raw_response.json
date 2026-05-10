@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 21828.829050064087,
+  "prompt_tokens": 3974,
+  "completion_tokens": 355,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Refactor HTTPProxyAuth to inherit from AuthBase instead of HTTPBasicAuth to resolve LSP violation.\",\n  \"rationale\": \"HTTPProxyAuth was inheriting from HTTPBasicAuth but overriding its behavior to set a different header ('Proxy-Authorization' vs 'Authorization'). This violates the Liskov Substitution Principle as it breaks the contract of the parent class. By inheriting directly from AuthBase, we maintain the same interface while correctly separating the concerns.\",\n  \"files_touched\": [\"src/requests/auth.py\"]\n}\n```\n\n<<<<<<< SEARCH\nclass HTTPProxyAuth(HTTPBasicAuth):\n    \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n\n    def __call__(self, r):\n        r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n        return r\n=======\nclass HTTPProxyAuth(AuthBase):\n    \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n\n    def __init__(self, username, password):\n        self.username = username\n        self.password = password\n\n    def __eq__(self, other):\n        return all(\n            [\n                self.username == getattr(other, \"username\", None),\n                self.password == getattr(other, \"password\", None),\n            ]\n        )\n\n    def __ne__(self, other):\n        return not self == other\n\n    def __call__(self, r):\n        r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n        return r\n>>>>>>> REPLACE"
+}

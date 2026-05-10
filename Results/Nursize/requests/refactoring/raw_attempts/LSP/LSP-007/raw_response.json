@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1978.499174118042,
+  "prompt_tokens": 6062,
+  "completion_tokens": 280,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Ensure __delitem__ raises KeyError when a cookie is not found\",\n  \"rationale\": \"The MutableMapping contract requires __delitem__ to raise a KeyError if the key is missing. The previous implementation used remove_cookie_by_name, which silently ignored missing keys. I updated __delitem__ to check for the existence of the key before attempting deletion, ensuring compliance with the interface contract.\",\n  \"files_touched\": [\"src/requests/cookies.py\"]\n}\n```\n\n<<<<<<< SEARCH src/requests/cookies.py\n    def __delitem__(self, name):\n        \"\"\"Deletes a cookie given a name. Wraps ``http.cookiejar.CookieJar``'s\n        ``remove_cookie_by_name()``.\n        \"\"\"\n        remove_cookie_by_name(self, name)\n=======\n    def __delitem__(self, name):\n        \"\"\"Deletes a cookie given a name. Wraps ``http.cookiejar.CookieJar``'s\n        ``remove_cookie_by_name()``.\n        \"\"\"\n        if name not in self:\n            raise KeyError(f\"name={name!r}\")\n        remove_cookie_by_name(self, name)\n>>>>>>> REPLACE"
+}

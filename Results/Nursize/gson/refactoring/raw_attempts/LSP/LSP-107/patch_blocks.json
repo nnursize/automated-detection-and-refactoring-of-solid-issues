@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/JsonPrimitive.java",
+    "search_text": "  /**\n   * Convenience method to get this element as a {@link Number}. If this primitive {@linkplain\n   * #isString() is a string}, a lazily parsed {@code Number} is constructed which parses the string\n   * when any of its methods are called (which can lead to a {@link NumberFormatException}).\n   *\n   * @throws UnsupportedOperationException if this primitive is neither a number nor a string.\n   */\n  @Override\n  public Number getAsNumber() {\n    if (value instanceof Number) {\n      return (Number) value;\n    } else if (value instanceof String) {\n      return new LazilyParsedNumber((String) value);\n    }\n    throw new UnsupportedOperationException(\"Primitive is neither a number nor a string\");\n  }",
+    "replace_text": "  /**\n   * Convenience method to get this element as a {@link Number}. If this primitive {@linkplain\n   * #isString() is a string}, a lazily parsed {@code Number} is constructed which parses the string\n   * when any of its methods are called (which can lead to a {@link NumberFormatException}).\n   *\n   * @throws NumberFormatException if this primitive is neither a number nor a string.\n   */\n  @Override\n  public Number getAsNumber() {\n    if (value instanceof Number) {\n      return (Number) value;\n    } else if (value instanceof String) {\n      return new LazilyParsedNumber((String) value);\n    }\n    throw new NumberFormatException(\"Primitive is neither a number nor a string\");\n  }"
+  }
+]

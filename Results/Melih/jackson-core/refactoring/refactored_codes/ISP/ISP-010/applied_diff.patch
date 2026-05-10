@@ -1,0 +1,73 @@
+diff --git a/src/main/java/tools/jackson/core/base/ParserBase.java b/src/main/java/tools/jackson/core/base/ParserBase.java
+index 23dc332..b485576 100644
+--- a/src/main/java/tools/jackson/core/base/ParserBase.java
++++ b/src/main/java/tools/jackson/core/base/ParserBase.java
+@@ -1016,19 +1016,6 @@ public abstract class ParserBase extends ParserMinimalBase
+     /**********************************************************************
+      */
+ 
+-    /**
+-     * Method that sub-classes must implement to support escaped sequences
+-     * in base64-encoded sections.
+-     * Sub-classes that do not need base64 support can leave this as is
+-     *
+-     * @return Character decoded, if any
+-     *
+-     * @throws JacksonException If escape decoding fails
+-     */
+-    protected char _decodeEscaped() throws JacksonException {
+-        throw new UnsupportedOperationException();
+-    }
+-
+     protected final int _decodeBase64Escape(Base64Variant b64variant, int ch, int index)
+         throws JacksonException
+     {
+@@ -1036,7 +1023,10 @@ public abstract class ParserBase extends ParserMinimalBase
+         if (ch != '\\') {
+             _reportInvalidBase64Char(b64variant, ch, index);
+         }
+-        int unescaped = _decodeEscaped();
++        if (!(this instanceof EscapedBase64Parser)) {
++            _reportInvalidBase64Char(b64variant, ch, index, "Escaped characters not supported");
++        }
++        int unescaped = ((EscapedBase64Parser) this)._decodeEscaped();
+         // if white space, skip if first triplet; otherwise errors
+         if (unescaped <= INT_SPACE) {
+             if (index == 0) { // whitespace only allowed to be skipped between triplets
+@@ -1060,7 +1050,10 @@ public abstract class ParserBase extends ParserMinimalBase
+             _reportInvalidBase64Char(b64variant, ch, index);
+             return -1; // never gets here
+         }
+-        char unescaped = _decodeEscaped();
++        if (!(this instanceof EscapedBase64Parser)) {
++            _reportInvalidBase64Char(b64variant, ch, index, "Escaped characters not supported");
++        }
++        char unescaped = ((EscapedBase64Parser) this)._decodeEscaped();
+         // if white space, skip if first triplet; otherwise errors
+         if (unescaped <= INT_SPACE) {
+             if (index == 0) { // whitespace only allowed to be skipped between triplets
+diff --git a/src/main/java/tools/jackson/core/base/EscapedBase64Parser.java b/src/main/java/tools/jackson/core/base/EscapedBase64Parser.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/base/EscapedBase64Parser.java
+@@ -0,0 +1,18 @@
++package tools.jackson.core.base;
++
++import tools.jackson.core.JacksonException;
++
++/**
++ * Interface for parsers that support escaped characters in base64-encoded sections.
++ */
++public interface EscapedBase64Parser {
++    /**
++     * Method that sub-classes must implement to support escaped sequences
++     * in base64-encoded sections.
++     *
++     * @return Character decoded, if any
++     *
++     * @throws JacksonException If escape decoding fails
++     */
++    char _decodeEscaped() throws JacksonException;
++}
+\ No newline at end of file

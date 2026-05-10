@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-002",
+  "principle": "DIP",
+  "title": "Refactor DIP-002 (DIP): Static initialization of concrete internal components.",
+  "branch": "refactor/DIP-002",
+  "base": "main",
+  "head_commit": "785a485a7badc5ce438c8f1675a6d4410de7d2f8",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14341,
+    "completion_tokens": 1006
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder",
+    "entity_type": "class",
+    "line_start": 111,
+    "line_end": 117,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Static initialization of concrete internal components.",
+    "reasoning": "GsonBuilder hard-codes the creation of DEFAULT_CONSTRUCTOR_CONSTRUCTOR and DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY. This prevents the inversion of control and forces the library to always use these specific concrete implementations for its default state."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove static initialization of concrete dependencies in GsonBuilder",
+    "rationale": "The static fields DEFAULT_CONSTRUCTOR_CONSTRUCTOR and DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY tightly coupled GsonBuilder to specific implementations. By removing these static initializations and relying on instance-level creation or lazy initialization, we improve testability and adhere to the Dependency Inversion Principle.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/GsonBuilder.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/GsonBuilder.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "search_text": "  static final ConstructorConstructor DEFAULT_CONSTRUCTOR_CONSTRUCTOR =\n      new ConstructorConstructor(\n          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());\n\n  static final JsonAdapterAnnotationTypeAdapterFactory\n      DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY =\n          new JsonAdapterAnnotationTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR);\n\n  /**\n   * Default instance of the builder, to be used only by the default {@link Gson#Gson()}\n   * constructor. Must not be used for anything else and must not be leaked to user code, since that\n   * could lead to accidental modification of this default builder.\n   */\n  static final GsonBuilder DEFAULT = new GsonBuilder();\n\n  static final List<TypeAdapterFactory> DEFAULT_TYPE_ADAPTER_FACTORIES =\n      GsonBuilder.DEFAULT.createFactories(\n          DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n\n  private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();\n\n  static {\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n      factories.add(ObjectTypeAdapter.getFactory(DEFAULT.objectToNumberStrategy));\n    });\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));\n      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));\n      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n      factories.add(TypeAdapters.ENUM_FACTORY);\n    });\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(new ReflectiveTypeAdapterFactory(\n          DEFAULT_CONSTRUCTOR_CONSTRUCTOR,\n          DEFAULT.fieldNamingPolicy,\n          Excluder.DEFAULT,\n          DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY,\n          Collections.emptyList()));\n    });\n  }",
+        "replace_text": "  private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();\n\n  static {\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n      factories.add(ObjectTypeAdapter.getFactory(ToNumberPolicy.DOUBLE));\n    });\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      ConstructorConstructor constructorConstructor = new ConstructorConstructor(\n          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());\n      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory =\n          new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);\n      factories.add(new CollectionTypeAdapterFactory(constructorConstructor));\n      factories.add(new MapTypeAdapterFactory(constructorConstructor, DEFAULT_COMPLEX_MAP_KEYS));\n      factories.add(jsonAdapterFactory);\n      factories.add(TypeAdapters.ENUM_FACTORY);\n    });\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      ConstructorConstructor constructorConstructor = new ConstructorConstructor(\n          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());\n      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory =\n          new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);\n      factories.add(new ReflectiveTypeAdapterFactory(\n          constructorConstructor,\n          DEFAULT_FIELD_NAMING_STRATEGY,\n          Excluder.DEFAULT,\n          jsonAdapterFactory,\n          Collections.emptyList()));\n    });\n  }",
+        "search_lines": 41,
+        "replace_lines": 30
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "loc": 1017,
+        "blank_lines": 69,
+        "comment_lines": 12,
+        "function_count": 39,
+        "avg_cc": 4.15,
+        "max_cc": 124.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "loc": 1010,
+        "blank_lines": 65,
+        "comment_lines": 12,
+        "function_count": 39,
+        "avg_cc": 4.13,
+        "max_cc": 123.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/GsonBuilder.java b/gson/src/main/java/com/google/gson/GsonBuilder.java\nindex c7da8ab..6503100 100644\n--- a/gson/src/main/java/com/google/gson/GsonBuilder.java\n+++ b/gson/src/main/java/com/google/gson/GsonBuilder.java\n@@ -106,44 +106,33 @@ public final class GsonBuilder {\n   private static final ToNumberStrategy DEFAULT_NUMBER_TO_NUMBER_STRATEGY =\n       ToNumberPolicy.LAZILY_PARSED_NUMBER;\n \n-  static final ConstructorConstructor DEFAULT_CONSTRUCTOR_CONSTRUCTOR =\n-      new ConstructorConstructor(\n-          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());\n-\n-  static final JsonAdapterAnnotationTypeAdapterFactory\n-      DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY =\n-          new JsonAdapterAnnotationTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR);\n-\n-  /**\n-   * Default instance of the builder, to be used only by the default {@link Gson#Gson()}\n-   * constructor. Must not be used for anything else and must not be leaked to user code, since that\n-   * could lead to accidental modification of this default builder.\n-   */\n-  static final GsonBuilder DEFAULT = new GsonBuilder();\n-\n-  static final List<TypeAdapterFactory> DEFAULT_TYPE_ADAPTER_FACTORIES =\n-      GsonBuilder.DEFAULT.createFactories(\n-          DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n-\n   private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();\n \n   static {\n     BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n       factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n-      factories.add(ObjectTypeAdapter.getFactory(DEFAULT.objectToNumberStrategy));\n+      factories.add(ObjectTypeAdapter.getFactory(ToNumberPolicy.DOUBLE));\n     });\n     BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n-      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));\n-      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));\n-      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n+      ConstructorConstructor constructorConstructor = new ConstructorConstructor(\n+          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());\n+      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory =\n+          new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);\n+      factories.add(new CollectionTypeAdapterFactory(constructorConstructor));\n+      factories.add(new MapTypeAdapterFactory(constructorConstructor, DEFAULT_COMPLEX_MAP_KEYS));\n+      factories.add(jsonAdapterFactory);\n       factories.add(TypeAdapters.ENUM_FACTORY);\n     });\n     BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n+      ConstructorConstructor constructorConstructor = new ConstructorConstructor(\n+          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());\n+      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory =\n+          new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);\n       factories.add(new ReflectiveTypeAdapterFactory(\n-          DEFAULT_CONSTRUCTOR_CONSTRUCTOR,\n-          DEFAULT.fieldNamingPolicy,\n+          constructorConstructor,\n+          DEFAULT_FIELD_NAMING_STRATEGY,\n           Excluder.DEFAULT,\n-          DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY,\n+          jsonAdapterFactory,\n           Collections.emptyList()));\n     });\n   }\n",
+  "duration_ms": 19839.271068572998
+}

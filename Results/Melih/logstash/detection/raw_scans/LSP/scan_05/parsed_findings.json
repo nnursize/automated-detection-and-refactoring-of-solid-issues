@@ -1,0 +1,101 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.shutdown_requested?",
+    "entity_type": "method",
+    "line_start": 527,
+    "line_end": 530,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Base class method throws IllegalStateException, forcing subclasses to implement a contract without providing a meaningful default.",
+    "reasoning": "The `shutdown_requested?` method in `AbstractPipelineExt` explicitly throws an `IllegalStateException` if not overridden by a concrete subclass. This violates LSP because a client expecting a boolean return (as implied by the method name and typical usage in Ruby) will instead receive an exception when interacting with the base type, changing the expected behavior and contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.overwrite",
+    "entity_type": "method",
+    "line_start": 241,
+    "line_end": 246,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Method changes behavior based on runtime type, effectively nullifying operation for non-`Event` subtypes.",
+    "reasoning": "The `overwrite(co.elastic.logstash.api.Event e)` method performs an `instanceof` check. If the provided event `e` is not an instance of `org.logstash.Event`, it simply returns `e` without performing any overwrite operation. This violates LSP because a client expecting an overwrite operation (as per the method name and likely contract of `co.elastic.logstash.api.Event`) will find that for certain subtypes, the method does nothing, thereby altering the correctness of the program by not fulfilling the expected postcondition."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.append",
+    "entity_type": "method",
+    "line_start": 248,
+    "line_end": 253,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Method changes behavior based on runtime type, effectively nullifying operation for non-`Event` subtypes.",
+    "reasoning": "The `append(co.elastic.logstash.api.Event e)` method, similar to `overwrite`, performs an `instanceof` check. If the provided event `e` is not an instance of `org.logstash.Event`, it simply returns `e` without performing any append operation. This violates LSP because a client expecting an append operation will find that for certain subtypes, the method does nothing, thereby altering the correctness of the program by not fulfilling the expected postcondition."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.recover",
+    "entity_type": "method",
+    "line_start": 103,
+    "line_end": 105,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method defined in its base interface.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface. The `recover()` method in `MmapPageIOV1` throws an `UnsupportedOperationException`. This is a classic LSP violation, as a subtype should be substitutable for its base type without altering the correctness of the program. If a client expects `PageIO.recover()` to perform a recovery, substituting `MmapPageIOV1` will result in an unexpected exception, breaking the contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.create",
+    "entity_type": "method",
+    "line_start": 108,
+    "line_end": 110,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method defined in its base interface.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface. The `create()` method in `MmapPageIOV1` throws an `UnsupportedOperationException`. This violates LSP because a client expecting `PageIO.create()` to create a page will instead receive an unexpected exception, breaking the contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.ensurePersisted",
+    "entity_type": "method",
+    "line_start": 118,
+    "line_end": 120,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method defined in its base interface.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface. The `ensurePersisted()` method in `MmapPageIOV1` throws an `UnsupportedOperationException`. This violates LSP because a client expecting `PageIO.ensurePersisted()` to persist data will instead receive an unexpected exception, breaking the contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.purge",
+    "entity_type": "method",
+    "line_start": 123,
+    "line_end": 125,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method defined in its base interface.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface. The `purge()` method in `MmapPageIOV1` throws an `UnsupportedOperationException`. This violates LSP because a client expecting `PageIO.purge()` to delete data will instead receive an unexpected exception, breaking the contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.write",
+    "entity_type": "method",
+    "line_start": 128,
+    "line_end": 130,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype throws UnsupportedOperationException for a method defined in its base interface.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface. The `write(byte[] bytes, long seqNum)` method in `MmapPageIOV1` throws an `UnsupportedOperationException`. This violates LSP because a client expecting `PageIO.write()` to write data will instead receive an unexpected exception, breaking the contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.hasSpace",
+    "entity_type": "method",
+    "line_start": 148,
+    "line_end": 150,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype always returns false for a method that should report available space, violating the method's contract.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface. The `hasSpace(int bytes)` method in `MmapPageIOV1` always returns `false`. While it doesn't throw an exception, it violates the expected behavioral contract of `hasSpace()` to accurately report whether space is available for writing. Since `MmapPageIOV1` is for a read-only V1 format, it effectively nullifies the 'has space for writing' aspect of the contract, changing the postcondition and thus violating LSP."
+  }
+]

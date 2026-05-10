@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_OCP_scan_11",
+  "repo_name": "jackson-core",
+  "principle": "OCP",
+  "scan_number": 11,
+  "timestamp": "2026-04-18T21:37:26.019976",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that sh...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 2483,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat interface with excessive method count violating OCP\",\n      \"reasoning\": \"The JsonGenerator class contains a massive number of specialized write methods (e.g., writeNumber for various types, writeArray for various types). Adding support for a new data type or a new structural write pattern requires modifying the interface and all existing implementations, directly violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonParser.java\",\n      \"entity_name\": \"JsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 723,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat interface with excessive method count violating OCP\",\n      \"reasoning\": \"Similar to JsonGenerator, JsonParser includes a vast array of getter methods for specific types (getByteValue, getShortValue, getIntValue, etc.). This makes the interface rigid; adding support for new types or specialized parsing logic forces modification of the base interface and all concrete parser implementations.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 20,\n      \"line_end\": 4341,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"God class implementation with massive method counts\",\n      \"reasoning\": \"This class handles low-level byte parsing, token identification, number parsing, and canonicalization within a single file. The sheer size and complexity make it impossible to extend without modification, as new parsing logic or feature toggles are frequently added via new methods or complex conditional logic within this monolithic class.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 2483,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Fat interface with excessive method count violating OCP",
+      "reasoning": "The JsonGenerator class contains a massive number of specialized write methods (e.g., writeNumber for various types, writeArray for various types). Adding support for a new data type or a new structural write pattern requires modifying the interface and all existing implementations, directly violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+      "entity_name": "JsonParser",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 723,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Fat interface with excessive method count violating OCP",
+      "reasoning": "Similar to JsonGenerator, JsonParser includes a vast array of getter methods for specific types (getByteValue, getShortValue, getIntValue, etc.). This makes the interface rigid; adding support for new types or specialized parsing logic forces modification of the base interface and all concrete parser implementations."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 20,
+      "line_end": 4341,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "God class implementation with massive method counts",
+      "reasoning": "This class handles low-level byte parsing, token identification, number parsing, and canonicalization within a single file. The sheer size and complexity make it impossible to extend without modification, as new parsing logic or feature toggles are frequently added via new methods or complex conditional logic within this monolithic class."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3620.771884918213,
+  "error": null
+}

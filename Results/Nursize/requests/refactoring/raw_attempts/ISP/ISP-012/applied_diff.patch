@@ -1,0 +1,51 @@
+diff --git a/src/requests/sessions.py b/src/requests/sessions.py
+index efc56f1..17910ed 100644
+--- a/src/requests/sessions.py
++++ b/src/requests/sessions.py
+@@ -104,6 +104,37 @@ def merge_hooks(request_hooks, session_hooks, dict_class=OrderedDict):
+     return merge_setting(request_hooks, session_hooks, dict_class)
+ 
+ 
++class SessionAdapterMixin:
++    def get_adapter(self, url):
++        """
++        Returns the appropriate connection adapter for the given URL.
++
++        :rtype: requests.adapters.BaseAdapter
++        """
++        for prefix, adapter in self.adapters.items():
++            if url.lower().startswith(prefix.lower()):
++                return adapter
++
++        # Nothing matches :-/
++        raise InvalidSchema(f"No connection adapters were found for {url!r}")
++
++    def close(self):
++        """Closes all adapters and as such the session"""
++        for v in self.adapters.values():
++            v.close()
++
++    def mount(self, prefix, adapter):
++        """Registers a connection adapter to a prefix.
++
++        Adapters are sorted in descending order by prefix length.
++        """
++        self.adapters[prefix] = adapter
++        keys_to_move = [k for k in self.adapters if len(k) < len(prefix)]
++
++        for key in keys_to_move:
++            self.adapters[key] = self.adapters.pop(key)
++
++
+ class SessionRedirectMixin:
+     def get_redirect_target(self, resp):
+         """Receives a Response. Returns a redirect URI or ``None``"""
+@@ -351,7 +382,7 @@ class SessionRedirectMixin:
+         prepared_request.method = method
+ 
+ 
+-class Session(SessionRedirectMixin):
++class Session(SessionRedirectMixin, SessionAdapterMixin):
+     """A Requests session.
+ 
+     Provides cookie persistence, connection-pooling, and configuration.

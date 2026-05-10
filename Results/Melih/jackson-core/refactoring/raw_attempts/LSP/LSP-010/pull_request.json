@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-010",
+  "principle": "LSP",
+  "title": "Refactor LSP-010 (LSP): Subclass violates LSP by throwing UnsupportedOperationException for a method...",
+  "branch": "refactor/LSP-010",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3759,
+    "completion_tokens": 351
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator.writeRawUTF8String",
+    "entity_type": "class",
+    "line_start": 444,
+    "line_end": 448,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Subclass violates LSP by throwing UnsupportedOperationException for a method defined in the base contract.",
+    "reasoning": "The JsonGenerator (base) class defines writeRawUTF8String as an abstract method, implying it is part of the contract for all generators. The UTF8JsonGenerator implementation throws an UnsupportedOperationException, meaning it is not substitutable for a general JsonGenerator where this method is expected to work."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Implement writeRawUTF8String in UTF8JsonGenerator to satisfy LSP",
+    "rationale": "The method was previously throwing UnsupportedOperationException, violating the Liskov Substitution Principle. Since UTF8JsonGenerator is a byte-based generator, it can natively support writing raw UTF-8 bytes without escaping, which is the expected behavior for this method.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+        "loc": 2058,
+        "blank_lines": 188,
+        "comment_lines": 118,
+        "function_count": 84,
+        "avg_cc": 5.74,
+        "max_cc": 399.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2222.3587036132812
+}

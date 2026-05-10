@@ -1,0 +1,83 @@
+{
+  "issue_id": "SRP-013",
+  "principle": "SRP",
+  "title": "Refactor SRP-013 (SRP): FieldReference combines data representation with complex string parsing logic.",
+  "branch": "refactor/SRP-013",
+  "base": "main",
+  "head_commit": "c58cd163a1d9291fd2141008659d58fc19a62e21",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4640,
+    "completion_tokens": 2459
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+    "entity_name": "FieldReference",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 250,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "FieldReference combines data representation with complex string parsing logic.",
+    "reasoning": "Large Class smell -> SRP violation because it encapsulates both the identity of a field path (the data structure) and the complex logic required to parse that path from a string (StrictTokenizer). The parsing logic is a separate responsibility from the representation of the parsed result."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract FieldReference parsing logic into a dedicated FieldReferenceParser class",
+    "rationale": "The FieldReference class was violating the Single Responsibility Principle by handling both the data structure of a field reference and the complex string parsing logic. Moving the parsing logic to a separate class improves maintainability and adheres to SRP.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/FieldReferenceParser.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/FieldReferenceParser.java"
+    ],
+    "files_modified": [],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/FieldReferenceParser.java",
+        "new_content": "/*\n * Licensed to Elasticsearch B.V. under one or more contributor\n * license agreements. See the NOTICE file distributed with\n * this work for additional information regarding copyright\n * ownership. Elasticsearch B.V. licenses this file to you under\n * the Apache License, Version 2.0 (the \"License\"); you may\n * not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *\thttp://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing,\n * software distributed under the License is distributed on an\n * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n * KIND, either express or implied.  See the License for the\n * specific language governing permissions and limitations\n * under the License.\n */\n\npackage org.logstash;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.stream.Collectors;\nimport org.logstash.util.EscapeHandler;\n\npublic final class FieldReferenceParser {\n\n    private static final String[] EMPTY_STRING_ARRAY = new String[0];\n\n    public static FieldReference parse(final CharSequence reference, final EscapeHandler escapeHandler) {\n        final List<String> path = tokenize(reference).stream()\n                .map(escapeHandler::unescape)\n                .collect(Collectors.toList());\n\n        return fromTokens(path);\n    }\n\n    private static FieldReference fromTokens(final List<String> path) {\n        final String key = path.remove(path.size() - 1);\n        final boolean empty = path.isEmpty();\n        if (empty && key.equals(Event.METADATA)) {\n            return new FieldReference(EMPTY_STRING_ARRAY, key, FieldReference.META_PARENT);\n        } else if (!empty && path.get(0).equals(Event.METADATA)) {\n            return new FieldReference(\n                    path.subList(1, path.size()).toArray(EMPTY_STRING_ARRAY), key, FieldReference.META_CHILD\n            );\n        } else {\n            return new FieldReference(path.toArray(EMPTY_STRING_ARRAY), key, -1); // DATA_CHILD is -1\n        }\n    }\n\n    private static List<String> tokenize(final CharSequence reference) {\n        ArrayList<String> path = new ArrayList<>();\n        final int length = reference.length();\n\n        boolean potentiallyAmbiguousSyntaxDetected = false;\n        boolean seenBracket = false;\n        int depth = 0;\n        int splitPoint = 0;\n        char current = 0;\n        char previous = 0;\n        scan: for (int i = 0; i < length; i++) {\n            previous = current;\n            current = reference.charAt(i);\n            switch (current) {\n                case '[':\n                    seenBracket = true;\n                    if (splitPoint != i) {\n                        potentiallyAmbiguousSyntaxDetected = true;\n                        break scan;\n                    }\n                    depth++;\n                    splitPoint = i + 1;\n                    continue scan;\n                case ']':\n                    seenBracket = true;\n                    if (depth <= 0) {\n                        potentiallyAmbiguousSyntaxDetected = true;\n                        break scan;\n                    }\n                    if (splitPoint == i && previous != ']') {\n                        potentiallyAmbiguousSyntaxDetected = true;\n                        break scan;\n                    }\n                    if (splitPoint < i) {\n                        path.add(reference.subSequence(splitPoint, i).toString());\n                    }\n                    depth--;\n                    splitPoint = i + 1;\n                    continue scan;\n                default:\n                    if (seenBracket && previous == ']') {\n                        potentiallyAmbiguousSyntaxDetected = true;\n                        break scan;\n                    }\n                    continue scan;\n            }\n        }\n\n        if (!seenBracket) {\n            path.add(reference.toString());\n            return path;\n        } else if (depth > 0) {\n            potentiallyAmbiguousSyntaxDetected = true;\n        }\n\n        if (potentiallyAmbiguousSyntaxDetected) {\n            throw new FieldReference.IllegalSyntaxException(String.format(\"Invalid FieldReference: `%s`\", reference.toString()));\n        }\n\n        path.trimToSize();\n        return path;\n    }\n\n    private FieldReferenceParser() {}\n}",
+        "new_content_lines": 117
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+        "loc": 292,
+        "blank_lines": 50,
+        "comment_lines": 19,
+        "function_count": 15,
+        "avg_cc": 4.2,
+        "max_cc": 49.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/FieldReferenceParser.java",
+        "loc": 104,
+        "blank_lines": 13,
+        "comment_lines": 0,
+        "function_count": 3,
+        "avg_cc": 7.33,
+        "max_cc": 20.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/FieldReferenceParser.java b/logstash-core/src/main/java/org/logstash/FieldReferenceParser.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/FieldReferenceParser.java\n@@ -0,0 +1,117 @@\n+/*\n+ * Licensed to Elasticsearch B.V. under one or more contributor\n+ * license agreements. See the NOTICE file distributed with\n+ * this work for additional information regarding copyright\n+ * ownership. Elasticsearch B.V. licenses this file to you under\n+ * the Apache License, Version 2.0 (the \"License\"); you may\n+ * not use this file except in compliance with the License.\n+ * You may obtain a copy of the License at\n+ *\n+ *\thttp://www.apache.org/licenses/LICENSE-2.0\n+ *\n+ * Unless required by applicable law or agreed to in writing,\n+ * software distributed under the License is distributed on an\n+ * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n+ * KIND, either express or implied.  See the License for the\n+ * specific language governing permissions and limitations\n+ * under the License.\n+ */\n+\n+package org.logstash;\n+\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.stream.Collectors;\n+import org.logstash.util.EscapeHandler;\n+\n+public final class FieldReferenceParser {\n+\n+    private static final String[] EMPTY_STRING_ARRAY = new String[0];\n+\n+    public static FieldReference parse(final CharSequence reference, final EscapeHandler escapeHandler) {\n+        final List<String> path = tokenize(reference).stream()\n+                .map(escapeHandler::unescape)\n+                .collect(Collectors.toList());\n+\n+        return fromTokens(path);\n+    }\n+\n+    private static FieldReference fromTokens(final List<String> path) {\n+        final String key = path.remove(path.size() - 1);\n+        final boolean empty = path.isEmpty();\n+        if (empty && key.equals(Event.METADATA)) {\n+            return new FieldReference(EMPTY_STRING_ARRAY, key, FieldReference.META_PARENT);\n+        } else if (!empty && path.get(0).equals(Event.METADATA)) {\n+            return new FieldReference(\n+                    path.subList(1, path.size()).toArray(EMPTY_STRING_ARRAY), key, FieldReference.META_CHILD\n+            );\n+        } else {\n+            return new FieldReference(path.toArray(EMPTY_STRING_ARRAY), key, -1); // DATA_CHILD is -1\n+        }\n+    }\n+\n+    private static List<String> tokenize(final CharSequence reference) {\n+        ArrayList<String> path = new ArrayList<>();\n+        final int length = reference.length();\n+\n+        boolean potentiallyAmbiguousSyntaxDetected = false;\n+        boolean seenBracket = false;\n+        int depth = 0;\n+        int splitPoint = 0;\n+        char current = 0;\n+        char previous = 0;\n+        scan: for (int i = 0; i < length; i++) {\n+            previous = current;\n+            current = reference.charAt(i);\n+            switch (current) {\n+                case '[':\n+                    seenBracket = true;\n+                    if (splitPoint != i) {\n+                        potentiallyAmbiguousSyntaxDetected = true;\n+                        break scan;\n+                    }\n+                    depth++;\n+                    splitPoint = i + 1;\n+                    continue scan;\n+                case ']':\n+                    seenBracket = true;\n+                    if (depth <= 0) {\n+                        potentiallyAmbiguousSyntaxDetected = true;\n+                        break scan;\n+                    }\n+                    if (splitPoint == i && previous != ']') {\n+                        potentiallyAmbiguousSyntaxDetected = true;\n+                        break scan;\n+                    }\n+                    if (splitPoint < i) {\n+                        path.add(reference.subSequence(splitPoint, i).toString());\n+                    }\n+                    depth--;\n+                    splitPoint = i + 1;\n+                    continue scan;\n+                default:\n+                    if (seenBracket && previous == ']') {\n+                        potentiallyAmbiguousSyntaxDetected = true;\n+                        break scan;\n+                    }\n+                    continue scan;\n+            }\n+        }\n+\n+        if (!seenBracket) {\n+            path.add(reference.toString());\n+            return path;\n+        } else if (depth > 0) {\n+            potentiallyAmbiguousSyntaxDetected = true;\n+        }\n+\n+        if (potentiallyAmbiguousSyntaxDetected) {\n+            throw new FieldReference.IllegalSyntaxException(String.format(\"Invalid FieldReference: `%s`\", reference.toString()));\n+        }\n+\n+        path.trimToSize();\n+        return path;\n+    }\n+\n+    private FieldReferenceParser() {}\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 27659.454107284546
+}

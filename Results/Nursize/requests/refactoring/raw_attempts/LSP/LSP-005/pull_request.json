@@ -1,0 +1,91 @@
+{
+  "issue_id": "LSP-005",
+  "principle": "LSP",
+  "title": "Refactor LSP-005 (LSP): Subclass raises a custom exception not defined in the base Mapping interface",
+  "branch": "refactor/LSP-005",
+  "base": "main",
+  "head_commit": "d7c31619d0f4344c4f802c51dcde02ae3f039a75",
+  "status": "applied_failed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6074,
+    "completion_tokens": 327
+  },
+  "detected_issue": {
+    "file_path": "src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "method",
+    "line_start": 294,
+    "line_end": 301,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Subclass raises a custom exception not defined in the base Mapping interface",
+    "reasoning": "RequestsCookieJar implements the MutableMapping interface. The contract for Mapping.__getitem__ specifies that it should return a value or raise a KeyError. RequestsCookieJar introduces CookieConflictError when multiple cookies match a name, which is an unexpected exception type for callers of the standard Mapping interface, violating the principle that subtypes should not raise new exceptions not raised by the parent."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace CookieConflictError with KeyError in __getitem__ to adhere to MutableMapping contract",
+    "rationale": "The Liskov Substitution Principle requires that subtypes do not raise exceptions not expected by the base interface. MutableMapping.__getitem__ is expected to raise KeyError when a key is missing. By catching the custom CookieConflictError and re-raising it as a KeyError, we ensure that callers of the mapping interface receive the expected exception type.",
+    "files_touched": [
+      "src/requests/cookies.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/cookies.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/cookies.py",
+        "search_text": "    def __getitem__(self, name):\n        \"\"\"Dict-like __getitem__() for compatibility with client code. Throws\n        exception if there are more than one cookie with name. In that case,\n        use the more explicit get() method instead.\n\n        .. warning:: operation is O(n), not O(1).\n        \"\"\"\n        return self._find_no_duplicates(name)",
+        "replace_text": "    def __getitem__(self, name):\n        \"\"\"Dict-like __getitem__() for compatibility with client code. Throws\n        exception if there are more than one cookie with name. In that case,\n        use the more explicit get() method instead.\n\n        .. warning:: operation is O(n), not O(1).\n        \"\"\"\n        try:\n            return self._find_no_duplicates(name)\n        except CookieConflictError as e:\n            raise KeyError(str(e))",
+        "search_lines": 8,
+        "replace_lines": 11
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": false,
+    "total": 179,
+    "passed_count": 177,
+    "failed_count": 1,
+    "skipped_count": 1,
+    "error_count": 0,
+    "duration_ms": 86265.95973968506,
+    "timed_out": false,
+    "new_failures_count": 1,
+    "pre_existing_failures_count": 0,
+    "new_failures": [
+      "tests/test_requests.py::TestRequests::test_cookie_duplicate_names_different_domains"
+    ],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n...........................F\n================================== FAILURES ===================================\n_________ TestRequests.test_cookie_duplicate_names_different_domains __________\ntests\\test_requests.py:1378: in test_cookie_duplicate_names_different_domains\n    assert key in jar\nE   AssertionError: assert 'some_cookie' in <RequestsCookieJar[Cookie(version=0, name='some_cookie', value='some_value', port=None, port_specified=False, domain='...ue, secure=False, expires=None, discard=True, comment=None, comment_url=None, rest={'HttpOnly': None}, rfc2109=False)]>\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_requests.py::TestRequests::test_cookie_duplicate_names_different_domains\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 177 passed, 1 skipped, 1 deselected, 8 warnings in 85.48s (0:01:25)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 14:05:00] \"GET /get?test=true&q=test HTTP/1.1\" 200 252\n127.0.0.1 - - [04/May/2026 14:05:00] \"GET /get HTTP/1.1\" 200 222\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/cookies.py",
+        "loc": 439,
+        "blank_lines": 110,
+        "comment_lines": 12,
+        "function_count": 49,
+        "avg_cc": 2.38,
+        "max_cc": 9.0,
+        "mi": 39.8
+      }
+    ],
+    "after": null
+  },
+  "diff": "diff --git a/src/requests/cookies.py b/src/requests/cookies.py\nindex 7b30370..e8b6c65 100644\n--- a/src/requests/cookies.py\n+++ b/src/requests/cookies.py\n@@ -331,7 +331,10 @@ class RequestsCookieJar(cookielib.CookieJar, MutableMapping):\n \n         .. warning:: operation is O(n), not O(1).\n         \"\"\"\n-        return self._find_no_duplicates(name)\n+        try:\n+            return self._find_no_duplicates(name)\n+        except CookieConflictError as e:\n+            raise KeyError(str(e))\n \n     def __setitem__(self, name, value):\n         \"\"\"Dict-like __setitem__ for compatibility with client code. Throws\n",
+  "duration_ms": 88751.4488697052
+}

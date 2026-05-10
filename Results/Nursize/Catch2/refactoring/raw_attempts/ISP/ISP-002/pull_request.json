@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-002",
+  "principle": "ISP",
+  "title": "Refactor ISP-002 (ISP): IConfig interface has too many methods, potentially forcing implementations t...",
+  "branch": "refactor/ISP-002",
+  "base": "main",
+  "head_commit": "4e2fc2dad834aa20fef855b5c3f9c851106412f3",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3166,
+    "completion_tokens": 136
+  },
+  "detected_issue": {
+    "file_path": "src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "IConfig",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 161,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "IConfig interface has too many methods, potentially forcing implementations to provide unused functionality.",
+    "reasoning": "The IConfig interface appears to be quite large, with numerous methods for configuring various aspects of the test runner. If an implementation of IConfig only needs a subset of these configurations, it would be forced to implement all methods, even those it doesn't use. This violates the ISP, as clients (or the RunContext in this case) that only depend on a few configuration options are indirectly coupled to the entire interface. It would be better to break this down into smaller, more focused interfaces."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor IConfig to avoid modifying it directly, as it is defined in a different header.",
+    "rationale": "The IConfig interface is defined in `catch2/interfaces/catch_interfaces_config.hpp` (implied by the project structure), not `catch2/internal/catch_run_context.hpp`. Modifying it here would be incorrect. The violation report incorrectly identified the file as the location of the interface definition. I will not perform an unsafe refactor on a file that only forward-declares the interface.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/catch2/internal/catch_run_context.hpp",
+        "loc": 116,
+        "blank_lines": 35,
+        "comment_lines": 16,
+        "function_count": 0,
+        "avg_cc": 12.0,
+        "max_cc": 12.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 1674.3152141571045
+}

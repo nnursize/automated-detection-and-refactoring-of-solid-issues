@@ -1,0 +1,34 @@
+diff --git a/gson/src/main/java/com/google/gson/GsonBuilder.java b/gson/src/main/java/com/google/gson/GsonBuilder.java
+index 74d09a2..c7da8ab 100644
+--- a/gson/src/main/java/com/google/gson/GsonBuilder.java
++++ b/gson/src/main/java/com/google/gson/GsonBuilder.java
+@@ -138,6 +138,14 @@ public final class GsonBuilder {
+       factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);
+       factories.add(TypeAdapters.ENUM_FACTORY);
+     });
++    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {
++      factories.add(new ReflectiveTypeAdapterFactory(
++          DEFAULT_CONSTRUCTOR_CONSTRUCTOR,
++          DEFAULT.fieldNamingPolicy,
++          Excluder.DEFAULT,
++          DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY,
++          Collections.emptyList()));
++    });
+   }
+ 
+   /** @internal */
+@@ -968,14 +976,6 @@ public final class GsonBuilder {
+ 
+     addPlatformTypeAdapters(factories);
+ 
+-    factories.add(
+-        new ReflectiveTypeAdapterFactory(
+-            constructorConstructor,
+-            fieldNamingPolicy,
+-            excluder,
+-            jsonAdapterFactory,
+-            newImmutableList(reflectionFilters)));
+-
+     factories.trimToSize();
+     return Collections.unmodifiableList(factories);
+   }

@@ -1,0 +1,72 @@
+{
+  "issue_id": "LSP-004",
+  "principle": "LSP",
+  "title": "Refactor LSP-004 (LSP): Base class uses type-querying methods to distinguish subtypes.",
+  "branch": "refactor/LSP-004",
+  "base": "main",
+  "head_commit": "d878a9f6a7d33b8a9f689f8c4f980f1a9c6889e4",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in extras/catch_amalgamated.hpp (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 2925,
+    "completion_tokens": 232
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ITransientExpression",
+    "entity_type": "class",
+    "line_start": 1845,
+    "line_end": 1868,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Base class uses type-querying methods to distinguish subtypes.",
+    "reasoning": "The base class ITransientExpression includes the method isBinaryExpression(). This pattern of 'Type Tagging' or manual type querying suggests that consumers of the interface are expected to branch logic based on the concrete subtype rather than relying on polymorphic behavior. Subtypes should be substitutable without the caller needing to query their specific nature."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove type-querying method from ITransientExpression to adhere to LSP",
+    "rationale": "The ITransientExpression interface contained a type-querying method (isBinaryExpression) which forces consumers to perform manual type checking, violating the Liskov Substitution Principle. Removing this method encourages polymorphic usage of the interface.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class ITransientExpression {\n    public:\n        virtual ~ITransientExpression();\n        virtual bool isBinaryExpression() const = 0;\n        virtual bool getResult() const = 0;\n        virtual void streamReconstructedExpression( std::ostream& os ) const = 0;\n    };",
+        "replace_text": "    class ITransientExpression {\n    public:\n        virtual ~ITransientExpression();\n        virtual bool getResult() const = 0;\n        virtual void streamReconstructedExpression( std::ostream& os ) const = 0;\n    };",
+        "search_lines": 7,
+        "replace_lines": 6
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10485,
+        "blank_lines": 3074,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 428.33,
+        "max_cc": 1283.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2766.511917114258
+}

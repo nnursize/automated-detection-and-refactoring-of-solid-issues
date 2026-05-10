@@ -9,12 +9,12 @@ import ast
 import re
 
 from ..models import MethodSignature
-from .class_extractor import _python_method_sig
+from .class_extractor import _normalize_language, _python_method_sig
 
 
 def extract_signatures(content: str, language: str) -> list[MethodSignature]:
     """Return every function/method signature in the file (top-level + class members)."""
-    lang = (language or "").lower()
+    lang = _normalize_language(language)
     if lang == "python":
         try:
             return _extract_python(content)

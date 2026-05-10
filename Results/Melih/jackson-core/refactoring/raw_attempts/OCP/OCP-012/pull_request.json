@@ -1,0 +1,61 @@
+{
+  "issue_id": "OCP-012",
+  "principle": "OCP",
+  "title": "Refactor OCP-012 (OCP): Switch statement on minor state requires modification to handle new states",
+  "branch": "refactor/OCP-012",
+  "base": "main",
+  "head_commit": "830edb6aac4f165c94a5fdc01dc77dc6a23643ba",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3533,
+    "completion_tokens": 161
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+    "entity_name": "NonBlockingUtf8JsonParserBase._finishToken",
+    "entity_type": "class",
+    "line_start": 172,
+    "line_end": 308,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Switch statement on minor state requires modification to handle new states",
+    "reasoning": "The _finishToken method uses a switch statement on _minorState. Adding new states or parsing logic would require modifying this switch block, violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Cannot safely refactor due to truncated source code for the switch statement.",
+    "rationale": "The provided source code for the `_finishToken` method is truncated, specifically the `switch (_minorState)` statement. The line `# ... 2800 later lines elided ...` indicates that many `case` branches are missing. Without the complete set of `case` statements, it is impossible to safely refactor the switch statement into a dispatch mechanism (e.g., using a map of handlers) without risking an incomplete fix that would break existing behavior for the unhandled states. Adhering to rule 8, a partial refactor is not emitted.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "loc": 2634,
+        "blank_lines": 182,
+        "comment_lines": 238,
+        "function_count": 63,
+        "avg_cc": 12.56,
+        "max_cc": 729.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 24301.58019065857
+}

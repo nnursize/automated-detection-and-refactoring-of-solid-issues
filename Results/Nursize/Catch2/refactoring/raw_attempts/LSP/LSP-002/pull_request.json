@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-002",
+  "principle": "LSP",
+  "title": "Refactor LSP-002 (LSP): Base class uses explicit type-checking hooks (isContainer, isFlag) to handle...",
+  "branch": "refactor/LSP-002",
+  "base": "main",
+  "head_commit": "b7b6a46c3874772bce14f73fc67c774be8bb2c2e",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3121,
+    "completion_tokens": 144
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Clara::Detail::BoundRef",
+    "entity_type": "class",
+    "line_start": 5595,
+    "line_end": 5599,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "Base class uses explicit type-checking hooks (isContainer, isFlag) to handle subclasses differently.",
+    "reasoning": "The `BoundRef` struct defines virtual methods `isContainer()` and `isFlag()` that return `false` by default and are overridden by specific subclasses. This pattern is used in `ParserRefImpl::cardinality` to branch logic based on the specific subtype. This violates LSP as the consumer of the base class must be aware of the specific implementation categories of the subtypes to ensure correct program behavior."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove unnecessary type-checking hooks from BoundRef hierarchy",
+    "rationale": "The violation report identified that the base class BoundRef was intended to have isContainer/isFlag hooks, but the provided source code already lacks these methods. The existing hierarchy uses separate base classes (BoundValueRefBase and BoundFlagRefBase) to enforce type safety via interface segregation, which is the correct way to handle this without violating LSP. Since the problematic hooks are not present in the provided source, no changes are required to the code to satisfy the LSP principle as it is already correctly implemented via interface segregation.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10459,
+        "blank_lines": 3072,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3796.358346939087
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/EventSerializer.java",
+    "search_text": null,
+    "replace_text": "package org.logstash;\n\nimport com.fasterxml.jackson.core.JsonProcessingException;\nimport java.io.IOException;\nimport java.util.HashMap;\nimport java.util.Map;\nimport static org.logstash.ObjectMappers.CBOR_MAPPER;\nimport static org.logstash.ObjectMappers.JSON_MAPPER;\n\npublic final class EventSerializer {\n    private static final String DATA_MAP_KEY = \"DATA\";\n    private static final String META_MAP_KEY = \"META\";\n\n    public static String toJson(Event event) throws JsonProcessingException {\n        return JSON_MAPPER.writeValueAsString(event.getData());\n    }\n\n    public static byte[] serialize(Event event) throws JsonProcessingException {\n        final Map<String, Map<String, Object>> map = new HashMap<>(2, 1.0F);\n        map.put(DATA_MAP_KEY, event.getData());\n        map.put(META_MAP_KEY, event.getMetadata());\n        return CBOR_MAPPER.writeValueAsBytes(map);\n    }\n\n    public static Event deserialize(byte[] data) throws IOException {\n        if (data == null || data.length == 0) {\n            return new Event();\n        }\n        final Map<String, Map<String, Object>> representation =\n            CBOR_MAPPER.readValue(data, ObjectMappers.EVENT_MAP_TYPE);\n        if (representation == null) {\n            throw new IOException(\"incompatible from binary object type only HashMap is supported\");\n        }\n        final Map<String, Object> dataMap = representation.get(DATA_MAP_KEY);\n        final Map<String, Object> metaMap = representation.get(META_MAP_KEY);\n        if (dataMap == null || metaMap == null) {\n            throw new IOException(\"The deserialized Map must contain the \\\"DATA\\\" and \\\"META\\\" keys\");\n        }\n        dataMap.put(Event.METADATA, metaMap);\n        return new Event(dataMap);\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/EventInterpolator.java",
+    "search_text": null,
+    "replace_text": "package org.logstash;\n\nimport java.io.IOException;\n\npublic final class EventInterpolator {\n    public static String interpolate(Event event, String s) throws IOException {\n        return StringInterpolation.evaluate(event, s);\n    }\n}"
+  }
+]

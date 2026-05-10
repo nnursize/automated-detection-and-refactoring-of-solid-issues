@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1923.290729522705,
+  "prompt_tokens": 3558,
+  "completion_tokens": 399,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Implement writeRawUTF8String and writeUTF8String in WriterBasedJsonGenerator\",\n  \"rationale\": \"Replacing UnsupportedOperationException with actual implementations using UTF-8 decoding ensures Liskov Substitution Principle compliance, allowing the generator to handle UTF-8 byte arrays correctly as expected by the JsonGenerator contract.\",\n  \"files_touched\": [\"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    @Override\n    public JsonGenerator writeRawUTF8String(byte[] text, int offset, int length) throws JacksonException {\n        // could add support for buffering if we really want it...\n        return _reportUnsupportedOperation();\n    }\n\n    @Override\n    public JsonGenerator writeUTF8String(byte[] text, int offset, int length) throws JacksonException {\n        // could add support for buffering if we really want it...\n        return _reportUnsupportedOperation();\n    }\n=======\n    @Override\n    public JsonGenerator writeRawUTF8String(byte[] text, int offset, int length) throws JacksonException {\n        // Since we are a Writer-based generator, we must decode UTF-8 bytes to chars\n        String str = new String(text, offset, length, java.nio.charset.StandardCharsets.UTF_8);\n        return writeRaw(str);\n    }\n\n    @Override\n    public JsonGenerator writeUTF8String(byte[] text, int offset, int length) throws JacksonException {\n        // Since we are a Writer-based generator, we must decode UTF-8 bytes to chars\n        String str = new String(text, offset, length, java.nio.charset.StandardCharsets.UTF_8);\n        return writeString(str);\n    }\n>>>>>>> REPLACE"
+}

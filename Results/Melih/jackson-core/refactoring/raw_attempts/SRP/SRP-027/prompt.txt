@@ -1,0 +1,357 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-027
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `src/main/java/tools/jackson/core/JsonGenerator.java`
+- **Entity**: `JsonGenerator.writeTypeSuffix` (current lines L1491-L1491 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+The generator includes complex logic for handling type identifiers, which involves semantic interpretation and structural modification beyond basic token generation.
+
+### Reasoning
+Similar to `writeTypePrefix`, this method completes the type ID embedding process. It closes structural elements (objects/arrays) and writes the type ID in the appropriate location based on the `WritableTypeId` definition. This is part of the broader type ID handling responsibility, which is distinct from merely generating JSON tokens.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/JsonGenerator.java`
+```java
+# ... 1370 earlier lines elided ...
+     * have native type id support; and some may only allow them in
+     * certain positions or locations.
+     * If output is not allowed by the data format in this position,
+     * a {@link StreamWriteException} will be thrown.
+     *
+     * @param id Native Type Id to write
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public JsonGenerator writeTypeId(Object id) throws JacksonException {
+        throw _constructWriteException("No native support for writing Type Ids");
+    }
+
+    /**
+     * Replacement method for {@link #writeTypeId(Object)} which is called
+     * regardless of whether format has native type ids. If it does have native
+     * type ids, those are to be used (if configuration allows this), if not,
+     * structural type id inclusion is to be used. For JSON, for example, no
+     * native type ids exist and structural inclusion is always used.
+     *<p>
+     * NOTE: databind may choose to skip calling this method for some special cases
+     * (and instead included type id via regular write methods and/or {@link #writeTypeId}
+     * -- this is discouraged, but not illegal, and may be necessary as a work-around
+     * in some cases.
+     *
+     * @param typeIdDef Full Type Id definition
+     *
+     * @return {@link WritableTypeId} for caller to retain and pass to matching
+     *   {@link #writeTypeSuffix} call
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public WritableTypeId writeTypePrefix(WritableTypeId typeIdDef)
+        throws JacksonException
+    {
+        final boolean wasStartObjectWritten = canWriteTypeId()
+                ? _writeTypePrefixUsingNative(typeIdDef)
+                : _writeTypePrefixUsingWrapper(typeIdDef);
+
+        // And then possible start marker for value itself:
+        switch (typeIdDef.valueShape) {
+        case START_OBJECT:
+            if (!wasStartObjectWritten) {
+                writeStartObject(typeIdDef.forValue);
+            }
+            break;
+        case START_ARRAY:
+            writeStartArray(typeIdDef.forValue);
+            break;
+        default: // otherwise: no start marker
+        }
+
+        return typeIdDef;
+    }
+
+    /**
+     * Writes a native type id (when supported by format).
+     *
+     * @return True if start of an object has been written, False otherwise.
+     */
+    protected boolean _writeTypePrefixUsingNative(WritableTypeId typeIdDef) throws JacksonException {
+        typeIdDef.wrapperWritten = false;
+        writeTypeId(typeIdDef.id);
+        return false;
+    }
+
+    /**
+     * Writes a wrapper for the type id if necessary.
+     *
+     * @return True if start of an object has been written, false otherwise.
+     */
+    protected boolean _writeTypePrefixUsingWrapper(WritableTypeId typeIdDef) throws JacksonException {
+        // Normally we only support String type ids (non-String reserved for native type ids)
+        final String id = Objects.toString(typeIdDef.id, null);
+
+        // If we don't have Type ID we don't write a wrapper.
+        if (id == null) {
+            return false;
+        }
+        Inclusion incl = typeIdDef.include;
+
+        // first: cannot output "as property" if value not Object; if so, must do "as array"
+        if ((typeIdDef.valueShape != JsonToken.START_OBJECT) && incl.requiresObjectContext()) {
+            typeIdDef.include = incl = WritableTypeId.Inclusion.WRAPPER_ARRAY;
+        }
+
+        typeIdDef.wrapperWritten = true;
+        switch (incl) {
+        case PARENT_PROPERTY:
+            // nothing to do here, as it has to be written in suffix...
+            break;
+        case PAYLOAD_PROPERTY:
+            // only output as native type id; otherwise caller must handle using some
+            // other mechanism, so...
+            break;
+        case METADATA_PROPERTY:
+            // must have Object context by now, so simply write as field name
+            // Note, too, that it's bit tricky, since we must print START_OBJECT that is part
+            // of value first -- and then NOT output it later on: hence return "early"
+            writeStartObject(typeIdDef.forValue);
+            writeStringProperty(typeIdDef.asProperty, id);
+            return true;
+
+        case WRAPPER_OBJECT:
+            // NOTE: this is wrapper, not directly related to value to output, so
+            // do NOT pass "typeIdDef.forValue"
+            writeStartObject();
+            writeName(id);
+            break;
+        case WRAPPER_ARRAY:
+        default: // should never occur but translate as "as-array"
+            writeStartArray(); // wrapper, not actual array object to write
+            writeString(id);
+        }
+        return false;
+    }
+    
+    public WritableTypeId writeTypeSuffix(WritableTypeId typeIdDef) throws JacksonException
+    {
+        final JsonToken valueShape = typeIdDef.valueShape;
+        // First: does value need closing?
+        if (valueShape == JsonToken.START_OBJECT) {
+            writeEndObject();
+        } else if (valueShape == JsonToken.START_ARRAY) {
+            writeEndArray();
+        }
+
+        if (typeIdDef.wrapperWritten) {
+            switch (typeIdDef.include) {
+            case WRAPPER_ARRAY:
+                writeEndArray();
+                break;
+            case PARENT_PROPERTY:
+                // unusually, need to output AFTER value. And no real wrapper...
+                {
+                    Object id = typeIdDef.id;
+                    String idStr = (id instanceof String) ? (String) id : String.valueOf(id);
+                    writeStringProperty(typeIdDef.asProperty, idStr);
+                }
+                break;
+            case METADATA_PROPERTY:
+            case PAYLOAD_PROPERTY:
+                // no actual wrapper; included within Object itself
+                break;
+            case WRAPPER_OBJECT:
+            default: // should never occur but...
+                writeEndObject();
+                break;
+            }
+        }
+        return typeIdDef;
+    }
+
+    /*
+    /**********************************************************************
+    /* Public API, write methods, serializing Java objects
+    /**********************************************************************
+     */
+
+    /**
+     * Method for writing given Java object (POJO) as tokens into
+     * stream this generator manages; serialization must be a valid JSON Value
+     * (Object, Array, null, Number, String or Boolean).
+     * This is done by delegating call to
+     * {@link ObjectWriteContext#writeValue(JsonGenerator, Object)}.
+     *<p>
+     * NOTE: this method does not trigger flushing of the generator (none of
+     * {@link JsonGenerator} {@code writeXxx} methods do) in Jackson 3.x:
+     * this is different from behavior in Jackson 2.x where a side effect
+     * of delegation to {@code ObjectMapper} caused flushing to occur.
+     *
+     * @param pojo Java Object (POJO) value to write
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public JsonGenerator writePOJO(Object pojo) throws JacksonException {
+        ObjectWriteContext ctx = objectWriteContext();
+        if (ctx == null) {
+            throw _constructWriteException("No ObjectWriteContext configured for this generator to write POJOs");
+        }
+        ctx.writeValue(this, pojo);
+        return this;
+    }
+
+    /**
+     * Method for writing given JSON tree (expressed as a tree
+     * where given {@code TreeNode} is the root) using this generator.
+     * This is done by delegating call to
+     * {@link ObjectWriteContext#writeTree}.
+     *<p>
+     * NOTE: this method does not trigger flushing of the generator (none of
+     * {@link JsonGenerator} {@code writeXxx} methods do) in Jackson 3.x:
+     * this is different from behavior in Jackson 2.x where a side effect
+     * of delegation to {@code ObjectMapper} caused flushing to occur.
+     *
+     * @param rootNode {@link TreeNode} to write
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public JsonGenerator writeTree(TreeNode rootNode) throws JacksonException {
+        ObjectWriteContext ctx = objectWriteContext();
+        if (ctx == null) {
+            throw _constructWriteException("No ObjectWriteContext configured for this generator to write TreeNodes");
+        }
+        ctx.writeTree(this, rootNode);
+        return this;
+    }
+
+    /*
+    /**********************************************************************
+    /* Public API, convenience property write methods
+    /**********************************************************************
+     */
+
+    // 25-May-2020, tatu: NOTE! Made `final` on purpose in 3.x to prevent issues
+    //    rising from complexity of overriding only some of methods (writeName()
+    //    and matching writeXxx() for value)
+
+    /**
+     * Convenience method for outputting an Object property
+     * that contains specified data in base64-encoded form.
+     * Equivalent to:
+     *<pre>
+     *  writeName(propertyName);
+     *  writeBinary(value);
+     *</pre>
+     *
+     * @param propertyName Name of Object Property to write
+     * @param data Binary value of the property to write
+     *
+     * @return This generator, to allow call chaining
+# ... 889 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/Base64Variant.java`
+- `src/main/java/tools/jackson/core/Base64Variants.java`
+- `src/main/java/tools/jackson/core/ErrorReportConfiguration.java`
+- `src/main/java/tools/jackson/core/FormatFeature.java`
+- `src/main/java/tools/jackson/core/FormatSchema.java`
+- `src/main/java/tools/jackson/core/JacksonException.java`
+- `src/main/java/tools/jackson/core/JsonEncoding.java`
+- `src/main/java/tools/jackson/core/JsonParser.java`
+- `src/main/java/tools/jackson/core/JsonPointer.java`
+- `src/main/java/tools/jackson/core/JsonToken.java`
+- `src/main/java/tools/jackson/core/JsonTokenId.java`
+- `src/main/java/tools/jackson/core/ObjectReadContext.java`
+- `src/main/java/tools/jackson/core/ObjectWriteContext.java`
+- `src/main/java/tools/jackson/core/package-info.java`
+- `src/main/java/tools/jackson/core/PrettyPrinter.java`
+- `src/main/java/tools/jackson/core/SerializableString.java`
+- `src/main/java/tools/jackson/core/StreamReadCapability.java`
+- `src/main/java/tools/jackson/core/StreamReadConstraints.java`
+- `src/main/java/tools/jackson/core/StreamReadFeature.java`
+- `src/main/java/tools/jackson/core/StreamWriteCapability.java`
+- `src/main/java/tools/jackson/core/StreamWriteConstraints.java`
+- `src/main/java/tools/jackson/core/StreamWriteFeature.java`
+- `src/main/java/tools/jackson/core/TokenStreamContext.java`
+- `src/main/java/tools/jackson/core/TokenStreamFactory.java`
+- `src/main/java/tools/jackson/core/TokenStreamLocation.java`
+- `src/main/java/tools/jackson/core/TreeCodec.java`
+- `src/main/java/tools/jackson/core/TreeNode.java`
+- `src/main/java/tools/jackson/core/TSFBuilder.java`
+- `src/main/java/tools/jackson/core/Version.java`
+- `src/main/java/tools/jackson/core/Versioned.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

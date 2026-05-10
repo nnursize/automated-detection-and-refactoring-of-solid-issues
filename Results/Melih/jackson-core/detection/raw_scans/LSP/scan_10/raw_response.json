@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_LSP_scan_10",
+  "repo_name": "jackson-core",
+  "principle": "LSP",
+  "scan_number": 10,
+  "timestamp": "2026-04-18T21:49:08.336502",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.getBinaryValue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 493,\n      \"line_end\": 493,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.\",\n      \"reasoning\": \"The base class JsonParser defines getBinaryValue(Base64Variant) as an abstract method. While the implementation is required, the internal reliance on _loadMoreGuaranteed() and potential for unchecked JacksonIOException/StreamReadException during binary decoding can lead to unexpected runtime behavior for clients expecting standard parser behavior.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java\",\n      \"entity_name\": \"UTF8DataInputJsonParser.getBinaryValue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 363,\n      \"line_end\": 363,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.\",\n      \"reasoning\": \"Similar to UTF8StreamJsonParser, this implementation relies on DataInput which can throw IOExceptions wrapped in JacksonIOException. Clients of the base JsonParser class may not be prepared for these specific runtime exceptions during binary value retrieval.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\",\n      \"entity_name\": \"ReaderBasedJsonParser.getBinaryValue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 462,\n      \"line_end\": 462,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.\",\n      \"reasoning\": \"The implementation uses _loadMoreGuaranteed() which can trigger unchecked exceptions. This alters the expected contract of the base class JsonParser, where clients might assume binary retrieval is a standard data access operation rather than one prone to complex I/O failures.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+      "entity_type": "class",
+      "line_start": 493,
+      "line_end": 493,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.",
+      "reasoning": "The base class JsonParser defines getBinaryValue(Base64Variant) as an abstract method. While the implementation is required, the internal reliance on _loadMoreGuaranteed() and potential for unchecked JacksonIOException/StreamReadException during binary decoding can lead to unexpected runtime behavior for clients expecting standard parser behavior."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+      "entity_name": "UTF8DataInputJsonParser.getBinaryValue",
+      "entity_type": "class",
+      "line_start": 363,
+      "line_end": 363,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.",
+      "reasoning": "Similar to UTF8StreamJsonParser, this implementation relies on DataInput which can throw IOExceptions wrapped in JacksonIOException. Clients of the base JsonParser class may not be prepared for these specific runtime exceptions during binary value retrieval."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "entity_name": "ReaderBasedJsonParser.getBinaryValue",
+      "entity_type": "class",
+      "line_start": 462,
+      "line_end": 462,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass implementation of getBinaryValue may throw unchecked exceptions not explicitly declared in base class contract.",
+      "reasoning": "The implementation uses _loadMoreGuaranteed() which can trigger unchecked exceptions. This alters the expected contract of the base class JsonParser, where clients might assume binary retrieval is a standard data access operation rather than one prone to complex I/O failures."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 15881.38484954834,
+  "error": null
+}

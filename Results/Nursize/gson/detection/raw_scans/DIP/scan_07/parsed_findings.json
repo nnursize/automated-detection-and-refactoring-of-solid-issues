@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 905,
+    "line_end": 966,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Directly instantiates multiple concrete TypeAdapterFactory implementations.",
+    "reasoning": "The createFactories method in GsonBuilder directly instantiates numerous concrete low-level factories (e.g., ReflectiveTypeAdapterFactory, CollectionTypeAdapterFactory, MapTypeAdapterFactory). This couples the high-level configuration API to specific internal implementation details, violating the principle that high-level modules should depend on abstractions rather than concrete details."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement.toString",
+    "entity_type": "method",
+    "line_start": 422,
+    "line_end": 433,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Directly instantiates a concrete JsonWriter for serialization.",
+    "reasoning": "The toString method in the high-level JsonElement abstraction directly instantiates a concrete JsonWriter from the low-level stream package. This creates a tight coupling between the JSON model and the streaming I/O implementation, preventing the model from being independent of the specific serialization detail."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newMapConstructor",
+    "entity_type": "method",
+    "line_start": 344,
+    "line_end": 365,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Hard-codes the instantiation of concrete Map implementations like LinkedTreeMap.",
+    "reasoning": "The method directly instantiates concrete classes like LinkedTreeMap instead of using an abstraction or a configurable provider. This couples the high-level instantiation logic to specific low-level data structures, making it difficult to change default implementations without modifying the internal factory."
+  }
+]

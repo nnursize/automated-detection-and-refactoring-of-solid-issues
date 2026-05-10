@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-020",
+  "principle": "OCP",
+  "title": "Refactor OCP-020 (OCP): Hardcoded if/elif chain for hashing algorithms",
+  "branch": "refactor/OCP-020",
+  "base": "main",
+  "head_commit": "48be9e2d422554b69de8db2cdf97896fee28f89a",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4002,
+    "completion_tokens": 461
+  },
+  "detected_issue": {
+    "file_path": "src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.build_digest_header",
+    "entity_type": "method",
+    "line_start": 154,
+    "line_end": 182,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Hardcoded if/elif chain for hashing algorithms",
+    "reasoning": "The method uses a hardcoded conditional chain to select hashing algorithms (MD5, SHA, SHA-256, SHA-512). Adding support for a new algorithm like SHA-3 would require modifying this existing class rather than extending it through a strategy pattern or registry."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace hardcoded hashing algorithm chain with a registry-based lookup",
+    "rationale": "Replaced the if/elif chain in build_digest_header with a dictionary-based registry of hashlib functions. This allows adding new algorithms without modifying the core logic, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "src/requests/auth.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/auth.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/auth.py",
+        "search_text": "        def get_hash_function(algorithm):\n            if algorithm is None:\n                algorithm = \"MD5\"\n            else:\n                algorithm = algorithm.upper()\n\n            def hash_utf8(x):\n                if isinstance(x, str):\n                    x = x.encode(\"utf-8\")\n                if algorithm == \"MD5\" or algorithm == \"MD5-SESS\":\n                    return hashlib.md5(x).hexdigest()\n                elif algorithm == \"SHA\":\n                    return hashlib.sha1(x).hexdigest()\n                elif algorithm == \"SHA-256\":\n                    return hashlib.sha256(x).hexdigest()\n                elif algorithm == \"SHA-512\":\n                    return hashlib.sha512(x).hexdigest()\n                return None\n\n            return hash_utf8, algorithm\n\n        hash_utf8, _algorithm = get_hash_function(algorithm)",
+        "replace_text": "        _algorithm = (algorithm or \"MD5\").upper()\n        _algorithms = {\n            \"MD5\": hashlib.md5,\n            \"MD5-SESS\": hashlib.md5,\n            \"SHA\": hashlib.sha1,\n            \"SHA-256\": hashlib.sha256,\n            \"SHA-512\": hashlib.sha512,\n        }\n\n        def hash_utf8(x):\n            if isinstance(x, str):\n                x = x.encode(\"utf-8\")\n            func = _algorithms.get(_algorithm)\n            return func(x).hexdigest() if func else None",
+        "search_lines": 22,
+        "replace_lines": 14
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165651.25942230225,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......s.attempting to ignore so the rest of the tests can run\n................................................................ [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:478: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.84s (0:02:44)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 13:18:18] \"GET /get HTTP/1.1\" 200 222\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/auth.py",
+        "loc": 214,
+        "blank_lines": 58,
+        "comment_lines": 26,
+        "function_count": 17,
+        "avg_cc": 2.58,
+        "max_cc": 13.0,
+        "mi": 48.8
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/auth.py",
+        "loc": 208,
+        "blank_lines": 56,
+        "comment_lines": 26,
+        "function_count": 16,
+        "avg_cc": 2.63,
+        "max_cc": 14.0,
+        "mi": 50.08
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/auth.py b/src/requests/auth.py\nindex 2664e45..3aa7f83 100644\n--- a/src/requests/auth.py\n+++ b/src/requests/auth.py\n@@ -135,28 +135,20 @@ class HTTPDigestAuth(AuthBase):\n         opaque = self._thread_local.chal.get(\"opaque\")\n         hash_utf8 = None\n \n-        def get_hash_function(algorithm):\n-            if algorithm is None:\n-                algorithm = \"MD5\"\n-            else:\n-                algorithm = algorithm.upper()\n-\n-            def hash_utf8(x):\n-                if isinstance(x, str):\n-                    x = x.encode(\"utf-8\")\n-                if algorithm == \"MD5\" or algorithm == \"MD5-SESS\":\n-                    return hashlib.md5(x).hexdigest()\n-                elif algorithm == \"SHA\":\n-                    return hashlib.sha1(x).hexdigest()\n-                elif algorithm == \"SHA-256\":\n-                    return hashlib.sha256(x).hexdigest()\n-                elif algorithm == \"SHA-512\":\n-                    return hashlib.sha512(x).hexdigest()\n-                return None\n-\n-            return hash_utf8, algorithm\n-\n-        hash_utf8, _algorithm = get_hash_function(algorithm)\n+        _algorithm = (algorithm or \"MD5\").upper()\n+        _algorithms = {\n+            \"MD5\": hashlib.md5,\n+            \"MD5-SESS\": hashlib.md5,\n+            \"SHA\": hashlib.sha1,\n+            \"SHA-256\": hashlib.sha256,\n+            \"SHA-512\": hashlib.sha512,\n+        }\n+\n+        def hash_utf8(x):\n+            if isinstance(x, str):\n+                x = x.encode(\"utf-8\")\n+            func = _algorithms.get(_algorithm)\n+            return func(x).hexdigest() if func else None\n         KD = lambda s, d: hash_utf8(f\"{s}:{d}\")  # noqa:E731\n \n         if hash_utf8 is None:\n",
+  "duration_ms": 167792.8810119629
+}

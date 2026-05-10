@@ -1,0 +1,446 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-107
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `gson/src/main/java/com/google/gson/JsonPrimitive.java`
+- **Entity**: `JsonPrimitive.getAsNumber` (current lines L139-L139 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Subclass throws UnsupportedOperationException for a method defined in the base class contract.
+
+### Reasoning
+`JsonElement` defines `getAsNumber()`. `JsonPrimitive.getAsNumber()` throws `UnsupportedOperationException` if the primitive is not a number or string (e.g., if it's a boolean primitive). This indicates that the operation is not supported for certain valid states of the `JsonPrimitive`, violating the contract implied by `JsonElement`. Instead, it should either return a default value (if contract allows) or throw a more appropriate exception like `IllegalStateException` or `JsonParseException`, consistent with other `getAsX` methods in the `JsonElement` hierarchy.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/JsonPrimitive.java`
+```java
+/*
+ * Copyright (C) 2008 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson;
+
+import com.google.gson.internal.LazilyParsedNumber;
+import com.google.gson.internal.NumberLimits;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Objects;
+
+/**
+ * A class representing a JSON primitive value. A primitive value is either a String, a Java
+ * primitive, or a Java primitive wrapper type.
+ *
+ * <p>See the {@link JsonElement} documentation for details on how to convert {@code JsonPrimitive}
+ * and generally any {@code JsonElement} from and to JSON.
+ *
+ * @author Inderjeet Singh
+ * @author Joel Leitch
+ */
+public final class JsonPrimitive extends JsonElement {
+
+  private final Object value;
+
+  /**
+   * Create a primitive containing a boolean value.
+   *
+   * @param bool the value to create the primitive with.
+   */
+  // "deprecation" suppression for superclass constructor
+  // "UnnecessaryBoxedVariable" Error Prone warning is correct since method does not accept
+  // null, but cannot be changed anymore since this is public API
+  @SuppressWarnings({"deprecation", "UnnecessaryBoxedVariable"})
+  public JsonPrimitive(Boolean bool) {
+    value = Objects.requireNonNull(bool);
+  }
+
+  /**
+   * Create a primitive containing a {@link Number}.
+   *
+   * @param number the value to create the primitive with.
+   */
+  @SuppressWarnings("deprecation") // superclass constructor
+  public JsonPrimitive(Number number) {
+    value = Objects.requireNonNull(number);
+  }
+
+  /**
+   * Create a primitive containing a String value.
+   *
+   * @param string the value to create the primitive with.
+   */
+  @SuppressWarnings("deprecation") // superclass constructor
+  public JsonPrimitive(String string) {
+    value = Objects.requireNonNull(string);
+  }
+
+  /**
+   * Create a primitive containing a character. The character is turned into a one character String
+   * since JSON only supports String.
+   *
+   * @param c the value to create the primitive with.
+   */
+  // "deprecation" suppression for superclass constructor
+  // "UnnecessaryBoxedVariable" Error Prone warning is correct since method does not accept
+  // null, but cannot be changed anymore since this is public API
+  @SuppressWarnings({"deprecation", "UnnecessaryBoxedVariable"})
+  public JsonPrimitive(Character c) {
+    // convert characters to strings since in JSON, characters are represented as a single
+    // character string
+    value = Objects.requireNonNull(c).toString();
+  }
+
+  /**
+   * Returns the same value as primitives are immutable.
+   *
+   * @since 2.8.2
+   */
+  @Override
+  public JsonPrimitive deepCopy() {
+    return this;
+  }
+
+  /**
+   * Check whether this primitive contains a boolean value.
+   *
+   * @return true if this primitive contains a boolean value, false otherwise.
+   */
+  public boolean isBoolean() {
+    return value instanceof Boolean;
+  }
+
+  /**
+   * Convenience method to get this element as a boolean value. If this primitive {@linkplain
+   * #isBoolean() is not a boolean}, the string value is parsed using {@link
+   * Boolean#parseBoolean(String)}. This means {@code "true"} (ignoring case) is considered {@code
+   * true} and any other value is considered {@code false}.
+   */
+  @Override
+  public boolean getAsBoolean() {
+    if (isBoolean()) {
+      return (Boolean) value;
+    }
+    // Check to see if the value as a String is "true" in any case.
+    return Boolean.parseBoolean(getAsString());
+  }
+
+  /**
+   * Check whether this primitive contains a Number.
+   *
+   * @return true if this primitive contains a Number, false otherwise.
+   */
+  public boolean isNumber() {
+    return value instanceof Number;
+  }
+
+  /**
+   * Convenience method to get this element as a {@link Number}. If this primitive {@linkplain
+   * #isString() is a string}, a lazily parsed {@code Number} is constructed which parses the string
+   * when any of its methods are called (which can lead to a {@link NumberFormatException}).
+   *
+   * @throws UnsupportedOperationException if this primitive is neither a number nor a string.
+   */
+  @Override
+  public Number getAsNumber() {
+    if (value instanceof Number) {
+      return (Number) value;
+    } else if (value instanceof String) {
+      return new LazilyParsedNumber((String) value);
+    }
+    throw new UnsupportedOperationException("Primitive is neither a number nor a string");
+  }
+
+  /**
+   * Check whether this primitive contains a String value.
+   *
+   * @return true if this primitive contains a String value, false otherwise.
+   */
+  public boolean isString() {
+    return value instanceof String;
+  }
+
+  // Don't add Javadoc, inherit it from super implementation; no exceptions are thrown here
+  @Override
+  public String getAsString() {
+    if (value instanceof String) {
+      return (String) value;
+    } else if (isNumber()) {
+      return getAsNumber().toString();
+    } else if (isBoolean()) {
+      return ((Boolean) value).toString();
+    }
+    throw new AssertionError("Unexpected value type: " + value.getClass());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public double getAsDouble() {
+    return isNumber() ? getAsNumber().doubleValue() : Double.parseDouble(getAsString());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public BigDecimal getAsBigDecimal() {
+    return value instanceof BigDecimal
+        ? (BigDecimal) value
+        : NumberLimits.parseBigDecimal(getAsString());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public BigInteger getAsBigInteger() {
+    return value instanceof BigInteger
+        ? (BigInteger) value
+        : isIntegral(this)
+            ? BigInteger.valueOf(this.getAsNumber().longValue())
+            : NumberLimits.parseBigInteger(this.getAsString());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public float getAsFloat() {
+    return isNumber() ? getAsNumber().floatValue() : Float.parseFloat(getAsString());
+  }
+
+  /**
+   * Convenience method to get this element as a primitive long.
+   *
+   * @return this element as a primitive long.
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public long getAsLong() {
+    return isNumber() ? getAsNumber().longValue() : Long.parseLong(getAsString());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public short getAsShort() {
+    return isNumber() ? getAsNumber().shortValue() : Short.parseShort(getAsString());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public int getAsInt() {
+    return isNumber() ? getAsNumber().intValue() : Integer.parseInt(getAsString());
+  }
+
+  /**
+   * @throws NumberFormatException {@inheritDoc}
+   */
+  @Override
+  public byte getAsByte() {
+    return isNumber() ? getAsNumber().byteValue() : Byte.parseByte(getAsString());
+  }
+
+  /**
+   * @throws UnsupportedOperationException if the string value of this primitive is empty.
+   * @deprecated This method is misleading, as it does not get this element as a char but rather as
+   *     a string's first character.
+   */
+  @Deprecated
+  @Override
+  public char getAsCharacter() {
+    String s = getAsString();
+    if (s.isEmpty()) {
+      throw new UnsupportedOperationException("String value is empty");
+    } else {
+      return s.charAt(0);
+    }
+  }
+
+  /** Returns the hash code of this object. */
+  @Override
+  public int hashCode() {
+    if (value == null) {
+      return 31;
+    }
+    // Using recommended hashing algorithm from Effective Java for longs and doubles
+    if (isIntegral(this)) {
+      long value = getAsNumber().longValue();
+      return (int) (value ^ (value >>> 32));
+    }
+    if (value instanceof Number) {
+      long value = Double.doubleToLongBits(getAsNumber().doubleValue());
+      return (int) (value ^ (value >>> 32));
+    }
+    return value.hashCode();
+  }
+
+  /**
+   * Returns whether the other object is equal to this. This method only considers the other object
+   * to be equal if it is an instance of {@code JsonPrimitive} and has an equal value.
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    JsonPrimitive other = (JsonPrimitive) obj;
+    if (value == null) {
+      return other.value == null;
+    }
+    if (isIntegral(this) && isIntegral(other)) {
+      return (this.value instanceof BigInteger || other.value instanceof BigInteger)
+          ? this.getAsBigInteger().equals(other.getAsBigInteger())
+          : this.getAsNumber().longValue() == other.getAsNumber().longValue();
+    }
+    if (value instanceof Number && other.value instanceof Number) {
+      if (value instanceof BigDecimal && other.value instanceof BigDecimal) {
+        // Uses compareTo to ignore scale of values, e.g. `0` and `0.00` should be considered equal
+        return this.getAsBigDecimal().compareTo(other.getAsBigDecimal()) == 0;
+      }
+
+      double thisAsDouble = this.getAsDouble();
+      double otherAsDouble = other.getAsDouble();
+      // Don't use Double.compare(double, double) because that considers -0.0 and +0.0 not equal
+      return (thisAsDouble == otherAsDouble)
+          || (Double.isNaN(thisAsDouble) && Double.isNaN(otherAsDouble));
+    }
+    return value.equals(other.value);
+  }
+
+  /**
+   * Returns true if the specified number is an integral type (Long, Integer, Short, Byte,
+   * BigInteger)
+   */
+  private static boolean isIntegral(JsonPrimitive primitive) {
+    if (primitive.value instanceof Number) {
+      Number number = (Number) primitive.value;
+      return number instanceof BigInteger
+          || number instanceof Long
+          || number instanceof Integer
+          || number instanceof Short
+          || number instanceof Byte;
+    }
+    return false;
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/ExclusionStrategy.java`
+- `gson/src/main/java/com/google/gson/FieldAttributes.java`
+- `gson/src/main/java/com/google/gson/FieldNamingPolicy.java`
+- `gson/src/main/java/com/google/gson/FieldNamingStrategy.java`
+- `gson/src/main/java/com/google/gson/FormattingStyle.java`
+- `gson/src/main/java/com/google/gson/Gson.java`
+- `gson/src/main/java/com/google/gson/GsonBuilder.java`
+- `gson/src/main/java/com/google/gson/InstanceCreator.java`
+- `gson/src/main/java/com/google/gson/JsonArray.java`
+- `gson/src/main/java/com/google/gson/JsonDeserializationContext.java`
+- `gson/src/main/java/com/google/gson/JsonDeserializer.java`
+- `gson/src/main/java/com/google/gson/JsonElement.java`
+- `gson/src/main/java/com/google/gson/JsonIOException.java`
+- `gson/src/main/java/com/google/gson/JsonNull.java`
+- `gson/src/main/java/com/google/gson/JsonObject.java`
+- `gson/src/main/java/com/google/gson/JsonParseException.java`
+- `gson/src/main/java/com/google/gson/JsonParser.java`
+- `gson/src/main/java/com/google/gson/JsonSerializationContext.java`
+- `gson/src/main/java/com/google/gson/JsonSerializer.java`
+- `gson/src/main/java/com/google/gson/JsonStreamParser.java`
+- `gson/src/main/java/com/google/gson/JsonSyntaxException.java`
+- `gson/src/main/java/com/google/gson/JsonWriterSettings.java`
+- `gson/src/main/java/com/google/gson/LongSerializationPolicy.java`
+- `gson/src/main/java/com/google/gson/package-info.java`
+- `gson/src/main/java/com/google/gson/ReflectionAccessFilter.java`
+- `gson/src/main/java/com/google/gson/Strictness.java`
+- `gson/src/main/java/com/google/gson/ToNumberPolicy.java`
+- `gson/src/main/java/com/google/gson/ToNumberStrategy.java`
+- `gson/src/main/java/com/google/gson/TypeAdapter.java`
+- `gson/src/main/java/com/google/gson/TypeAdapterFactory.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

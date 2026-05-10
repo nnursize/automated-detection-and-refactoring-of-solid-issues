@@ -1,0 +1,99 @@
+diff --git a/src/requests/sessions.py b/src/requests/sessions.py
+index 7d34b29..02f7ec1 100644
+--- a/src/requests/sessions.py
++++ b/src/requests/sessions.py
+@@ -196,51 +196,13 @@ class SessionRedirectMixin:
+             # Release the connection back into the pool.
+             resp.close()
+ 
+-            # Handle redirection without scheme (see: RFC 1808 Section 4)
+-            if url.startswith("//"):
+-                parsed_rurl = urlparse(resp.url)
+-                url = ":".join([to_native_string(parsed_rurl.scheme), url])
+-
+-            # Normalize url case and attach previous fragment if needed (RFC 7231 7.1.2)
+-            parsed = urlparse(url)
+-            if parsed.fragment == "" and previous_fragment:
+-                parsed = parsed._replace(fragment=previous_fragment)
+-            elif parsed.fragment:
+-                previous_fragment = parsed.fragment
+-            url = parsed.geturl()
+-
+-            # Facilitate relative 'location' headers, as allowed by RFC 7231.
+-            # (e.g. '/path/to/resource' instead of 'http://domain.tld/path/to/resource')
+-            # Compliant with RFC3986, we percent encode the url.
+-            if not parsed.netloc:
+-                url = urljoin(resp.url, requote_uri(url))
+-            else:
+-                url = requote_uri(url)
+-
++            url = self.prepare_redirect_url(resp, url, previous_fragment)
++            previous_fragment = urlparse(url).fragment
+             prepared_request.url = to_native_string(url)
+ 
+             self.rebuild_method(prepared_request, resp)
+-
+-            # https://github.com/psf/requests/issues/1084
+-            if resp.status_code not in (
+-                codes.temporary_redirect,
+-                codes.permanent_redirect,
+-            ):
+-                # https://github.com/psf/requests/issues/3490
+-                purged_headers = ("Content-Length", "Content-Type", "Transfer-Encoding")
+-                for header in purged_headers:
+-                    prepared_request.headers.pop(header, None)
+-                prepared_request.body = None
+-
+-            headers = prepared_request.headers
+-            headers.pop("Cookie", None)
+-
+-            # Extract any cookies sent on the response to the cookiejar
+-            # in the new request. Because we've mutated our copied prepared
+-            # request, use the old one that we haven't yet touched.
+-            extract_cookies_to_jar(prepared_request._cookies, req, resp.raw)
+-            merge_cookies(prepared_request._cookies, self.cookies)
+-            prepared_request.prepare_cookies(prepared_request._cookies)
++            self.prepare_redirect_headers(prepared_request, resp)
++            self.prepare_redirect_cookies(prepared_request, req, resp)
+ 
+             # Rebuild auth and proxy information.
+             proxies = self.rebuild_proxies(prepared_request, proxies)
+@@ -331,6 +293,38 @@ class SessionRedirectMixin:
+ 
+         return new_proxies
+ 
++    def prepare_redirect_url(self, resp, url, previous_fragment):
++        """Normalize and prepare the redirect URL."""
++        if url.startswith("//"):
++            parsed_rurl = urlparse(resp.url)
++            url = ":".join([to_native_string(parsed_rurl.scheme), url])
++
++        parsed = urlparse(url)
++        if parsed.fragment == "" and previous_fragment:
++            parsed = parsed._replace(fragment=previous_fragment)
++        url = parsed.geturl()
++
++        if not parsed.netloc:
++            url = urljoin(resp.url, requote_uri(url))
++        else:
++            url = requote_uri(url)
++        return url
++
++    def prepare_redirect_headers(self, prepared_request, resp):
++        """Purge headers and reset body for redirect."""
++        if resp.status_code not in (codes.temporary_redirect, codes.permanent_redirect):
++            purged_headers = ("Content-Length", "Content-Type", "Transfer-Encoding")
++            for header in purged_headers:
++                prepared_request.headers.pop(header, None)
++            prepared_request.body = None
++        prepared_request.headers.pop("Cookie", None)
++
++    def prepare_redirect_cookies(self, prepared_request, req, resp):
++        """Extract and merge cookies for the redirected request."""
++        extract_cookies_to_jar(prepared_request._cookies, req, resp.raw)
++        merge_cookies(prepared_request._cookies, self.cookies)
++        prepared_request.prepare_cookies(prepared_request._cookies)
++
+     def rebuild_method(self, prepared_request, response):
+         """When being redirected we may want to change the method of the request
+         based on certain specs or browser behavior.

@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-005",
+  "principle": "LSP",
+  "title": "Refactor LSP-005 (LSP): Subclass throws UnsupportedOperationException for a method inherited from the...",
+  "branch": "refactor/LSP-005",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3262,
+    "completion_tokens": 190
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+    "entity_name": "NonBlockingUtf8JsonParserBase._decodeEscaped",
+    "entity_type": "method",
+    "line_start": 82,
+    "line_end": 86,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Subclass throws UnsupportedOperationException for a method inherited from the base class.",
+    "reasoning": "The method _decodeEscaped() is inherited from the base class (JsonParserBase) and is expected to return a char. By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the behavioral contract of the base class, making it non-substitutable."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove _decodeEscaped override that throws UnsupportedOperationException",
+    "rationale": "The method _decodeEscaped is not used by non-blocking parsers, and throwing an exception violates the Liskov Substitution Principle. Removing the override allows the base class implementation (which is likely safer or empty) to be used, or simply avoids the illegal state transition.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "loc": 2634,
+        "blank_lines": 182,
+        "comment_lines": 238,
+        "function_count": 63,
+        "avg_cc": 12.56,
+        "max_cc": 729.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3156.5566062927246
+}

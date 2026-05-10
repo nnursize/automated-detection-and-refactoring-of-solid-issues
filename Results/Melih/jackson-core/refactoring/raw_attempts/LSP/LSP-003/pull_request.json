@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-003",
+  "principle": "LSP",
+  "title": "Refactor LSP-003 (LSP): Subclass throws UnsupportedOperationException for a method inherited from bas...",
+  "branch": "refactor/LSP-003",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3276,
+    "completion_tokens": 239
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+    "entity_name": "NonBlockingUtf8JsonParserBase._decodeEscaped",
+    "entity_type": "method",
+    "line_start": 80,
+    "line_end": 84,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Subclass throws UnsupportedOperationException for a method inherited from base class",
+    "reasoning": "The method _decodeEscaped() is inherited from the base class (likely NonBlockingJsonParserBase or JsonParserBase). By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the contract of the base class, which expects this method to be functional. This prevents the subclass from being used as a drop-in replacement for the base class."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove _decodeEscaped override that throws UnsupportedOperationException",
+    "rationale": "The _decodeEscaped method is intended for blocking parsers. In a non-blocking context, it should not be called. Instead of throwing an exception which violates the Liskov Substitution Principle, the method should be removed to rely on the base class implementation or, if necessary, be marked as not applicable without throwing an exception if the base class allows it. Since the base class defines it as a protected method, removing the override allows the code to inherit the base behavior, which is safer than throwing an internal error.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "loc": 2634,
+        "blank_lines": 182,
+        "comment_lines": 238,
+        "function_count": 63,
+        "avg_cc": 12.56,
+        "max_cc": 729.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3358.713388442993
+}

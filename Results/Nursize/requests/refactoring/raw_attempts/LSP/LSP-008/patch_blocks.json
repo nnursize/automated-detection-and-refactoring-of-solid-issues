@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/auth.py",
+    "search_text": "class HTTPProxyAuth(HTTPBasicAuth):\n    \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n\n    def __call__(self, r):\n        r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n        return r",
+    "replace_text": "class HTTPProxyAuth(AuthBase):\n    \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n\n    def __init__(self, username, password):\n        self.username = username\n        self.password = password\n\n    def __eq__(self, other):\n        return all(\n            [\n                self.username == getattr(other, \"username\", None),\n                self.password == getattr(other, \"password\", None),\n            ]\n        )\n\n    def __ne__(self, other):\n        return not self == other\n\n    def __call__(self, r):\n        r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n        return r"
+  }
+]

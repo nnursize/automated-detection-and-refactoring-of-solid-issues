@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "Catch2/third_party/clara.hpp",
+    "entity_name": "Column",
+    "entity_type": "class",
+    "line_start": 71,
+    "line_end": 241,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Class Column is used as a base class for Spacer but lacks a virtual destructor.",
+    "reasoning": "The Liskov Substitution Principle requires that subtypes be substitutable for their base types. In C++, if a subclass (like Spacer) is deleted through a pointer to a base class (Column) that lacks a virtual destructor, the resulting behavior is undefined. This prevents safe polymorphic substitution in any context involving dynamic memory management and base-class pointers."
+  },
+  {
+    "file_path": "Catch2/third_party/clara.hpp",
+    "entity_name": "Column::iterator",
+    "entity_type": "class",
+    "line_start": 79,
+    "line_end": 199,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "The iterator violates the ForwardIterator contract by returning a temporary from operator* while defining reference as a non-const reference type.",
+    "reasoning": "The class defines 'iterator_category' as 'std::forward_iterator_tag' and 'reference' as 'value_type&' (std::string&). However, its 'operator*' returns a 'std::string' by value. This violates the ForwardIterator contract where 'operator*' must return a true reference to the element. Additionally, it lacks a default constructor required by the ForwardIterator concept. This breaks substitutability in generic algorithms that expect standard-compliant ForwardIterators."
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1963.9923572540283,
+  "prompt_tokens": 5870,
+  "completion_tokens": 387,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Inject JsonReadContext factory into JsonParserBase to decouple from concrete implementation\",\n  \"rationale\": \"JsonParserBase was directly instantiating JsonReadContext. By introducing a protected abstract method to create the root context, subclasses can provide the specific implementation, adhering to the Dependency Inversion Principle.\",\n  \"files_touched\": [\"src/main/java/tools/jackson/core/json/JsonParserBase.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    protected JsonParserBase(ObjectReadContext readCtxt,\n            IOContext ctxt, int streamReadFeatures, int formatReadFeatures) {\n        super(readCtxt, ctxt, streamReadFeatures);\n        _formatReadFeatures = formatReadFeatures;\n        DupDetector dups = StreamReadFeature.STRICT_DUPLICATE_DETECTION.enabledIn(streamReadFeatures)\n                ? DupDetector.rootDetector(this) : null;\n        _streamReadContext = JsonReadContext.createRootContext(dups);\n    }\n=======\n    protected JsonParserBase(ObjectReadContext readCtxt,\n            IOContext ctxt, int streamReadFeatures, int formatReadFeatures) {\n        super(readCtxt, ctxt, streamReadFeatures);\n        _formatReadFeatures = formatReadFeatures;\n        DupDetector dups = StreamReadFeature.STRICT_DUPLICATE_DETECTION.enabledIn(streamReadFeatures)\n                ? DupDetector.rootDetector(this) : null;\n        _streamReadContext = _createRootContext(dups);\n    }\n\n    protected JsonReadContext _createRootContext(DupDetector dups) {\n        return JsonReadContext.createRootContext(dups);\n    }\n>>>>>>> REPLACE"
+}

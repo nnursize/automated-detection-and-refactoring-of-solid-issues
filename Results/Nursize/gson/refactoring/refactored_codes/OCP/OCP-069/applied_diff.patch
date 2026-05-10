@@ -1,0 +1,55 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java b/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java
+index 759310e..4ca4878 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java
+@@ -142,23 +142,8 @@ public final class JsonTreeReader extends JsonReader {
+       } else {
+         return isObject ? JsonToken.END_OBJECT : JsonToken.END_ARRAY;
+       }
+-    } else if (o instanceof JsonObject) {
+-      return JsonToken.BEGIN_OBJECT;
+-    } else if (o instanceof JsonArray) {
+-      return JsonToken.BEGIN_ARRAY;
+-    } else if (o instanceof JsonPrimitive) {
+-      JsonPrimitive primitive = (JsonPrimitive) o;
+-      if (primitive.isString()) {
+-        return JsonToken.STRING;
+-      } else if (primitive.isBoolean()) {
+-        return JsonToken.BOOLEAN;
+-      } else if (primitive.isNumber()) {
+-        return JsonToken.NUMBER;
+-      } else {
+-        throw new AssertionError();
+-      }
+-    } else if (o instanceof JsonNull) {
+-      return JsonToken.NULL;
++    } else if (o instanceof JsonElement) {
++      return getJsonToken((JsonElement) o);
+     } else if (o == SENTINEL_CLOSED) {
+       throw new IllegalStateException("JsonReader is closed");
+     } else {
+@@ -167,6 +152,24 @@ public final class JsonTreeReader extends JsonReader {
+     }
+   }
+ 
++  private JsonToken getJsonToken(JsonElement element) {
++    if (element.isJsonArray()) {
++      return JsonToken.BEGIN_ARRAY;
++    } else if (element.isJsonObject()) {
++      return JsonToken.BEGIN_OBJECT;
++    } else if (element.isJsonPrimitive()) {
++      JsonPrimitive primitive = element.getAsJsonPrimitive();
++      if (primitive.isString()) return JsonToken.STRING;
++      if (primitive.isBoolean()) return JsonToken.BOOLEAN;
++      if (primitive.isNumber()) return JsonToken.NUMBER;
++      throw new AssertionError();
++    } else if (element.isJsonNull()) {
++      return JsonToken.NULL;
++    } else {
++      throw new MalformedJsonException("Custom JsonElement subclass " + element.getClass().getName() + " is not supported");
++    }
++  }
++
+   private Object peekStack() {
+     return stack[stackSize - 1];
+   }

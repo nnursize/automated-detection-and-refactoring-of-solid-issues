@@ -1,0 +1,73 @@
+{
+  "scan_id": "logstash_SRP_scan_04",
+  "repo_name": "logstash",
+  "principle": "SRP",
+  "scan_number": 4,
+  "timestamp": "2026-04-19T13:16:34.457399",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Single Responsibility Principle (SRP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these int...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event\",\n      \"entity_type\": \"class\",\n      \"line_start\": 58,\n      \"line_end\": 450,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Event class handles data storage, serialization, string interpolation, and memory estimation.\",\n      \"reasoning\": \"God Class smell -> SRP violation because the class encapsulates multiple unrelated responsibilities: it acts as a data carrier (ConvertedMap), handles complex I/O concerns (JSON/CBOR serialization in toJson/fromJson), implements business logic (tagging/timestamp parsing), and provides utility functions like string interpolation (sprintf) and resource management (estimateMemory).\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 100,\n      \"line_end\": 700,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"AbstractPipelineExt manages pipeline execution, plugin lifecycle, instrumentation, and external resource integration.\",\n      \"reasoning\": \"God Class smell -> SRP violation because it centralizes too many distinct concerns. It manages the pipeline execution state, acts as a coordinator for plugin instantiation (PluginFactory), handles instrumentation and flow metric calculations (initializeFlowMetrics), and manages external resources like the Dead Letter Queue (dlqWriter) and Secret Stores.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 60,\n      \"line_end\": 650,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Queue class manages high-level queue logic, low-level page I/O, and data deserialization.\",\n      \"reasoning\": \"God Class smell -> SRP violation because it mixes high-level queue management (head/tail pages, unread counts) with low-level infrastructure concerns (disk space validation in ensureDiskAvailable, file locking) and data transformation logic (reflection-based deserialization in the deserialize method).\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 80,\n      \"line_end\": 600,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"DeadLetterQueueWriter manages both the writing of data and the enforcement of retention/storage policies.\",\n      \"reasoning\": \"Divergent Change smell -> SRP violation because the class has multiple reasons to change: changes to the underlying storage format/writing mechanism, and changes to the administrative policies (age-based retention or size-based storage limits). These policies should be decoupled from the writer implementation.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/FieldReference.java\",\n      \"entity_name\": \"FieldReference\",\n      \"entity_type\": \"class\",\n      \"line_start\": 40,\n      \"line_end\": 250,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"FieldReference combines data representation with complex string parsing logic.\",\n      \"reasoning\": \"Large Class smell -> SRP violation because it encapsulates both the identity of a field path (the data structure) and the complex logic required to parse that path from a string (StrictTokenizer). The parsing logic is a separate responsibility from the representation of the parsed result.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event",
+      "entity_type": "class",
+      "line_start": 58,
+      "line_end": 450,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Event class handles data storage, serialization, string interpolation, and memory estimation.",
+      "reasoning": "God Class smell -> SRP violation because the class encapsulates multiple unrelated responsibilities: it acts as a data carrier (ConvertedMap), handles complex I/O concerns (JSON/CBOR serialization in toJson/fromJson), implements business logic (tagging/timestamp parsing), and provides utility functions like string interpolation (sprintf) and resource management (estimateMemory)."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 100,
+      "line_end": 700,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "AbstractPipelineExt manages pipeline execution, plugin lifecycle, instrumentation, and external resource integration.",
+      "reasoning": "God Class smell -> SRP violation because it centralizes too many distinct concerns. It manages the pipeline execution state, acts as a coordinator for plugin instantiation (PluginFactory), handles instrumentation and flow metric calculations (initializeFlowMetrics), and manages external resources like the Dead Letter Queue (dlqWriter) and Secret Stores."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 60,
+      "line_end": 650,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Queue class manages high-level queue logic, low-level page I/O, and data deserialization.",
+      "reasoning": "God Class smell -> SRP violation because it mixes high-level queue management (head/tail pages, unread counts) with low-level infrastructure concerns (disk space validation in ensureDiskAvailable, file locking) and data transformation logic (reflection-based deserialization in the deserialize method)."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 80,
+      "line_end": 600,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "DeadLetterQueueWriter manages both the writing of data and the enforcement of retention/storage policies.",
+      "reasoning": "Divergent Change smell -> SRP violation because the class has multiple reasons to change: changes to the underlying storage format/writing mechanism, and changes to the administrative policies (age-based retention or size-based storage limits). These policies should be decoupled from the writer implementation."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+      "entity_name": "FieldReference",
+      "entity_type": "class",
+      "line_start": 40,
+      "line_end": 250,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "FieldReference combines data representation with complex string parsing logic.",
+      "reasoning": "Large Class smell -> SRP violation because it encapsulates both the identity of a field path (the data structure) and the complex logic required to parse that path from a string (StrictTokenizer). The parsing logic is a separate responsibility from the representation of the parsed result."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 18946.889877319336,
+  "error": null
+}

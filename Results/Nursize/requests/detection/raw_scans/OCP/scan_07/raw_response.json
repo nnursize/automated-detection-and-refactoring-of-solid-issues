@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_OCP_scan_07",
+  "repo_name": "requests",
+  "principle": "OCP",
+  "scan_number": 7,
+  "timestamp": "2026-05-03T01:09:52.966510",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modif...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.proxy_manager_for\",\n      \"entity_type\": \"class\",\n      \"line_start\": 225,\n      \"line_end\": 253,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Hardcoded protocol checking for proxy managers\",\n      \"reasoning\": \"The method uses an if/elif/else block to check if a proxy URL starts with 'socks' to decide whether to instantiate a SOCKSProxyManager or a standard ProxyManager. Adding support for new proxy protocols (e.g., 'ftp', 'ssh') would require modifying this method's source code rather than extending the class through a registry or strategy pattern.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"SessionRedirectMixin.rebuild_method\",\n      \"entity_type\": \"class\",\n      \"line_start\": 334,\n      \"line_end\": 354,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded HTTP status code logic for method redirection\",\n      \"reasoning\": \"The method contains explicit checks for status codes (301, 302, 303) to determine if a request method should be changed to 'GET'. This logic is closed to extension; adding new redirection behaviors for different status codes or custom standards requires modifying the existing method.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_body\",\n      \"entity_type\": \"class\",\n      \"line_start\": 468,\n      \"line_end\": 532,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Type-checking logic for request body preparation\",\n      \"reasoning\": \"The method uses multiple 'isinstance' and 'hasattr' checks to branch logic for JSON, streams, multi-part files, and form-encoded data. Adding a new serialization format (e.g., Protobuf or XML) or a new type of data stream would require modifying this central method, violating the principle that the class should be closed for modification.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.send\",\n      \"entity_type\": \"class\",\n      \"line_start\": 670,\n      \"line_end\": 696,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Chain of isinstance checks for exception mapping\",\n      \"reasoning\": \"The exception handling block in the 'send' method uses a long chain of 'isinstance' checks to map internal urllib3 exceptions to Requests-specific exceptions. Adding support for new exception types from the underlying library or changing the mapping logic requires modifying the 'send' method directly.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.proxy_manager_for",
+      "entity_type": "class",
+      "line_start": 225,
+      "line_end": 253,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Hardcoded protocol checking for proxy managers",
+      "reasoning": "The method uses an if/elif/else block to check if a proxy URL starts with 'socks' to decide whether to instantiate a SOCKSProxyManager or a standard ProxyManager. Adding support for new proxy protocols (e.g., 'ftp', 'ssh') would require modifying this method's source code rather than extending the class through a registry or strategy pattern."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "SessionRedirectMixin.rebuild_method",
+      "entity_type": "class",
+      "line_start": 334,
+      "line_end": 354,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded HTTP status code logic for method redirection",
+      "reasoning": "The method contains explicit checks for status codes (301, 302, 303) to determine if a request method should be changed to 'GET'. This logic is closed to extension; adding new redirection behaviors for different status codes or custom standards requires modifying the existing method."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_body",
+      "entity_type": "class",
+      "line_start": 468,
+      "line_end": 532,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Type-checking logic for request body preparation",
+      "reasoning": "The method uses multiple 'isinstance' and 'hasattr' checks to branch logic for JSON, streams, multi-part files, and form-encoded data. Adding a new serialization format (e.g., Protobuf or XML) or a new type of data stream would require modifying this central method, violating the principle that the class should be closed for modification."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.send",
+      "entity_type": "class",
+      "line_start": 670,
+      "line_end": 696,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Chain of isinstance checks for exception mapping",
+      "reasoning": "The exception handling block in the 'send' method uses a long chain of 'isinstance' checks to map internal urllib3 exceptions to Requests-specific exceptions. Adding support for new exception types from the underlying library or changing the mapping logic requires modifying the 'send' method directly."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 16075.357913970947,
+  "error": null
+}

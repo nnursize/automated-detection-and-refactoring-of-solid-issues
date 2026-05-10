@@ -1,0 +1,40 @@
+{
+  "scan_id": "requests_ISP_scan_05",
+  "repo_name": "requests",
+  "principle": "ISP",
+  "scan_number": 5,
+  "timestamp": "2026-05-03T12:15:21.712810",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Interface Segregation Principle (ISP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these i...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.add_headers\",\n      \"entity_type\": \"method\",\n      \"line_start\": 346,\n      \"line_end\": 360,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The `HTTPAdapter.add_headers` method is implemented as a no-op, indicating it's not essential for the base adapter's core functionality.\",\n      \"reasoning\": \"The `HTTPAdapter` class's `send` method calls `self.add_headers()`. However, the default implementation of `add_headers` is an empty `pass` statement, with a comment explicitly stating it 'does nothing by default' and is 'left for overriding by users that subclass.' This means `HTTPAdapter` is forced to provide an implementation for a method that is not part of its core responsibility in its base form. This violates ISP because the `HTTPAdapter` (as a client of its own internal interface) is forced to depend on and implement a method it does not use meaningfully, pushing the responsibility of a potentially unused method onto the base class. A more segregated design would introduce this method via a specific mixin or a different pattern only for adapters that genuinely need to add headers.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest.add_header\",\n      \"entity_type\": \"method\",\n      \"line_start\": 68,\n      \"line_end\": 70,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The `MockRequest.add_header` method explicitly raises `NotImplementedError`.\",\n      \"reasoning\": \"The `MockRequest` class is designed to mimic the `urllib2.Request` interface to integrate with `http.cookiejar.CookieJar`. However, its `add_header` method explicitly raises a `NotImplementedError`. This is a direct violation of the Interface Segregation Principle because `MockRequest` is forced to implement a method from the `urllib2.Request` interface that it does not support or use. The presence of such a method in the interface forces the implementing class to depend on a capability it cannot provide, indicating the interface is too fat for this specific client. The comment confirms that `http.cookiejar` has no legitimate use for this method in this context.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.add_headers",
+      "entity_type": "method",
+      "line_start": 346,
+      "line_end": 360,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The `HTTPAdapter.add_headers` method is implemented as a no-op, indicating it's not essential for the base adapter's core functionality.",
+      "reasoning": "The `HTTPAdapter` class's `send` method calls `self.add_headers()`. However, the default implementation of `add_headers` is an empty `pass` statement, with a comment explicitly stating it 'does nothing by default' and is 'left for overriding by users that subclass.' This means `HTTPAdapter` is forced to provide an implementation for a method that is not part of its core responsibility in its base form. This violates ISP because the `HTTPAdapter` (as a client of its own internal interface) is forced to depend on and implement a method it does not use meaningfully, pushing the responsibility of a potentially unused method onto the base class. A more segregated design would introduce this method via a specific mixin or a different pattern only for adapters that genuinely need to add headers."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest.add_header",
+      "entity_type": "method",
+      "line_start": 68,
+      "line_end": 70,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The `MockRequest.add_header` method explicitly raises `NotImplementedError`.",
+      "reasoning": "The `MockRequest` class is designed to mimic the `urllib2.Request` interface to integrate with `http.cookiejar.CookieJar`. However, its `add_header` method explicitly raises a `NotImplementedError`. This is a direct violation of the Interface Segregation Principle because `MockRequest` is forced to implement a method from the `urllib2.Request` interface that it does not support or use. The presence of such a method in the interface forces the implementing class to depend on a capability it cannot provide, indicating the interface is too fat for this specific client. The comment confirms that `http.cookiejar` has no legitimate use for this method in this context."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 33112.162590026855,
+  "error": null
+}

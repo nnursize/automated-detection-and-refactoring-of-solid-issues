@@ -1,0 +1,108 @@
+{
+  "issue_id": "ISP-012",
+  "principle": "ISP",
+  "title": "Refactor ISP-012 (ISP): The Session class provides a broad API encompassing request preparation, send...",
+  "branch": "refactor/ISP-012",
+  "base": "main",
+  "head_commit": "3b311ed3c33786cf4d4f54dea107aa244a276be8",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8815,
+    "completion_tokens": 682
+  },
+  "detected_issue": {
+    "file_path": "src/requests/sessions.py",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 357,
+    "line_end": 817,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "The Session class provides a broad API encompassing request preparation, sending, redirect handling, adapter management, and various HTTP verb shortcuts.",
+    "reasoning": "The Session class combines many responsibilities, including high-level HTTP verb methods (`get`, `post`), lower-level request dispatch (`send`), and configuration (`mount`, `get_adapter`). Clients using a Session object are exposed to and depend on this entire broad interface, even if they only interact with a specific subset of its capabilities (e.g., only using the high-level verbs without needing to manage adapters or redirects manually). Segregating these concerns into more focused interfaces could reduce client dependencies on unused parts of the API."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Segregate Session interface by extracting adapter management into a SessionAdapterMixin.",
+    "rationale": "The Session class is a 'fat' interface. By extracting adapter-related methods (mount, get_adapter, close) into a mixin, we separate the concerns of connection management from request dispatching and session state, improving the interface's cohesion.",
+    "files_touched": [
+      "src/requests/sessions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/sessions.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "class SessionRedirectMixin:\n    def get_redirect_target(self, resp):",
+        "replace_text": "class SessionAdapterMixin:\n    def get_adapter(self, url):\n        \"\"\"\n        Returns the appropriate connection adapter for the given URL.\n\n        :rtype: requests.adapters.BaseAdapter\n        \"\"\"\n        for prefix, adapter in self.adapters.items():\n            if url.lower().startswith(prefix.lower()):\n                return adapter\n\n        # Nothing matches :-/\n        raise InvalidSchema(f\"No connection adapters were found for {url!r}\")\n\n    def close(self):\n        \"\"\"Closes all adapters and as such the session\"\"\"\n        for v in self.adapters.values():\n            v.close()\n\n    def mount(self, prefix, adapter):\n        \"\"\"Registers a connection adapter to a prefix.\n\n        Adapters are sorted in descending order by prefix length.\n        \"\"\"\n        self.adapters[prefix] = adapter\n        keys_to_move = [k for k in self.adapters if len(k) < len(prefix)]\n\n        for key in keys_to_move:\n            self.adapters[key] = self.adapters.pop(key)\n\n\nclass SessionRedirectMixin:\n    def get_redirect_target(self, resp):",
+        "search_lines": 2,
+        "replace_lines": 33
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "class Session(SessionRedirectMixin):\n    \"\"\"A Requests session.",
+        "replace_text": "class Session(SessionRedirectMixin, SessionAdapterMixin):\n    \"\"\"A Requests session.",
+        "search_lines": 2,
+        "replace_lines": 2
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165172.93405532837,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.31s (0:02:44)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 14:43:05] \"GET /get HTTP/1.1\" 200 222\n127.0.0.1 - - [04/May/2026 14:43:05] \"GET /get?foo=bar&FOO=bar HTTP/1.1\" 200 261\n127.0.0.1 - - [04/May/2026 14:43:16] \"GET /get HTTP/1.1\" 200 222\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 569,
+        "blank_lines": 149,
+        "comment_lines": 111,
+        "function_count": 28,
+        "avg_cc": 3.93,
+        "max_cc": 15.0,
+        "mi": 38.99
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 591,
+        "blank_lines": 157,
+        "comment_lines": 112,
+        "function_count": 31,
+        "avg_cc": 3.85,
+        "max_cc": 15.0,
+        "mi": 37.21
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/sessions.py b/src/requests/sessions.py\nindex efc56f1..17910ed 100644\n--- a/src/requests/sessions.py\n+++ b/src/requests/sessions.py\n@@ -104,6 +104,37 @@ def merge_hooks(request_hooks, session_hooks, dict_class=OrderedDict):\n     return merge_setting(request_hooks, session_hooks, dict_class)\n \n \n+class SessionAdapterMixin:\n+    def get_adapter(self, url):\n+        \"\"\"\n+        Returns the appropriate connection adapter for the given URL.\n+\n+        :rtype: requests.adapters.BaseAdapter\n+        \"\"\"\n+        for prefix, adapter in self.adapters.items():\n+            if url.lower().startswith(prefix.lower()):\n+                return adapter\n+\n+        # Nothing matches :-/\n+        raise InvalidSchema(f\"No connection adapters were found for {url!r}\")\n+\n+    def close(self):\n+        \"\"\"Closes all adapters and as such the session\"\"\"\n+        for v in self.adapters.values():\n+            v.close()\n+\n+    def mount(self, prefix, adapter):\n+        \"\"\"Registers a connection adapter to a prefix.\n+\n+        Adapters are sorted in descending order by prefix length.\n+        \"\"\"\n+        self.adapters[prefix] = adapter\n+        keys_to_move = [k for k in self.adapters if len(k) < len(prefix)]\n+\n+        for key in keys_to_move:\n+            self.adapters[key] = self.adapters.pop(key)\n+\n+\n class SessionRedirectMixin:\n     def get_redirect_target(self, resp):\n         \"\"\"Receives a Response. Returns a redirect URI or ``None``\"\"\"\n@@ -351,7 +382,7 @@ class SessionRedirectMixin:\n         prepared_request.method = method\n \n \n-class Session(SessionRedirectMixin):\n+class Session(SessionRedirectMixin, SessionAdapterMixin):\n     \"\"\"A Requests session.\n \n     Provides cookie persistence, connection-pooling, and configuration.\n",
+  "duration_ms": 168178.96175384521
+}

@@ -1,0 +1,348 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-032
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+- **Entity**: `UTF8JsonGenerator._writeBinary` (current lines L924-L924 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 2 independent scans
+
+### Description
+The generator directly implements Base64 encoding logic, which is a data transformation concern separate from JSON token generation.
+
+### Reasoning
+The core responsibility of a JSON generator is to write JSON tokens. Encoding binary data into a Base64 string is a specific data transformation that could be delegated to a separate utility. While convenient for writing binary values, embedding this logic couples the generator to a specific encoding scheme beyond basic UTF-8 encoding.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+```java
+# ... 803 earlier lines elided ...
+            char ch = cbuf[offset++];
+            if (ch < 0x800) { // 2-byte?
+                _outputBuffer[_outputTail++] = (byte) (0xc0 | (ch >> 6));
+                _outputBuffer[_outputTail++] = (byte) (0x80 | (ch & 0x3f));
+            } else {
+                offset = _outputRawMultiByteChar(ch, cbuf, offset, len);
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public JsonGenerator writeRaw(char ch) throws JacksonException
+    {
+        if ((_outputTail + 3) >= _outputEnd) {
+            _flushBuffer();
+        }
+        final byte[] bbuf = _outputBuffer;
+        if (ch <= 0x7F) {
+            bbuf[_outputTail++] = (byte) ch;
+        } else  if (ch < 0x800) { // 2-byte?
+            bbuf[_outputTail++] = (byte) (0xc0 | (ch >> 6));
+            bbuf[_outputTail++] = (byte) (0x80 | (ch & 0x3f));
+        } else {
+            /*offset =*/ _outputRawMultiByteChar(ch, null, 0, 0);
+        }
+        return this;
+    }
+
+    /**
+     * Helper method called when it is possible that output of raw section
+     * to output may cross buffer boundary
+     */
+    private final void _writeSegmentedRaw(char[] cbuf, int offset, int len) throws JacksonException
+    {
+        final int end = _outputEnd;
+        final byte[] bbuf = _outputBuffer;
+        final int inputEnd = offset + len;
+
+        main_loop:
+        while (offset < inputEnd) {
+            inner_loop:
+            while (true) {
+                int ch = cbuf[offset];
+                if (ch > 0x7F) {
+                    break inner_loop;
+                }
+                // !!! TODO: fast(er) writes (roll input, output checks in one)
+                if (_outputTail >= end) {
+                    _flushBuffer();
+                }
+                bbuf[_outputTail++] = (byte) ch;
+                if (++offset >= inputEnd) {
+                    break main_loop;
+                }
+            }
+            if ((_outputTail + 3) >= _outputEnd) {
+                _flushBuffer();
+            }
+            char ch = cbuf[offset++];
+            if (ch < 0x800) { // 2-byte?
+                bbuf[_outputTail++] = (byte) (0xc0 | (ch >> 6));
+                bbuf[_outputTail++] = (byte) (0x80 | (ch & 0x3f));
+            } else {
+                offset = _outputRawMultiByteChar(ch, cbuf, offset, inputEnd);
+            }
+        }
+    }
+
+    /**
+     * Helper method that is called for segmented write of raw content
+     * when explicitly outputting a segment of longer thing.
+     * Caller has to take care of ensuring there's no split surrogate
+     * pair at the end (that is, last char cannot be first part of a
+     * surrogate char pair).
+     */
+    private void _writeRawSegment(char[] cbuf, int offset, int end) throws JacksonException
+    {
+        main_loop:
+        while (offset < end) {
+            inner_loop:
+            while (true) {
+                int ch = cbuf[offset];
+                if (ch > 0x7F) {
+                    break inner_loop;
+                }
+                _outputBuffer[_outputTail++] = (byte) ch;
+                if (++offset >= end) {
+                    break main_loop;
+                }
+            }
+            char ch = cbuf[offset++];
+            if (ch < 0x800) { // 2-byte?
+                _outputBuffer[_outputTail++] = (byte) (0xc0 | (ch >> 6));
+                _outputBuffer[_outputTail++] = (byte) (0x80 | (ch & 0x3f));
+            } else {
+                offset = _outputRawMultiByteChar(ch, cbuf, offset, end);
+            }
+        }
+    }
+
+    /*
+    /**********************************************************************
+    /* Output method implementations, base64-encoded binary
+    /**********************************************************************
+     */
+
+    @Override
+    public JsonGenerator writeBinary(Base64Variant b64variant,
+            byte[] data, int offset, int len)
+        throws JacksonException
+    {
+        _checkRangeBoundsForByteArray(data, offset, len);
+
+        _verifyValueWrite(WRITE_BINARY);
+        // Starting quotes
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        _writeBinary(b64variant, data, offset, offset+len);
+        // and closing quotes
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return this;
+    }
+
+    @Override
+    public int writeBinary(Base64Variant b64variant,
+            InputStream data, int dataLength)
+        throws JacksonException
+    {
+        _verifyValueWrite(WRITE_BINARY);
+        // Starting quotes
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        byte[] encodingBuffer = _ioContext.allocBase64Buffer();
+        int bytes;
+        try {
+            if (dataLength < 0) { // length unknown
+                bytes = _writeBinary(b64variant, data, encodingBuffer);
+            } else {
+                int missing = _writeBinary(b64variant, data, encodingBuffer, dataLength);
+                if (missing > 0) {
+                    _reportError("Too few bytes available: missing "+missing+" bytes (out of "+dataLength+")");
+                }
+                bytes = dataLength;
+            }
+        } finally {
+            _ioContext.releaseBase64Buffer(encodingBuffer);
+        }
+        // and closing quotes
+        if (_outputTail >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        return bytes;
+    }
+
+    /*
+    /**********************************************************************
+    /* Output method implementations, primitive
+    /**********************************************************************
+     */
+
+    @Override
+    public JsonGenerator writeNumber(short s) throws JacksonException
+    {
+        _verifyValueWrite(WRITE_NUMBER);
+        // up to 5 digits and possible minus sign
+        if ((_outputTail + 6) >= _outputEnd) {
+            _flushBuffer();
+        }
+        if (_cfgNumbersAsStrings) {
+            _writeQuotedShort(s);
+            return this;
+        }
+        _outputTail = NumberOutput.outputInt(s, _outputBuffer, _outputTail);
+        return this;
+    }
+
+    private final void _writeQuotedShort(short s) throws JacksonException {
+        if ((_outputTail + 8) >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        _outputTail = NumberOutput.outputInt(s, _outputBuffer, _outputTail);
+        _outputBuffer[_outputTail++] = _quoteChar;
+    }
+
+    @Override
+    public JsonGenerator writeNumber(int i) throws JacksonException
+    {
+        _verifyValueWrite(WRITE_NUMBER);
+        // up to 10 digits and possible minus sign
+        if ((_outputTail + 11) >= _outputEnd) {
+            _flushBuffer();
+        }
+        if (_cfgNumbersAsStrings) {
+            _writeQuotedInt(i);
+            return this;
+        }
+        _outputTail = NumberOutput.outputInt(i, _outputBuffer, _outputTail);
+        return this;
+    }
+
+    private final void _writeQuotedInt(int i) throws JacksonException
+    {
+        if ((_outputTail + 13) >= _outputEnd) {
+            _flushBuffer();
+        }
+        _outputBuffer[_outputTail++] = _quoteChar;
+        _outputTail = NumberOutput.outputInt(i, _outputBuffer, _outputTail);
+        _outputBuffer[_outputTail++] = _quoteChar;
+    }
+
+    @Override
+    public JsonGenerator writeNumber(long l) throws JacksonException
+    {
+        _verifyValueWrite(WRITE_NUMBER);
+        if (_cfgNumbersAsStrings) {
+            _writeQuotedLong(l);
+            return this;
+        }
+        if ((_outputTail + 21) >= _outputEnd) {
+            // up to 20 digits, minus sign
+            _flushBuffer();
+        }
+        _outputTail = NumberOutput.outputLong(l, _outputBuffer, _outputTail);
+        return this;
+    }
+
+    private final void _writeQuotedLong(long l) throws JacksonException
+    {
+        if ((_outputTail + 23) >= _outputEnd) {
+            _flushBuffer();
+        }
+# ... 1320 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/json/Base64CharInput.java`
+- `src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java`
+- `src/main/java/tools/jackson/core/json/CharOutputTarget.java`
+- `src/main/java/tools/jackson/core/json/DupDetector.java`
+- `src/main/java/tools/jackson/core/json/JsonFactory.java`
+- `src/main/java/tools/jackson/core/json/JsonFactoryBuilder.java`
+- `src/main/java/tools/jackson/core/json/JsonGeneratorBase.java`
+- `src/main/java/tools/jackson/core/json/JsonParserBase.java`
+- `src/main/java/tools/jackson/core/json/JsonReadContext.java`
+- `src/main/java/tools/jackson/core/json/JsonReadFeature.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteContext.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteFeature.java`
+- `src/main/java/tools/jackson/core/json/package-info.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedBase64StreamDecoder.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8Base64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedBase64Encoder.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

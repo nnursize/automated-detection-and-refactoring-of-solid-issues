@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Queue directly instantiates concrete implementation FileCheckpointIO",
+    "reasoning": "The Queue class directly instantiates FileCheckpointIO in its constructor. This creates a hard dependency on a specific implementation of checkpoint I/O, preventing the use of alternative storage strategies or mocking for unit testing."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.openPages",
+    "entity_type": "class",
+    "line_start": 169,
+    "line_end": 265,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Queue directly instantiates concrete implementation MmapPageIOV2",
+    "reasoning": "The openPages method directly instantiates MmapPageIOV2. This couples the high-level Queue logic to a specific file-based I/O implementation, violating the principle that high-level modules should depend on abstractions."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.createDeadLetterQueueWriterFromSettings",
+    "entity_type": "class",
+    "line_start": 323,
+    "line_end": 338,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "AbstractPipelineExt directly depends on the static factory DeadLetterQueueFactory",
+    "reasoning": "The pipeline logic relies on a static factory to create DLQ writers. This prevents the injection of different writer implementations and tightly couples the pipeline to the specific DeadLetterQueueFactory implementation."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "DeadLetterQueueWriter directly instantiates RecordIOWriter",
+    "reasoning": "The writer directly instantiates RecordIOWriter in nextWriter(). This hard-codes the dependency on a specific I/O writer implementation, making it difficult to swap or mock the underlying record writing mechanism."
+  }
+]

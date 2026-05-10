@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 322,
+    "line_end": 343,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass overrides getBinaryValue to throw an exception for tokens not supported by the base class contract.",
+    "reasoning": "The base class JsonParser defines getBinaryValue() as a general method for accessing binary data. By explicitly restricting the allowed tokens to VALUE_STRING or VALUE_EMBEDDED_OBJECT and throwing an error for others, the subclass narrows the contract of the base class, making it non-substitutable in contexts where a caller might expect the base class to handle other token types or provide a different fallback mechanism."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+    "entity_type": "class",
+    "line_start": 444,
+    "line_end": 447,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+    "reasoning": "The base class JsonGenerator defines writeRawUTF8String as part of its public API. By overriding it to throw an UnsupportedOperationException, the subclass violates the Liskov Substitution Principle because it cannot be used in any context where the base class is expected to support this operation."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator.writeUTF8String",
+    "entity_type": "class",
+    "line_start": 449,
+    "line_end": 452,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+    "reasoning": "Similar to writeRawUTF8String, the base class JsonGenerator defines writeUTF8String as part of its public API. The subclass implementation explicitly refuses to support this method, breaking the contract established by the base class."
+  }
+]

@@ -1,0 +1,28 @@
+diff --git a/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java b/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java
+index e851e0f..d150cc3 100644
+--- a/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java
++++ b/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java
+@@ -123,13 +123,20 @@ public final class CompiledPipeline {
+             final RubyIntegration.PluginFactory pluginFactory,
+             final SecretStore secretStore,
+             final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)
++    {
++        this(pipelineIR, pluginFactory, new ConfigVariableExpander(secretStore, EnvironmentVariableProvider.defaultProvider()), conditionalErrListener);
++    }
++
++    public CompiledPipeline(
++            final PipelineIR pipelineIR,
++            final RubyIntegration.PluginFactory pluginFactory,
++            final ConfigVariableExpander cve,
++            final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)
+     {
+         this.pipelineIR = pipelineIR;
+         this.pluginFactory = pluginFactory;
+         this.conditionalErrListener = conditionalErrListener;
+-        try (ConfigVariableExpander cve = new ConfigVariableExpander(
+-                secretStore,
+-                EnvironmentVariableProvider.defaultProvider())) {
++        try {
+             inputs = setupInputs(cve);
+             filters = setupFilters(cve);
+             outputs = setupOutputs(cve);

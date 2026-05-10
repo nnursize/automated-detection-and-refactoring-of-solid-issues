@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_OCP_scan_09",
+  "repo_name": "requests",
+  "principle": "OCP",
+  "scan_number": 9,
+  "timestamp": "2026-05-03T01:12:47.351628",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modif...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.proxy_manager_for\",\n      \"entity_type\": \"class\",\n      \"line_start\": 231,\n      \"line_end\": 264,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Hardcoded proxy scheme dispatching logic prevents extension for new proxy types.\",\n      \"reasoning\": \"The method uses an if/elif/else structure to check if a proxy URL starts with 'socks' to instantiate a SOCKSProxyManager. Adding support for a new type of proxy (e.g., 'ssh' or 'ftp') would require modifying this existing method rather than extending the class, violating the principle that entities should be closed for modification.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"SessionRedirectMixin.rebuild_method\",\n      \"entity_type\": \"class\",\n      \"line_start\": 336,\n      \"line_end\": 354,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded HTTP status code checks for redirect method transformation.\",\n      \"reasoning\": \"The method contains multiple 'if' statements checking for specific status codes (see_other, found, moved) to decide if the request method should be switched to GET. Adding new redirection behaviors or handling new status codes requires modifying this function's core logic.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.send\",\n      \"entity_type\": \"class\",\n      \"line_start\": 655,\n      \"line_end\": 698,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Large exception-mapping block using isinstance checks violates OCP.\",\n      \"reasoning\": \"The 'send' method contains a long chain of 'isinstance' checks (e.g., checking e.reason against ConnectTimeoutError, ResponseError, etc.) to map urllib3 exceptions to requests exceptions. This pattern requires modifying the 'send' method every time a new exception type needs to be handled or remapped.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.request_url\",\n      \"entity_type\": \"class\",\n      \"line_start\": 535,\n      \"line_end\": 565,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Hardcoded scheme checks determine URL formatting logic.\",\n      \"reasoning\": \"The method explicitly checks for 'https' and 'socks' schemes to determine if the full URL or just the path should be used. Supporting new schemes with different proxying requirements would require modifying this logic.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.proxy_manager_for",
+      "entity_type": "class",
+      "line_start": 231,
+      "line_end": 264,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Hardcoded proxy scheme dispatching logic prevents extension for new proxy types.",
+      "reasoning": "The method uses an if/elif/else structure to check if a proxy URL starts with 'socks' to instantiate a SOCKSProxyManager. Adding support for a new type of proxy (e.g., 'ssh' or 'ftp') would require modifying this existing method rather than extending the class, violating the principle that entities should be closed for modification."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "SessionRedirectMixin.rebuild_method",
+      "entity_type": "class",
+      "line_start": 336,
+      "line_end": 354,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded HTTP status code checks for redirect method transformation.",
+      "reasoning": "The method contains multiple 'if' statements checking for specific status codes (see_other, found, moved) to decide if the request method should be switched to GET. Adding new redirection behaviors or handling new status codes requires modifying this function's core logic."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.send",
+      "entity_type": "class",
+      "line_start": 655,
+      "line_end": 698,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Large exception-mapping block using isinstance checks violates OCP.",
+      "reasoning": "The 'send' method contains a long chain of 'isinstance' checks (e.g., checking e.reason against ConnectTimeoutError, ResponseError, etc.) to map urllib3 exceptions to requests exceptions. This pattern requires modifying the 'send' method every time a new exception type needs to be handled or remapped."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.request_url",
+      "entity_type": "class",
+      "line_start": 535,
+      "line_end": 565,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Hardcoded scheme checks determine URL formatting logic.",
+      "reasoning": "The method explicitly checks for 'https' and 'socks' schemes to determine if the full URL or just the path should be used. Supporting new schemes with different proxying requirements would require modifying this logic."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 11354.457139968872,
+  "error": null
+}

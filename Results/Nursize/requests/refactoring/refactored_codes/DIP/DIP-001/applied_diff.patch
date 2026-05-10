@@ -1,0 +1,26 @@
+diff --git a/src/requests/api.py b/src/requests/api.py
+index 5960744..de8f75d 100644
+--- a/src/requests/api.py
++++ b/src/requests/api.py
+@@ -41,6 +41,7 @@ def request(method, url, **kwargs):
+             to a CA bundle to use. Defaults to ``True``.
+     :param stream: (optional) if ``False``, the response content will be immediately downloaded.
+     :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
++    :param session_factory: (optional) A callable that returns a session object. Defaults to :class:`sessions.Session`.
+     :return: :class:`Response <Response>` object
+     :rtype: requests.Response
+ 
+@@ -52,10 +53,12 @@ def request(method, url, **kwargs):
+       <Response [200]>
+     """
+ 
++    session_factory = kwargs.pop("session_factory", sessions.Session)
++
+     # By using the 'with' statement we are sure the session is closed, thus we
+     # avoid leaving sockets open which can trigger a ResourceWarning in some
+     # cases, and look like a memory leak in others.
+-    with sessions.Session() as session:
++    with session_factory() as session:
+         return session.request(method=method, url=url, **kwargs)
+ 
+ 

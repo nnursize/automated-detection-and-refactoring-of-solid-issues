@@ -1,0 +1,93 @@
+{
+  "issue_id": "LSP-075",
+  "principle": "LSP",
+  "title": "Refactor LSP-075 (LSP): Swallows exceptions (including IOException) from critical cleanup steps, alte...",
+  "branch": "refactor/LSP-075",
+  "base": "main",
+  "head_commit": "655cccb6202745eddae652c0bb1211d1c2890468",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8125,
+    "completion_tokens": 592
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter.close",
+    "entity_type": "method",
+    "line_start": 407,
+    "line_end": 421,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Swallows exceptions (including IOException) from critical cleanup steps, altering Closeable.close() contract.",
+    "reasoning": "The `DeadLetterQueueWriter.close()` method overrides `java.io.Closeable.close()`, which declares `throws IOException`. This implementation catches `Exception` (which includes `IOException`) from `finalizeSegment()` and `releaseFileLock()`, logs them as warnings, and then ignores them. This directly violates the `Closeable.close()` contract by preventing clients from catching and handling `IOException`s that occur during resource release, thus altering the expected error reporting behavior."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Propagate IOExceptions in DeadLetterQueueWriter.close() to satisfy Closeable contract",
+    "rationale": "The close() method was catching and swallowing IOExceptions, violating the Closeable contract. By allowing these exceptions to propagate, callers can properly handle resource cleanup failures. The internal helper methods were updated to throw IOException where appropriate, and the close() method now correctly declares the exception propagation.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "search_text": "    @Override\n    public void close() {\n        if (open.compareAndSet(true, false)) {\n            try {\n                finalizeSegment(FinalizeWhen.ALWAYS, SealReason.DLQ_CLOSE);\n            } catch (Exception e) {\n                logger.warn(\"Unable to close dlq writer, ignoring\", e);\n            }\n            try {\n                releaseFileLock();\n            } catch (Exception e) {\n                logger.warn(\"Unable to release fileLock, ignoring\", e);\n            }\n\n            flusherService.shutdown();\n            closeConsumedSegmentsNotification();\n        }\n    }",
+        "replace_text": "    @Override\n    public void close() throws IOException {\n        if (open.compareAndSet(true, false)) {\n            try {\n                finalizeSegment(FinalizeWhen.ALWAYS, SealReason.DLQ_CLOSE);\n            } finally {\n                try {\n                    releaseFileLock();\n                } finally {\n                    flusherService.shutdown();\n                    closeConsumedSegmentsNotification();\n                }\n            }\n        }\n    }",
+        "search_lines": 18,
+        "replace_lines": 15
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "search_text": "    private void releaseFileLock() {\n        try {\n            FileLockFactory.releaseLock(fileLock);\n        } catch (IOException e) {\n            logger.debug(\"Unable to release fileLock\", e);\n        }\n        try {\n            Files.deleteIfExists(queuePath.resolve(LOCK_FILE));\n        } catch (IOException e){\n            logger.debug(\"Unable to delete fileLock file\", e);\n        }\n    }",
+        "replace_text": "    private void releaseFileLock() throws IOException {\n        try {\n            FileLockFactory.releaseLock(fileLock);\n        } finally {\n            Files.deleteIfExists(queuePath.resolve(LOCK_FILE));\n        }\n    }",
+        "search_lines": 12,
+        "replace_lines": 7
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "loc": 593,
+        "blank_lines": 84,
+        "comment_lines": 18,
+        "function_count": 44,
+        "avg_cc": 2.5,
+        "max_cc": 67.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "loc": 586,
+        "blank_lines": 83,
+        "comment_lines": 18,
+        "function_count": 44,
+        "avg_cc": 2.41,
+        "max_cc": 63.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java b/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\nindex cfbd1b3..b56b78e 100644\n--- a/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\n+++ b/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\n@@ -397,21 +397,18 @@ public final class DeadLetterQueueWriter implements Closeable {\n     }\n \n     @Override\n-    public void close() {\n+    public void close() throws IOException {\n         if (open.compareAndSet(true, false)) {\n             try {\n                 finalizeSegment(FinalizeWhen.ALWAYS, SealReason.DLQ_CLOSE);\n-            } catch (Exception e) {\n-                logger.warn(\"Unable to close dlq writer, ignoring\", e);\n-            }\n-            try {\n-                releaseFileLock();\n-            } catch (Exception e) {\n-                logger.warn(\"Unable to release fileLock, ignoring\", e);\n+            } finally {\n+                try {\n+                    releaseFileLock();\n+                } finally {\n+                    flusherService.shutdown();\n+                    closeConsumedSegmentsNotification();\n+                }\n             }\n-\n-            flusherService.shutdown();\n-            closeConsumedSegmentsNotification();\n         }\n     }\n \n@@ -610,16 +607,11 @@ public final class DeadLetterQueueWriter implements Closeable {\n         }\n     }\n \n-    private void releaseFileLock() {\n+    private void releaseFileLock() throws IOException {\n         try {\n             FileLockFactory.releaseLock(fileLock);\n-        } catch (IOException e) {\n-            logger.debug(\"Unable to release fileLock\", e);\n-        }\n-        try {\n+        } finally {\n             Files.deleteIfExists(queuePath.resolve(LOCK_FILE));\n-        } catch (IOException e){\n-            logger.debug(\"Unable to delete fileLock file\", e);\n         }\n     }\n \n",
+  "duration_ms": 26629.825115203857
+}

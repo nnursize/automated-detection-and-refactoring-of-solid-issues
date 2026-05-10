@@ -1,0 +1,40 @@
+{
+  "issue_id": "LSP-002",
+  "principle": "LSP",
+  "title": "Refactor LSP-002 (LSP): Subclass implementation of _closeInput() is a no-op, violating the expected c...",
+  "branch": "refactor/LSP-002",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": "The DataInput interface does not extend Closeable, so there is no resource to close. A no-op _closeInput() is the only correct implementation \u2014 there is no base class postcondition being violated. The detection incorrectly assumes DataInput is a closeable resource."
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser._closeInput",
+    "entity_type": "method",
+    "line_start": 113,
+    "line_end": 113,
+    "severity": "medium",
+    "scan_count": 5,
+    "description": "Subclass implementation of _closeInput() is a no-op, violating the expected cleanup contract.",
+    "reasoning": "The base class JsonParserBase defines _closeInput() as a protected method responsible for releasing resources. By providing an empty implementation, the subclass fails to perform necessary cleanup of the DataInput source, which violates the postcondition of the base class method contract."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

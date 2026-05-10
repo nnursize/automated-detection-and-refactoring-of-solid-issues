@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "NoopScheduler",
+    "entity_type": "class",
+    "line_start": 204,
+    "line_end": 210,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "NoopScheduler implements SchedulerService but provides a no-op implementation for repeatedAction.",
+    "reasoning": "The `SchedulerService` interface defines `repeatedAction(Runnable action)` and `shutdown()`. The `NoopScheduler` implements `repeatedAction` as an empty method (`// Noop`). This indicates that `NoopScheduler` does not need the `repeatedAction` functionality but is forced to implement it because `SchedulerService` is too broad. This suggests `SchedulerService` could be split into more granular interfaces, for example, `Shutdownable` and `RepeatedActionScheduler`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "co.elastic.logstash.api.Event",
+    "entity_type": "class",
+    "line_start": 39,
+    "line_end": 400,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The co.elastic.logstash.api.Event interface is a 'fat' interface combining many responsibilities.",
+    "reasoning": "The `co.elastic.logstash.api.Event` interface defines a large number of methods covering various aspects of an event (reading, writing, cancelling, tagging, cloning, serialization, etc.). Clients that only need a subset of these functionalities (e.g., a component that only reads event fields, or one that only tags events) are forced to depend on the entire interface, including methods they do not use. This increases coupling and makes it harder to create specialized event processors. The interface could be segregated into smaller, more focused interfaces such as `ReadableEvent`, `WritableEvent`, `CancellableEvent`, `TaggingEvent`, etc."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "PageIO",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 240,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The `PageIO` interface defines a broad set of operations for page management (reading, writing, creating, recovering, persisting, purging, checking space, activating, deactivating, closing). The `MmapPageIOV1` class, which represents an older version of page I/O, explicitly throws `UnsupportedOperationException` for several methods (`recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`, `hasSpace()`). This is a textbook violation of ISP, as `MmapPageIOV1` is forced to implement methods that are not relevant to its specific functionality (read-only for an older format). This indicates that `PageIO` is too broad and should be segregated into smaller, more specific interfaces, such as `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `CreatablePageIO`, `PersistablePageIO`, `PurgeablePageIO`, and `SpaceCheckablePageIO`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "SecretStore",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 300,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The SecretStore interface combines methods for various secret management operations.",
+    "reasoning": "The `SecretStore` interface combines methods for creating, deleting, loading, listing, persisting, purging, containing, and retrieving secrets. Different clients might only need a subset of these functionalities. For example, a component that only needs to retrieve secrets (e.g., a configuration reader) does not need to depend on methods for creating or deleting the store. This forces clients to depend on methods they don't use. The interface could be segregated into more focused interfaces like `SecretReader`, `SecretWriter`, and `SecretManager`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "RubyIntegration.PluginFactory",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 100,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The RubyIntegration.PluginFactory interface combines methods for building different types of plugins.",
+    "reasoning": "The `RubyIntegration.PluginFactory` interface defines methods for building various types of plugins (`buildInput`, `buildOutput`, `buildFilter`, `buildCodec`) as well as specific codec-related methods (`buildDefaultCodec`, `buildRubyCodecWrapper`). A client that only needs to build, for instance, input plugins, is forced to depend on the methods for building output, filter, and codec plugins, which it does not use. This makes the interface less focused and increases the surface area of dependency for clients. The interface could be segregated into more specific factory interfaces, such as `InputPluginFactory`, `OutputPluginFactory`, `FilterPluginFactory`, and `CodecFactory`."
+  }
+]

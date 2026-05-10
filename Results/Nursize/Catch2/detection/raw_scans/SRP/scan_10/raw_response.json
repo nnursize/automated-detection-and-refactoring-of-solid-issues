@@ -1,0 +1,51 @@
+{
+  "scan_id": "Catch2_SRP_scan_10",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 10,
+  "timestamp": "2026-05-02T11:09:46.194172",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a c++ repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Context\",\n      \"entity_type\": \"class\",\n      \"line_start\": 569,\n      \"line_end\": 587,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Context class combines dependency location/holding with singleton instance management.\",\n      \"reasoning\": \"The class provides access to `IResultCapture` and `IConfig` (dependency location), but also manages its own singleton instance via `friend` functions `getCurrentMutableContext()` and `getCurrentContext()`. Managing a singleton instance is a separate responsibility from merely holding and providing access to other components. This could be split into a `Context` for holding dependencies and a `ContextSingleton` for managing the global instance.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"GeneratorUntypedBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1062,\n      \"line_end\": 1136,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The GeneratorUntypedBase class mixes value generation logic with result capture and error reporting concerns.\",\n      \"reasoning\": \"The primary responsibility of a generator should be to produce values (`countedNext`, `currentElementIndex`, `currentElementAsString`). However, this class also includes `missingCaptureInstance()` for error reporting and `getResultCapture()` for interacting with the result capture system. These are separate concerns that could be delegated or handled by an external mechanism, allowing the generator to focus solely on value generation.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IResultCapture\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1065,\n      \"line_end\": 1127,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The IResultCapture interface includes static methods for global message management, which is distinct from instance-specific result capturing.\",\n      \"reasoning\": \"An interface (`IResultCapture`) should define a contract for instance-specific behavior. However, `pushScopedMessage()`, `popScopedMessage()`, and `emplaceUnscopedMessage()` are static methods. If these operate on a global state, they represent a global message management responsibility that is separate from the contract of an individual `IResultCapture` instance. These static methods would be better placed in a dedicated `MessageManager` utility class or a global function.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_am",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Context",
+      "entity_type": "class",
+      "line_start": 569,
+      "line_end": 587,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The Context class combines dependency location/holding with singleton instance management.",
+      "reasoning": "The class provides access to `IResultCapture` and `IConfig` (dependency location), but also manages its own singleton instance via `friend` functions `getCurrentMutableContext()` and `getCurrentContext()`. Managing a singleton instance is a separate responsibility from merely holding and providing access to other components. This could be split into a `Context` for holding dependencies and a `ContextSingleton` for managing the global instance."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "GeneratorUntypedBase",
+      "entity_type": "class",
+      "line_start": 1062,
+      "line_end": 1136,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The GeneratorUntypedBase class mixes value generation logic with result capture and error reporting concerns.",
+      "reasoning": "The primary responsibility of a generator should be to produce values (`countedNext`, `currentElementIndex`, `currentElementAsString`). However, this class also includes `missingCaptureInstance()` for error reporting and `getResultCapture()` for interacting with the result capture system. These are separate concerns that could be delegated or handled by an external mechanism, allowing the generator to focus solely on value generation."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IResultCapture",
+      "entity_type": "class",
+      "line_start": 1065,
+      "line_end": 1127,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The IResultCapture interface includes static methods for global message management, which is distinct from instance-specific result capturing.",
+      "reasoning": "An interface (`IResultCapture`) should define a contract for instance-specific behavior. However, `pushScopedMessage()`, `popScopedMessage()`, and `emplaceUnscopedMessage()` are static methods. If these operate on a global state, they represent a global message management responsibility that is separate from the contract of an individual `IResultCapture` instance. These static methods would be better placed in a dedicated `MessageManager` utility class or a global function."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 88230.63969612122,
+  "error": null
+}

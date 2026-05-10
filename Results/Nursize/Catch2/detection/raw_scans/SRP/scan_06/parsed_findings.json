@@ -1,0 +1,134 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Session",
+    "entity_type": "class",
+    "line_start": 2259,
+    "line_end": 2298,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Session class is responsible for command-line parsing, managing test configuration, orchestrating test run execution, and handling framework identification.",
+    "reasoning": "This class combines multiple distinct responsibilities: parsing command-line arguments, managing the overall test configuration, orchestrating the test execution workflow, and providing help/identification. Changes to any of these areas (CLI parsing, test run flow, configuration system) would require modifying this single class, violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::RunContext",
+    "entity_type": "class",
+    "line_start": 4059,
+    "line_end": 4161,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The RunContext class is a central orchestrator for a single test case execution, responsible for implementing the IResultCapture interface (handling all reporting events), managing test run state, I/O redirection, and fatal condition handling.",
+    "reasoning": "This class aggregates numerous distinct responsibilities, including test execution orchestration, comprehensive result capturing (assertions, sections, benchmarks, generators), managing external I/O, and dealing with critical errors. Any change to these diverse concerns would necessitate altering RunContext, indicating multiple reasons to change."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Benchmark::Benchmark",
+    "entity_type": "class",
+    "line_start": 1152,
+    "line_end": 1209,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Benchmark class is responsible for storing the benchmarked function, orchestrating the entire benchmarking process including environment measurement, execution plan preparation, sample collection, statistical analysis, and reporting results via IResultCapture.",
+    "reasoning": "This class combines the distinct responsibilities of managing the benchmarked code, coordinating with configuration, executing the performance measurement, performing statistical analysis on results, and reporting these results. Each of these aspects represents a separate reason for the class to change, violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IResultCapture",
+    "entity_type": "class",
+    "line_start": 725,
+    "line_end": 783,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The IResultCapture interface provides a single point for reporting all types of events during a test run, including assertion outcomes, section lifecycle events, generator interactions, benchmark results, and general messages.",
+    "reasoning": "This interface is overly broad, encompassing many distinct event reporting responsibilities. Any change to the structure or content of assertion reporting, section management, or benchmark event notifications would require modifications to this single interface and all its implementers, violating SRP. It should be decomposed into smaller, more focused interfaces."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IConfig",
+    "entity_type": "class",
+    "line_start": 2200,
+    "line_end": 2234,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The IConfig interface provides access to all diverse configuration parameters for a Catch2 test run, including general settings, test filtering, ordering, benchmarking parameters, and output formatting.",
+    "reasoning": "By exposing every configuration option through a single interface, IConfig combines multiple unrelated responsibilities. Adding any new configuration option, regardless of its domain (e.g., a new benchmark setting vs. a new reporter setting), would require changing this interface, making it susceptible to many reasons for change."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IMutableRegistryHub",
+    "entity_type": "class",
+    "line_start": 816,
+    "line_end": 831,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The IMutableRegistryHub interface is responsible for registering all types of components within the Catch2 framework, including reporters, listeners, test cases, exception translators, tag aliases, and enum values.",
+    "reasoning": "This interface combines the management of multiple distinct registries. Changes to how any specific component type is registered (e.g., reporters vs. exception translators) would necessitate altering this single interface, violating SRP. It should be broken down into more specific registry interfaces."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::StringMaker<T>",
+    "entity_type": "class",
+    "line_start": 1412,
+    "line_end": 1547,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The StringMaker template struct, along with its numerous specializations, is responsible for converting a wide variety of C++ types into std::string for diagnostic output.",
+    "reasoning": "While its core purpose is stringification, it centralizes the formatting logic for many distinct types (primitives, containers, pointers, chrono types, exceptions, enums). A change in the desired string representation for any of these unrelated types (e.g., float precision, date format, container element separation) would require modifying this class or adding a new specialization, leading to multiple reasons for change."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::AssertionHandler",
+    "entity_type": "class",
+    "line_start": 2680,
+    "line_end": 2719,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The AssertionHandler class combines the responsibility for processing the internal logic and outcome of various assertion types with the responsibility of communicating these results to the IResultCapture interface.",
+    "reasoning": "This class has two distinct reasons to change: if the rules for evaluating or handling different assertion conditions change, or if the interface for reporting assertion results (IResultCapture) changes. Separating the assertion logic from the reporting mechanism would improve its adherence to SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Section",
+    "entity_type": "class",
+    "line_start": 2806,
+    "line_end": 2834,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Section class is responsible for managing the execution flow of a test section (determining if it should execute), while also tracking internal metrics such as the number of assertions made within it and its execution duration.",
+    "reasoning": "This class combines distinct concerns: controlling the section's execution lifecycle and gathering performance/result metrics. Changes to how sections are timed, or how assertions are counted, would both require modifications to this class, violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Generators::GeneratorUntypedBase",
+    "entity_type": "class",
+    "line_start": 3144,
+    "line_end": 3184,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The GeneratorUntypedBase class combines the core responsibility of advancing a generator's state and providing the next element with the responsibility of formatting the current element into a human-readable string representation.",
+    "reasoning": "The logic for generating successive values is distinct from the logic for presenting those values as strings. A change in how values are generated (e.g., algorithm, state management) should not necessarily impact how they are formatted for display, and vice-versa. This coupling violates SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ReporterBase",
+    "entity_type": "class",
+    "line_start": 4506,
+    "line_end": 4554,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The ReporterBase class serves as a base for all reporters, managing the output stream and color settings, while also providing default implementations for listing various framework entities (reporters, listeners, test cases, tags).",
+    "reasoning": "This class combines the fundamental setup for reporting (stream, color, options) with the distinct responsibility of formatting and presenting framework metadata listings. Changes to the default formatting of these listings would require modifying this base class, separate from changes related to reporting actual test run results, violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::JsonReporter",
+    "entity_type": "class",
+    "line_start": 4851,
+    "line_end": 4903,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The JsonReporter class combines the responsibility of responding to various test events (test runs, test cases, sections, assertions, benchmarks) with the specific logic of constructing and formatting a JSON output structure, including managing JSON object/array nesting.",
+    "reasoning": "This class mixes event-driven behavior with complex serialization logic specific to the JSON format. Changes to the reporting events or the desired JSON output structure would both directly impact this class, indicating multiple reasons for change."
+  }
+]

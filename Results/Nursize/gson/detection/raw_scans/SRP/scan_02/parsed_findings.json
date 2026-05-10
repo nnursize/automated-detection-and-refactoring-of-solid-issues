@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 1024,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The JsonReader class combines low-level character buffering, JSON token parsing, and JSON path tracking.",
+    "reasoning": "The class has distinct responsibilities for managing the input character buffer (fields like `buffer`, `pos`, `limit` and methods like `fillBuffer`, `nextNonWhitespace`), for parsing JSON tokens (methods like `doPeek`, `peekKeyword`, `peekNumber`, `nextQuotedValue`, `readEscapeCharacter`), and for tracking the current position in the JSON document (fields like `stack`, `pathNames`, `pathIndices` and methods like `getPath`, `locationString`). While tightly coupled for performance in a streaming parser, these are conceptually separate concerns that would change for different reasons (e.g., changing buffering strategy, changing JSON spec, changing path reporting format)."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 570,
+    "line_end": 639,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The createFactories method is a 'God method' that orchestrates the creation and ordering of a large number of TypeAdapterFactory instances.",
+    "reasoning": "This method is responsible for assembling the entire list of TypeAdapterFactory instances, including built-in adapters, user-defined adapters, custom date adapters, and reflective adapters. It contains extensive knowledge about the dependencies and specific ordering requirements of all these factories. If a new built-in adapter is added, or the order changes, this method needs modification. This combines the responsibilities of discovering, ordering, and instantiating all available factories, which could be decomposed into more focused helper methods or a dedicated factory assembler."
+  }
+]

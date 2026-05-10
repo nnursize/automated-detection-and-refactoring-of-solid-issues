@@ -1,0 +1,1158 @@
+{
+  "repo_name": "jackson-core",
+  "per_principle_quota": 12,
+  "total_selected": 60,
+  "total_quota": 60,
+  "short_of_quota": {},
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-001",
+        "rank": 1,
+        "scan_count": 10,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser",
+        "entity_type": "class",
+        "line_start": 17,
+        "line_end": 1548,
+        "description": "The class combines multiple distinct responsibilities including input stream management, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character encoding/decoding, whitespace/comment skipping, and error reporting.",
+        "reasoning": "This class is a 'God class' that handles too many unrelated concerns. For instance, `_loadMore()` (I/O), `nextToken()` (token traversal), `_parseUnsignedNumber()` (number parsing), `_parseName()` (name parsing/canonicalization), `_decodeBase64()` (Base64 decoding), and `_decodeEscaped()` (character decoding) are all part of this single class. A change in any of these areas (e.g., input buffering strategy, JSON number format rules, Base64 standard, character escaping rules) would require modifying this class, violating the 'one reason to change' principle.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_03",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_07",
+          "jackson-core_SRP_scan_08",
+          "jackson-core_SRP_scan_09",
+          "jackson-core_SRP_scan_10",
+          "jackson-core_SRP_scan_11",
+          "jackson-core_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-005",
+        "rank": 2,
+        "scan_count": 7,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "entity_name": "JsonGenerator",
+        "entity_type": "class",
+        "line_start": 14,
+        "line_end": 1064,
+        "description": "The abstract class defines an overly broad API, encompassing core JSON writing, native ID handling, POJO/tree serialization delegation, copy-through methods, and numerous convenience property writing methods, making it a 'God interface'.",
+        "reasoning": "While an abstract class defines an API, the sheer breadth of responsibilities implied by its abstract methods and default implementations indicates a 'God interface' problem. For example, `writeObjectId()` and `writeTypeId()` are for format-specific native ID support, distinct from basic JSON structural (`writeStartObject()`) or value (`writeString()`) generation. Similarly, `writePOJO()` and `writeTree()` delegate to higher-level databinding, and the `copyCurrentEvent()` methods are for parser-to-generator transformation. This broad API forces concrete implementations to take on many distinct responsibilities, making them prone to SRP violations.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_03",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_08",
+          "jackson-core_SRP_scan_11",
+          "jackson-core_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-006",
+        "rank": 3,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+        "entity_name": "UTF8JsonGenerator",
+        "entity_type": "class",
+        "line_start": 14,
+        "line_end": 1032,
+        "description": "The class combines output stream management, JSON structural generation, JSON name writing, string/text encoding and escaping, raw UTF-8 string handling, Base64 encoding, numeric formatting, boolean/null writing, and detailed character encoding/escaping logic.",
+        "reasoning": "This class is a severe SRP violator, acting as a 'God class' for UTF-8 JSON generation. It manages the `OutputStream` and internal byte buffers (`_flushBuffer()`, `_writeBytes()`), handles JSON structure (`writeStartArray()`), property names (`writeName()`), and various value types. Crucially, it contains highly specialized logic for character encoding and escaping (`_writeStringSegment2()`, `_outputSurrogatePair()`, `_writeGenericEscape()`), Base64 encoding (`_writeBinary()`), and numeric formatting (`writeNumber()`). A change in any of these areas would require modifying this single, large, and complex class.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_03",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_11",
+          "jackson-core_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-007",
+        "rank": 4,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator",
+        "entity_type": "class",
+        "line_start": 14,
+        "line_end": 883,
+        "description": "The class combines output writer management, JSON structural generation, JSON name writing, string/text escaping, raw content writing, Base64 encoding, numeric formatting, boolean/null writing, and detailed character escape sequence generation.",
+        "reasoning": "This class is another significant SRP violator, similar to `UTF8JsonGenerator`. It manages the `Writer` and internal character buffers (`_flushBuffer()`, `writeRawLong()`), handles JSON structure (`writeStartObject()`), property names (`_writeName()`), and various value types. It includes complex logic for string escaping (`_writeString2()`, `_writeStringASCII()`, `_writeStringCustom()`), Base64 encoding (`_writeBinary()`), numeric formatting (`writeNumber()`), and generating character escape sequences (`_prependOrWriteCharacterEscape()`). A change in any of these distinct responsibilities would require modifying this single, large class.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_03",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_07",
+          "jackson-core_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-004",
+        "rank": 5,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "entity_name": "ReaderBasedJsonParser",
+        "entity_type": "class",
+        "line_start": 17,
+        "line_end": 1500,
+        "description": "The class combines input stream management from `Reader`, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character escaping, whitespace/comment skipping, and error reporting.",
+        "reasoning": "Similar to its `UTF8StreamJsonParser` counterpart, this class is a 'God class'. Although it uses a `Reader` and thus doesn't handle UTF-8 byte-level decoding, it still bundles many responsibilities: I/O buffering (`_loadMore()`), JSON structure parsing (`nextToken()`), value parsing (`_parseUnsignedNumber()`, `_finishString()`), name canonicalization (`_parseName()`), Base64 decoding (`_decodeBase64()`), character escaping (`_decodeEscaped()`), and comprehensive error reporting (`_reportInvalidToken()`). A change in any of these distinct areas would necessitate modifications to this single class.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_03",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-003",
+        "rank": 6,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+        "entity_name": "UTF8DataInputJsonParser",
+        "entity_type": "class",
+        "line_start": 17,
+        "line_end": 1045,
+        "description": "The class combines input stream management from `DataInput`, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character encoding/decoding, whitespace/comment skipping, and error reporting.",
+        "reasoning": "This class exhibits the same fundamental SRP violations as `UTF8StreamJsonParser`. It integrates low-level `DataInput` reading, the core JSON parsing state machine, specific logic for parsing different JSON value types, complex UTF-8 character decoding and escape sequence handling, Base64 decoding, and error reporting. For example, `_parseUnsignedNumber()` (number parsing), `_parseName()` (name parsing), `_decodeBase64()` (Base64 decoding), and `_decodeUtf8_2()` (UTF-8 decoding) are all tightly coupled within this single class. This makes it highly susceptible to changes from multiple, unrelated domains.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_03",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-002",
+        "rank": 7,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "entity_name": "NonBlockingUtf8JsonParserBase",
+        "entity_type": "class",
+        "line_start": 17,
+        "line_end": 1058,
+        "description": "The class combines non-blocking input management, complex non-blocking JSON token traversal state machine, various non-blocking JSON value parsing, non-blocking JSON name parsing and canonicalization, non-blocking character encoding/decoding, non-blocking whitespace/comment skipping, and error reporting.",
+        "reasoning": "Similar to `UTF8StreamJsonParser`, this class is a 'God class' but with the added complexity of non-blocking I/O and state management. The `_finishToken()` method acts as a dispatcher to numerous other `_finishXxx()` methods, each handling a specific token type's continuation. This structure highlights the bundling of many distinct responsibilities (e.g., `_finishBOM`, `_finishKeywordToken`, `_finishNumberIntegralPart`, `_parseEscapedName`, `_decodeSplitUTF8_3`) within a single class, making it extremely complex and difficult to maintain. Any change to the non-blocking I/O model, JSON parsing rules, or character decoding logic would necessitate extensive modifications.",
+        "first_detected_scan": "jackson-core_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_02",
+          "jackson-core_SRP_scan_04",
+          "jackson-core_SRP_scan_06",
+          "jackson-core_SRP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "SRP-022",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "entity_name": "TokenStreamFactory._optimizedStreamFromURL",
+        "entity_type": "method",
+        "line_start": 1300,
+        "line_end": 1328,
+        "description": "Factory directly manages opening I/O streams from a URL, mixing factory creation with I/O resource management.",
+        "reasoning": "A `TokenStreamFactory`'s primary responsibility is to configure and create `JsonParser` and `JsonGenerator` instances. The `_optimizedStreamFromURL` method, however, directly handles the logic for opening an `InputStream` from a `URL`. This is a responsibility related to I/O resource management, which is distinct from the factory's core role. This I/O logic could be delegated to a separate utility class.",
+        "first_detected_scan": "jackson-core_SRP_scan_07",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_07",
+          "jackson-core_SRP_scan_08",
+          "jackson-core_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-023",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "entity_name": "TokenStreamFactory._fileInputStream",
+        "entity_type": "method",
+        "line_start": 1330,
+        "line_end": 1338,
+        "description": "Factory directly manages opening I/O streams from a File, mixing factory creation with I/O resource management.",
+        "reasoning": "A `TokenStreamFactory`'s primary responsibility is to configure and create `JsonParser` and `JsonGenerator` instances. The `_fileInputStream` method, however, directly handles the logic for opening an `InputStream` from a `File`. This is a responsibility related to I/O resource management, which is distinct from the factory's core role. This I/O logic could be delegated to a separate utility class.",
+        "first_detected_scan": "jackson-core_SRP_scan_07",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_07",
+          "jackson-core_SRP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "SRP-032",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+        "entity_name": "UTF8JsonGenerator._writeBinary",
+        "entity_type": "method",
+        "line_start": 1581,
+        "line_end": 1729,
+        "description": "The generator directly implements Base64 encoding logic, which is a data transformation concern separate from JSON token generation.",
+        "reasoning": "The core responsibility of a JSON generator is to write JSON tokens. Encoding binary data into a Base64 string is a specific data transformation that could be delegated to a separate utility. While convenient for writing binary values, embedding this logic couples the generator to a specific encoding scheme beyond basic UTF-8 encoding.",
+        "first_detected_scan": "jackson-core_SRP_scan_08",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_08",
+          "jackson-core_SRP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "SRP-027",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "entity_name": "JsonGenerator.writeTypeSuffix",
+        "entity_type": "method",
+        "line_start": 1060,
+        "line_end": 1098,
+        "description": "The generator includes complex logic for handling type identifiers, which involves semantic interpretation and structural modification beyond basic token generation.",
+        "reasoning": "Similar to `writeTypePrefix`, this method completes the type ID embedding process. It closes structural elements (objects/arrays) and writes the type ID in the appropriate location based on the `WritableTypeId` definition. This is part of the broader type ID handling responsibility, which is distinct from merely generating JSON tokens.",
+        "first_detected_scan": "jackson-core_SRP_scan_08",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "SRP-028",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "entity_name": "JsonGenerator.copyCurrentEvent",
+        "entity_type": "method",
+        "line_start": 1285,
+        "line_end": 1329,
+        "description": "The generator consumes input from a JsonParser to copy events, mixing output generation with input consumption.",
+        "reasoning": "A JsonGenerator's primary responsibility is to produce JSON output. Methods like `copyCurrentEvent` require a `JsonParser` as an argument and read tokens from it to write corresponding tokens. This introduces a responsibility for consuming and transforming input, which is a separate concern from simply generating output. A dedicated 'JsonTransformer' or 'JsonCopier' class would be more appropriate for this functionality.",
+        "first_detected_scan": "jackson-core_SRP_scan_08",
+        "duplicate_scan_ids": [
+          "jackson-core_SRP_scan_08"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-001",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser._getText2",
+        "entity_type": "class",
+        "line_start": 339,
+        "line_end": 354,
+        "description": "Switch statement on token ID requires modification to handle new token types",
+        "reasoning": "The _getText2 method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_02",
+          "jackson-core_OCP_scan_05",
+          "jackson-core_OCP_scan_06",
+          "jackson-core_OCP_scan_11",
+          "jackson-core_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-005",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.nextToken",
+        "entity_type": "class",
+        "line_start": 625,
+        "line_end": 687,
+        "description": "Switch statement on character input requires modification to handle new value types",
+        "reasoning": "The nextToken method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types or syntax would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_02",
+          "jackson-core_OCP_scan_04",
+          "jackson-core_OCP_scan_05",
+          "jackson-core_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-002",
+        "rank": 3,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.getStringCharacters",
+        "entity_type": "class",
+        "line_start": 357,
+        "line_end": 376,
+        "description": "Switch statement on token ID requires modification to handle new token types",
+        "reasoning": "The getStringCharacters method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_02",
+          "jackson-core_OCP_scan_04",
+          "jackson-core_OCP_scan_05",
+          "jackson-core_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-033",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.nextToken",
+        "entity_type": "method",
+        "line_start": 479,
+        "line_end": 546,
+        "description": "Switch statement on character code for token parsing requires modification for new tokens.",
+        "reasoning": "The switch-case logic based on the character `i` to identify the next token is a hard-coded parser logic that must be modified to support any new JSON token or value type.",
+        "first_detected_scan": "jackson-core_OCP_scan_06",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_06",
+          "jackson-core_OCP_scan_07",
+          "jackson-core_OCP_scan_08",
+          "jackson-core_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-018",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "entity_name": "JsonGenerator.copyCurrentEvent",
+        "entity_type": "class",
+        "line_start": 863,
+        "line_end": 905,
+        "description": "Switch statement on token ID requires modification to handle new token types",
+        "reasoning": "The copyCurrentEvent method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_10",
+          "jackson-core_OCP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "OCP-006",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser._nextTokenNotInObject",
+        "entity_type": "class",
+        "line_start": 690,
+        "line_end": 732,
+        "description": "Switch statement on character input requires modification to handle new value types",
+        "reasoning": "The _nextTokenNotInObject method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_04",
+          "jackson-core_OCP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "OCP-007",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.nextName",
+        "entity_type": "class",
+        "line_start": 776,
+        "line_end": 846,
+        "description": "Switch statement on character input requires modification to handle new value types",
+        "reasoning": "The nextName method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_04",
+          "jackson-core_OCP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "OCP-008",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.nextNameMatch",
+        "entity_type": "class",
+        "line_start": 932,
+        "line_end": 1003,
+        "description": "Switch statement on character input requires modification to handle new value types",
+        "reasoning": "The nextNameMatch method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_04",
+          "jackson-core_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-010",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser._isNextTokenNameMaybe",
+        "entity_type": "class",
+        "line_start": 1105,
+        "line_end": 1165,
+        "description": "Switch statement on character input requires modification to handle new value types",
+        "reasoning": "The _isNextTokenNameMaybe method uses a switch statement to dispatch parsing based on the first character of a value. Adding new value types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_04",
+          "jackson-core_OCP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "OCP-012",
+        "rank": 10,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "entity_name": "NonBlockingUtf8JsonParserBase._finishToken",
+        "entity_type": "class",
+        "line_start": 172,
+        "line_end": 308,
+        "description": "Switch statement on minor state requires modification to handle new states",
+        "reasoning": "The _finishToken method uses a switch statement on _minorState. Adding new states or parsing logic would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_02",
+          "jackson-core_OCP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "OCP-032",
+        "rank": 11,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.getStringCharacters",
+        "entity_type": "method",
+        "line_start": 311,
+        "line_end": 331,
+        "description": "Switch statement on JsonToken ID requires modification to support new token types.",
+        "reasoning": "The switch statement on `_currToken.id()` necessitates changes to existing code whenever new token types are introduced in the Jackson framework.",
+        "first_detected_scan": "jackson-core_OCP_scan_06",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_06",
+          "jackson-core_OCP_scan_07",
+          "jackson-core_OCP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "OCP-003",
+        "rank": 12,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.getStringLength",
+        "entity_type": "class",
+        "line_start": 379,
+        "line_end": 398,
+        "description": "Switch statement on token ID requires modification to handle new token types",
+        "reasoning": "The getStringLength method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle.",
+        "first_detected_scan": "jackson-core_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_OCP_scan_01",
+          "jackson-core_OCP_scan_02",
+          "jackson-core_OCP_scan_05"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-002",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+        "entity_name": "UTF8DataInputJsonParser._closeInput",
+        "entity_type": "method",
+        "line_start": 113,
+        "line_end": 113,
+        "description": "Subclass implementation of _closeInput() is a no-op, violating the expected cleanup contract.",
+        "reasoning": "The base class JsonParserBase defines _closeInput() as a protected method responsible for releasing resources. By providing an empty implementation, the subclass fails to perform necessary cleanup of the DataInput source, which violates the postcondition of the base class method contract.",
+        "first_detected_scan": "jackson-core_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_01",
+          "jackson-core_LSP_scan_03",
+          "jackson-core_LSP_scan_10",
+          "jackson-core_LSP_scan_11",
+          "jackson-core_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-001",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser._closeInput",
+        "entity_type": "method",
+        "line_start": 182,
+        "line_end": 195,
+        "description": "Subclass implementation of _closeInput() changes behavior by conditionally closing the underlying InputStream.",
+        "reasoning": "The base class JsonParserBase defines _closeInput() as a protected method intended to handle resource cleanup. The implementation in UTF8StreamJsonParser introduces conditional logic based on 'isResourceManaged()' or 'AUTO_CLOSE_SOURCE' features. While this is common in Jackson, it effectively changes the contract of the method from 'close the input' to 'conditionally close the input based on internal state', which can lead to unexpected resource leaks or premature closures if a caller expects the base class contract to be strictly followed.",
+        "first_detected_scan": "jackson-core_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_01",
+          "jackson-core_LSP_scan_10",
+          "jackson-core_LSP_scan_11",
+          "jackson-core_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-004",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "entity_name": "ReaderBasedJsonParser._decodeEscaped",
+        "entity_type": "method",
+        "line_start": 1056,
+        "line_end": 1062,
+        "description": "Method signature in subclass forces checked exception handling not present in base class.",
+        "reasoning": "While the method is protected, the pattern of catching IOException and wrapping it into a JacksonException is inconsistent across parser implementations. In this specific case, the implementation relies on the base class behavior but forces a wrapper that alters the signature expectations of internal components.",
+        "first_detected_scan": "jackson-core_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_03",
+          "jackson-core_LSP_scan_10",
+          "jackson-core_LSP_scan_11",
+          "jackson-core_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-005",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "entity_name": "NonBlockingUtf8JsonParserBase._decodeEscaped",
+        "entity_type": "method",
+        "line_start": 82,
+        "line_end": 86,
+        "description": "Subclass throws UnsupportedOperationException for a method inherited from the base class.",
+        "reasoning": "The method _decodeEscaped() is inherited from the base class (JsonParserBase) and is expected to return a char. By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the behavioral contract of the base class, making it non-substitutable.",
+        "first_detected_scan": "jackson-core_LSP_scan_04",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_04",
+          "jackson-core_LSP_scan_05",
+          "jackson-core_LSP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "LSP-006",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+        "entity_type": "class",
+        "line_start": 322,
+        "line_end": 343,
+        "description": "Subclass overrides getBinaryValue to throw an exception for tokens not supported by the base class contract.",
+        "reasoning": "The base class JsonParser defines getBinaryValue() as a general method for accessing binary data. By explicitly restricting the allowed tokens to VALUE_STRING or VALUE_EMBEDDED_OBJECT and throwing an error for others, the subclass narrows the contract of the base class, making it non-substitutable in contexts where a caller might expect the base class to handle other token types or provide a different fallback mechanism.",
+        "first_detected_scan": "jackson-core_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_07",
+          "jackson-core_LSP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "LSP-007",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+        "entity_type": "class",
+        "line_start": 444,
+        "line_end": 447,
+        "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+        "reasoning": "The base class JsonGenerator defines writeRawUTF8String as part of its public API. By overriding it to throw an UnsupportedOperationException, the subclass violates the Liskov Substitution Principle because it cannot be used in any context where the base class is expected to support this operation.",
+        "first_detected_scan": "jackson-core_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_07",
+          "jackson-core_LSP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "LSP-008",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator.writeUTF8String",
+        "entity_type": "class",
+        "line_start": 449,
+        "line_end": 452,
+        "description": "Subclass implementation throws UnsupportedOperationException for a method defined in the base class.",
+        "reasoning": "Similar to writeRawUTF8String, the base class JsonGenerator defines writeUTF8String as part of its public API. The subclass implementation explicitly refuses to support this method, breaking the contract established by the base class.",
+        "first_detected_scan": "jackson-core_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_07",
+          "jackson-core_LSP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "LSP-013",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "entity_name": "GeneratorBase.writeString",
+        "entity_type": "class",
+        "line_start": 229,
+        "line_end": 231,
+        "description": "Subclasses are forced to throw UnsupportedOperationException for specific write methods",
+        "reasoning": "The base class provides an implementation that throws UnsupportedOperationException for methods like writeString(Reader, int). This breaks the substitutability principle because a client expects a working JsonGenerator implementation, not one that fails at runtime for standard interface methods.",
+        "first_detected_scan": "jackson-core_LSP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-010",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+        "entity_name": "UTF8JsonGenerator.writeRawUTF8String",
+        "entity_type": "class",
+        "line_start": 444,
+        "line_end": 448,
+        "description": "Subclass violates LSP by throwing UnsupportedOperationException for a method defined in the base contract.",
+        "reasoning": "The JsonGenerator (base) class defines writeRawUTF8String as an abstract method, implying it is part of the contract for all generators. The UTF8JsonGenerator implementation throws an UnsupportedOperationException, meaning it is not substitutable for a general JsonGenerator where this method is expected to work.",
+        "first_detected_scan": "jackson-core_LSP_scan_09",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-011",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+        "entity_type": "class",
+        "line_start": 490,
+        "line_end": 493,
+        "description": "Subclass violates LSP by throwing UnsupportedOperationException for a method defined in the base contract.",
+        "reasoning": "Similar to UTF8JsonGenerator, the WriterBasedJsonGenerator implements JsonGenerator (via JsonGeneratorBase) and provides a non-functional implementation (UnsupportedOperationException) for writeRawUTF8String, breaking the behavioral contract expected by consumers of the base class.",
+        "first_detected_scan": "jackson-core_LSP_scan_09",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-012",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingJsonParserBase.java",
+        "entity_name": "NonBlockingJsonParserBase.getNextSignedByteFromBuffer",
+        "entity_type": "class",
+        "line_start": 172,
+        "line_end": 172,
+        "description": "Abstract methods in a base class force subclasses into a specific non-blocking contract that violates the standard JsonParser contract.",
+        "reasoning": "The introduction of abstract methods like getNextSignedByteFromBuffer forces subclasses to implement a specific non-blocking state machine, which is not part of the standard JsonParser interface, breaking the ability to treat all JsonParsers uniformly.",
+        "first_detected_scan": "jackson-core_LSP_scan_11",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-003",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+        "entity_name": "NonBlockingUtf8JsonParserBase._decodeEscaped",
+        "entity_type": "method",
+        "line_start": 80,
+        "line_end": 84,
+        "description": "Subclass throws UnsupportedOperationException for a method inherited from base class",
+        "reasoning": "The method _decodeEscaped() is inherited from the base class (likely NonBlockingJsonParserBase or JsonParserBase). By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the contract of the base class, which expects this method to be functional. This prevents the subclass from being used as a drop-in replacement for the base class.",
+        "first_detected_scan": "jackson-core_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_LSP_scan_02"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-001",
+        "rank": 1,
+        "scan_count": 10,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "entity_name": "JsonGenerator",
+        "entity_type": "class",
+        "line_start": 35,
+        "line_end": 1000,
+        "description": "JsonGenerator is a 'fat' interface/abstract class forcing implementations to support unrelated concerns.",
+        "reasoning": "The JsonGenerator class combines structural writing (writeStartArray, writeEndObject), scalar writing (writeNumber, writeString, writeBoolean), binary data handling (writeBinary), and high-level object serialization (writePOJO, writeTree). Implementations like binary format generators are forced to implement methods that may not be applicable or efficient for their format, violating the Interface Segregation Principle.",
+        "first_detected_scan": "jackson-core_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_01",
+          "jackson-core_ISP_scan_02",
+          "jackson-core_ISP_scan_04",
+          "jackson-core_ISP_scan_05",
+          "jackson-core_ISP_scan_06",
+          "jackson-core_ISP_scan_07",
+          "jackson-core_ISP_scan_08",
+          "jackson-core_ISP_scan_09",
+          "jackson-core_ISP_scan_10",
+          "jackson-core_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser",
+        "entity_type": "class",
+        "line_start": 21,
+        "line_end": 1780,
+        "description": "UTF8StreamJsonParser implements the fat JsonParser interface, forcing it to implement many methods that may not be relevant for a stream-based parser.",
+        "reasoning": "The JsonParser interface is a large, monolithic interface containing methods for all possible parsing behaviors (e.g., binary, textual, numeric, and traversal). A stream-based parser like UTF8StreamJsonParser is forced to implement the entire contract, even though some functionality (like arbitrary binary access) might be secondary or require complex state management not naturally supported by the primary stream-reading model.",
+        "first_detected_scan": "jackson-core_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_03",
+          "jackson-core_ISP_scan_07",
+          "jackson-core_ISP_scan_08",
+          "jackson-core_ISP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 3,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+        "entity_name": "JsonParser",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 723,
+        "description": "The JsonParser interface is bloated by including methods for object/tree mapping that are not universally supported by all parser implementations.",
+        "reasoning": "The `JsonParser` interface declares methods like `readValueAs(Class<T> valueType)`, `readValueAs(TypeReference<T> valueTypeRef)`, `readValueAs(ResolvedType type)`, and `readValueAsTree()`. However, `ParserMinimalBase` (a common abstract base class for many parsers) provides default implementations for these methods that throw `UnsupportedOperationException`. This forces concrete parser implementations that do not support object/tree mapping to either inherit this unsupported behavior or provide empty/dummy implementations, violating ISP. These methods should be segregated into a separate interface, e.g., `ObjectMappingCapableParser`.",
+        "first_detected_scan": "jackson-core_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_10",
+          "jackson-core_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-006",
+        "rank": 4,
+        "scan_count": 2,
+        "severity": "low",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+        "entity_type": "class",
+        "line_start": 361,
+        "line_end": 364,
+        "description": "Implementation forced to throw UnsupportedOperationException for a method it cannot support.",
+        "reasoning": "Similar to UTF8JsonGenerator, this class is forced to implement a method from the fat JsonGenerator interface that it cannot support, violating ISP.",
+        "first_detected_scan": "jackson-core_ISP_scan_04",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_04",
+          "jackson-core_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-012",
+        "rank": 5,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "entity_name": "GeneratorBase.writeString(Reader reader, int len)",
+        "entity_type": "method",
+        "line_start": 229,
+        "line_end": 231,
+        "description": "The GeneratorBase class is forced to implement writeString from a Reader but explicitly reports it as an unsupported operation.",
+        "reasoning": "The 'JsonGenerator' interface mandates a method for writing string content from a 'Reader'. 'GeneratorBase', a common abstract base for generators, explicitly calls '_reportUnsupportedOperation()' for 'writeString(Reader, int)'. This indicates that this method is not universally supported by all generator types (e.g., byte-based generators might not handle character readers efficiently), making the 'JsonGenerator' interface too large and forcing implementations to declare methods they do not support.",
+        "first_detected_scan": "jackson-core_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-013",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "entity_name": "GeneratorBase.writeBinary(Base64Variant b64variant, InputStream data, int dataLength)",
+        "entity_type": "method",
+        "line_start": 264,
+        "line_end": 266,
+        "description": "The GeneratorBase class is forced to implement writeBinary from an InputStream but explicitly reports it as an unsupported operation.",
+        "reasoning": "The 'JsonGenerator' interface mandates a method for writing binary content from an 'InputStream'. 'GeneratorBase' explicitly calls '_reportUnsupportedOperation()' for 'writeBinary(Base64Variant, InputStream, int)'. This suggests that this method is not supported by all generator types (e.g., character-based generators), indicating the 'JsonGenerator' interface is too broad and violates ISP by forcing implementations to support irrelevant functionalities.",
+        "first_detected_scan": "jackson-core_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-010",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/base/ParserBase.java",
+        "entity_name": "ParserBase._decodeEscaped",
+        "entity_type": "method",
+        "line_start": 1028,
+        "line_end": 1029,
+        "description": "The ParserBase class is forced to implement _decodeEscaped from JsonParser but explicitly throws UnsupportedOperationException.",
+        "reasoning": "The 'JsonParser' interface (or an intermediate abstract class in its hierarchy) mandates a method for decoding escaped characters. 'ParserBase', a foundational abstract class, explicitly throws 'UnsupportedOperationException' for '_decodeEscaped()', indicating it cannot universally provide this functionality. This forces subclasses or clients to depend on a method they might not use or cannot implement, violating the Interface Segregation Principle by making the parser interface too broad.",
+        "first_detected_scan": "jackson-core_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-011",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/filter/FilteringParserDelegate.java",
+        "entity_name": "FilteringParserDelegate.overrideCurrentName",
+        "entity_type": "method",
+        "line_start": 251,
+        "line_end": 255,
+        "description": "The FilteringParserDelegate class is forced to implement overrideCurrentName from JsonParser but explicitly throws UnsupportedOperationException.",
+        "reasoning": "The 'JsonParser' interface (or an abstract class it extends) includes a method to override the current name. 'FilteringParserDelegate', a specialized parser that modifies token streams, explicitly throws 'UnsupportedOperationException' for 'overrideCurrentName()'. This indicates that not all concrete parser implementations can or should support this operation, making the 'JsonParser' interface too broad and forcing clients to implement unneeded methods.",
+        "first_detected_scan": "jackson-core_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-014",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+        "entity_type": "method",
+        "line_start": 572,
+        "line_end": 574,
+        "description": "The WriterBasedJsonGenerator class is forced to implement writeRawUTF8String but explicitly reports it as an unsupported operation.",
+        "reasoning": "The 'JsonGenerator' interface mandates writing raw UTF8 byte arrays. However, 'WriterBasedJsonGenerator' operates on character streams (Writer). It explicitly calls '_reportUnsupportedOperation()' for 'writeRawUTF8String()', demonstrating it cannot natively support this byte-oriented operation. This forces the class to implement a method it doesn't need or can't efficiently handle, indicating a violation of ISP in the 'JsonGenerator' interface.",
+        "first_detected_scan": "jackson-core_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-015",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+        "entity_name": "WriterBasedJsonGenerator.writeUTF8String",
+        "entity_type": "method",
+        "line_start": 578,
+        "line_end": 580,
+        "description": "The WriterBasedJsonGenerator class is forced to implement writeUTF8String but explicitly reports it as an unsupported operation.",
+        "reasoning": "Similar to 'writeRawUTF8String', the 'JsonGenerator' interface mandates writing UTF8 byte arrays. 'WriterBasedJsonGenerator' (character-based) explicitly calls '_reportUnsupportedOperation()' for 'writeUTF8String()'. This is another instance where the interface is too broad, forcing a specialized implementation to expose and explicitly reject functionality that is not relevant to its core purpose, thus violating ISP.",
+        "first_detected_scan": "jackson-core_ISP_scan_12",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-008",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/base/BinaryTSFactory.java",
+        "entity_name": "BinaryTSFactory",
+        "entity_type": "class",
+        "line_start": 15,
+        "line_end": 247,
+        "description": "The `BinaryTSFactory` is forced to implement character-based parser creation methods but explicitly throws `_nonByteSource()` (which throws `UnsupportedOperationException`).",
+        "reasoning": "The `BinaryTSFactory` is designed to create parsers for binary input. However, it inherits methods like `createParser(Reader r)`, `createParser(String content)`, and `createParser(char[] content, int offset, int len)` from `TokenStreamFactory`. For these character-based input types, `BinaryTSFactory` explicitly calls `_nonByteSource()` (L97, L118, L124), which then throws `UnsupportedOperationException`. This forces the factory to implement methods for input types it does not support, violating ISP. These methods should be segregated into a `CharSourceTokenStreamFactory` or similar interface.",
+        "first_detected_scan": "jackson-core_ISP_scan_11",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-004",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "entity_name": "ReaderBasedJsonParser",
+        "entity_type": "class",
+        "line_start": 17,
+        "line_end": 1150,
+        "description": "ReaderBasedJsonParser implements the large JsonParser interface, forcing the inclusion of methods for binary data and non-blocking parsing that are not its primary purpose.",
+        "reasoning": "ReaderBasedJsonParser is a character-based parser. The JsonParser interface is fat, containing methods for binary, stream, and async parsing. This forces the implementation to carry the overhead and complexity of an interface that covers diverse parsing models beyond character-based reading.",
+        "first_detected_scan": "jackson-core_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "jackson-core_ISP_scan_03"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-003",
+        "rank": 1,
+        "scan_count": 4,
+        "severity": "low",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "entity_name": "JsonGenerator._constructWriteException",
+        "entity_type": "method",
+        "line_start": 1118,
+        "line_end": 1118,
+        "description": "Direct instantiation of StreamWriteException.",
+        "reasoning": "The base class for generators directly instantiates a concrete exception type. While common in Java, strictly speaking, this couples the generator abstraction to a specific detail (the exception implementation).",
+        "first_detected_scan": "jackson-core_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_01",
+          "jackson-core_DIP_scan_02",
+          "jackson-core_DIP_scan_04",
+          "jackson-core_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-023",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+        "entity_name": "TextualTSFactory._createWriter",
+        "entity_type": "class",
+        "line_start": 339,
+        "line_end": 346,
+        "description": "Direct instantiation of concrete UTF8Writer.",
+        "reasoning": "The _createWriter method directly instantiates UTF8Writer, coupling the factory to a specific implementation of the Writer abstraction instead of allowing for the injection of different writer types.",
+        "first_detected_scan": "jackson-core_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_10",
+          "jackson-core_DIP_scan_11",
+          "jackson-core_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-022",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+        "entity_name": "IOContext.constructTextBuffer",
+        "entity_type": "class",
+        "line_start": 214,
+        "line_end": 221,
+        "description": "Direct instantiation of concrete TextBuffer implementations.",
+        "reasoning": "The constructTextBuffer and constructReadConstrainedTextBuffer methods directly instantiate TextBuffer and ReadConstrainedTextBuffer. This prevents the inversion of control where alternative buffer strategies could be injected into the context.",
+        "first_detected_scan": "jackson-core_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_10",
+          "jackson-core_DIP_scan_11",
+          "jackson-core_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-021",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java",
+        "entity_name": "ByteSourceJsonBootstrapper.constructParser",
+        "entity_type": "class",
+        "line_start": 283,
+        "line_end": 300,
+        "description": "Direct instantiation of concrete UTF8StreamJsonParser.",
+        "reasoning": "The constructParser method directly instantiates UTF8StreamJsonParser using the 'new' keyword. This violates DIP because a high-level component responsible for bootstrapping should depend on the JsonParser abstraction rather than a specific low-level implementation.",
+        "first_detected_scan": "jackson-core_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_10",
+          "jackson-core_DIP_scan_11",
+          "jackson-core_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-011",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "entity_name": "TokenStreamFactory._createContext",
+        "entity_type": "method",
+        "line_start": 1310,
+        "line_end": 1340,
+        "description": "Direct instantiation of concrete IOContext",
+        "reasoning": "The high-level TokenStreamFactory directly instantiates the concrete IOContext class. According to DIP, high-level modules should depend on abstractions, and dependencies should be injected rather than hard-coded through direct instantiation.",
+        "first_detected_scan": "jackson-core_DIP_scan_07",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_07",
+          "jackson-core_DIP_scan_08",
+          "jackson-core_DIP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser",
+        "entity_type": "class",
+        "line_start": 111,
+        "line_end": 125,
+        "description": "Parser implementation depends on concrete IOContext for buffer management.",
+        "reasoning": "The parser constructor receives and depends on a concrete IOContext class. This dependency is passed up to the JsonParserBase abstraction. IOContext is a low-level module responsible for buffer allocation and lifecycle management. According to DIP, high-level logic should depend on a buffer management abstraction (interface) rather than a concrete implementation detail.",
+        "first_detected_scan": "jackson-core_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_02",
+          "jackson-core_DIP_scan_05",
+          "jackson-core_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-001",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "low",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "entity_name": "UTF8StreamJsonParser._reportInvalidToken",
+        "entity_type": "method",
+        "line_start": 1530,
+        "line_end": 1533,
+        "description": "Direct instantiation of TokenStreamLocation concrete class.",
+        "reasoning": "The parser directly instantiates TokenStreamLocation instead of using a factory or receiving it via injection. While TokenStreamLocation is a value object, this creates a tight coupling between the high-level parsing logic and the specific implementation of location tracking.",
+        "first_detected_scan": "jackson-core_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_01",
+          "jackson-core_DIP_scan_03",
+          "jackson-core_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-024",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "entity_name": "GeneratorBase._constructDefaultPrettyPrinter",
+        "entity_type": "method",
+        "line_start": 377,
+        "line_end": 379,
+        "description": "Abstract base class hard-codes dependency on concrete PrettyPrinter",
+        "reasoning": "The abstract class GeneratorBase directly instantiates DefaultPrettyPrinter (L378). Abstractions should not depend on details; hard-coding a specific implementation of an interface in a base class prevents users from easily substituting different defaults.",
+        "first_detected_scan": "jackson-core_DIP_scan_11",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_11",
+          "jackson-core_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-016",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/JsonParserBase.java",
+        "entity_name": "JsonParserBase",
+        "entity_type": "class",
+        "line_start": 74,
+        "line_end": 80,
+        "description": "Abstract base class depends on a concrete context implementation.",
+        "reasoning": "The abstract class JsonParserBase directly instantiates and depends on the concrete class JsonReadContext via the call to JsonReadContext.createRootContext(dups). This violates DIP as the high-level abstraction (JsonParserBase) depends on a low-level implementation detail (JsonReadContext) instead of an abstraction.",
+        "first_detected_scan": "jackson-core_DIP_scan_08",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_08",
+          "jackson-core_DIP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "DIP-008",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+        "entity_name": "ReaderBasedJsonParser",
+        "entity_type": "class",
+        "line_start": 116,
+        "line_end": 130,
+        "description": "Concrete parser implementation depends on a concrete symbol table implementation",
+        "reasoning": "Rigid Coupling smell -> Similar to the UTF-8 parser, the ReaderBasedJsonParser depends on the concrete CharsToNameCanonicalizer. This prevents the inversion of control where different canonicalization strategies could be injected through a common interface or abstraction.",
+        "first_detected_scan": "jackson-core_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_05",
+          "jackson-core_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-018",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "entity_name": "TokenStreamFactory",
+        "entity_type": "class",
+        "line_start": 226,
+        "line_end": 237,
+        "description": "Factory class hard-codes dependency on concrete recycler pools.",
+        "reasoning": "The constructor of TokenStreamFactory directly calls JsonRecyclerPools.defaultPool(), coupling the high-level factory abstraction to a specific concrete implementation of buffer recycling. This makes it difficult to substitute different recycling strategies without modifying the factory.",
+        "first_detected_scan": "jackson-core_DIP_scan_08",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-019",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+        "entity_name": "TokenStreamFactory._createContext",
+        "entity_type": "method",
+        "line_start": 1277,
+        "line_end": 1301,
+        "description": "Factory method directly instantiates a concrete I/O context.",
+        "reasoning": "The method _createContext directly instantiates the concrete class IOContext using the 'new' keyword. This violates DIP because the high-level factory module depends on the low-level implementation details of the I/O context rather than an abstraction or a provider.",
+        "first_detected_scan": "jackson-core_DIP_scan_08",
+        "duplicate_scan_ids": [
+          "jackson-core_DIP_scan_08"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "            final Checkpoint cp = this.checkpointIO.read(cpFileName);\n\n            logger.debug(\"opening tail page: {}, in: {}, with checkpoint: {}\", pageNum, this.queueManager.getDirPath(), cp);\n\n            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n            // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case\n            // we can purge it and we don't care about its integrity for example if it is of zero-byte file size.",
+    "replace_text": "            final Checkpoint cp = this.checkpointIO.read(cpFileName);\n\n            logger.debug(\"opening tail page: {}, in: {}, with checkpoint: {}\", pageNum, this.queueManager.getDirPath(), cp);\n\n            PageIO pageIO = PageIOFactory.create(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n            // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case\n            // we can purge it and we don't care about its integrity for example if it is of zero-byte file size."
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "        logger.debug(\"opening head page: {}, in: {}, with checkpoint: {}\", headCheckpoint.getPageNum(), this.queueManager.getDirPath(), headCheckpoint);\n\n        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n        pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data",
+    "replace_text": "        logger.debug(\"opening head page: {}, in: {}, with checkpoint: {}\", headCheckpoint.getPageNum(), this.queueManager.getDirPath(), headCheckpoint);\n\n        PageIO pageIO = PageIOFactory.create(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n        pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "    private boolean cleanedUpFullyAckedCorruptedPage(Checkpoint headCheckpoint, long pqSizeBytes) throws IOException {\n        if (headCheckpoint.isFullyAcked()) {\n            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n            if (pageIO.isCorruptedPage()) {\n                logger.debug(\"Queue is fully acked. Found zero byte page.{}. Recreate checkpoint.head and delete corrupted page\", headCheckpoint.getPageNum());",
+    "replace_text": "    private boolean cleanedUpFullyAckedCorruptedPage(Checkpoint headCheckpoint, long pqSizeBytes) throws IOException {\n        if (headCheckpoint.isFullyAcked()) {\n            PageIO pageIO = PageIOFactory.create(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n            if (pageIO.isCorruptedPage()) {\n                logger.debug(\"Queue is fully acked. Found zero byte page.{}. Recreate checkpoint.head and delete corrupted page\", headCheckpoint.getPageNum());"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "    private void newCheckpointedHeadpage(int pageNum) throws IOException {\n        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n        headPageIO.create();\n        logger.debug(\"created new head page: {}\", headPageIO);",
+    "replace_text": "    private void newCheckpointedHeadpage(int pageNum) throws IOException {\n        PageIO headPageIO = PageIOFactory.create(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n        headPageIO.create();\n        logger.debug(\"created new head page: {}\", headPageIO);"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/PageIOFactory.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.ackedqueue.io;\n\nimport java.nio.file.Path;\n\npublic final class PageIOFactory {\n    public static PageIO create(int pageNum, int pageCapacity, Path dirPath) {\n        return new MmapPageIOV2(pageNum, pageCapacity, dirPath);\n    }\n}"
+  }
+]

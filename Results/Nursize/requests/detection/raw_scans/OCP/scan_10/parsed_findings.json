@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "class",
+    "line_start": 134,
+    "line_end": 204,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Utility function uses type-checking to handle various input types.",
+    "reasoning": "The function calculates lengths for different object types (e.g., files, strings, iterables). To support a new type of streamable object, the function must be modified with additional type-checking logic (isinstance), violating the principle that it should be open for extension but closed for modification."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_body",
+    "entity_type": "method",
+    "line_start": 496,
+    "line_end": 573,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Method hardcodes logic for specific request body formats (data, files, json).",
+    "reasoning": "The method is designed to handle 'data', 'files', and 'json' specifically. Adding support for a new content type or serialization strategy (e.g., XML, Protobuf) requires modifying the method's internal conditional logic rather than extending it through a strategy or plugin architecture."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 357,
+    "line_end": 817,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Bloated class (Fat Interface) with hardcoded convenience methods for HTTP verbs.",
+    "reasoning": "The Session class contains hardcoded convenience methods for standard HTTP verbs (get, post, put, etc.). Adding support for new or custom HTTP methods (e.g., standardized extensions like QUERY) requires modifying the class itself, indicating it is not closed for modification."
+  }
+]

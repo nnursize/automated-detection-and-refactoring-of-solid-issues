@@ -1,0 +1,204 @@
+diff --git a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
+index 13d231a..db0aaf2 100644
+--- a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
++++ b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
+@@ -58,6 +58,8 @@ public final class PluginFactoryExt extends RubyBasicObject
+ 
+     private transient PluginResolver pluginResolver;
+ 
++    private transient PluginIdGenerator idGenerator;
++
+     private final transient Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> pluginCreatorsRegistry = new HashMap<>(4);
+ 
+     @JRubyMethod(name = "filter_delegator", meta = true, required = 5)
+@@ -111,6 +113,7 @@ public final class PluginFactoryExt extends RubyBasicObject
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator());
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));
+         this.configVariables = ConfigVariableExpander.withoutSecret(envVars);
++        this.idGenerator = new PluginIdGenerator(lir, this.configVariables);
+         return this;
+     }
+ 
+@@ -207,7 +210,7 @@ public final class PluginFactoryExt extends RubyBasicObject
+                                final String name,
+                                final RubyHash args,
+                                final SourceWithMetadata source) {
+-        final String id = generateOrRetrievePluginId(type, source, args);
++        final String id = idGenerator.generateOrRetrievePluginId(type, source, args);
+ 
+         if (id == null) {
+             throw context.runtime.newRaiseException(
+@@ -287,77 +290,6 @@ public final class PluginFactoryExt extends RubyBasicObject
+         return output;
+     }
+ 
+-    // TODO: caller seems to think that the args is `Map<String, IRubyObject>`, but
+-    //       at least any `id` present is actually a `String`.
+-    private String generateOrRetrievePluginId(final PluginLookup.PluginType type,
+-                                              final SourceWithMetadata source,
+-                                              final Map<String, ?> args) {
+-        final Optional<String> unprocessedId;
+-        if (source == null) {
+-            unprocessedId = extractId(() -> extractIdFromArgs(args),
+-                                      this::generateUUID);
+-        } else {
+-            unprocessedId = extractId(() -> extractIdFromLIR(source),
+-                                      () -> extractIdFromArgs(args),
+-                                      () -> generateUUIDForCodecs(type));
+-        }
+-
+-        return unprocessedId
+-                .map(configVariables::expand)
+-                .filter(String.class::isInstance)
+-                .map(String.class::cast)
+-                .orElse(null);
+-    }
+-
+-    private Optional<String> extractId(final IdExtractor... extractors) {
+-        for (IdExtractor extractor : extractors) {
+-            final Optional<String> extracted = extractor.extract();
+-            if (extracted.isPresent()) {
+-                return extracted;
+-            }
+-        }
+-        return Optional.empty();
+-    }
+-
+-    @FunctionalInterface
+-    interface IdExtractor {
+-        Optional<String> extract();
+-    }
+-
+-    private Optional<String> extractIdFromArgs(final Map<String, ?> args) {
+-        if (!args.containsKey("id")) {
+-            return Optional.empty();
+-        }
+-
+-        final Object explicitId = args.get("id");
+-        if (explicitId instanceof String) {
+-            return Optional.of((String) explicitId);
+-        } else if (explicitId instanceof RubyString) {
+-            return Optional.of(((RubyString) explicitId).asJavaString());
+-        } else {
+-            return Optional.empty();
+-        }
+-    }
+-
+-    private Optional<String> generateUUID() {
+-        return Optional.of(UUID.randomUUID().toString());
+-    }
+-
+-    private Optional<String> generateUUIDForCodecs(final PluginLookup.PluginType pluginType) {
+-        if (pluginType == PluginLookup.PluginType.CODEC) {
+-            return generateUUID();
+-        }
+-        return Optional.empty();
+-    }
+-
+-    private Optional<String> extractIdFromLIR(final SourceWithMetadata source) {
+-        return lir.getGraph().vertices()
+-                .filter(v -> v.getSourceWithMetadata() != null
+-                        && v.getSourceWithMetadata().equalsWithoutText(source))
+-                .findFirst()
+-                .map(Vertex::getId);
+-    }
+-
+     ExecutionContextFactoryExt getExecutionContextFactory() {
+         return executionContextFactory;
+     }
+diff --git a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginIdGenerator.java b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginIdGenerator.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginIdGenerator.java
+@@ -0,0 +1,89 @@
++package org.logstash.plugins.factory;
++
++import org.logstash.common.SourceWithMetadata;
++import org.logstash.config.ir.PipelineIR;
++import org.logstash.config.ir.graph.Vertex;
++import org.logstash.plugins.ConfigVariableExpander;
++import org.logstash.plugins.PluginLookup;
++import org.jruby.RubyString;
++import java.util.Map;
++import java.util.Optional;
++import java.util.UUID;
++
++public final class PluginIdGenerator {
++    private final PipelineIR lir;
++    private final ConfigVariableExpander configVariables;
++
++    public PluginIdGenerator(PipelineIR lir, ConfigVariableExpander configVariables) {
++        this.lir = lir;
++        this.configVariables = configVariables;
++    }
++
++    public String generateOrRetrievePluginId(final PluginLookup.PluginType type,
++                                              final SourceWithMetadata source,
++                                              final Map<String, ?> args) {
++        final Optional<String> unprocessedId;
++        if (source == null) {
++            unprocessedId = extractId(() -> extractIdFromArgs(args),
++                                      this::generateUUID);
++        } else {
++            unprocessedId = extractId(() -> extractIdFromLIR(source),
++                                      () -> extractIdFromArgs(args),
++                                      () -> generateUUIDForCodecs(type));
++        }
++
++        return unprocessedId
++                .map(configVariables::expand)
++                .filter(String.class::isInstance)
++                .map(String.class::cast)
++                .orElse(null);
++    }
++
++    private Optional<String> extractId(final IdExtractor... extractors) {
++        for (IdExtractor extractor : extractors) {
++            final Optional<String> extracted = extractor.extract();
++            if (extracted.isPresent()) {
++                return extracted;
++            }
++        }
++        return Optional.empty();
++    }
++
++    @FunctionalInterface
++    interface IdExtractor {
++        Optional<String> extract();
++    }
++
++    private Optional<String> extractIdFromArgs(final Map<String, ?> args) {
++        if (!args.containsKey("id")) {
++            return Optional.empty();
++        }
++        final Object explicitId = args.get("id");
++        if (explicitId instanceof String) {
++            return Optional.of((String) explicitId);
++        } else if (explicitId instanceof RubyString) {
++            return Optional.of(((RubyString) explicitId).asJavaString());
++        } else {
++            return Optional.empty();
++        }
++    }
++
++    private Optional<String> generateUUID() {
++        return Optional.of(UUID.randomUUID().toString());
++    }
++
++    private Optional<String> generateUUIDForCodecs(final PluginLookup.PluginType pluginType) {
++        if (pluginType == PluginLookup.PluginType.CODEC) {
++            return generateUUID();
++        }
++        return Optional.empty();
++    }
++
++    private Optional<String> extractIdFromLIR(final SourceWithMetadata source) {
++        return lir.getGraph().vertices()
++                .filter(v -> v.getSourceWithMetadata() != null
++                        && v.getSourceWithMetadata().equalsWithoutText(source))
++                .findFirst()
++                .map(Vertex::getId);
++    }
++}
+\ No newline at end of file

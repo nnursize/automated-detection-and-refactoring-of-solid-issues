@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_LSP_scan_05",
+  "repo_name": "requests",
+  "principle": "LSP",
+  "scan_number": 5,
+  "timestamp": "2026-05-03T01:25:50.743920",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Liskov Substitution Principle (LSP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these int...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/structures.py\",\n      \"entity_name\": \"LookupDict.__getitem__\",\n      \"entity_type\": \"method\",\n      \"line_start\": 79,\n      \"line_end\": 82,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass changes the expected behavior of the parent dict's access method.\",\n      \"reasoning\": \"Divergent Change smell -> LSP violation because LookupDict inherits from 'dict' but overrides __getitem__ to return None for missing keys instead of raising a KeyError. This breaks the fundamental contract of the Python dictionary interface, where consumers expect a KeyError when accessing a non-existent key via the bracket operator [].\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/auth.py\",\n      \"entity_name\": \"HTTPProxyAuth.__call__\",\n      \"entity_type\": \"method\",\n      \"line_start\": 107,\n      \"line_end\": 109,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass overrides behavior in a way that breaks the base class contract.\",\n      \"reasoning\": \"Refused Bequest smell -> LSP violation because HTTPProxyAuth inherits from HTTPBasicAuth but changes the side effect of the __call__ method. While HTTPBasicAuth is contracted to set the 'Authorization' header, HTTPProxyAuth sets the 'Proxy-Authorization' header instead. A component expecting an HTTPBasicAuth object to authorize a request will find the 'Authorization' header missing if passed an HTTPProxyAuth instance.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest.add_header\",\n      \"entity_type\": \"method\",\n      \"line_start\": 77,\n      \"line_end\": 81,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass nullifies a parent class method by raising NotImplementedError.\",\n      \"reasoning\": \"Refused Bequest smell -> LSP violation because MockRequest explicitly mimics the urllib2.Request interface but raises NotImplementedError for the add_header method. This violates the substitution principle where a subtype (the mock) should be able to stand in for the base type (the real request) without throwing unexpected errors for standard interface methods.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"RequestsCookieJar\",\n      \"entity_type\": \"class\",\n      \"line_start\": 201,\n      \"line_end\": 383,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass violates postconditions and exception contracts of the Mapping interface.\",\n      \"reasoning\": \"Behavioral Change smell -> LSP violation because RequestsCookieJar implements the MutableMapping interface but breaks its contract in two ways: 1) __getitem__ (via _find_no_duplicates) raises a custom CookieConflictError (RuntimeError) instead of a KeyError or returning a value, which is unexpected for standard mapping consumers. 2) __setitem__ (via set) deletes a key if the value is None, whereas the Mapping contract requires that setting a key to None should result in the key existing with a None value.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/structures.py",
+      "entity_name": "LookupDict.__getitem__",
+      "entity_type": "method",
+      "line_start": 79,
+      "line_end": 82,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass changes the expected behavior of the parent dict's access method.",
+      "reasoning": "Divergent Change smell -> LSP violation because LookupDict inherits from 'dict' but overrides __getitem__ to return None for missing keys instead of raising a KeyError. This breaks the fundamental contract of the Python dictionary interface, where consumers expect a KeyError when accessing a non-existent key via the bracket operator []."
+    },
+    {
+      "file_path": "requests/src/requests/auth.py",
+      "entity_name": "HTTPProxyAuth.__call__",
+      "entity_type": "method",
+      "line_start": 107,
+      "line_end": 109,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass overrides behavior in a way that breaks the base class contract.",
+      "reasoning": "Refused Bequest smell -> LSP violation because HTTPProxyAuth inherits from HTTPBasicAuth but changes the side effect of the __call__ method. While HTTPBasicAuth is contracted to set the 'Authorization' header, HTTPProxyAuth sets the 'Proxy-Authorization' header instead. A component expecting an HTTPBasicAuth object to authorize a request will find the 'Authorization' header missing if passed an HTTPProxyAuth instance."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest.add_header",
+      "entity_type": "method",
+      "line_start": 77,
+      "line_end": 81,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass nullifies a parent class method by raising NotImplementedError.",
+      "reasoning": "Refused Bequest smell -> LSP violation because MockRequest explicitly mimics the urllib2.Request interface but raises NotImplementedError for the add_header method. This violates the substitution principle where a subtype (the mock) should be able to stand in for the base type (the real request) without throwing unexpected errors for standard interface methods."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "RequestsCookieJar",
+      "entity_type": "class",
+      "line_start": 201,
+      "line_end": 383,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass violates postconditions and exception contracts of the Mapping interface.",
+      "reasoning": "Behavioral Change smell -> LSP violation because RequestsCookieJar implements the MutableMapping interface but breaks its contract in two ways: 1) __getitem__ (via _find_no_duplicates) raises a custom CookieConflictError (RuntimeError) instead of a KeyError or returning a value, which is unexpected for standard mapping consumers. 2) __setitem__ (via set) deletes a key if the value is None, whereas the Mapping contract requires that setting a key to None should result in the key existing with a None value."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 54098.406076431274,
+  "error": null
+}

@@ -1,0 +1,128 @@
+{
+  "scan_id": "jackson-core_OCP_scan_04",
+  "repo_name": "jackson-core",
+  "principle": "OCP",
+  "scan_number": 4,
+  "timestamp": "2026-04-18T21:29:56.246279",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Open/Closed Principle (OCP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these internally. D...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._getText2\",\n      \"entity_type\": \"class\",\n      \"line_start\": 331,\n      \"line_end\": 346,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on token ID requires modification to add new token types.\",\n      \"reasoning\": \"The _getText2 method uses a switch statement on JsonToken.id() to determine how to retrieve text. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.getStringCharacters\",\n      \"entity_type\": \"class\",\n      \"line_start\": 348,\n      \"line_end\": 367,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on token ID requires modification to add new token types.\",\n      \"reasoning\": \"The getStringCharacters method uses a switch statement on JsonToken.id() to handle different token types. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.getStringLength\",\n      \"entity_type\": \"class\",\n      \"line_start\": 369,\n      \"line_end\": 388,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on token ID requires modification to add new token types.\",\n      \"reasoning\": \"The getStringLength method uses a switch statement on JsonToken.id() to handle different token types. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.getStringOffset\",\n      \"entity_type\": \"class\",\n      \"line_start\": 390,\n      \"line_end\": 408,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on token ID requires modification to add new token types.\",\n      \"reasoning\": \"The getStringOffset method uses a switch statement on JsonToken.id() to handle different token types. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.nextToken\",\n      \"entity_type\": \"class\",\n      \"line_start\": 625,\n      \"line_end\": 681,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Long switch statement on character input requires modification to add new token types.\",\n      \"reasoning\": \"The nextToken method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._nextTokenNotInObject\",\n      \"entity_type\": \"class\",\n      \"line_start\": 683,\n      \"line_end\": 724,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on character input requires modification to add new token types.\",\n      \"reasoning\": \"The _nextTokenNotInObject method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.nextName\",\n      \"entity_type\": \"class\",\n      \"line_start\": 776,\n      \"line_end\": 833,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on character input requires modification to add new token types.\",\n      \"reasoning\": \"The nextName method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.nextNameMatch\",\n      \"entity_type\": \"class\",\n      \"line_start\": 948,\n      \"line_end\": 1005,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on character input requires modification to add new token types.\",\n      \"reasoning\": \"The nextNameMatch method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._isNextTokenNameYes\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1039,\n      \"line_end\": 1083,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on character input requires modification to add new token types.\",\n      \"reasoning\": \"The _isNextTokenNameYes method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._isNextTokenNameMaybe\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1106,\n      \"line_end\": 1152,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on character input requires modification to add new token types.\",\n      \"reasoning\": \"The _isNextTokenNameMaybe method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._getText2",
+      "entity_type": "class",
+      "line_start": 331,
+      "line_end": 346,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on token ID requires modification to add new token types.",
+      "reasoning": "The _getText2 method uses a switch statement on JsonToken.id() to determine how to retrieve text. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.getStringCharacters",
+      "entity_type": "class",
+      "line_start": 348,
+      "line_end": 367,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on token ID requires modification to add new token types.",
+      "reasoning": "The getStringCharacters method uses a switch statement on JsonToken.id() to handle different token types. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.getStringLength",
+      "entity_type": "class",
+      "line_start": 369,
+      "line_end": 388,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on token ID requires modification to add new token types.",
+      "reasoning": "The getStringLength method uses a switch statement on JsonToken.id() to handle different token types. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.getStringOffset",
+      "entity_type": "class",
+      "line_start": 390,
+      "line_end": 408,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on token ID requires modification to add new token types.",
+      "reasoning": "The getStringOffset method uses a switch statement on JsonToken.id() to handle different token types. Adding a new token type would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.nextToken",
+      "entity_type": "class",
+      "line_start": 625,
+      "line_end": 681,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Long switch statement on character input requires modification to add new token types.",
+      "reasoning": "The nextToken method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._nextTokenNotInObject",
+      "entity_type": "class",
+      "line_start": 683,
+      "line_end": 724,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on character input requires modification to add new token types.",
+      "reasoning": "The _nextTokenNotInObject method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.nextName",
+      "entity_type": "class",
+      "line_start": 776,
+      "line_end": 833,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on character input requires modification to add new token types.",
+      "reasoning": "The nextName method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.nextNameMatch",
+      "entity_type": "class",
+      "line_start": 948,
+      "line_end": 1005,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on character input requires modification to add new token types.",
+      "reasoning": "The nextNameMatch method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._isNextTokenNameYes",
+      "entity_type": "class",
+      "line_start": 1039,
+      "line_end": 1083,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on character input requires modification to add new token types.",
+      "reasoning": "The _isNextTokenNameYes method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._isNextTokenNameMaybe",
+      "entity_type": "class",
+      "line_start": 1106,
+      "line_end": 1152,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on character input requires modification to add new token types.",
+      "reasoning": "The _isNextTokenNameMaybe method uses a switch statement on the character 'i' to determine the next token type. Adding support for new JSON tokens or syntax would require modifying this switch block, violating the Open/Closed Principle."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 4304.300308227539,
+  "error": null
+}

@@ -1,0 +1,58 @@
+diff --git a/src/requests/adapters.py b/src/requests/adapters.py
+index e72309e..d049183 100644
+--- a/src/requests/adapters.py
++++ b/src/requests/adapters.py
+@@ -608,39 +608,30 @@ class HTTPAdapter(BaseAdapter):
+ 
+     def _handle_exception(self, request, e):
+         """Handles exceptions thrown by urllib3 during a request."""
+-        if isinstance(e, (ProtocolError, OSError, ClosedPoolError)):
+-            raise ConnectionError(e, request=request)
+-
+         if isinstance(e, MaxRetryError):
+-            if isinstance(e.reason, ConnectTimeoutError):
+-                # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
+-                    raise ConnectTimeout(e, request=request)
+-
++            if isinstance(e.reason, ConnectTimeoutError) and not isinstance(
++                e.reason, NewConnectionError
++            ):
++                raise ConnectTimeout(e, request=request)
+             if isinstance(e.reason, ResponseError):
+                 raise RetryError(e, request=request)
+-
+             if isinstance(e.reason, _ProxyError):
+                 raise ProxyError(e, request=request)
+-
+             if isinstance(e.reason, _SSLError):
+-                # This branch is for urllib3 v1.22 and later.
+                 raise SSLError(e, request=request)
+-
+             raise ConnectionError(e, request=request)
+ 
+-        if isinstance(e, _ProxyError):
+-            raise ProxyError(e)
+-
+-        if isinstance(e, _SSLError):
+-            # This branch is for urllib3 versions earlier than v1.22
+-            raise SSLError(e, request=request)
+-
+-        if isinstance(e, ReadTimeoutError):
+-            raise ReadTimeout(e, request=request)
++        exception_mapping = {
++            (ProtocolError, OSError, ClosedPoolError): ConnectionError,
++            _ProxyError: ProxyError,
++            _SSLError: SSLError,
++            ReadTimeoutError: ReadTimeout,
++            _InvalidHeader: InvalidHeader,
++        }
+ 
+-        if isinstance(e, _InvalidHeader):
+-            raise InvalidHeader(e, request=request)
++        for exc_types, target_exc in exception_mapping.items():
++            if isinstance(e, exc_types):
++                raise target_exc(e, request=request)
+ 
+         raise e
+ 

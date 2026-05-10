@@ -1,0 +1,84 @@
+{
+  "scan_id": "Catch2_OCP_scan_07",
+  "repo_name": "Catch2",
+  "principle": "OCP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T11:23:22.134747",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following c++ classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyin...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"TapAssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 11514,\n      \"line_end\": 11579,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method contains a large switch statement dispatching on 'ResultWas::OfType'.\",\n      \"reasoning\": \"Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_tap.cpp\",\n      \"entity_name\": \"TapAssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 47,\n      \"line_end\": 112,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.\",\n      \"reasoning\": \"Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"AssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 9053,\n      \"line_end\": 9118,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.\",\n      \"reasoning\": \"Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_compact.cpp\",\n      \"entity_name\": \"AssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 56,\n      \"line_end\": 121,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.\",\n      \"reasoning\": \"Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter.ConsoleAssertionPrinter\",\n      \"entity_type\": \"constructor\",\n      \"line_start\": 9285,\n      \"line_end\": 9359,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The constructor contains a large switch statement dispatching on 'result.getResultType()'.\",\n      \"reasoning\": \"Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement in the constructor to add a new case, violating the Open/Closed Principle. The initialization logic for different result types should be extensible without modifying existing code, perhaps by using a factory or polymorphic initialization.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_console.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter.ConsoleAssertionPrinter\",\n      \"entity_type\": \"constructor\",\n      \"line_start\": 52,\n      \"line_end\": 126,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The constructor contains a large switch statement dispatching on 'result.getResultType()'.\",\n      \"reasoning\": \"Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement in the constructor to add a new case, violating the Open/Closed Principle. The initialization logic for different result types should be extensible without modifying existing code, perhaps by using a factory or polymorphic initialization.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "TapAssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 11514,
+      "line_end": 11579,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method contains a large switch statement dispatching on 'ResultWas::OfType'.",
+      "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_tap.cpp",
+      "entity_name": "TapAssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 47,
+      "line_end": 112,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.",
+      "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "AssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 9053,
+      "line_end": 9118,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.",
+      "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_compact.cpp",
+      "entity_name": "AssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 56,
+      "line_end": 121,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.",
+      "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "ConsoleAssertionPrinter.ConsoleAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 9285,
+      "line_end": 9359,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The constructor contains a large switch statement dispatching on 'result.getResultType()'.",
+      "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement in the constructor to add a new case, violating the Open/Closed Principle. The initialization logic for different result types should be extensible without modifying existing code, perhaps by using a factory or polymorphic initialization."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_console.cpp",
+      "entity_name": "ConsoleAssertionPrinter.ConsoleAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 52,
+      "line_end": 126,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The constructor contains a large switch statement dispatching on 'result.getResultType()'.",
+      "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement in the constructor to add a new case, violating the Open/Closed Principle. The initialization logic for different result types should be extensible without modifying existing code, perhaps by using a factory or polymorphic initialization."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 20080.320596694946,
+  "error": null
+}

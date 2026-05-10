@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/structures.py",
+    "entity_name": "LookupDict.__getitem__",
+    "entity_type": "method",
+    "line_start": 88,
+    "line_end": 91,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass of dict returns None instead of raising KeyError and ignores dict storage.",
+    "reasoning": "LookupDict inherits from the built-in dict class but violates the base class contract by overriding __getitem__ to return None for missing keys instead of raising a KeyError. Furthermore, it shifts lookup from the dictionary's actual hash table storage to the instance's __dict__, meaning items added via standard dictionary setters are ignored by the getter, breaking fundamental substitutability for the dict type (Refused Bequest smell)."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 62,
+    "line_end": 66,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Mimic class raises NotImplementedError for a standard interface method.",
+    "reasoning": "MockRequest is designed to substitute for a urllib.request.Request object when interacting with http.cookiejar. By raising NotImplementedError on the standard add_header method, it violates the contract of the interface it mimics. A subtype or substitute should not be less functional than its base, as this causes runtime crashes in code expecting the full interface (Refused Bequest smell)."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth.__call__",
+    "entity_type": "method",
+    "line_start": 107,
+    "line_end": 109,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass overrides method to set a different header than its parent.",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth but its __call__ implementation sets the 'Proxy-Authorization' header instead of the 'Authorization' header. This breaks the behavior expected from a subtype of HTTPBasicAuth; a caller expecting the parent's contract (populating the standard Authorization header) will find the program state incorrect after substitution (Refused Bequest smell)."
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 4341,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Combines low-level byte stream I/O, UTF-8 decoding, JSON tokenization, value parsing, and error reporting.",
+    "reasoning": "This class is a 'god class' responsible for too many distinct concerns. It handles reading bytes from an InputStream, managing its own input buffer (`_loadMore`), decoding UTF-8 characters (`_decodeUtf8_X`), tokenizing JSON structure, parsing various data types (strings, numbers, binary), and reporting parsing-specific errors. These responsibilities could be separated into distinct components (e.g., an input buffer manager, a UTF-8 decoder, a JSON tokenizer, a value parser)."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+    "entity_name": "NonBlockingUtf8JsonParserBase",
+    "entity_type": "class",
+    "line_start": 19,
+    "line_end": 1223,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Combines non-blocking JSON tokenization, UTF-8 character decoding, and comment handling.",
+    "reasoning": "While abstracting byte fetching, this class still bundles core non-blocking JSON tokenization and value parsing with UTF-8 character decoding (`_decodeEscaped`) and comment handling (`_startSlashComment`, `_finishCComment`, etc.). These are distinct responsibilities that could be further separated for better modularity and maintainability."
+  }
+]

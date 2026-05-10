@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-020",
+  "principle": "LSP",
+  "title": "Refactor LSP-020 (LSP): The 'add' and 'set' methods throw NullPointerException for null elements, str...",
+  "branch": "refactor/LSP-020",
+  "base": "main",
+  "head_commit": "f98d2f20b3461a7c528746a7f4f3e56652bef1fd",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 2489,
+    "completion_tokens": 297
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+    "entity_name": "NonNullElementWrapperList.add",
+    "entity_type": "method",
+    "line_start": 43,
+    "line_end": 45,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "The 'add' and 'set' methods throw NullPointerException for null elements, strengthening preconditions compared to standard ArrayList.",
+    "reasoning": "The `NonNullElementWrapperList` wraps an `ArrayList`. Its `add(int, E)` and `set(int, E)` methods explicitly throw `NullPointerException` if the element to be added or set is `null`. A standard `ArrayList<E>` (for object types) typically permits `null` elements. By disallowing `null` elements and throwing a `NullPointerException`, this class strengthens the precondition for these methods. If a client expects a `List` that behaves like a standard `ArrayList` (allowing `null`s), substituting `NonNullElementWrapperList` would violate LSP by introducing a stricter contract."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove null-check enforcement in NonNullElementWrapperList to comply with List contract",
+    "rationale": "The NonNullElementWrapperList was enforcing a stricter contract than the List interface by throwing NullPointerException on null elements. Removing these checks allows the class to behave like a standard List, satisfying the Liskov Substitution Principle.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+        "search_text": "  private E nonNull(E element) {\n    if (element == null) {\n      throw new NullPointerException(\"Element must be non-null\");\n    }\n    return element;\n  }\n\n  @Override\n  public E set(int index, E element) {\n    return delegate.set(index, nonNull(element));\n  }\n\n  @Override\n  public void add(int index, E element) {\n    delegate.add(index, nonNull(element));\n  }",
+        "replace_text": "  @Override\n  public E set(int index, E element) {\n    return delegate.set(index, element);\n  }\n\n  @Override\n  public void add(int index, E element) {\n    delegate.add(index, element);\n  }",
+        "search_lines": 16,
+        "replace_lines": 9
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+        "loc": 106,
+        "blank_lines": 23,
+        "comment_lines": 3,
+        "function_count": 17,
+        "avg_cc": 1.24,
+        "max_cc": 5.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+        "loc": 100,
+        "blank_lines": 22,
+        "comment_lines": 3,
+        "function_count": 16,
+        "avg_cc": 1.19,
+        "max_cc": 4.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java b/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java\nindex 45a9c29..9537c2e 100644\n--- a/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java\n+++ b/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java\n@@ -47,21 +47,14 @@ public class NonNullElementWrapperList<E> extends AbstractList<E> implements Ran\n     return delegate.size();\n   }\n \n-  private E nonNull(E element) {\n-    if (element == null) {\n-      throw new NullPointerException(\"Element must be non-null\");\n-    }\n-    return element;\n-  }\n-\n   @Override\n   public E set(int index, E element) {\n-    return delegate.set(index, nonNull(element));\n+    return delegate.set(index, element);\n   }\n \n   @Override\n   public void add(int index, E element) {\n-    delegate.add(index, nonNull(element));\n+    delegate.add(index, element);\n   }\n \n   @Override\n",
+  "duration_ms": 3443.835973739624
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Session.config",
+    "entity_type": "method",
+    "line_start": 4984,
+    "line_end": 4984,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'Session' module depends on concrete 'Config' class.",
+    "reasoning": "The `Session` class, a high-level orchestrator for test runs, exposes and directly depends on the concrete `Config` class via its `config()` method. This violates DIP because the high-level module is coupled to a low-level implementation detail (`Config`) instead of an abstraction (`IConfig`). This makes it difficult to substitute different configuration implementations without modifying `Session`."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Session.useConfigData",
+    "entity_type": "method",
+    "line_start": 4966,
+    "line_end": 4966,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'Session' module accepts concrete 'ConfigData' class.",
+    "reasoning": "The `Session::useConfigData` method takes a concrete `ConfigData` object. Similar to the `config()` method, this couples the high-level `Session` module to a specific implementation detail (`ConfigData`), rather than an abstraction. This limits flexibility and testability."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.cpp",
+    "entity_name": "RegistryHub.getReporterRegistry",
+    "entity_type": "method",
+    "line_start": 1111,
+    "line_end": 1111,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Concrete 'RegistryHub' returns concrete 'ReporterRegistry' instead of an interface.",
+    "reasoning": "The `RegistryHub` is the concrete implementation of `IRegistryHub`. While `IRegistryHub` itself is an abstraction, its concrete implementation's `getReporterRegistry()` method returns a concrete `ReporterRegistry&` instead of an `IReporterRegistry&`. This forces clients of `IRegistryHub` to depend on the concrete `ReporterRegistry`, violating DIP and reducing flexibility."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "RunContext.createGeneratorTracker",
+    "entity_type": "method",
+    "line_start": 10711,
+    "line_end": 10714,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level 'RunContext' directly instantiates a concrete 'GeneratorTracker'.",
+    "reasoning": "The `RunContext` is a high-level module responsible for test execution. Its `createGeneratorTracker` method implies direct instantiation of a concrete `GeneratorTracker` (a low-level detail). This violates DIP, as high-level modules should not depend on low-level details. Instead, `RunContext` should depend on an abstraction (e.g., an `IGeneratorTrackerFactory`) to create `IGeneratorTracker` instances."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.cpp",
+    "entity_name": "g_messageHolder",
+    "entity_type": "class",
+    "line_start": 5981,
+    "line_end": 5983,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Global singleton 'g_messageHolder' provides concrete 'MessageHolder' instance.",
+    "reasoning": "The `g_messageHolder()` function provides global access to a concrete `MessageHolder` instance (a singleton). This is a classic DIP violation because it creates a hard-coded dependency on the concrete `MessageHolder` for any client that uses it. This makes it impossible to substitute `MessageHolder` with a different implementation or a mock for testing purposes without modifying the clients or the singleton itself."
+  }
+]

@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-011",
+  "principle": "ISP",
+  "title": "Refactor ISP-011 (ISP): The FilteringParserDelegate class is forced to implement overrideCurrentName...",
+  "branch": "refactor/ISP-011",
+  "base": "main",
+  "head_commit": "5650ed69e32cc1205ea2281f12c8a5b6bcfeaebf",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10212,
+    "completion_tokens": 282
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/filter/FilteringParserDelegate.java",
+    "entity_name": "FilteringParserDelegate.overrideCurrentName",
+    "entity_type": "method",
+    "line_start": 251,
+    "line_end": 255,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The FilteringParserDelegate class is forced to implement overrideCurrentName from JsonParser but explicitly throws UnsupportedOperationException.",
+    "reasoning": "The 'JsonParser' interface (or an abstract class it extends) includes a method to override the current name. 'FilteringParserDelegate', a specialized parser that modifies token streams, explicitly throws 'UnsupportedOperationException' for 'overrideCurrentName()'. This indicates that not all concrete parser implementations can or should support this operation, making the 'JsonParser' interface too broad and forcing clients to implement unneeded methods."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove the unused and unsupported overrideCurrentName method from FilteringParserDelegate",
+    "rationale": "The method was commented out and explicitly threw UnsupportedOperationException, indicating it is not part of the functional contract for this class. Removing it cleans up the implementation and avoids forcing the class to adhere to an interface method it cannot support.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/filter/FilteringParserDelegate.java",
+        "loc": 914,
+        "blank_lines": 88,
+        "comment_lines": 63,
+        "function_count": 20,
+        "avg_cc": 11.9,
+        "max_cc": 219.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2816.0648345947266
+}

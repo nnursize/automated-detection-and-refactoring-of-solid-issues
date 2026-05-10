@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/models.py",
+    "search_text": "from urllib3.fields import RequestField\nfrom urllib3.filepost import encode_multipart_formdata\nfrom urllib3.util import parse_url",
+    "replace_text": "from urllib3.fields import RequestField\nfrom urllib3.filepost import encode_multipart_formdata\nfrom urllib3.util import parse_url\n\ndef _encode_multipart_data(fields):\n    \"\"\"Abstraction for encoding multipart form data.\"\"\"\n    return encode_multipart_formdata(fields)"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/models.py",
+    "search_text": "            rf = RequestField(name=k, data=_get_file_data(fp), filename=fn, headers=fh)\n            rf.make_multipart(content_type=ft)\n            new_fields.append(rf)\n\n        body, content_type = encode_multipart_formdata(new_fields)\n\n        return body, content_type",
+    "replace_text": "            rf = RequestField(name=k, data=_get_file_data(fp), filename=fn, headers=fh)\n            rf.make_multipart(content_type=ft)\n            new_fields.append(rf)\n\n        body, content_type = _encode_multipart_data(new_fields)\n\n        return body, content_type"
+  }
+]

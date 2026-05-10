@@ -1,0 +1,109 @@
+{
+  "issue_id": "LSP-008",
+  "principle": "LSP",
+  "title": "Refactor LSP-008 (LSP): Type-checking flags isContainer and isFlag in base class",
+  "branch": "refactor/LSP-008",
+  "base": "main",
+  "head_commit": "b7b6a46c3874772bce14f73fc67c774be8bb2c2e",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3108,
+    "completion_tokens": 446
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Clara::Detail::BoundRef",
+    "entity_type": "class",
+    "line_start": 2315,
+    "line_end": 2316,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "Type-checking flags isContainer and isFlag in base class",
+    "reasoning": "The BoundRef base class includes methods to query whether a subtype is a container or a flag. This 'Type-checking' smell allows the command-line parser to handle subclasses differently based on their specific nature rather than through a uniform polymorphic interface. This violates LSP as the base type cannot be used without the caller knowing the specific properties of the subtype."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove type-checking methods from BoundRef base class to adhere to LSP",
+    "rationale": "The methods isContainer() and isFlag() in BoundRef forced callers to perform type-checking, violating the Liskov Substitution Principle. By removing these from the base interface, we encourage polymorphic behavior. The specific subclasses that require these properties can implement them internally or be handled via specific interfaces if necessary, but they should not be part of the generic BoundRef contract.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "            struct BoundRef : Catch::Detail::NonCopyable {\n                virtual ~BoundRef() = default;\n                virtual bool isContainer() const;\n                virtual bool isFlag() const;\n            };",
+        "replace_text": "            struct BoundRef : Catch::Detail::NonCopyable {\n                virtual ~BoundRef() = default;\n            };",
+        "search_lines": 5,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "            struct BoundFlagRefBase : BoundRef {\n                virtual auto setFlag( bool flag ) -> ParserResult = 0;\n                bool isFlag() const override;\n            };",
+        "replace_text": "            struct BoundFlagRefBase : BoundRef {\n                virtual auto setFlag( bool flag ) -> ParserResult = 0;\n            };",
+        "search_lines": 4,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "                auto isContainer() const -> bool override { return true; }\n\n                auto setValue( std::string const& arg )",
+        "replace_text": "                auto setValue( std::string const& arg )",
+        "search_lines": 3,
+        "replace_lines": 1
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "            template <typename L> struct BoundManyLambda : BoundLambda<L> {\n                explicit BoundManyLambda( L const& lambda ): BoundLambda<L>( lambda ) {}\n                bool isContainer() const override { return true; }\n            };",
+        "replace_text": "            template <typename L> struct BoundManyLambda : BoundLambda<L> {\n                explicit BoundManyLambda( L const& lambda ): BoundLambda<L>( lambda ) {}\n            };",
+        "search_lines": 4,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10464,
+        "blank_lines": 3073,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10459,
+        "blank_lines": 3072,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex 7cf84e8..a2c9599 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -4509,8 +4509,6 @@ namespace Catch {\n \n             struct BoundRef : Catch::Detail::NonCopyable {\n                 virtual ~BoundRef() = default;\n-                virtual bool isContainer() const;\n-                virtual bool isFlag() const;\n             };\n             struct BoundValueRefBase : BoundRef {\n                 virtual auto setValue( std::string const& arg )\n@@ -4518,7 +4516,6 @@ namespace Catch {\n             };\n             struct BoundFlagRefBase : BoundRef {\n                 virtual auto setFlag( bool flag ) -> ParserResult = 0;\n-                bool isFlag() const override;\n             };\n \n             template <typename T> struct BoundValueRef : BoundValueRefBase {\n@@ -4537,8 +4534,6 @@ namespace Catch {\n \n                 explicit BoundValueRef( std::vector<T>& ref ): m_ref( ref ) {}\n \n-                auto isContainer() const -> bool override { return true; }\n-\n                 auto setValue( std::string const& arg )\n                     -> ParserResult override {\n                     T temp;\n@@ -4605,7 +4600,6 @@ namespace Catch {\n \n             template <typename L> struct BoundManyLambda : BoundLambda<L> {\n                 explicit BoundManyLambda( L const& lambda ): BoundLambda<L>( lambda ) {}\n-                bool isContainer() const override { return true; }\n             };\n \n             template <typename L> struct BoundFlagLambda : BoundFlagRefBase {\n",
+  "duration_ms": 4044.990301132202
+}

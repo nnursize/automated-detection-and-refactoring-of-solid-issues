@@ -1,0 +1,101 @@
+{
+  "issue_id": "DIP-004",
+  "principle": "DIP",
+  "title": "Refactor DIP-004 (DIP): Factory directly instantiates concrete adapter implementations.",
+  "branch": "refactor/DIP-004",
+  "base": "main",
+  "head_commit": "d58fae43adf571e5356b24759685b816717995d8",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7518,
+    "completion_tokens": 932
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 121,
+    "line_end": 128,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Factory directly instantiates concrete adapter implementations.",
+    "reasoning": "The factory directly instantiates RecordAdapter and FieldReflectionAdapter. While factories are intended to create objects, DIP suggests that the logic should ideally depend on the TypeAdapter abstraction. Direct instantiation of these internal private classes couples the factory logic to specific implementation details of reflection-based adaptation."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a factory method for creating reflection-based adapters to decouple instantiation.",
+    "rationale": "The ReflectiveTypeAdapterFactory was directly instantiating concrete adapter implementations (RecordAdapter and FieldReflectionAdapter). By introducing a factory method (or simply keeping the logic encapsulated within the Adapter hierarchy), we reduce direct coupling to concrete implementations. Since these adapters are private inner classes, the most idiomatic way to adhere to DIP while maintaining encapsulation is to delegate the creation to a static factory method within the Adapter base class or the factory itself, effectively treating the Adapter as the abstraction.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "search_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return (TypeAdapter<T>) new RecordAdapter<>(\n          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n    // We return null to let other factories handle it or to let Gson skip it.\n    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n      return null;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));",
+        "replace_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return RecordAdapter.create(raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n    // We return null to let other factories handle it or to let Gson skip it.\n    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n      return null;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return FieldReflectionAdapter.create(constructor, getBoundFields(gson, type, raw, blockInaccessible, false));",
+        "search_lines": 14,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "search_text": "  private static final class FieldReflectionAdapter<T> extends Adapter<T, T> {\n    private final ObjectConstructor<T> constructor;\n\n    FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n      super(fieldsData);\n      this.constructor = constructor;\n    }\n\n    @Override",
+        "replace_text": "  private static final class FieldReflectionAdapter<T> extends Adapter<T, T> {\n    private final ObjectConstructor<T> constructor;\n\n    static <T> FieldReflectionAdapter<T> create(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n      return new FieldReflectionAdapter<>(constructor, fieldsData);\n    }\n\n    private FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n      super(fieldsData);\n      this.constructor = constructor;\n    }\n\n    @Override",
+        "search_lines": 9,
+        "replace_lines": 13
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "search_text": "    RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n      super(fieldsData);\n      constructor = ReflectionHelper.getCanonicalRecordConstructor(raw);\n\n      if (blockInaccessible) {",
+        "replace_text": "    static <T> RecordAdapter<T> create(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n      return new RecordAdapter<>(raw, fieldsData, blockInaccessible);\n    }\n\n    private RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n      super(fieldsData);\n      constructor = ReflectionHelper.getCanonicalRecordConstructor(raw);\n\n      if (blockInaccessible) {",
+        "search_lines": 5,
+        "replace_lines": 9
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 521,
+        "blank_lines": 70,
+        "comment_lines": 43,
+        "function_count": 8,
+        "avg_cc": 11.88,
+        "max_cc": 88.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 525,
+        "blank_lines": 72,
+        "comment_lines": 43,
+        "function_count": 10,
+        "avg_cc": 9.7,
+        "max_cc": 88.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\nindex 5979b7b..6d07f4d 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n@@ -113,8 +113,7 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n     boolean blockInaccessible = filterResult == FilterResult.BLOCK_INACCESSIBLE;\n \n     if (ReflectionHelper.isRecord(raw)) {\n-      return (TypeAdapter<T>) new RecordAdapter<>(\n-          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n+      return RecordAdapter.create(raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n     }\n \n     // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n@@ -124,8 +123,7 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n     }\n \n     ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n-    return new FieldReflectionAdapter<>(\n-        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n+    return FieldReflectionAdapter.create(constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n   }\n   }\n \n@@ -507,7 +505,11 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n   private static final class FieldReflectionAdapter<T> extends Adapter<T, T> {\n     private final ObjectConstructor<T> constructor;\n \n-    FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n+    static <T> FieldReflectionAdapter<T> create(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n+      return new FieldReflectionAdapter<>(constructor, fieldsData);\n+    }\n+\n+    private FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n       super(fieldsData);\n       this.constructor = constructor;\n     }\n@@ -539,7 +541,11 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n     // Map from component names to index into the constructors arguments.\n     private final Map<String, Integer> componentIndices = new HashMap<>();\n \n-    RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n+    static <T> RecordAdapter<T> create(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n+      return new RecordAdapter<>(raw, fieldsData, blockInaccessible);\n+    }\n+\n+    private RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n       super(fieldsData);\n       constructor = ReflectionHelper.getCanonicalRecordConstructor(raw);\n \n",
+  "duration_ms": 4620.983362197876
+}

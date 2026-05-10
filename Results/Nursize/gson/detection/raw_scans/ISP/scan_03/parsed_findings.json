@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 54,
+    "line_end": 192,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The abstract class JsonElement defines numerous 'getAs...' methods that force subclasses to implement irrelevant functionality.",
+    "reasoning": "The `JsonElement` abstract class defines many `getAs...` methods (e.g., `getAsBoolean()`, `getAsNumber()`, `getAsString()`) which all throw `UnsupportedOperationException` by default. This design forces all concrete subclasses, such as `JsonObject`, `JsonArray`, and `JsonNull`, to provide an implementation for these methods, even when the functionality is not applicable to their specific JSON type. Forcing clients (subclasses) to implement or inherit non-applicable methods violates the Interface Segregation Principle. A more segregated design would involve smaller, more specific interfaces for each primitive type's `getAs...` functionality, implemented only by `JsonPrimitive`, while other `JsonElement` subtypes would not be burdened with these irrelevant methods."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonObject.java",
+    "entity_name": "JsonObject",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 211,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "JsonObject inherits many 'getAs...' methods from JsonElement that are not applicable to a JSON object, relying on UnsupportedOperationException.",
+    "reasoning": "`JsonObject` represents a JSON object, which is a collection of name-value pairs and does not directly represent a primitive value. Despite this, it inherits methods like `getAsBoolean()`, `getAsNumber()`, `getAsString()`, etc., from the `JsonElement` abstract class. `JsonObject` does not override these methods, thus implicitly using the `UnsupportedOperationException` implementations defined in `JsonElement`. This forces `JsonObject` to conform to a contract that is too broad for its specific responsibilities, violating the Interface Segregation Principle by making it depend on methods it neither uses nor supports."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+    "entity_name": "JsonArray.getAsCharacter()",
+    "entity_type": "method",
+    "line_start": 288,
+    "line_end": 295,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The JsonArray.getAsCharacter() method explicitly throws UnsupportedOperationException, indicating it's forced to implement a method it doesn't truly support.",
+    "reasoning": "`JsonArray` provides implementations for most `getAs...` methods by delegating to its single element, but `getAsCharacter()` explicitly throws `UnsupportedOperationException`. The method's Javadoc also mentions it is 'misleading'. This suggests that the `JsonElement` base contract forces `JsonArray` to implement a method that is either semantically ill-suited or explicitly unsupported by its design. This is a violation of ISP because `JsonArray` is forced to acknowledge and provide a non-functional implementation for a method that doesn't align with its core responsibilities."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonNull.java",
+    "entity_name": "JsonNull",
+    "entity_type": "class",
+    "line_start": 21,
+    "line_end": 48,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "JsonNull inherits many 'getAs...' methods from JsonElement that are not applicable to a JSON null value, relying on UnsupportedOperationException.",
+    "reasoning": "`JsonNull` represents a single JSON null value. It inherits a large number of `getAs...` methods from the `JsonElement` abstract class (e.g., `getAsBoolean()`, `getAsNumber()`, `getAsString()`). `JsonNull` does not override these methods, effectively relying on the `UnsupportedOperationException` implementations from `JsonElement`. This forces `JsonNull` to conform to a contract that is vastly broader than its limited functionality, violating the Interface Segregation Principle by depending on many methods it does not use or support."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS",
+    "entity_type": "class",
+    "line_start": 25,
+    "line_end": 39,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "The TypeAdapter for Class objects throws UnsupportedOperationException for both 'read' and 'write' methods.",
+    "reasoning": "The `TypeAdapter` abstract class requires implementations for `read` and `write`. The `TypeAdapters.CLASS` implementation, which is intended for `java.lang.Class` objects, explicitly throws `UnsupportedOperationException` for both methods. While `TypeAdapter` is a small and focused abstraction, this specific implementation signals a deliberate lack of support for direct serialization/deserialization of `Class` objects. This is a borderline ISP violation because the client (`TypeAdapters.CLASS`) is forced to implement methods it cannot meaningfully support, even though the `TypeAdapter` interface itself is not 'fat'."
+  }
+]

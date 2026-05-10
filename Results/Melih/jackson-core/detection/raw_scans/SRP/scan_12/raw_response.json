@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_SRP_scan_12",
+  "repo_name": "jackson-core",
+  "principle": "SRP",
+  "scan_number": 12,
+  "timestamp": "2026-05-01T19:32:59.008757",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 20,\n      \"line_end\": 4341,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God class handling I/O, parsing, buffer management, number conversion, and error reporting.\",\n      \"reasoning\": \"The class exceeds 4,000 lines and encapsulates multiple distinct responsibilities: stream-based I/O handling, low-level JSON token parsing, buffer management, complex numeric parsing/validation, and exception reporting. These responsibilities should be decomposed into separate components (e.g., an InputReader, a Tokenizer, and a ValueParser).\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 12,\n      \"line_end\": 2364,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat class mixing business logic (generating JSON) with low-level stream/buffer management and character escaping.\",\n      \"reasoning\": \"The class handles high-level JSON writing API, low-level binary output buffering, complex character encoding/escaping logic, and pretty-printing. This violates SRP as it changes for reasons related to both the JSON format definition and the underlying byte-stream output mechanisms.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 2483,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Fat interface/abstract class forcing implementations to handle too many unrelated writing concerns.\",\n      \"reasoning\": \"The class forces all implementations (JSON, binary, etc.) to implement methods for object ID writing, type ID writing, array/object manipulation, raw data writing, and POJO writing, despite many implementations only needing a subset of these capabilities (e.g., raw stream generators shouldn't necessarily implement high-level type ID logic).\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 20,
+      "line_end": 4341,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God class handling I/O, parsing, buffer management, number conversion, and error reporting.",
+      "reasoning": "The class exceeds 4,000 lines and encapsulates multiple distinct responsibilities: stream-based I/O handling, low-level JSON token parsing, buffer management, complex numeric parsing/validation, and exception reporting. These responsibilities should be decomposed into separate components (e.g., an InputReader, a Tokenizer, and a ValueParser)."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator",
+      "entity_type": "class",
+      "line_start": 12,
+      "line_end": 2364,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Fat class mixing business logic (generating JSON) with low-level stream/buffer management and character escaping.",
+      "reasoning": "The class handles high-level JSON writing API, low-level binary output buffering, complex character encoding/escaping logic, and pretty-printing. This violates SRP as it changes for reasons related to both the JSON format definition and the underlying byte-stream output mechanisms."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 2483,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Fat interface/abstract class forcing implementations to handle too many unrelated writing concerns.",
+      "reasoning": "The class forces all implementations (JSON, binary, etc.) to implement methods for object ID writing, type ID writing, array/object manipulation, raw data writing, and POJO writing, despite many implementations only needing a subset of these capabilities (e.g., raw stream generators shouldn't necessarily implement high-level type ID logic)."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 18260.890245437622,
+  "error": null
+}

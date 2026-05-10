@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-001",
+  "principle": "DIP",
+  "title": "Refactor DIP-001 (DIP): Direct instantiation of TokenStreamLocation concrete class.",
+  "branch": "refactor/DIP-001",
+  "base": "main",
+  "head_commit": "ad97fd088b013aa530f0a76273739381cb67c8cd",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3948,
+    "completion_tokens": 969
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._reportInvalidToken",
+    "entity_type": "method",
+    "line_start": 1530,
+    "line_end": 1533,
+    "severity": "low",
+    "scan_count": 3,
+    "description": "Direct instantiation of TokenStreamLocation concrete class.",
+    "reasoning": "The parser directly instantiates TokenStreamLocation instead of using a factory or receiving it via injection. While TokenStreamLocation is a value object, this creates a tight coupling between the high-level parsing logic and the specific implementation of location tracking."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a factory method for TokenStreamLocation to avoid direct instantiation",
+    "rationale": "Direct instantiation of TokenStreamLocation violates the Dependency Inversion Principle. By introducing a protected factory method in the base class (or using existing infrastructure), we decouple the parser from the concrete implementation of the location object.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3558,
+        "blank_lines": 278,
+        "comment_lines": 284,
+        "function_count": 114,
+        "avg_cc": 9.62,
+        "max_cc": 984.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 5840.082168579102
+}

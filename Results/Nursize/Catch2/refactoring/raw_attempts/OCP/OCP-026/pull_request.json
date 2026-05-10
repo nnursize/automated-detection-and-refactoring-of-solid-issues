@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-026",
+  "principle": "OCP",
+  "title": "Refactor OCP-026 (OCP): Fat interface for event listeners, violating ISP and OCP.",
+  "branch": "refactor/OCP-026",
+  "base": "main",
+  "head_commit": "017928ca08b9fa5c327391e5c70d8798c14ddeb2",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4059,
+    "completion_tokens": 1753
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "IEventListener",
+    "entity_type": "class",
+    "line_start": 9016,
+    "line_end": 9101,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Fat interface for event listeners, violating ISP and OCP.",
+    "reasoning": "The `IEventListener` interface defines a large number of virtual methods for various test events (e.g., `testRunStarting`, `testCaseStarting`, `assertionEnded`, `benchmarkStarting`, `listReporters`). This broad interface forces all concrete event listeners/reporters to implement (or inherit empty implementations for) all methods, even if they are only interested in a subset of events. This violates the Interface Segregation Principle (ISP). When a new event type is introduced, the `IEventListener` interface itself must be modified, which then necessitates changes in all existing implementations, directly violating the Open/Closed Principle. Clients are forced to depend on methods they don't need."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Provide empty default implementations for IEventListener methods to support Interface Segregation",
+    "rationale": "By providing empty default implementations for the virtual methods in IEventListener, concrete classes are no longer forced to implement every single event handler. This adheres to the Interface Segregation Principle (ISP) and allows for easier extension without breaking existing implementations, supporting the Open/Closed Principle.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "        //! Called when no test cases match provided test spec\n        virtual void noMatchingTestCases( StringRef unmatchedSpec ) = 0;\n        //! Called for all invalid test specs from the cli\n        virtual void reportInvalidTestSpec( StringRef invalidArgument ) = 0;\n\n        /**\n         * Called once in a testing run before tests are started\n         *\n         * Not called if tests won't be run (e.g. only listing will happen)\n         */\n        virtual void testRunStarting( TestRunInfo const& testRunInfo ) = 0;\n\n        //! Called _once_ for each TEST_CASE, no matter how many times it is entered\n        virtual void testCaseStarting( TestCaseInfo const& testInfo ) = 0;\n        //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)\n        virtual void testCasePartialStarting( TestCaseInfo const& testInfo, uint64_t partNumber ) = 0;\n        //! Called when a `SECTION` is being entered. Not called for skipped sections\n        virtual void sectionStarting( SectionInfo const& sectionInfo ) = 0;\n\n        //! Called when user-code is being probed before the actual benchmark runs\n        virtual void benchmarkPreparing( StringRef benchmarkName ) = 0;\n        //! Called after probe but before the user-code is being benchmarked\n        virtual void benchmarkStarting( BenchmarkInfo const& benchmarkInfo ) = 0;\n        //! Called with the benchmark results if benchmark successfully finishes\n        virtual void benchmarkEnded( BenchmarkStats<> const& benchmarkStats ) = 0;\n        //! Called if running the benchmarks fails for any reason\n        virtual void benchmarkFailed( StringRef benchmarkName ) = 0;\n\n        //! Called before assertion success/failure is evaluated\n        virtual void assertionStarting( AssertionInfo const& assertionInfo ) = 0;\n\n        //! Called after assertion was fully evaluated\n        virtual void assertionEnded( AssertionStats const& assertionStats ) = 0;\n\n        //! Called after a `SECTION` has finished running\n        virtual void sectionEnded( SectionStats const& sectionStats ) = 0;\n        //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)\n        virtual void testCasePartialEnded(TestCaseStats const& testCaseStats, uint64_t partNumber ) = 0;\n        //! Called _once_ for each TEST_CASE, no matter how many times it is entered\n        virtual void testCaseEnded( TestCaseStats const& testCaseStats ) = 0;\n        /**\n         * Called once after all tests in a testing run are finished\n         *\n         * Not called if tests weren't run (e.g. only listings happened)\n         */\n        virtual void testRunEnded( TestRunStats const& testRunStats ) = 0;\n\n        /**\n         * Called with test cases that are skipped due to the test run aborting.\n         * NOT called for test cases that are explicitly skipped using the `SKIP` macro.\n         *\n         * Deprecated - will be removed in the next major release.\n         */\n        virtual void skipTest( TestCaseInfo const& testInfo ) = 0;\n\n        //! Called if a fatal error (signal/structured exception) occurred\n        virtual void fatalErrorEncountered( StringRef error ) = 0;\n\n        //! Writes out information about provided reporters using reporter-specific format\n        virtual void listReporters(std::vector<ReporterDescription> const& descriptions) = 0;\n        //! Writes out the provided listeners descriptions using reporter-specific format\n        virtual void listListeners(std::vector<ListenerDescription> const& descriptions) = 0;\n        //! Writes out information about provided tests using reporter-specific format\n        virtual void listTests(std::vector<TestCaseHandle> const& tests) = 0;\n        //! Writes out information about the provided tags using reporter-specific format\n        virtual void listTags(std::vector<TagInfo> const& tags) = 0;",
+        "replace_text": "        //! Called when no test cases match provided test spec\n        virtual void noMatchingTestCases( StringRef ) {}\n        //! Called for all invalid test specs from the cli\n        virtual void reportInvalidTestSpec( StringRef ) {}\n\n        /**\n         * Called once in a testing run before tests are started\n         *\n         * Not called if tests won't be run (e.g. only listing will happen)\n         */\n        virtual void testRunStarting( TestRunInfo const& ) {}\n\n        //! Called _once_ for each TEST_CASE, no matter how many times it is entered\n        virtual void testCaseStarting( TestCaseInfo const& ) {}\n        //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)\n        virtual void testCasePartialStarting( TestCaseInfo const&, uint64_t ) {}\n        //! Called when a `SECTION` is being entered. Not called for skipped sections\n        virtual void sectionStarting( SectionInfo const& ) {}\n\n        //! Called when user-code is being probed before the actual benchmark runs\n        virtual void benchmarkPreparing( StringRef ) {}\n        //! Called after probe but before the user-code is being benchmarked\n        virtual void benchmarkStarting( BenchmarkInfo const& ) {}\n        //! Called with the benchmark results if benchmark successfully finishes\n        virtual void benchmarkEnded( BenchmarkStats<> const& ) {}\n        //! Called if running the benchmarks fails for any reason\n        virtual void benchmarkFailed( StringRef ) {}\n\n        //! Called before assertion success/failure is evaluated\n        virtual void assertionStarting( AssertionInfo const& ) {}\n\n        //! Called after assertion was fully evaluated\n        virtual void assertionEnded( AssertionStats const& ) {}\n\n        //! Called after a `SECTION` has finished running\n        virtual void sectionEnded( SectionStats const& ) {}\n        //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)\n        virtual void testCasePartialEnded(TestCaseStats const&, uint64_t ) {}\n        //! Called _once_ for each TEST_CASE, no matter how many times it is entered\n        virtual void testCaseEnded( TestCaseStats const& ) {}\n        /**\n         * Called once after all tests in a testing run are finished\n         *\n         * Not called if tests weren't run (e.g. only listings happened)\n         */\n        virtual void testRunEnded( TestRunStats const& ) {}\n\n        /**\n         * Called with test cases that are skipped due to the test run aborting.\n         * NOT called for test cases that are explicitly skipped using the `SKIP` macro.\n         *\n         * Deprecated - will be removed in the next major release.\n         */\n        virtual void skipTest( TestCaseInfo const& ) {}\n\n        //! Called if a fatal error (signal/structured exception) occurred\n        virtual void fatalErrorEncountered( StringRef ) {}\n\n        //! Writes out information about provided reporters using reporter-specific format\n        virtual void listReporters(std::vector<ReporterDescription> const&) {}\n        //! Writes out the provided listeners descriptions using reporter-specific format\n        virtual void listListeners(std::vector<ListenerDescription> const&) {}\n        //! Writes out information about provided tests using reporter-specific format\n        virtual void listTests(std::vector<TestCaseHandle> const&) {}\n        //! Writes out information about the provided tags using reporter-specific format\n        virtual void listTags(std::vector<TagInfo> const&) {}",
+        "search_lines": 66,
+        "replace_lines": 66
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10491,
+        "blank_lines": 3085,
+        "comment_lines": 748,
+        "function_count": 3,
+        "avg_cc": 433.0,
+        "max_cc": 1297.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10491,
+        "blank_lines": 3085,
+        "comment_lines": 748,
+        "function_count": 3,
+        "avg_cc": 433.0,
+        "max_cc": 1297.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex 256091f..4f6d4ad 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -9016,51 +9016,51 @@ namespace Catch {\n         }\n \n         //! Called when no test cases match provided test spec\n-        virtual void noMatchingTestCases( StringRef unmatchedSpec ) = 0;\n+        virtual void noMatchingTestCases( StringRef ) {}\n         //! Called for all invalid test specs from the cli\n-        virtual void reportInvalidTestSpec( StringRef invalidArgument ) = 0;\n+        virtual void reportInvalidTestSpec( StringRef ) {}\n \n         /**\n          * Called once in a testing run before tests are started\n          *\n          * Not called if tests won't be run (e.g. only listing will happen)\n          */\n-        virtual void testRunStarting( TestRunInfo const& testRunInfo ) = 0;\n+        virtual void testRunStarting( TestRunInfo const& ) {}\n \n         //! Called _once_ for each TEST_CASE, no matter how many times it is entered\n-        virtual void testCaseStarting( TestCaseInfo const& testInfo ) = 0;\n+        virtual void testCaseStarting( TestCaseInfo const& ) {}\n         //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)\n-        virtual void testCasePartialStarting( TestCaseInfo const& testInfo, uint64_t partNumber ) = 0;\n+        virtual void testCasePartialStarting( TestCaseInfo const&, uint64_t ) {}\n         //! Called when a `SECTION` is being entered. Not called for skipped sections\n-        virtual void sectionStarting( SectionInfo const& sectionInfo ) = 0;\n+        virtual void sectionStarting( SectionInfo const& ) {}\n \n         //! Called when user-code is being probed before the actual benchmark runs\n-        virtual void benchmarkPreparing( StringRef benchmarkName ) = 0;\n+        virtual void benchmarkPreparing( StringRef ) {}\n         //! Called after probe but before the user-code is being benchmarked\n-        virtual void benchmarkStarting( BenchmarkInfo const& benchmarkInfo ) = 0;\n+        virtual void benchmarkStarting( BenchmarkInfo const& ) {}\n         //! Called with the benchmark results if benchmark successfully finishes\n-        virtual void benchmarkEnded( BenchmarkStats<> const& benchmarkStats ) = 0;\n+        virtual void benchmarkEnded( BenchmarkStats<> const& ) {}\n         //! Called if running the benchmarks fails for any reason\n-        virtual void benchmarkFailed( StringRef benchmarkName ) = 0;\n+        virtual void benchmarkFailed( StringRef ) {}\n \n         //! Called before assertion success/failure is evaluated\n-        virtual void assertionStarting( AssertionInfo const& assertionInfo ) = 0;\n+        virtual void assertionStarting( AssertionInfo const& ) {}\n \n         //! Called after assertion was fully evaluated\n-        virtual void assertionEnded( AssertionStats const& assertionStats ) = 0;\n+        virtual void assertionEnded( AssertionStats const& ) {}\n \n         //! Called after a `SECTION` has finished running\n-        virtual void sectionEnded( SectionStats const& sectionStats ) = 0;\n+        virtual void sectionEnded( SectionStats const& ) {}\n         //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)\n-        virtual void testCasePartialEnded(TestCaseStats const& testCaseStats, uint64_t partNumber ) = 0;\n+        virtual void testCasePartialEnded(TestCaseStats const&, uint64_t ) {}\n         //! Called _once_ for each TEST_CASE, no matter how many times it is entered\n-        virtual void testCaseEnded( TestCaseStats const& testCaseStats ) = 0;\n+        virtual void testCaseEnded( TestCaseStats const& ) {}\n         /**\n          * Called once after all tests in a testing run are finished\n          *\n          * Not called if tests weren't run (e.g. only listings happened)\n          */\n-        virtual void testRunEnded( TestRunStats const& testRunStats ) = 0;\n+        virtual void testRunEnded( TestRunStats const& ) {}\n \n         /**\n          * Called with test cases that are skipped due to the test run aborting.\n@@ -9068,19 +9068,19 @@ namespace Catch {\n          *\n          * Deprecated - will be removed in the next major release.\n          */\n-        virtual void skipTest( TestCaseInfo const& testInfo ) = 0;\n+        virtual void skipTest( TestCaseInfo const& ) {}\n \n         //! Called if a fatal error (signal/structured exception) occurred\n-        virtual void fatalErrorEncountered( StringRef error ) = 0;\n+        virtual void fatalErrorEncountered( StringRef ) {}\n \n         //! Writes out information about provided reporters using reporter-specific format\n-        virtual void listReporters(std::vector<ReporterDescription> const& descriptions) = 0;\n+        virtual void listReporters(std::vector<ReporterDescription> const&) {}\n         //! Writes out the provided listeners descriptions using reporter-specific format\n-        virtual void listListeners(std::vector<ListenerDescription> const& descriptions) = 0;\n+        virtual void listListeners(std::vector<ListenerDescription> const&) {}\n         //! Writes out information about provided tests using reporter-specific format\n-        virtual void listTests(std::vector<TestCaseHandle> const& tests) = 0;\n+        virtual void listTests(std::vector<TestCaseHandle> const&) {}\n         //! Writes out information about the provided tags using reporter-specific format\n-        virtual void listTags(std::vector<TagInfo> const& tags) = 0;\n+        virtual void listTags(std::vector<TagInfo> const&) {}\n     };\n     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;\n \n",
+  "duration_ms": 11221.145868301392
+}

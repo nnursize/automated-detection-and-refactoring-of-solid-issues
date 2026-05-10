@@ -1,0 +1,185 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java
+index 791f15b..6c5450e 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java
+@@ -48,67 +48,34 @@ final class JavaTimeTypeAdapters implements TypeAdapters.FactorySupplier {
+     return JAVA_TIME_FACTORY;
+   }
+ 
+-  private static final TypeAdapter<Duration> DURATION =
+-      new IntegerFieldsTypeAdapter<Duration>("seconds", "nanos") {
+-        @Override
+-        Duration create(long[] values) {
+-          return Duration.ofSeconds(values[0], values[1]);
+-        }
+-
+-        @Override
+-        @SuppressWarnings("JavaDurationGetSecondsGetNano")
+-        long[] integerValues(Duration duration) {
+-          return new long[] {duration.getSeconds(), duration.getNano()};
+-        }
+-      };
+-
+-  private static final TypeAdapter<Instant> INSTANT =
+-      new IntegerFieldsTypeAdapter<Instant>("seconds", "nanos") {
+-        @Override
+-        Instant create(long[] values) {
+-          return Instant.ofEpochSecond(values[0], values[1]);
+-        }
+-
+-        @Override
+-        @SuppressWarnings("JavaInstantGetSecondsGetNano")
+-        long[] integerValues(Instant instant) {
+-          return new long[] {instant.getEpochSecond(), instant.getNano()};
+-        }
+-      };
+-
+-  private static final TypeAdapter<LocalDate> LOCAL_DATE =
+-      new IntegerFieldsTypeAdapter<LocalDate>("year", "month", "day") {
+-        @Override
+-        LocalDate create(long[] values) {
+-          return LocalDate.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2]));
+-        }
++  private static final TypeAdapter<Duration> DURATION = new DurationAdapter();
++  private static final TypeAdapter<Instant> INSTANT = new InstantAdapter();
++  private static final TypeAdapter<LocalDate> LOCAL_DATE = new LocalDateAdapter();
++  private static final TypeAdapter<LocalTime> LOCAL_TIME = new LocalTimeAdapter();
++
++  private static final class DurationAdapter extends IntegerFieldsTypeAdapter<Duration> {
++    DurationAdapter() { super("seconds", "nanos"); }
++    @Override Duration create(long[] values) { return Duration.ofSeconds(values[0], values[1]); }
++    @Override @SuppressWarnings("JavaDurationGetSecondsGetNano") long[] integerValues(Duration d) { return new long[] {d.getSeconds(), d.getNano()}; }
++  }
+ 
+-        @Override
+-        long[] integerValues(LocalDate localDate) {
+-          return new long[] {
+-            localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth()
+-          };
+-        }
+-      };
++  private static final class InstantAdapter extends IntegerFieldsTypeAdapter<Instant> {
++    InstantAdapter() { super("seconds", "nanos"); }
++    @Override Instant create(long[] values) { return Instant.ofEpochSecond(values[0], values[1]); }
++    @Override @SuppressWarnings("JavaInstantGetSecondsGetNano") long[] integerValues(Instant i) { return new long[] {i.getEpochSecond(), i.getNano()}; }
++  }
+ 
+-  public static final TypeAdapter<LocalTime> LOCAL_TIME =
+-      new IntegerFieldsTypeAdapter<LocalTime>("hour", "minute", "second", "nano") {
+-        @Override
+-        LocalTime create(long[] values) {
+-          return LocalTime.of(
+-              toIntExact(values[0]),
+-              toIntExact(values[1]),
+-              toIntExact(values[2]),
+-              toIntExact(values[3]));
+-        }
++  private static final class LocalDateAdapter extends IntegerFieldsTypeAdapter<LocalDate> {
++    LocalDateAdapter() { super("year", "month", "day"); }
++    @Override LocalDate create(long[] values) { return LocalDate.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2])); }
++    @Override long[] integerValues(LocalDate d) { return new long[] {d.getYear(), d.getMonthValue(), d.getDayOfMonth()}; }
++  }
+ 
+-        @Override
+-        long[] integerValues(LocalTime localTime) {
+-          return new long[] {
+-            localTime.getHour(), localTime.getMinute(), localTime.getSecond(), localTime.getNano()
+-          };
+-        }
+-      };
++  private static final class LocalTimeAdapter extends IntegerFieldsTypeAdapter<LocalTime> {
++    LocalTimeAdapter() { super("hour", "minute", "second", "nano"); }
++    @Override LocalTime create(long[] values) { return LocalTime.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2]), toIntExact(values[3])); }
++    @Override long[] integerValues(LocalTime t) { return new long[] {t.getHour(), t.getMinute(), t.getSecond(), t.getNano()}; }
++  }
+ 
+   private static TypeAdapter<LocalDateTime> localDateTime(Gson gson) {
+     TypeAdapter<LocalDate> localDateAdapter = gson.getAdapter(LocalDate.class);
+@@ -150,18 +117,13 @@ final class JavaTimeTypeAdapters implements TypeAdapters.FactorySupplier {
+     }.nullSafe();
+   }
+ 
+-  private static final TypeAdapter<MonthDay> MONTH_DAY =
+-      new IntegerFieldsTypeAdapter<MonthDay>("month", "day") {
+-        @Override
+-        MonthDay create(long[] values) {
+-          return MonthDay.of(toIntExact(values[0]), toIntExact(values[1]));
+-        }
++  private static final TypeAdapter<MonthDay> MONTH_DAY = new MonthDayAdapter();
+ 
+-        @Override
+-        long[] integerValues(MonthDay monthDay) {
+-          return new long[] {monthDay.getMonthValue(), monthDay.getDayOfMonth()};
+-        }
+-      };
++  private static final class MonthDayAdapter extends IntegerFieldsTypeAdapter<MonthDay> {
++    MonthDayAdapter() { super("month", "day"); }
++    @Override MonthDay create(long[] values) { return MonthDay.of(toIntExact(values[0]), toIntExact(values[1])); }
++    @Override long[] integerValues(MonthDay m) { return new long[] {m.getMonthValue(), m.getDayOfMonth()}; }
++  }
+ 
+   private static TypeAdapter<OffsetDateTime> offsetDateTime(Gson gson) {
+     TypeAdapter<LocalDateTime> localDateTimeAdapter = localDateTime(gson);
+@@ -245,44 +207,27 @@ final class JavaTimeTypeAdapters implements TypeAdapters.FactorySupplier {
+     }.nullSafe();
+   }
+ 
+-  private static final TypeAdapter<Period> PERIOD =
+-      new IntegerFieldsTypeAdapter<Period>("years", "months", "days") {
+-        @Override
+-        Period create(long[] values) {
+-          return Period.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2]));
+-        }
++  private static final TypeAdapter<Period> PERIOD = new PeriodAdapter();
++  private static final TypeAdapter<Year> YEAR = new YearAdapter();
++  private static final TypeAdapter<YearMonth> YEAR_MONTH = new YearMonthAdapter();
+ 
+-        @Override
+-        long[] integerValues(Period period) {
+-          return new long[] {period.getYears(), period.getMonths(), period.getDays()};
+-        }
+-      };
+-
+-  private static final TypeAdapter<Year> YEAR =
+-      new IntegerFieldsTypeAdapter<Year>("year") {
+-        @Override
+-        Year create(long[] values) {
+-          return Year.of(toIntExact(values[0]));
+-        }
+-
+-        @Override
+-        long[] integerValues(Year year) {
+-          return new long[] {year.getValue()};
+-        }
+-      };
++  private static final class PeriodAdapter extends IntegerFieldsTypeAdapter<Period> {
++    PeriodAdapter() { super("years", "months", "days"); }
++    @Override Period create(long[] values) { return Period.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2])); }
++    @Override long[] integerValues(Period p) { return new long[] {p.getYears(), p.getMonths(), p.getDays()}; }
++  }
+ 
+-  private static final TypeAdapter<YearMonth> YEAR_MONTH =
+-      new IntegerFieldsTypeAdapter<YearMonth>("year", "month") {
+-        @Override
+-        YearMonth create(long[] values) {
+-          return YearMonth.of(toIntExact(values[0]), toIntExact(values[1]));
+-        }
++  private static final class YearAdapter extends IntegerFieldsTypeAdapter<Year> {
++    YearAdapter() { super("year"); }
++    @Override Year create(long[] values) { return Year.of(toIntExact(values[0])); }
++    @Override long[] integerValues(Year y) { return new long[] {y.getValue()}; }
++  }
+ 
+-        @Override
+-        long[] integerValues(YearMonth yearMonth) {
+-          return new long[] {yearMonth.getYear(), yearMonth.getMonthValue()};
+-        }
+-      };
++  private static final class YearMonthAdapter extends IntegerFieldsTypeAdapter<YearMonth> {
++    YearMonthAdapter() { super("year", "month"); }
++    @Override YearMonth create(long[] values) { return YearMonth.of(toIntExact(values[0]), toIntExact(values[1])); }
++    @Override long[] integerValues(YearMonth y) { return new long[] {y.getYear(), y.getMonthValue()}; }
++  }
+ 
+   // A ZoneId is either a ZoneOffset or a ZoneRegion, where ZoneOffset is public and ZoneRegion is
+   // not. For compatibility with reflection-based serialization, we need to write the "id" field of

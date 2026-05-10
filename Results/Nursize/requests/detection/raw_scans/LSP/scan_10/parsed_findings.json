@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 104,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "HTTPProxyAuth inherits from HTTPBasicAuth but changes the target of the authentication header.",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth, implying it is a behavioral substitute. However, it overrides the __call__ method to set the 'Proxy-Authorization' header instead of the 'Authorization' header. A client expecting an HTTPBasicAuth instance to authenticate with an origin server will find the program's correctness altered if an HTTPProxyAuth instance is substituted, as the origin server will not receive the required credentials."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar",
+    "entity_type": "class",
+    "line_start": 176,
+    "line_end": 437,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "RequestsCookieJar implements MutableMapping but introduces non-standard exceptions in __getitem__.",
+    "reasoning": "By inheriting from MutableMapping, RequestsCookieJar is expected to adhere to the standard mapping contract where __getitem__ returns a value or raises a KeyError. However, RequestsCookieJar can raise a CookieConflictError if multiple cookies with the same name exist across different domains/paths. This violates the expectations of any client using the object through the MutableMapping interface."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth",
+    "entity_type": "class",
+    "line_start": 107,
+    "line_end": 314,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "HTTPDigestAuth requires specific method handling (handle_401) not present in the AuthBase interface.",
+    "reasoning": "HTTPDigestAuth is a subtype of AuthBase, but it relies on additional methods like handle_401 and handle_redirect to function correctly within the Session lifecycle. This forces the Session (the client) to perform type-checking or attribute inspection to handle this specific subtype, violating the principle that subtypes should be substitutable for their base type without special handling by the client."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest",
+    "entity_type": "class",
+    "line_start": 23,
+    "line_end": 100,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "MockRequest is an incomplete substitute for the urllib request interface expected by cookielib.",
+    "reasoning": "MockRequest is used as a substitute for a urllib.request.Request object when interacting with the standard cookielib. However, it only implements a small subset of the methods required by the full urllib request contract. This makes it a fragile substitute that violates LSP, as it cannot be used in all contexts where a standard request object is expected by the underlying library."
+  }
+]

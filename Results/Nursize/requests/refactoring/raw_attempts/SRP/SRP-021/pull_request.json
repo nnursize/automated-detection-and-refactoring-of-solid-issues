@@ -1,0 +1,40 @@
+{
+  "issue_id": "SRP-021",
+  "principle": "SRP",
+  "title": "Refactor SRP-021 (SRP): Configures SSL certificate verification settings on a urllib3 connection, inc...",
+  "branch": "refactor/SRP-021",
+  "base": "main",
+  "head_commit": "178332b19159a5d45228c36e03126748061c76d5",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.cert_verify",
+    "entity_type": "method",
+    "line_start": 158,
+    "line_end": 204,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "Configures SSL certificate verification settings on a urllib3 connection, including CA bundles, client certificates, and path validation.",
+    "reasoning": "This method has multiple responsibilities related to SSL certificate configuration: 1) Determining the CA certificate bundle location (from `verify` or `DEFAULT_CA_BUNDLE_PATH`, including handling zipped paths). 2) Setting the `cert_reqs` on the connection (required or none). 3) Setting `ca_certs` or `ca_cert_dir`. 4) Configuring client certificates (`cert_file`, `key_file`). 5) Validating the existence of all specified certificate files. These are distinct aspects of TLS configuration and validation."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

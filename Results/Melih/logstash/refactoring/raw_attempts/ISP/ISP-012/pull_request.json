@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-012",
+  "principle": "ISP",
+  "title": "Refactor ISP-012 (ISP): The 'PageIO' interface is a fat interface mixing I/O, lifecycle, and state qu...",
+  "branch": "refactor/ISP-012",
+  "base": "main",
+  "head_commit": "c86960ad45d225a0604034d8f0b69a79cde0356a",
+  "status": "obsolete",
+  "obsolete_reason": "entity `org.logstash.ackedqueue.io.PageIO` not found in current source of `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+    "entity_name": "org.logstash.ackedqueue.io.PageIO",
+    "entity_type": "class",
+    "line_start": 27,
+    "line_end": 27,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "The 'PageIO' interface is a fat interface mixing I/O, lifecycle, and state query methods.",
+    "reasoning": "The `PageIO` interface defines a very broad set of operations including opening/closing (`open`, `close`), reading/writing data (`read`, `write`), lifecycle management (`create`, `deactivate`, `activate`, `purge`, `recover`), persistence (`ensurePersisted`), and state queries (`getCapacity`, `getMinSeqNum`, `getElementCount`, `hasSpace`, `persistedByteCount`, `getHead`, `isCorruptedPage`). Clients interacting with a page might only need a subset of these methods (e.g., a reader client only needs read-related methods, a writer client only needs write-related methods). Forcing all clients to depend on all these methods violates ISP."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 48.17676544189453
+}

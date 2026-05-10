@@ -13,7 +13,7 @@ from ..models import ClassInfo, MethodSignature
 
 def extract_classes(content: str, language: str) -> list[ClassInfo]:
     """Return all classes in the source with their bases, methods, attributes."""
-    lang = (language or "").lower()
+    lang = _normalize_language(language)
     if lang == "python":
         try:
             return _extract_python(content)
@@ -133,7 +133,9 @@ _CLASS_PATTERNS: dict[str, re.Pattern] = {
         re.MULTILINE,
     ),
     "cpp": re.compile(
-        r"^\s*(?:template\s*<[^>]*>\s*)?class\s+(\w+)\s*(?::\s*((?:public|private|protected)\s+[\w:]+(?:\s*,\s*(?:public|private|protected)\s+[\w:]+)*))?",
+        r"^\s*(?:template\s*<[^>]*>\s*)?(?:class|struct)\s+(\w+)"
+        r"(?:\s+(?:final|abstract))?"
+        r"\s*(?::\s*((?:public|private|protected)\s+[\w:]+(?:\s*,\s*(?:public|private|protected)\s+[\w:]+)*))?",
         re.MULTILINE,
     ),
     "typescript": re.compile(
@@ -147,6 +149,13 @@ _CLASS_PATTERNS: dict[str, re.Pattern] = {
         re.MULTILINE,
     ),
 }
+
+
+def _normalize_language(language: str) -> str:
+    lang = (language or "").lower().strip()
+    if lang in {"c++", "cpp", "cxx", "cc", "hpp", "h++"}:
+        return "cpp"
+    return lang
 
 
 def _extract_regex(content: str, language: str) -> list[ClassInfo]:

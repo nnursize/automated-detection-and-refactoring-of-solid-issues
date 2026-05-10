@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 21,
+    "line_end": 226,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The MmapPageIOV1 class implements the PageIO interface but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The PageIO interface (defined in org.logstash.ackedqueue.io.PageIO) is a 'fat interface' that forces MmapPageIOV1 to implement methods like `recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`, and `hasSpace()` even though MmapPageIOV1 is specifically designed for read-only operations on V1 pages and cannot support these write/management operations. This violates the Interface Segregation Principle as MmapPageIOV1 is coupled to methods it does not use. The PageIO interface should be split into more granular interfaces, such as `ReadablePageIO` and `WritablePageIO`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "co.elastic.logstash.api.Event",
+    "entity_type": "class",
+    "line_start": 34,
+    "line_end": 435,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The co.elastic.logstash.api.Event interface is overly broad, combining many distinct responsibilities.",
+    "reasoning": "The co.elastic.logstash.api.Event interface includes methods for data access (`getData`, `toMap`), metadata management (`getMetadata`), event lifecycle (`cancel`, `uncancel`, `isCancelled`), timestamp manipulation (`getEventTimestamp`, `setEventTimestamp`), field operations (`getField`, `setField`, `includes`, `remove`), string formatting (`sprintf`), and event merging (`overwrite`, `append`). This wide range of responsibilities makes it a 'fat interface'. Any client (or mock/stub) implementing this interface is forced to depend on and provide implementations for all these methods, even if they only require a subset of the functionality. This violates ISP by coupling clients to methods they may not use. It should be segregated into smaller, more focused interfaces, e.g., `EventDataAccessor`, `EventLifecycle`, `EventFieldManipulator`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "org.logstash.secret.store.SecretStore",
+    "entity_type": "class",
+    "line_start": 34,
+    "line_end": 313,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The SecretStore interface combines responsibilities for full lifecycle management of secrets.",
+    "reasoning": "The SecretStore interface defines methods for creating (`create`), deleting (`delete`), loading (`load`), listing (`list`), persisting (`persistSecret`), purging (`purgeSecret`), checking existence (`exists`), and retrieving (`retrieveSecret`) secrets. This broad interface forces clients that only need a subset of these operations (e.g., `AbstractPipelineExt` which primarily needs to `load` and `retrieveSecret`) to depend on methods for creation, deletion, and modification that they do not use. This violates ISP. The interface could be segregated into more focused interfaces like `SecretRetriever` and `SecretManager`."
+  }
+]

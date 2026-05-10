@@ -1,0 +1,29 @@
+{
+  "scan_id": "requests_ISP_scan_04",
+  "repo_name": "requests",
+  "principle": "ISP",
+  "scan_number": 4,
+  "timestamp": "2026-05-03T12:13:48.550867",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Interface Segregation Principle (ISP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these i...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest.add_header\",\n      \"entity_type\": \"method\",\n      \"line_start\": 62,\n      \"line_end\": 64,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The MockRequest class is forced to implement the add_header method from the urllib2.Request interface it mimics, but it raises NotImplementedError, indicating it does not support this functionality.\",\n      \"reasoning\": \"The `MockRequest` class acts as an adapter for `http.cookiejar.CookieJar`, which expects an interface similar to `urllib2.Request`. By explicitly raising `NotImplementedError` in `add_header`, `MockRequest` signals that it cannot fulfill this part of the interface. This violates ISP because `MockRequest` (the client/implementer in this context) is forced to depend on an interface that includes a method (`add_header`) it does not use or support, making the interface 'fat' for its specific purpose.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest.add_header",
+      "entity_type": "method",
+      "line_start": 62,
+      "line_end": 64,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The MockRequest class is forced to implement the add_header method from the urllib2.Request interface it mimics, but it raises NotImplementedError, indicating it does not support this functionality.",
+      "reasoning": "The `MockRequest` class acts as an adapter for `http.cookiejar.CookieJar`, which expects an interface similar to `urllib2.Request`. By explicitly raising `NotImplementedError` in `add_header`, `MockRequest` signals that it cannot fulfill this part of the interface. This violates ISP because `MockRequest` (the client/implementer in this context) is forced to depend on an interface that includes a method (`add_header`) it does not use or support, making the interface 'fat' for its specific purpose."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 29447.686910629272,
+  "error": null
+}

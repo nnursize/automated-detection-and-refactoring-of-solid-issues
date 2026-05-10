@@ -1,0 +1,30 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 50a372b..5d97b63 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -633,6 +633,25 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+             self.register_hook(event, hooks[event])
+ 
+ 
++from typing import Protocol, runtime_checkable
++
++@runtime_checkable
++class IResponseStatus(Protocol):
++    status_code: int
++    ok: bool
++    def raise_for_status(self) -> None: ...
++
++@runtime_checkable
++class IResponseContent(Protocol):
++    content: bytes
++    text: str
++    def json(self, **kwargs): ...
++    def iter_content(self, chunk_size=1, decode_unicode=False): ...
++
++@runtime_checkable
++class IResponseResource(Protocol):
++    def close(self) -> None: ...
++
+ class Response:
+     """The :class:`Response <Response>` object, which contains a
+     server's response to an HTTP request.

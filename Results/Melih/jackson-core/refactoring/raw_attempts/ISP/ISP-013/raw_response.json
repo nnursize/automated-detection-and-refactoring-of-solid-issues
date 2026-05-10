@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1326.8284797668457,
+  "prompt_tokens": 5361,
+  "completion_tokens": 203,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove unsupported writeBinary(InputStream) from GeneratorBase\",\n  \"rationale\": \"GeneratorBase is a base class for various generators, including textual ones that do not support binary streaming. Forcing this method into the base class violates ISP. By removing it from the base class, we allow only specific implementations that support binary streaming to define it, while others remain unaffected.\",\n  \"files_touched\": [\n    \"src/main/java/tools/jackson/core/base/GeneratorBase.java\"\n  ]\n}\n```\n\n<<<<<<< SEARCH\n    @Override\n    public int writeBinary(Base64Variant b64variant, InputStream data, int dataLength) throws JacksonException {\n        // Let's implement this as \"unsupported\" to make it easier to add new parser impls\n        _reportUnsupportedOperation();\n        return 0;\n    }\n=======\n>>>>>>> REPLACE"
+}

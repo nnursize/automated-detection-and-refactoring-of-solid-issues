@@ -1,0 +1,100 @@
+{
+  "issue_id": "OCP-021",
+  "principle": "OCP",
+  "title": "Refactor OCP-021 (OCP): Hardcoded redirection logic based on specific HTTP status codes",
+  "branch": "refactor/OCP-021",
+  "base": "main",
+  "head_commit": "c10fd2c771f7ad0c8cf96898e899625e8f8b66f3",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8804,
+    "completion_tokens": 597
+  },
+  "detected_issue": {
+    "file_path": "src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "method",
+    "line_start": 315,
+    "line_end": 334,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Hardcoded redirection logic based on specific HTTP status codes",
+    "reasoning": "This method explicitly checks for status codes (301, 302, 303) to determine when to switch HTTP methods. Adding new redirection behaviors for different status codes requires manual modification of this method instead of using a polymorphic approach."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor SessionRedirectMixin.rebuild_method to use a registry for redirect method changes",
+    "rationale": "Replaced hardcoded if/elif chains with a dictionary-based lookup table (REDIRECT_METHOD_MAP) to allow for easier extension of redirection behaviors without modifying the core logic, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "src/requests/sessions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/sessions.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "    def rebuild_method(self, prepared_request, response):\n        \"\"\"When being redirected we may want to change the method of the request\n        based on certain specs or browser behavior.\n        \"\"\"\n        method = prepared_request.method\n\n        # https://tools.ietf.org/html/rfc7231#section-6.4.4\n        if response.status_code == codes.see_other and method != \"HEAD\":\n            method = \"GET\"\n\n        # Do what the browsers do, despite standards...\n        # First, turn 302s into GETs.\n        if response.status_code == codes.found and method != \"HEAD\":\n            method = \"GET\"\n\n        # Second, if a POST is responded to with a 301, turn it into a GET.\n        # This bizarre behaviour is explained in Issue 1704.\n        if response.status_code == codes.moved and method == \"POST\":\n            method = \"GET\"\n\n        prepared_request.method = method",
+        "replace_text": "    def rebuild_method(self, prepared_request, response):\n        \"\"\"When being redirected we may want to change the method of the request\n        based on certain specs or browser behavior.\n        \"\"\"\n        method = prepared_request.method\n\n        # Map of status codes to a set of methods that should be changed to GET\n        # or a specific method to change to.\n        # https://tools.ietf.org/html/rfc7231#section-6.4.4\n        # Issue 1704: 301 POST -> GET\n        REDIRECT_METHOD_MAP = {\n            codes.see_other: (\"GET\", lambda m: m != \"HEAD\"),\n            codes.found: (\"GET\", lambda m: m != \"HEAD\"),\n            codes.moved: (\"GET\", lambda m: m == \"POST\"),\n        }\n\n        if response.status_code in REDIRECT_METHOD_MAP:\n            new_method, condition = REDIRECT_METHOD_MAP[response.status_code]\n            if condition(method):\n                method = new_method\n\n        prepared_request.method = method",
+        "search_lines": 21,
+        "replace_lines": 22
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165974.65085983276,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:478: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.16s (0:02:45)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 566,
+        "blank_lines": 150,
+        "comment_lines": 116,
+        "function_count": 28,
+        "avg_cc": 4.07,
+        "max_cc": 15.0,
+        "mi": 38.09
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 569,
+        "blank_lines": 149,
+        "comment_lines": 115,
+        "function_count": 28,
+        "avg_cc": 3.93,
+        "max_cc": 15.0,
+        "mi": 38.95
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/sessions.py b/src/requests/sessions.py\nindex 7d34b29..32e8f47 100644\n--- a/src/requests/sessions.py\n+++ b/src/requests/sessions.py\n@@ -337,19 +337,20 @@ class SessionRedirectMixin:\n         \"\"\"\n         method = prepared_request.method\n \n+        # Map of status codes to a set of methods that should be changed to GET\n+        # or a specific method to change to.\n         # https://tools.ietf.org/html/rfc7231#section-6.4.4\n-        if response.status_code == codes.see_other and method != \"HEAD\":\n-            method = \"GET\"\n-\n-        # Do what the browsers do, despite standards...\n-        # First, turn 302s into GETs.\n-        if response.status_code == codes.found and method != \"HEAD\":\n-            method = \"GET\"\n-\n-        # Second, if a POST is responded to with a 301, turn it into a GET.\n-        # This bizarre behaviour is explained in Issue 1704.\n-        if response.status_code == codes.moved and method == \"POST\":\n-            method = \"GET\"\n+        # Issue 1704: 301 POST -> GET\n+        REDIRECT_METHOD_MAP = {\n+            codes.see_other: (\"GET\", lambda m: m != \"HEAD\"),\n+            codes.found: (\"GET\", lambda m: m != \"HEAD\"),\n+            codes.moved: (\"GET\", lambda m: m == \"POST\"),\n+        }\n+\n+        if response.status_code in REDIRECT_METHOD_MAP:\n+            new_method, condition = REDIRECT_METHOD_MAP[response.status_code]\n+            if condition(method):\n+                method = new_method\n \n         prepared_request.method = method\n \n",
+  "duration_ms": 173629.1003227234
+}

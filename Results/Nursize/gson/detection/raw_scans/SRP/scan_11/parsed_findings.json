@@ -1,0 +1,123 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 211,
+    "line_end": 379,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Combines low-level character stream processing with JSON token parsing and configuration management.",
+    "reasoning": "The `JsonReader` class is responsible for reading JSON tokens, but it also includes methods for low-level character buffering (`fillBuffer`, `nextNonWhitespace`), escape sequence processing (`readEscapeCharacter`), whitespace skipping (`skipToEndOfLine`), and configuration management (`setLenient`, `setStrictness`, `setNestingLimit`). These responsibilities could be separated into a dedicated lexer/stream handler and a configuration object, allowing `JsonReader` to focus solely on interpreting JSON structure from a token stream."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+    "entity_name": "JsonWriter",
+    "entity_type": "class",
+    "line_start": 162,
+    "line_end": 836,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Mixes JSON token writing with detailed formatting, strictness, HTML safety, and null serialization policies.",
+    "reasoning": "The `JsonWriter` class is responsible for writing JSON tokens, but it also directly manages various output policies such as formatting style (`setFormattingStyle`, `setIndent`), strictness (`setLenient`, `setStrictness`), HTML safety (`setHtmlSafe`), and null serialization (`setSerializeNulls`). These configuration aspects represent distinct reasons for change and could be externalized into a separate configuration object or strategy, allowing `JsonWriter` to focus solely on the mechanics of writing JSON tokens according to a given policy."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters",
+    "entity_type": "class",
+    "line_start": 60,
+    "line_end": 1081,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Acts as a 'God object' by bundling TypeAdapter implementations for a vast array of unrelated Java types.",
+    "reasoning": "This class contains `TypeAdapter` implementations for numerous distinct Java types, including primitives, wrappers, utility classes (e.g., `BitSet`, `URL`, `UUID`), and mathematical types (`BigDecimal`, `BigInteger`). Each `read` and `write` method for these types encapsulates specific serialization/deserialization logic. This means the class has many unrelated reasons to change (e.g., a bug fix for `BitSet` serialization, adding support for a new primitive type, changing `URL` serialization behavior). This violates SRP by aggregating too many distinct responsibilities into a single class."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters",
+    "entity_type": "class",
+    "line_start": 44,
+    "line_end": 449,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Bundles TypeAdapter implementations for numerous distinct Java 8 Date and Time API types.",
+    "reasoning": "Similar to `TypeAdapters`, this class aggregates `TypeAdapter` implementations for many different `java.time` classes (e.g., `Duration`, `Instant`, `LocalDate`, `LocalDateTime`, `OffsetDateTime`, `ZoneId`). Each of these types has its own specific serialization and deserialization logic. Any change or addition to how a specific `java.time` type is handled would require modifying this single class, indicating multiple reasons for change and a violation of SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+    "entity_name": "JsonArray",
+    "entity_type": "class",
+    "line_start": 42,
+    "line_end": 436,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Provides data conversion methods (e.g., `getAsNumber`, `getAsString`) for its elements, beyond its role as a structural container.",
+    "reasoning": "While `JsonArray`'s primary responsibility is to represent a JSON array and manage its `JsonElement` children, it also includes a multitude of `getAs...` methods (e.g., `getAsNumber`, `getAsDouble`, `getAsString`, `getAsBoolean`). These methods attempt to convert the *first element* of the array to various primitive Java types. This adds a data conversion responsibility that is distinct from its role as a structural container. The conversion logic should ideally reside with the `JsonPrimitive` class or a dedicated utility class, not on the array itself, especially when making assumptions about the array's content (e.g., that it contains a single primitive element)."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 434,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "As an abstract base class, it provides numerous data conversion methods (e.g., `getAsBoolean`, `getAsNumber`) that are specific to primitive types.",
+    "reasoning": "The `JsonElement` abstract class defines the common interface for all JSON elements (objects, arrays, primitives, null). However, it includes a large number of `getAs...` methods (e.g., `getAsBoolean`, `getAsNumber`, `getAsString`, `getAsDouble`, `getAsInt`, `getAsBigDecimal`). These methods represent a data conversion responsibility that is primarily relevant to `JsonPrimitive` subclasses. Placing these conversion methods on the abstract base class forces all subclasses (including `JsonObject` and `JsonArray`) to inherit this responsibility, even though they cannot fulfill it directly, leading to `IllegalStateException`s. This violates SRP by giving `JsonElement` responsibilities beyond its core role as a structural JSON component."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap",
+    "entity_type": "class",
+    "line_start": 44,
+    "line_end": 687,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Mixes data structure implementation with Java serialization concerns.",
+    "reasoning": "The `LinkedTreeMap` class is primarily responsible for providing a sorted map data structure. However, it includes `writeReplace()` and `readObject()` methods for custom Java serialization. While common in Java for `Serializable` classes, handling its own persistence mechanism (Java serialization) is a separate responsibility from its core function as a data structure. This introduces an additional reason for the class to change if the serialization format or strategy needs to be updated."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/Streams.java",
+    "entity_name": "Streams",
+    "entity_type": "class",
+    "line_start": 37,
+    "line_end": 169,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Combines parsing JSON from a stream to a DOM with writing a JSON DOM to a stream, and stream utility adapters.",
+    "reasoning": "The `Streams` class is responsible for two distinct, albeit symmetrical, operations: `parse(JsonReader)` converts a JSON stream into a `JsonElement` DOM, and `write(JsonElement, JsonWriter)` converts a `JsonElement` DOM into a JSON stream. It also includes utility classes like `AppendableWriter` for adapting `Appendable` to `Writer`. These are separate concerns (stream-to-DOM conversion, DOM-to-stream conversion, and I/O adaptation). Changes to the parsing logic or the writing logic would both affect this single class, violating SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TreeTypeAdapter.java",
+    "entity_name": "TreeTypeAdapter",
+    "entity_type": "class",
+    "line_start": 41,
+    "line_end": 209,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Contains static factory methods for creating `TypeAdapterFactory` instances, which is distinct from its core role as a `TypeAdapter` bridge.",
+    "reasoning": "The primary responsibility of `TreeTypeAdapter` is to adapt `JsonSerializer` and `JsonDeserializer` interfaces into a `TypeAdapter`. However, it also includes static factory methods (`newFactory`, `newFactoryWithMatchRawType`, `newTypeHierarchyFactory`) that are responsible for creating `TypeAdapterFactory` instances. This adds a factory-of-factories responsibility that is tangential to its core adaptation role. Changes to how `TypeAdapterFactory` instances are created or configured would impact this class, providing an additional reason for change."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LazilyParsedNumber.java",
+    "entity_name": "LazilyParsedNumber",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 111,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Mixes lazy number parsing with Java serialization concerns.",
+    "reasoning": "The `LazilyParsedNumber` class's core responsibility is to hold a string representation of a number and parse it on demand into various numeric types. However, it includes `writeReplace()` and `readObject()` methods for custom Java serialization. Similar to `LinkedTreeMap`, handling its own persistence mechanism (Java serialization) is a separate responsibility from its core function of lazy number parsing and conversion. This introduces an additional reason for the class to change."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/sql/SqlTypesSupport.java",
+    "entity_name": "SqlTypesSupport",
+    "entity_type": "class",
+    "line_start": 39,
+    "line_end": 98,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Acts as a 'God object' for `java.sql` date/time types, bundling multiple distinct `DateType` implementations.",
+    "reasoning": "This class provides `DateType` implementations for `java.sql.Date` and `Timestamp`. Each of these types has its own specific deserialization logic. Similar to `TypeAdapters` and `JavaTimeTypeAdapters`, this class aggregates distinct responsibilities for different `java.sql` types. Any change or addition to how a specific `java.sql` type is handled would require modifying this single class, indicating multiple reasons for change and a violation of SRP."
+  }
+]

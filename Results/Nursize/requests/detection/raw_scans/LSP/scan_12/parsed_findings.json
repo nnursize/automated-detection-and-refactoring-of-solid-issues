@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar",
+    "entity_type": "class",
+    "line_start": 176,
+    "line_end": 437,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Incompatible multiple inheritance from cookielib.CookieJar and MutableMapping",
+    "reasoning": "RequestsCookieJar inherits from both cookielib.CookieJar and MutableMapping. The __iter__ method contract for CookieJar (standard library) requires yielding Cookie objects, while the MutableMapping contract (collections.abc) requires yielding keys (strings). Since a single __iter__ implementation cannot satisfy both behavioral contracts simultaneously, the class cannot be safely substituted for both of its base types in all contexts."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth",
+    "entity_type": "class",
+    "line_start": 99,
+    "line_end": 104,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass violates the behavioral postcondition of the parent class by altering header targets",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth but overrides the __call__ method to set 'Proxy-Authorization' instead of the 'Authorization' header. This violates the postcondition of the parent class (which is to provide authentication for the origin server). A client expecting an HTTPBasicAuth object to authorize a request will find HTTPProxyAuth non-substitutable because it fails to authenticate the request to the target resource."
+  }
+]

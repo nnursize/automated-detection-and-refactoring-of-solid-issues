@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "search_text": "    private void scheduledFlushCheck() {\n        logger.trace(\"Running scheduled check\");\n        lock.lock();\n        try {\n            finalizeSegment(FinalizeWhen.ONLY_IF_STALE, SealReason.SCHEDULED_FLUSH);\n\n            updateOldestSegmentReference();\n            executeAgeRetentionPolicy();\n        } catch (Exception e) {\n            logger.warn(\"Unable to finalize segment\", e);\n        } finally {\n            lock.unlock();\n        }\n    }",
+    "replace_text": "    private void scheduledFlushCheck() {\n        logger.trace(\"Running scheduled check\");\n        lock.lock();\n        try {\n            finalizeSegment(FinalizeWhen.ONLY_IF_STALE, SealReason.SCHEDULED_FLUSH);\n        } catch (Exception e) {\n            logger.warn(\"Unable to finalize segment\", e);\n        } finally {\n            lock.unlock();\n        }\n    }"
+  }
+]

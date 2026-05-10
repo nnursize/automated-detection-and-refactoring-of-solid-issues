@@ -1,0 +1,189 @@
+[
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "class",
+    "line_start": 98,
+    "line_end": 150,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The function calculates content length from various sources and issues I/O related warnings.",
+    "reasoning": "This function has two distinct responsibilities: calculating the length of different types of objects (string, file-like, etc.) and issuing a `FileModeWarning` based on file I/O characteristics. The length calculation logic is a data representation concern, while the warning is a diagnostic/logging concern related to I/O usage. These are separate reasons for change."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "extract_zipped_paths",
+    "entity_type": "class",
+    "line_start": 218,
+    "line_end": 249,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The function identifies zip archive members, extracts them, and manages temporary files.",
+    "reasoning": "This function combines multiple responsibilities: identifying a path as a zip archive member, interacting with `zipfile` to extract the member, and managing the temporary file system location for the extracted content (including atomic writing logic). Changes to zip archive formats, temporary file handling, or atomic write strategies would all affect this single function."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "get_encodings_from_content",
+    "entity_type": "class",
+    "line_start": 305,
+    "line_end": 326,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The function extracts encodings from content and includes a deprecation warning.",
+    "reasoning": "This function is responsible for parsing content to find character encodings (a content parsing responsibility) and simultaneously issues a `DeprecationWarning` regarding its future removal (a meta-concern about the API's lifecycle). These are distinct reasons for change; the parsing logic is separate from the deprecation notice."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "should_bypass_proxies",
+    "entity_type": "class",
+    "line_start": 444,
+    "line_end": 508,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The function determines proxy bypass logic, involving environment variable parsing, network address checks, and hostname matching.",
+    "reasoning": "This function aggregates several distinct responsibilities: parsing proxy bypass settings from environment variables (`no_proxy`), performing complex network address and CIDR matching, performing hostname suffix matching, and temporarily modifying the environment for external `proxy_bypass` calls. Each of these is a different reason for change, making the function overly complex."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "RequestEncodingMixin",
+    "entity_type": "class",
+    "line_start": 54,
+    "line_end": 147,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The mixin handles both URL parameter encoding and multipart form data encoding.",
+    "reasoning": "This mixin combines two distinct encoding responsibilities: `_encode_params` for URL query string parameters (application/x-www-form-urlencoded) and `_encode_files` for multipart/form-data. These involve different data structures, serialization logic, and content types. A change in the specification or implementation of one encoding method would not necessarily affect the other, indicating separate reasons to change."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest",
+    "entity_type": "class",
+    "line_start": 218,
+    "line_end": 434,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class is a God Class responsible for orchestrating method, URL, headers, cookies, body, and authentication preparation.",
+    "reasoning": "The `PreparedRequest` class is responsible for too many distinct concerns related to preparing an HTTP request. It handles method normalization, URL parsing/validation/encoding, header management, cookie management, body serialization (JSON, form data, multipart, streaming), and authentication. Each of these is a significant, independent reason to change. For example, changes to URL validation, body serialization formats, or authentication schemes would all require modifying this class."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_url",
+    "entity_type": "method",
+    "line_start": 240,
+    "line_end": 305,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The method combines URL parsing, validation, IDNA encoding, parameter encoding, and URI re-quoting.",
+    "reasoning": "This method has multiple responsibilities including basic string cleaning, URL parsing, scheme and host validation, IDNA encoding for hostnames, encoding query parameters, and re-quoting the entire URI. Changes to URL parsing rules, IDNA specification, parameter encoding, or URI formatting would all necessitate changes in this single method."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_body",
+    "entity_type": "method",
+    "line_start": 320,
+    "line_end": 393,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The method handles JSON serialization, streaming body management, multipart file encoding, and form-urlencoded data encoding.",
+    "reasoning": "This method acts as a multiplexer for various body preparation strategies. It handles JSON serialization, stream-based body management (including `Content-Length` or `Transfer-Encoding`), multipart file uploads, and form-urlencoded data. These are fundamentally different ways of preparing a request body, each with its own logic and potential reasons for change. Mixing them into one method violates SRP."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response",
+    "entity_type": "class",
+    "line_start": 437,
+    "line_end": 807,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class is a God Class responsible for storing response data, content access/decoding (bytes, text, JSON), encoding detection, header parsing, error handling, and resource management.",
+    "reasoning": "The `Response` class has a wide array of responsibilities beyond simply holding the raw HTTP response. It handles: data storage (status, headers, URL, history, cookies, elapsed, request); content access and transformation (raw bytes, text, JSON, streaming, line-by-line iteration); character encoding detection (`apparent_encoding`, `guess_json_utf`); specific HTTP header parsing (`links`); HTTP error reporting (`raise_for_status`); and connection resource management (`close`). Each of these is a distinct reason for change, making it a God Class."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin",
+    "entity_type": "class",
+    "line_start": 74,
+    "line_end": 281,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The mixin is a God Class responsible for all aspects of HTTP redirect handling, including URL resolution, auth stripping, method transformation, proxy, and cookie management.",
+    "reasoning": "This mixin combines all responsibilities related to HTTP redirects. This includes determining redirect targets (`get_redirect_target`), deciding whether to strip authentication (`should_strip_auth`), transforming HTTP methods (`rebuild_method`), re-evaluating authentication (`rebuild_auth`), rebuilding proxy configuration (`rebuild_proxies`), and orchestrating the entire redirect chain (`resolve_redirects`). Each of these is a distinct and complex concern, leading to a God Class responsible for too many unrelated facets of redirect processing."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.resolve_redirects",
+    "entity_type": "method",
+    "line_start": 126,
+    "line_end": 204,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The method orchestrates the entire redirect process, including history, consuming responses, rebuilding requests, and delegating to other rebuild methods.",
+    "reasoning": "This method is a God Method that orchestrates the entire redirect resolution process. Its responsibilities include: maintaining redirect history; consuming and closing the previous response; checking redirect limits; normalizing redirect URLs; copying and modifying the `PreparedRequest`; extracting and merging cookies; delegating to `rebuild_method`, `rebuild_proxies`, and `rebuild_auth`; handling rewindable request bodies; and recursively sending/yielding new requests. This method ties together too many distinct steps of the redirect lifecycle."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 284,
+    "line_end": 640,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class is a God Class for managing HTTP sessions, handling configuration, request preparation, sending, environment settings, and adapter management.",
+    "reasoning": "The `Session` class is responsible for managing session-wide configuration (headers, auth, proxies, params, stream, verify, cert, max_redirects, trust_env, cookies, adapters), preparing requests by merging settings (`prepare_request`), sending requests (`send`), interacting with environment settings (`merge_environment_settings`), managing connection adapters (`mount`, `get_adapter`), and providing convenience HTTP verb methods. This broad set of responsibilities makes it a God Class with many independent reasons to change."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter",
+    "entity_type": "class",
+    "line_start": 84,
+    "line_end": 441,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class is a God Class responsible for connection pooling, proxy management, SSL/TLS configuration, response building, URL formatting, and error translation.",
+    "reasoning": "The `HTTPAdapter` class bundles too many distinct responsibilities related to the HTTP transport. These include: initializing and managing `urllib3` connection pools (`init_poolmanager`); handling proxy-specific connection managers (including SOCKS) (`proxy_manager_for`); configuring SSL/TLS certificates and verification (`cert_verify`, `build_connection_pool_key_attributes`, `get_connection_with_tls_context`); transforming `urllib3` responses into `requests.Response` objects (`build_response`); formatting URLs for the underlying transport (`request_url`); and translating numerous `urllib3` exceptions into `requests`-specific exceptions (`send`). This wide range of concerns makes it a God Class."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "method",
+    "line_start": 361,
+    "line_end": 441,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The method orchestrates connection acquisition, SSL setup, URL formatting, request execution via urllib3, and extensive error translation.",
+    "reasoning": "This method is a God Method that orchestrates a complex sequence of operations: acquiring a connection, setting up SSL verification, formatting the URL for the underlying transport, adding headers, configuring timeouts, executing the request via `urllib3.urlopen`, and then catching and translating a broad range of `urllib3` exceptions into `requests`-specific exceptions. It combines connection management, security configuration, data formatting, external library interaction, and comprehensive error handling."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 305,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class acts as both a standard CookieJar and a MutableMapping (dictionary-like interface), and provides custom pickling logic.",
+    "reasoning": "This class has at least two distinct responsibilities: managing HTTP cookies according to the `http.cookiejar.CookieJar` specification, and providing a convenient `MutableMapping` (dictionary-like) interface. These two concerns can evolve independently (e.g., changes to cookie standards versus client expectations of dictionary behavior). Additionally, it implements custom pickling logic (`__getstate__`, `__setstate__`), which is another separate responsibility."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth",
+    "entity_type": "class",
+    "line_start": 104,
+    "line_end": 306,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class is a God Class responsible for digest header construction, 401 challenge handling (including request re-execution), and thread-local state management.",
+    "reasoning": "The `HTTPDigestAuth` class is responsible for the entire Digest Authentication mechanism, which involves many distinct concerns: constructing the `Authorization` header (including cryptographic hashing, nonce/cnonce generation, URL parsing), handling 401 challenges (parsing `WWW-Authenticate`, rewinding request bodies, creating and sending new requests), managing thread-local state for nonces, and hooking into redirects. This broad set of responsibilities makes it a God Class."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.build_digest_header",
+    "entity_type": "method",
+    "line_start": 128,
+    "line_end": 223,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The method combines cryptographic hashing, nonce/cnonce generation, and URL parsing for header construction.",
+    "reasoning": "This method is responsible for constructing the various components of the Digest `Authorization` header. This involves: performing cryptographic hashing based on the specified algorithm; generating `cnonce` values; managing `nonce` values; and parsing the URL to extract the path. These are separate concerns (cryptography, state management, URL parsing) that are tightly coupled within this single method."
+  }
+]

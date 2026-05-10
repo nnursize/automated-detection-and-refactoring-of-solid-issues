@@ -1,0 +1,36 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index c9df2ab..7cf84e8 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -13540,17 +13540,22 @@ namespace Catch {
+ 
+         void testCaseStarting( TestCaseInfo const& ) override {}
+         void testCasePartialStarting( TestCaseInfo const&, uint64_t ) override {}
+-        void sectionStarting( SectionInfo const& sectionInfo ) override;
++        void sectionStarting( SectionInfo const& sectionInfo ) final;
+ 
+-        void assertionStarting( AssertionInfo const& ) override {}
++        void assertionStarting( AssertionInfo const& ) final {}
+ 
+-        void assertionEnded( AssertionStats const& assertionStats ) override;
+-        void sectionEnded( SectionStats const& sectionStats ) override;
+-        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}
+-        void testCaseEnded( TestCaseStats const& testCaseStats ) override;
+-        void testRunEnded( TestRunStats const& testRunStats ) override;
+-        //! Customization point: called after last test finishes (testRunEnded has been handled)
+-        virtual void testRunEndedCumulative() = 0;
++        void assertionEnded( AssertionStats const& assertionStats ) final;
++        void sectionEnded( SectionStats const& sectionStats ) final;
++        void testCasePartialEnded( TestCaseStats const&, uint64_t ) final {}
++        void testCaseEnded( TestCaseStats const& testCaseStats ) final;
++        void testRunEnded( TestRunStats const& testRunStats ) final;
++
++    protected:
++        virtual void sectionStartingCumulative( SectionInfo const& ) {}
++        virtual void assertionEndedCumulative( AssertionStats const& ) {}
++        virtual void sectionEndedCumulative( SectionStats const& ) {}
++        virtual void testCaseEndedCumulative( TestCaseStats const& ) {}
++        virtual void testRunEndedCumulative( TestRunStats const& ) = 0;
+ 
+         void skipTest(TestCaseInfo const&) override {}
+ 

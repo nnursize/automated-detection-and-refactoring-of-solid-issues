@@ -1,0 +1,40 @@
+{
+  "scan_id": "gson_ISP_scan_07",
+  "repo_name": "gson",
+  "principle": "ISP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T15:51:09.047544",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.CLASS\",\n      \"entity_type\": \"class\",\n      \"line_start\": 60,\n      \"line_end\": 77,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The TypeAdapter for java.lang.Class forces clients to implement read and write methods which are explicitly unsupported.\",\n      \"reasoning\": \"The anonymous TypeAdapter implementation for java.lang.Class throws UnsupportedOperationException for both its 'read' and 'write' methods. This indicates that the TypeAdapter interface is too broad for this specific client, forcing it to depend on and 'implement' methods it does not use or support, which is a direct violation of the Interface Segregation Principle. A more segregated interface might offer separate 'JsonReader' and 'JsonWriter' interfaces, or a 'SerializableTypeAdapter' and 'DeserializableTypeAdapter'.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement\",\n      \"entity_type\": \"class\",\n      \"line_start\": 96,\n      \"line_end\": 434,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The JsonElement abstract class defines numerous 'getAs...' methods that are not applicable to all its subclasses, forcing them to throw UnsupportedOperationException.\",\n      \"reasoning\": \"The abstract class JsonElement declares many 'getAsBoolean()', 'getAsNumber()', 'getAsString()', etc., methods with default implementations that throw UnsupportedOperationException. This forces concrete subclasses like JsonNull and JsonObject to 'implement' these methods by inheriting the exception, as these operations are semantically meaningless for null or object types. This indicates that the JsonElement's 'interface' (its public methods) is too fat and should be segregated into smaller, more specific interfaces (e.g., JsonNumber, JsonBoolean, JsonString) that only declare methods relevant to their specific JSON type, adhering to ISP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.CLASS",
+      "entity_type": "class",
+      "line_start": 60,
+      "line_end": 77,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The TypeAdapter for java.lang.Class forces clients to implement read and write methods which are explicitly unsupported.",
+      "reasoning": "The anonymous TypeAdapter implementation for java.lang.Class throws UnsupportedOperationException for both its 'read' and 'write' methods. This indicates that the TypeAdapter interface is too broad for this specific client, forcing it to depend on and 'implement' methods it does not use or support, which is a direct violation of the Interface Segregation Principle. A more segregated interface might offer separate 'JsonReader' and 'JsonWriter' interfaces, or a 'SerializableTypeAdapter' and 'DeserializableTypeAdapter'."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement",
+      "entity_type": "class",
+      "line_start": 96,
+      "line_end": 434,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The JsonElement abstract class defines numerous 'getAs...' methods that are not applicable to all its subclasses, forcing them to throw UnsupportedOperationException.",
+      "reasoning": "The abstract class JsonElement declares many 'getAsBoolean()', 'getAsNumber()', 'getAsString()', etc., methods with default implementations that throw UnsupportedOperationException. This forces concrete subclasses like JsonNull and JsonObject to 'implement' these methods by inheriting the exception, as these operations are semantically meaningless for null or object types. This indicates that the JsonElement's 'interface' (its public methods) is too fat and should be segregated into smaller, more specific interfaces (e.g., JsonNumber, JsonBoolean, JsonString) that only declare methods relevant to their specific JSON type, adhering to ISP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 26718.8777923584,
+  "error": null
+}

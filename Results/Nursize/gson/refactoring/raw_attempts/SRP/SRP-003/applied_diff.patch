@@ -1,0 +1,170 @@
+diff --git a/gson/src/main/java/com/google/gson/Gson.java b/gson/src/main/java/com/google/gson/Gson.java
+index a06f290..07666ac 100644
+--- a/gson/src/main/java/com/google/gson/Gson.java
++++ b/gson/src/main/java/com/google/gson/Gson.java
+@@ -162,12 +162,8 @@ public final class Gson {
+   final Excluder excluder;
+   final FieldNamingStrategy fieldNamingStrategy;
+   final Map<Type, InstanceCreator<?>> instanceCreators;
+-  final boolean serializeNulls;
+   final boolean complexMapKeySerialization;
+-  final boolean generateNonExecutableJson;
+-  final boolean htmlSafe;
+-  final FormattingStyle formattingStyle;
+-  final Strictness strictness;
++  final JsonWriterSettings jsonWriterSettings;
+   final boolean serializeSpecialFloatingPointValues;
+   final boolean useJdkUnsafe;
+   final String datePattern;
+@@ -227,12 +223,14 @@ public final class Gson {
+     this.excluder = builder.excluder;
+     this.fieldNamingStrategy = builder.fieldNamingPolicy;
+     this.instanceCreators = new HashMap<>(builder.instanceCreators);
+-    this.serializeNulls = builder.serializeNulls;
+     this.complexMapKeySerialization = builder.complexMapKeySerialization;
+-    this.generateNonExecutableJson = builder.generateNonExecutableJson;
+-    this.htmlSafe = builder.escapeHtmlChars;
+-    this.formattingStyle = builder.formattingStyle;
+-    this.strictness = builder.strictness;
++    this.jsonWriterSettings = new JsonWriterSettings(
++        builder.serializeNulls,
++        builder.generateNonExecutableJson,
++        builder.escapeHtmlChars,
++        builder.formattingStyle,
++        builder.strictness
++    );
+     this.serializeSpecialFloatingPointValues = builder.serializeSpecialFloatingPointValues;
+     this.useJdkUnsafe = builder.useJdkUnsafe;
+     this.longSerializationPolicy = builder.longSerializationPolicy;
+@@ -292,7 +290,7 @@ public final class Gson {
+    * @see GsonBuilder#serializeNulls()
+    */
+   public boolean serializeNulls() {
+-    return serializeNulls;
++    return jsonWriterSettings.serializeNulls;
+   }
+ 
+   /**
+@@ -302,7 +300,7 @@ public final class Gson {
+    * @see GsonBuilder#disableHtmlEscaping()
+    */
+   public boolean htmlSafe() {
+-    return htmlSafe;
++    return jsonWriterSettings.htmlSafe;
+   }
+ 
+   /**
+@@ -649,8 +647,8 @@ public final class Gson {
+     TypeAdapter<Object> adapter = (TypeAdapter<Object>) getAdapter(TypeToken.get(typeOfSrc));
+ 
+     Strictness oldStrictness = writer.getStrictness();
+-    if (this.strictness != null) {
+-      writer.setStrictness(this.strictness);
++    if (jsonWriterSettings.strictness != null) {
++      writer.setStrictness(jsonWriterSettings.strictness);
+     } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {
+       // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT
+       writer.setStrictness(Strictness.LENIENT);
+@@ -659,8 +657,8 @@ public final class Gson {
+     boolean oldHtmlSafe = writer.isHtmlSafe();
+     boolean oldSerializeNulls = writer.getSerializeNulls();
+ 
+-    writer.setHtmlSafe(htmlSafe);
+-    writer.setSerializeNulls(serializeNulls);
++    writer.setHtmlSafe(jsonWriterSettings.htmlSafe);
++    writer.setSerializeNulls(jsonWriterSettings.serializeNulls);
+     try {
+       adapter.write(writer, src);
+     } catch (IOException e) {
+@@ -730,11 +728,11 @@ public final class Gson {
+     boolean oldHtmlSafe = writer.isHtmlSafe();
+     boolean oldSerializeNulls = writer.getSerializeNulls();
+ 
+-    writer.setHtmlSafe(htmlSafe);
+-    writer.setSerializeNulls(serializeNulls);
++    writer.setHtmlSafe(jsonWriterSettings.htmlSafe);
++    writer.setSerializeNulls(jsonWriterSettings.serializeNulls);
+ 
+-    if (this.strictness != null) {
+-      writer.setStrictness(this.strictness);
++    if (jsonWriterSettings.strictness != null) {
++      writer.setStrictness(jsonWriterSettings.strictness);
+     } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {
+       // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT
+       writer.setStrictness(Strictness.LENIENT);
+@@ -772,14 +770,14 @@ public final class Gson {
+    * </ul>
+    */
+   public JsonWriter newJsonWriter(Writer writer) throws IOException {
+-    if (generateNonExecutableJson) {
++    if (jsonWriterSettings.generateNonExecutableJson) {
+       writer.write(JSON_NON_EXECUTABLE_PREFIX);
+     }
+     JsonWriter jsonWriter = new JsonWriter(writer);
+-    jsonWriter.setFormattingStyle(formattingStyle);
+-    jsonWriter.setHtmlSafe(htmlSafe);
+-    jsonWriter.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);
+-    jsonWriter.setSerializeNulls(serializeNulls);
++    jsonWriter.setFormattingStyle(jsonWriterSettings.formattingStyle);
++    jsonWriter.setHtmlSafe(jsonWriterSettings.htmlSafe);
++    jsonWriter.setStrictness(jsonWriterSettings.strictness == null ? Strictness.LEGACY_STRICT : jsonWriterSettings.strictness);
++    jsonWriter.setSerializeNulls(jsonWriterSettings.serializeNulls);
+     return jsonWriter;
+   }
+ 
+@@ -797,7 +795,7 @@ public final class Gson {
+    */
+   public JsonReader newJsonReader(Reader reader) {
+     JsonReader jsonReader = new JsonReader(reader);
+-    jsonReader.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);
++    jsonReader.setStrictness(jsonWriterSettings.strictness == null ? Strictness.LEGACY_STRICT : jsonWriterSettings.strictness);
+     return jsonReader;
+   }
+ 
+@@ -1066,8 +1064,8 @@ public final class Gson {
+     boolean isEmpty = true;
+     Strictness oldStrictness = reader.getStrictness();
+ 
+-    if (this.strictness != null) {
+-      reader.setStrictness(this.strictness);
++    if (jsonWriterSettings.strictness != null) {
++      reader.setStrictness(jsonWriterSettings.strictness);
+     } else if (reader.getStrictness() == Strictness.LEGACY_STRICT) {
+       // For backward compatibility change to LENIENT if reader has default strictness LEGACY_STRICT
+       reader.setStrictness(Strictness.LENIENT);
+@@ -1255,7 +1253,7 @@ public final class Gson {
+   @Override
+   public String toString() {
+     return "{serializeNulls:"
+-        + serializeNulls
++        + jsonWriterSettings.serializeNulls
+         + ",factories:"
+         + factories
+         + ",instanceCreators:"
+diff --git a/gson/src/main/java/com/google/gson/JsonWriterSettings.java b/gson/src/main/java/com/google/gson/JsonWriterSettings.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/gson/src/main/java/com/google/gson/JsonWriterSettings.java
+@@ -0,0 +1,20 @@
++package com.google.gson;
++
++/**
++ * Configuration settings for JSON I/O operations.
++ */
++public final class JsonWriterSettings {
++  final boolean serializeNulls;
++  final boolean generateNonExecutableJson;
++  final boolean htmlSafe;
++  final FormattingStyle formattingStyle;
++  final Strictness strictness;
++
++  public JsonWriterSettings(boolean serializeNulls, boolean generateNonExecutableJson, boolean htmlSafe, FormattingStyle formattingStyle, Strictness strictness) {
++    this.serializeNulls = serializeNulls;
++    this.generateNonExecutableJson = generateNonExecutableJson;
++    this.htmlSafe = htmlSafe;
++    this.formattingStyle = formattingStyle;
++    this.strictness = strictness;
++  }
++}
+\ No newline at end of file

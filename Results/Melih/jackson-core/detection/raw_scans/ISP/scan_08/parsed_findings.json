@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 4341,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "UTF8StreamJsonParser implements a large number of data access methods from the JsonParser interface that are not fully applicable to a stream-based parser.",
+    "reasoning": "The class inherits from JsonParserBase and implements the JsonParser interface, which is a 'fat' interface containing methods for various types of parsing (binary, textual, numeric). Many of these methods, such as those for binary value access or specific numeric conversions, are complex and might not be applicable or efficiently supported by all implementations, forcing the class to handle them via complex internal state or throw errors."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 2483,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "JsonGenerator is a 'fat' interface containing too many disparate responsibilities.",
+    "reasoning": "JsonGenerator combines structural writing (arrays/objects), scalar writing (strings, numbers, booleans, nulls), binary data writing, raw data writing, and type/object ID writing. Implementations are forced to implement every single method, even if the underlying format does not support them (e.g., binary formats vs. JSON), leading to many methods throwing UnsupportedOperationException."
+  }
+]

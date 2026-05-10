@@ -1,0 +1,61 @@
+{
+  "issue_id": "SRP-004",
+  "principle": "SRP",
+  "title": "Refactor SRP-004 (SRP): Interface combines responsibilities for assertion handling, section tracking,...",
+  "branch": "refactor/SRP-004",
+  "base": "main",
+  "head_commit": "35e191d1c2f08e9b285da19cba8ba76d54d727e1",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3884,
+    "completion_tokens": 1063
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IResultCapture",
+    "entity_type": "class",
+    "line_start": 357,
+    "line_end": 417,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Interface combines responsibilities for assertion handling, section tracking, generator tracking, and benchmark reporting.",
+    "reasoning": "The `IResultCapture` interface defines methods for handling a wide array of distinct events: assertion lifecycle (`notifyAssertionStarted`, `handleExpr`, `handleMessage`, etc.), section lifecycle (`sectionStarted`, `sectionEnded`), generator lifecycle (`acquireGeneratorTracker`, `createGeneratorTracker`), and benchmark events (`benchmarkPreparing`, `benchmarkStarting`, `benchmarkEnded`, `benchmarkFailed`). These are separate reasons for a concrete implementation to change, making it difficult for any single class implementing this interface to adhere to SRP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "",
+    "rationale": "",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10495,
+        "blank_lines": 3086,
+        "comment_lines": 748,
+        "function_count": 3,
+        "avg_cc": 433.67,
+        "max_cc": 1299.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 29629.64415550232
+}

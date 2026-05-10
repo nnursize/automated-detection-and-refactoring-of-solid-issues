@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "search_text": "    public void recover() {\n        throw new UnsupportedOperationException(\"Recovering v1 pages is not supported anymore.\");\n    }\n\n    @Override\n    public void create() {\n        throw new UnsupportedOperationException(\"Creating v1 pages is not supported anymore.\");\n    }",
+    "replace_text": "    public void recover() {\n        // No-op for read-only legacy V1 pages\n    }\n\n    @Override\n    public void create() {\n        // No-op for read-only legacy V1 pages\n    }"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "search_text": "    @Override\n    public void ensurePersisted() {\n        throw new UnsupportedOperationException(\"Writing to v1 pages is not supported anymore\");\n    }\n\n    @Override\n    public void purge() {\n        throw new UnsupportedOperationException(\"Purging v1 pages is not supported anymore\");\n\n    }\n\n    @Override\n    public void write(byte[] bytes, long seqNum) {\n        throw new UnsupportedOperationException(\"Writing to v1 pages is not supported anymore\");\n    }",
+    "replace_text": "    @Override\n    public void ensurePersisted() {\n        // No-op for read-only legacy V1 pages\n    }\n\n    @Override\n    public void purge() {\n        // No-op for read-only legacy V1 pages\n    }\n\n    @Override\n    public void write(byte[] bytes, long seqNum) {\n        // No-op for read-only legacy V1 pages\n    }"
+  }
+]

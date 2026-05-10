@@ -1,0 +1,13 @@
+diff --git a/src/requests/cookies.py b/src/requests/cookies.py
+index 7b30370..4f2fc7c 100644
+--- a/src/requests/cookies.py
++++ b/src/requests/cookies.py
+@@ -344,6 +344,8 @@ class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
+         """Deletes a cookie given a name. Wraps ``http.cookiejar.CookieJar``'s
+         ``remove_cookie_by_name()``.
+         """
++        if name not in self:
++            raise KeyError(f"name={name!r}")
+         remove_cookie_by_name(self, name)
+ 
+     def set_cookie(self, cookie, *args, **kwargs):

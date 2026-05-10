@@ -1,0 +1,50 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
+index 5979b7b..6d07f4d 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
+@@ -113,8 +113,7 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
+     boolean blockInaccessible = filterResult == FilterResult.BLOCK_INACCESSIBLE;
+ 
+     if (ReflectionHelper.isRecord(raw)) {
+-      return (TypeAdapter<T>) new RecordAdapter<>(
+-          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);
++      return RecordAdapter.create(raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);
+     }
+ 
+     // If the class is anonymous or a local class, we cannot reflectively instantiate it.
+@@ -124,8 +123,7 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
+     }
+ 
+     ObjectConstructor<T> constructor = constructorConstructor.get(type, true);
+-    return new FieldReflectionAdapter<>(
+-        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));
++    return FieldReflectionAdapter.create(constructor, getBoundFields(gson, type, raw, blockInaccessible, false));
+   }
+   }
+ 
+@@ -507,7 +505,11 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
+   private static final class FieldReflectionAdapter<T> extends Adapter<T, T> {
+     private final ObjectConstructor<T> constructor;
+ 
+-    FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {
++    static <T> FieldReflectionAdapter<T> create(ObjectConstructor<T> constructor, FieldsData fieldsData) {
++      return new FieldReflectionAdapter<>(constructor, fieldsData);
++    }
++
++    private FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {
+       super(fieldsData);
+       this.constructor = constructor;
+     }
+@@ -539,7 +541,11 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
+     // Map from component names to index into the constructors arguments.
+     private final Map<String, Integer> componentIndices = new HashMap<>();
+ 
+-    RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {
++    static <T> RecordAdapter<T> create(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {
++      return new RecordAdapter<>(raw, fieldsData, blockInaccessible);
++    }
++
++    private RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {
+       super(fieldsData);
+       constructor = ReflectionHelper.getCanonicalRecordConstructor(raw);
+ 

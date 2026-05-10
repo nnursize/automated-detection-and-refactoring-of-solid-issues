@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.openPages",
+    "entity_type": "method",
+    "line_start": 172,
+    "line_end": 222,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level module depends on low-level implementation MmapPageIOV2",
+    "reasoning": "The Queue class directly instantiates MmapPageIOV2, a concrete implementation for file I/O. This couples the high-level business logic of the queue to a specific storage implementation, violating the Dependency Inversion Principle."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.newCheckpointedHeadpage",
+    "entity_type": "method",
+    "line_start": 298,
+    "line_end": 305,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level module depends on low-level implementation MmapPageIOV2",
+    "reasoning": "The Queue class directly instantiates MmapPageIOV2. It should depend on an abstraction (e.g., PageIO interface) and receive an implementation factory or provider."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter.nextWriter",
+    "entity_type": "method",
+    "line_start": 579,
+    "line_end": 583,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level module directly instantiates RecordIOWriter",
+    "reasoning": "The DeadLetterQueueWriter directly instantiates the concrete class RecordIOWriter. This creates a hard-coded dependency on a low-level detail, preventing the use of alternative writers and complicating unit testing."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt.plugin",
+    "entity_type": "method",
+    "line_start": 169,
+    "line_end": 218,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level factory directly instantiates concrete plugin delegator classes",
+    "reasoning": "The factory explicitly instantiates OutputDelegatorExt, filterDelegatorClass, and other concrete plugin implementations. It should depend on an abstraction or a registered provider rather than concrete classes."
+  }
+]

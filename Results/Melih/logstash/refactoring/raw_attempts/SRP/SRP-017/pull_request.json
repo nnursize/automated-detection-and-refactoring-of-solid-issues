@@ -1,0 +1,138 @@
+{
+  "issue_id": "SRP-017",
+  "principle": "SRP",
+  "title": "Refactor SRP-017 (SRP): Compiler class mixed with runtime dataset implementations.",
+  "branch": "refactor/SRP-017",
+  "base": "main",
+  "head_commit": "798764c82165d1a5dbd2a56e7f990faf0c269341",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7427,
+    "completion_tokens": 2241
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+    "entity_name": "DatasetCompiler",
+    "entity_type": "class",
+    "line_start": 41,
+    "line_end": 574,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "Compiler class mixed with runtime dataset implementations.",
+    "reasoning": "The class contains the logic to compile datasets but also defines internal runtime structures like 'Complement' (L486) and 'ComputeAndClear' (L547). The logic for generating/compiling execution code should be separated from the operational behavior of the resulting dataset objects."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract DatasetCompiler internal classes to separate files",
+    "rationale": "The DatasetCompiler class was violating SRP by containing runtime dataset implementations (Complement) and internal helper structures (ComputeAndClear). Moving these to their own files improves maintainability and separation of concerns.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java",
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java",
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java"
+    ],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java"
+    ],
+    "patch_blocks_count": 5,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "search_text": "        final ValueSyntaxElement right = fields.add(DatasetCompiler.Complement.class);\n        final VariableDefinition event =\n            new VariableDefinition(JrubyEventExtLibrary.RubyEvent.class, \"event\");\n        fields.addAfterInit(\n            Closure.wrap(\n                SyntaxFactory.assignment(\n                    right,\n                    SyntaxFactory.cast(\n                        DatasetCompiler.Complement.class, SyntaxFactory.constant(\n                            DatasetCompiler.class, DatasetCompiler.Complement.class.getSimpleName()\n                        ).call(\"from\", SyntaxFactory.identifier(\"this\"), elseData)\n                    )\n                )\n            )\n        );\n        final ValueSyntaxElement conditionField = fields.add(\"condition\", condition);\n        final DatasetCompiler.ComputeAndClear compute;",
+        "replace_text": "        final ValueSyntaxElement right = fields.add(Complement.class);\n        final VariableDefinition event =\n            new VariableDefinition(JrubyEventExtLibrary.RubyEvent.class, \"event\");\n        fields.addAfterInit(\n            Closure.wrap(\n                SyntaxFactory.assignment(\n                    right,\n                    SyntaxFactory.cast(\n                        Complement.class, SyntaxFactory.constant(\n                            Complement.class, Complement.class.getSimpleName()\n                        ).call(\"from\", SyntaxFactory.identifier(\"this\"), elseData)\n                    )\n                )\n            )\n        );\n        final ValueSyntaxElement conditionField = fields.add(\"condition\", condition);\n        final ComputeAndClear compute;",
+        "search_lines": 17,
+        "replace_lines": 17
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "search_text": "    private static DatasetCompiler.ComputeAndClear withOutputBuffering(final Closure compute,\n        final Closure clear, final ValueSyntaxElement outputBuffer, final ClassFields fields) {\n        final SyntaxFactory.MethodCallReturnValue done = new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"isDone\");\n        return computeAndClear(\n            Closure.wrap(\n                SyntaxFactory.ifCondition(done, Closure.wrap(SyntaxFactory.ret(outputBuffer)))\n            ).add(compute)\n                .add(new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"setDone\"))\n                .add(SyntaxFactory.ret(outputBuffer)),\n            Closure.wrap(\n                SyntaxFactory.ifCondition(\n                    done, Closure.wrap(\n                        clear.add(clear(outputBuffer)),\n                        new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"clearDone\")\n                    )\n                )\n            ), fields\n        );\n    }",
+        "replace_text": "    private static ComputeAndClear withOutputBuffering(final Closure compute,\n        final Closure clear, final ValueSyntaxElement outputBuffer, final ClassFields fields) {\n        final SyntaxFactory.MethodCallReturnValue done = new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"isDone\");\n        return computeAndClear(\n            Closure.wrap(\n                SyntaxFactory.ifCondition(done, Closure.wrap(SyntaxFactory.ret(outputBuffer)))\n            ).add(compute)\n                .add(new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"setDone\"))\n                .add(SyntaxFactory.ret(outputBuffer)),\n            Closure.wrap(\n                SyntaxFactory.ifCondition(\n                    done, Closure.wrap(\n                        clear.add(clear(outputBuffer)),\n                        new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"clearDone\")\n                    )\n                )\n            ), fields\n        );\n    }",
+        "search_lines": 19,
+        "replace_lines": 19
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "search_text": "    private static DatasetCompiler.ComputeAndClear computeAndClear(final Closure compute, final Closure clear,\n        final ClassFields fields) {\n        return new DatasetCompiler.ComputeAndClear(compute, clear, fields);\n    }\n\n    /**\n     * Complementary {@link Dataset} to a {@link SplitDataset} representing the\n     * negative branch of the {@code if} statement.\n     */\n    public static final class Complement implements Dataset {\n\n        /**\n         * Positive branch of underlying {@code if} statement.\n         */\n        private final Dataset parent;\n\n        /**\n         * This collection is shared with {@link DatasetCompiler.Complement#parent} and\n         * mutated when calling its {@code compute} method. This class does not directly compute\n         * it.\n         */\n        private final Collection<JrubyEventExtLibrary.RubyEvent> data;\n\n        private boolean done;\n\n        public static Dataset from(final Dataset parent,\n            final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n            return new DatasetCompiler.Complement(parent, complement);\n        }\n\n        /**\n         * Ctor.\n         * @param left Positive Branch {@link SplitDataset}\n         * @param complement Collection of {@link JrubyEventExtLibrary.RubyEvent}s that did\n         * not match {@code left}\n         */\n        private Complement(\n            final Dataset left, final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n            this.parent = left;\n            data = complement;\n        }\n\n        @Override\n        public Collection<JrubyEventExtLibrary.RubyEvent> compute(@SuppressWarnings(\"rawtypes\") final RubyArray batch,\n                                                                  final boolean flush, final boolean shutdown) {\n            if (done) {\n                return data;\n            }\n            parent.compute(batch, flush, shutdown);\n            done = true;\n            return data;\n        }\n\n        @Override\n        public void clear() {\n            if (done) {\n                parent.clear();\n                done = false;\n            }\n        }\n    }\n\n    /**\n     * Represents the 3-tuple of {@code compute} method, {@code clear} method and\n     * {@link ClassFields} used by both methods.\n     */\n    private static final class ComputeAndClear {\n\n        private final MethodSyntaxElement compute;\n\n        private final MethodSyntaxElement clear;\n\n        private final ClassFields fields;\n\n        private ComputeAndClear(final Closure compute, final Closure clear,\n            final ClassFields fields) {\n            this.compute = MethodSyntaxElement.compute(compute);\n            this.clear = MethodSyntaxElement.clear(clear);\n            this.fields = fields;\n        }\n\n        public MethodSyntaxElement compute() {\n            return compute;\n        }\n\n        public MethodSyntaxElement clear() {\n            return clear;\n        }\n\n        public ClassFields fields() {\n            return fields;\n        }\n    }\n}",
+        "replace_text": "    private static ComputeAndClear computeAndClear(final Closure compute, final Closure clear,\n        final ClassFields fields) {\n        return new ComputeAndClear(compute, clear, fields);\n    }\n}",
+        "search_lines": 94,
+        "replace_lines": 5
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java",
+        "new_content": "package org.logstash.config.ir.compiler;\n\nimport java.util.Collection;\nimport org.jruby.RubyArray;\nimport org.logstash.ext.JrubyEventExtLibrary;\n\npublic final class Complement implements Dataset {\n    private final Dataset parent;\n    private final Collection<JrubyEventExtLibrary.RubyEvent> data;\n    private boolean done;\n\n    public static Dataset from(final Dataset parent, final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n        return new Complement(parent, complement);\n    }\n\n    private Complement(final Dataset left, final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n        this.parent = left;\n        this.data = complement;\n    }\n\n    @Override\n    public Collection<JrubyEventExtLibrary.RubyEvent> compute(@SuppressWarnings(\"rawtypes\") final RubyArray batch,\n                                                              final boolean flush, final boolean shutdown) {\n        if (done) {\n            return data;\n        }\n        parent.compute(batch, flush, shutdown);\n        done = true;\n        return data;\n    }\n\n    @Override\n    public void clear() {\n        if (done) {\n            parent.clear();\n            done = false;\n        }\n    }\n}",
+        "new_content_lines": 39
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java",
+        "new_content": "package org.logstash.config.ir.compiler;\n\npublic final class ComputeAndClear {\n    private final MethodSyntaxElement compute;\n    private final MethodSyntaxElement clear;\n    private final ClassFields fields;\n\n    public ComputeAndClear(final Closure compute, final Closure clear, final ClassFields fields) {\n        this.compute = MethodSyntaxElement.compute(compute);\n        this.clear = MethodSyntaxElement.clear(clear);\n        this.fields = fields;\n    }\n\n    public MethodSyntaxElement compute() {\n        return compute;\n    }\n\n    public MethodSyntaxElement clear() {\n        return clear;\n    }\n\n    public ClassFields fields() {\n        return fields;\n    }\n}",
+        "new_content_lines": 25
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "loc": 504,
+        "blank_lines": 60,
+        "comment_lines": 6,
+        "function_count": 27,
+        "avg_cc": 2.33,
+        "max_cc": 37.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "loc": 431,
+        "blank_lines": 44,
+        "comment_lines": 6,
+        "function_count": 24,
+        "avg_cc": 2.29,
+        "max_cc": 32.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java",
+        "loc": 33,
+        "blank_lines": 6,
+        "comment_lines": 0,
+        "function_count": 2,
+        "avg_cc": 2.0,
+        "max_cc": 3.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java",
+        "loc": 20,
+        "blank_lines": 5,
+        "comment_lines": 0,
+        "function_count": 3,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java b/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\nindex cd21019..4a2cecb 100644\n--- a/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\n+++ b/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\n@@ -63,7 +63,7 @@ public final class DatasetCompiler {\n         final ClassFields fields = new ClassFields();\n         final ValueSyntaxElement ifData = fields.add(\"ifData\", new ArrayList<>());\n         final ValueSyntaxElement elseData = fields.add(\"elseData\", new ArrayList<>());\n-        final ValueSyntaxElement right = fields.add(DatasetCompiler.Complement.class);\n+        final ValueSyntaxElement right = fields.add(Complement.class);\n         final VariableDefinition event =\n             new VariableDefinition(JrubyEventExtLibrary.RubyEvent.class, \"event\");\n         fields.addAfterInit(\n@@ -71,15 +71,15 @@ public final class DatasetCompiler {\n                 SyntaxFactory.assignment(\n                     right,\n                     SyntaxFactory.cast(\n-                        DatasetCompiler.Complement.class, SyntaxFactory.constant(\n-                            DatasetCompiler.class, DatasetCompiler.Complement.class.getSimpleName()\n+                        Complement.class, SyntaxFactory.constant(\n+                            Complement.class, Complement.class.getSimpleName()\n                         ).call(\"from\", SyntaxFactory.identifier(\"this\"), elseData)\n                     )\n                 )\n             )\n         );\n         final ValueSyntaxElement conditionField = fields.add(\"condition\", condition);\n-        final DatasetCompiler.ComputeAndClear compute;\n+        final ComputeAndClear compute;\n \n         final ValueSyntaxElement errorNotifier = fields.add(conditionalErrListener);\n         Closure exceptionHandlerBlock = Closure.wrap(\n@@ -385,7 +385,7 @@ public final class DatasetCompiler {\n      * @param fields Class fields\n      * @return ComputeAndClear with adjusted methods and {@code done} flag added to fields\n      */\n-    private static DatasetCompiler.ComputeAndClear withOutputBuffering(final Closure compute,\n+    private static ComputeAndClear withOutputBuffering(final Closure compute,\n         final Closure clear, final ValueSyntaxElement outputBuffer, final ClassFields fields) {\n         final SyntaxFactory.MethodCallReturnValue done = new SyntaxFactory.MethodCallReturnValue(SyntaxFactory.value(\"this\"), \"isDone\");\n         return computeAndClear(\n@@ -474,97 +474,8 @@ public final class DatasetCompiler {\n         );\n     }\n \n-    private static DatasetCompiler.ComputeAndClear computeAndClear(final Closure compute, final Closure clear,\n+    private static ComputeAndClear computeAndClear(final Closure compute, final Closure clear,\n         final ClassFields fields) {\n-        return new DatasetCompiler.ComputeAndClear(compute, clear, fields);\n-    }\n-\n-    /**\n-     * Complementary {@link Dataset} to a {@link SplitDataset} representing the\n-     * negative branch of the {@code if} statement.\n-     */\n-    public static final class Complement implements Dataset {\n-\n-        /**\n-         * Positive branch of underlying {@code if} statement.\n-         */\n-        private final Dataset parent;\n-\n-        /**\n-         * This collection is shared with {@link DatasetCompiler.Complement#parent} and\n-         * mutated when calling its {@code compute} method. This class does not directly compute\n-         * it.\n-         */\n-        private final Collection<JrubyEventExtLibrary.RubyEvent> data;\n-\n-        private boolean done;\n-\n-        public static Dataset from(final Dataset parent,\n-            final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n-            return new DatasetCompiler.Complement(parent, complement);\n-        }\n-\n-        /**\n-         * Ctor.\n-         * @param left Positive Branch {@link SplitDataset}\n-         * @param complement Collection of {@link JrubyEventExtLibrary.RubyEvent}s that did\n-         * not match {@code left}\n-         */\n-        private Complement(\n-            final Dataset left, final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n-            this.parent = left;\n-            data = complement;\n-        }\n-\n-        @Override\n-        public Collection<JrubyEventExtLibrary.RubyEvent> compute(@SuppressWarnings(\"rawtypes\") final RubyArray batch,\n-                                                                  final boolean flush, final boolean shutdown) {\n-            if (done) {\n-                return data;\n-            }\n-            parent.compute(batch, flush, shutdown);\n-            done = true;\n-            return data;\n-        }\n-\n-        @Override\n-        public void clear() {\n-            if (done) {\n-                parent.clear();\n-                done = false;\n-            }\n-        }\n-    }\n-\n-    /**\n-     * Represents the 3-tuple of {@code compute} method, {@code clear} method and\n-     * {@link ClassFields} used by both methods.\n-     */\n-    private static final class ComputeAndClear {\n-\n-        private final MethodSyntaxElement compute;\n-\n-        private final MethodSyntaxElement clear;\n-\n-        private final ClassFields fields;\n-\n-        private ComputeAndClear(final Closure compute, final Closure clear,\n-            final ClassFields fields) {\n-            this.compute = MethodSyntaxElement.compute(compute);\n-            this.clear = MethodSyntaxElement.clear(clear);\n-            this.fields = fields;\n-        }\n-\n-        public MethodSyntaxElement compute() {\n-            return compute;\n-        }\n-\n-        public MethodSyntaxElement clear() {\n-            return clear;\n-        }\n-\n-        public ClassFields fields() {\n-            return fields;\n-        }\n+        return new ComputeAndClear(compute, clear, fields);\n     }\n }\ndiff --git a/logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java b/logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/config/ir/compiler/Complement.java\n@@ -0,0 +1,39 @@\n+package org.logstash.config.ir.compiler;\n+\n+import java.util.Collection;\n+import org.jruby.RubyArray;\n+import org.logstash.ext.JrubyEventExtLibrary;\n+\n+public final class Complement implements Dataset {\n+    private final Dataset parent;\n+    private final Collection<JrubyEventExtLibrary.RubyEvent> data;\n+    private boolean done;\n+\n+    public static Dataset from(final Dataset parent, final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n+        return new Complement(parent, complement);\n+    }\n+\n+    private Complement(final Dataset left, final Collection<JrubyEventExtLibrary.RubyEvent> complement) {\n+        this.parent = left;\n+        this.data = complement;\n+    }\n+\n+    @Override\n+    public Collection<JrubyEventExtLibrary.RubyEvent> compute(@SuppressWarnings(\"rawtypes\") final RubyArray batch,\n+                                                              final boolean flush, final boolean shutdown) {\n+        if (done) {\n+            return data;\n+        }\n+        parent.compute(batch, flush, shutdown);\n+        done = true;\n+        return data;\n+    }\n+\n+    @Override\n+    public void clear() {\n+        if (done) {\n+            parent.clear();\n+            done = false;\n+        }\n+    }\n+}\n\\ No newline at end of file\ndiff --git a/logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java b/logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/config/ir/compiler/ComputeAndClear.java\n@@ -0,0 +1,25 @@\n+package org.logstash.config.ir.compiler;\n+\n+public final class ComputeAndClear {\n+    private final MethodSyntaxElement compute;\n+    private final MethodSyntaxElement clear;\n+    private final ClassFields fields;\n+\n+    public ComputeAndClear(final Closure compute, final Closure clear, final ClassFields fields) {\n+        this.compute = MethodSyntaxElement.compute(compute);\n+        this.clear = MethodSyntaxElement.clear(clear);\n+        this.fields = fields;\n+    }\n+\n+    public MethodSyntaxElement compute() {\n+        return compute;\n+    }\n+\n+    public MethodSyntaxElement clear() {\n+        return clear;\n+    }\n+\n+    public ClassFields fields() {\n+        return fields;\n+    }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 13493.447542190552
+}

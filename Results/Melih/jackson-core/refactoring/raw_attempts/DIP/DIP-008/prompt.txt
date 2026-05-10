@@ -1,0 +1,862 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-008
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java`
+- **Entity**: `ReaderBasedJsonParser` (current lines L23-L635 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 2 independent scans
+
+### Description
+Concrete parser implementation depends on a concrete symbol table implementation
+
+### Reasoning
+Rigid Coupling smell -> Similar to the UTF-8 parser, the ReaderBasedJsonParser depends on the concrete CharsToNameCanonicalizer. This prevents the inversion of control where different canonicalization strategies could be injected through a common interface or abstraction.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java`
+```java
+package tools.jackson.core.json;
+
+import java.io.*;
+
+import tools.jackson.core.*;
+import tools.jackson.core.exc.JacksonIOException;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.core.io.CharTypes;
+import tools.jackson.core.io.IOContext;
+import tools.jackson.core.sym.CharsToNameCanonicalizer;
+import tools.jackson.core.util.*;
+
+import static tools.jackson.core.JsonTokenId.*;
+
+import tools.jackson.core.json.Base64CharInput;
+import tools.jackson.core.json.ReaderBasedBase64StreamDecoder;
+
+/**
+ * This is a concrete implementation of {@link JsonParser}, which is
+ * based on a {@link java.io.Reader} to handle low-level character
+ * conversion tasks.
+ */
+public class ReaderBasedJsonParser
+    extends JsonParserBase
+    implements Base64CharInput
+{
+    private final static int FEAT_MASK_TRAILING_COMMA = JsonReadFeature.ALLOW_TRAILING_COMMA.getMask();
+    private final static int FEAT_MASK_ALLOW_MISSING = JsonReadFeature.ALLOW_MISSING_VALUES.getMask();
+
+    // Latin1 encoding is not supported, but we do use 8-bit subset for
+    // pre-processing task, to simplify first pass, keep it fast.
+    protected final static int[] _icLatin1 = CharTypes.getInputCodeLatin1();
+
+    /**
+     * Helper object for stream-based Base64 decoding.
+     */
+    protected ReaderBasedBase64StreamDecoder _base64StreamDecoder;
+
+    /*
+    /**********************************************************************
+    /* Input configuration
+    /**********************************************************************
+     */
+
+    /**
+     * Reader that can be used for reading more content, if one
+     * buffer from input source, but in some cases pre-loaded buffer
+     * is handed to the parser.
+     */
+    protected Reader _reader;
+
+    /**
+     * Current buffer from which data is read; generally data is read into
+     * buffer from input source.
+     */
+    protected char[] _inputBuffer;
+
+    /**
+     * Flag that indicates whether the input buffer is recycable (and
+     * needs to be returned to recycler once we are done) or not.
+     *<p>
+     * If it is not, it also means that parser CANNOT modify underlying
+     * buffer.
+     */
+    protected boolean _bufferRecyclable;
+
+    /*
+    /**********************************************************************
+    /* Configuration
+    /**********************************************************************
+     */
+
+    protected final CharsToNameCanonicalizer _symbols;
+
+    protected final int _hashSeed;
+
+    /*
+    /**********************************************************************
+    /* Parsing state
+    /**********************************************************************
+     */
+
+    /**
+     * Flag that indicates that the current token has not yet
+     * been fully processed, and needs to be finished for
+     * some access (or skipped to obtain the next token)
+     */
+    protected boolean _tokenIncomplete;
+
+    /**
+     * Value of {@link #_inputPtr} at the time when the first character of
+     * name token was read. Used for calculating token location when requested;
+     * combined with {@link #_currInputProcessed}, may be updated appropriately
+     * as needed.
+     */
+    protected long _nameStartOffset;
+
+    protected int _nameStartRow;
+
+    protected int _nameStartCol;
+
+    /*
+    /**********************************************************************
+    /* Life-cycle
+    /**********************************************************************
+     */
+
+    /**
+     * Constructor called when caller wants to provide input buffer directly
+     * (or needs to, in case of bootstrapping having read some of contents)
+     * and it may or may not be recyclable use standard recycle context.
+     *
+     * @param readCtxt Object read context to use
+     * @param ctxt I/O context to use
+     * @param stdFeatures Standard stream read features enabled
+     * @param formatFeatures Format-specific read features enabled
+     * @param r Reader used for reading actual content, if any; {@code null} if none
+     * @param st Name canonicalizer to use
+     * @param inputBuffer Input buffer to read initial content from (before Reader)
+     * @param start Pointer in {@code inputBuffer} that has the first content character to decode
+     * @param end Pointer past the last content character in {@code inputBuffer}
+     * @param bufferRecyclable Whether {@code inputBuffer} passed is managed by Jackson core
+     *    (and thereby needs recycling)
+     */
+    public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,
+            int stdFeatures, int formatFeatures, Reader r,
+            CharsToNameCanonicalizer st,
+            char[] inputBuffer, int start, int end,
+            boolean bufferRecyclable)
+    {
+        super(readCtxt, ctxt, stdFeatures, formatFeatures);
+        _reader = r;
+        _inputBuffer = inputBuffer;
+        _inputPtr = start;
+        _inputEnd = end;
+        _currInputRowStart = start;
+        // If we have offset, need to omit that from byte offset, so:
+        _currInputProcessed = -start;
+        _symbols = st;
+        _hashSeed = st.hashSeed();
+        _bufferRecyclable = bufferRecyclable;
+        _base64StreamDecoder = new ReaderBasedBase64StreamDecoder(this);
+    }
+
+    /**
+     * Constructor called when input comes as a {@link java.io.Reader}, and buffer allocation
+     * can be done using default mechanism.
+     *
+     * @param readCtxt Object read context to use
+     * @param ctxt I/O context to use
+     * @param stdFeatures Standard stream read features enabled
+     * @param formatFeatures Format-specific read features enabled
+     * @param r Reader used for reading actual content, if any; {@code null} if none
+     * @param st Name canonicalizer to use
+     */
+    public ReaderBasedJsonParser(ObjectReadContext readCtxt, IOContext ctxt,
+            int stdFeatures, int formatFeatures, Reader r,
+            CharsToNameCanonicalizer st)
+    {
+        super(readCtxt, ctxt, stdFeatures, formatFeatures);
+        _reader = r;
+        _inputBuffer = ctxt.allocTokenBuffer();
+        _inputPtr = 0;
+        _inputEnd = 0;
+        _symbols = st;
+        _hashSeed = st.hashSeed();
+        _bufferRecyclable = true;
+        _base64StreamDecoder = new ReaderBasedBase64StreamDecoder(this);
+    }
+
+    /*
+    /**********************************************************************
+    /* Base method defs, overrides
+    /**********************************************************************
+     */
+
+    @Override
+    public int releaseBuffered(Writer w) throws JacksonException {
+        int count = _inputEnd - _inputPtr;
+        if (count < 1) { return 0; }
+        // let's just advance ptr to end
+        int origPtr = _inputPtr;
+        _inputPtr += count;
+        try {
+            w.write(_inputBuffer, origPtr, count);
+        } catch (IOException e) {
+            throw _wrapIOFailure(e);
+        }
+        return count;
+    }
+
+    @Override public Object streamReadInputSource() { return _reader; }
+
+    protected char getNextChar(String eofMsg, JsonToken forToken) throws JacksonException {
+        if (_inputPtr >= _inputEnd) {
+            if (!_loadMore()) {
+                _reportInvalidEOF(eofMsg, forToken);
+            }
+        }
+        return _inputBuffer[_inputPtr++];
+    }
+
+    @Override
+    protected void _closeInput() {
+        /* 25-Nov-2008, tatus: As per [JACKSON-16] we are not to call close()
+         *   on the underlying Reader, unless we "own" it, or auto-closing
+         *   feature is enabled.
+         *   One downside is that when using our optimized
+         *   Reader (granted, we only do that for UTF-32...) this
+         *   means that buffer recycling won't work correctly.
+         */
+        if (_reader != null) {
+            if (_ioContext.isResourceManaged() || isEnabled(StreamReadFeature.AUTO_CLOSE_SOURCE)) {
+                try {
+                    _reader.close();
+                } catch (IOException e) {
+                    throw _wrapIOFailure(e);
+                }
+            }
+            _reader = null;
+        }
+    }
+
+    /**
+     * Method called to release internal buffers owned by the base
+     * reader. This may be called along with {@link #_closeInput} (for
+     * example, when explicitly closing this reader instance), or
+     * separately (if need be).
+     */
+    @Override
+    protected void _releaseBuffers()
+    {
+        super._releaseBuffers();
+        // merge new symbols, if any
+        _symbols.release();
+        // and release buffers, if they are recyclable ones
+        if (_bufferRecyclable) {
+            char[] buf = _inputBuffer;
+            if (buf != null) {
+                _inputBuffer = null;
+                _ioContext.releaseTokenBuffer(buf);
+            }
+        }
+    }
+
+    /*
+    /**********************************************************************
+    /* Low-level access, supporting
+    /**********************************************************************
+     */
+
+    protected void _loadMoreGuaranteed() throws JacksonException {
+        if (!_loadMore()) { _reportInvalidEOF(); }
+    }
+
+    protected boolean _loadMore() throws JacksonException
+    {
+        if (_reader != null) {
+            final int count;
+            try {
+                count = _reader.read(_inputBuffer, 0, _inputBuffer.length);
+            } catch (IOException e) {
+                throw _wrapIOFailure(e);
+            }
+
+            final int bufSize = _inputEnd;
+            _currInputProcessed += bufSize;
+            _currInputRowStart -= bufSize;
+            // 06-Sep-2023, tatu: [core#1046] Enforce max doc length limit
+            _streamReadConstraints.validateDocumentLength(_currInputProcessed);
+
+            if (count > 0) {
+                // 26-Nov-2015, tatu: Since name-offset requires it too, must offset
+                //   this increase to avoid "moving" name-offset, resulting most likely
+                //   in negative value, which is fine as combine value remains unchanged.
+                _nameStartOffset -= bufSize;
+                _inputPtr = 0;
+                _inputEnd = count;
+                return true;
+            }
+            _inputPtr = _inputEnd = 0;
+            // End of input
+            _closeInput();
+            // Should never return 0, so let's fail
+            if (count == 0) {
+                _reportBadReader(_inputBuffer.length);
+            }
+        }
+        return false;
+    }
+
+    /*
+    /**********************************************************************
+    /* Public API, data access
+    /**********************************************************************
+     */
+
+    /**
+     * Method for accessing textual representation of the current event;
+     * if no current event (before first call to {@link #nextToken}, or
+     * after encountering end-of-input), returns null.
+     * Method can be called for any event.
+     *
+     * @throws JacksonException if there are general I/O or parse issues, including if the text is too large,
+     * see {@link tools.jackson.core.StreamReadConstraints.Builder#maxStringLength(int)}
+     */
+    @Override
+    public final String getString() throws JacksonException
+    {
+        if (_currToken == JsonToken.VALUE_STRING) {
+            if (_tokenIncomplete) {
+                _tokenIncomplete = false;
+                _finishString(); // only strings can be incomplete
+            }
+            return _textBuffer.contentsAsString();
+        }
+        return _getText2(_currToken);
+    }
+
+    @Override
+    public int getString(Writer writer) throws JacksonException
+    {
+        final JsonToken t = _currToken;
+
+        try {
+            if (t == JsonToken.VALUE_STRING) {
+                if (_tokenIncomplete) {
+                    _tokenIncomplete = false;
+                    _finishString(); // only strings can be incomplete
+                }
+                return _textBuffer.contentsToWriter(writer);
+            }
+            if (t == JsonToken.PROPERTY_NAME) {
+                String n = _streamReadContext.currentName();
+                writer.write(n);
+                return n.length();
+            }
+            if (t != null) {
+                if (t.isNumeric()) {
+                    return _textBuffer.contentsToWriter(writer);
+                }
+                char[] ch = t.asCharArray();
+                writer.write(ch);
+                return ch.length;
+            }
+        } catch (IOException e) {
+            throw _wrapIOFailure(e);
+        }
+        return 0;
+    }
+
+    // // // Let's override default impls for improved performance
+
+    @Override
+    public final String getValueAsString() throws JacksonException
+    {
+        if (_currToken == JsonToken.VALUE_STRING) {
+            if (_tokenIncomplete) {
+                _tokenIncomplete = false;
+                _finishString(); // only strings can be incomplete
+            }
+            return _textBuffer.contentsAsString();
+        }
+        if (_currToken == JsonToken.PROPERTY_NAME) {
+            return currentName();
+        }
+        return super.getValueAsString(null);
+    }
+
+    @Override
+    public final String getValueAsString(String defValue) throws JacksonException {
+        if (_currToken == JsonToken.VALUE_STRING) {
+            if (_tokenIncomplete) {
+                _tokenIncomplete = false;
+                _finishString(); // only strings can be incomplete
+            }
+            return _textBuffer.contentsAsString();
+        }
+        if (_currToken == JsonToken.PROPERTY_NAME) {
+            return currentName();
+        }
+        return super.getValueAsString(defValue);
+    }
+
+    protected final String _getText2(JsonToken t) throws JacksonException {
+        if (t == null) {
+            return null;
+        }
+        switch (t.id()) {
+        case ID_PROPERTY_NAME:
+            return _streamReadContext.currentName();
+
+        case ID_STRING:
+            // fall through
+        case ID_NUMBER_INT:
+        case ID_NUMBER_FLOAT:
+            return _textBuffer.contentsAsString();
+        default:
+            return t.asString();
+        }
+    }
+
+    @Override
+    public final char[] getStringCharacters() throws JacksonException
+    {
+        if (_currToken != null) { // null only before/after document
+            switch (_currToken.id()) {
+            case ID_PROPERTY_NAME:
+                return currentNameInBuffer();
+            case ID_STRING:
+                if (_tokenIncomplete) {
+                    _tokenIncomplete = false;
+                    _finishString(); // only strings can be incomplete
+                }
+                // fall through
+            case ID_NUMBER_INT:
+            case ID_NUMBER_FLOAT:
+                return _textBuffer.getTextBuffer();
+            default:
+                return _currToken.asCharArray();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public final int getStringLength() throws JacksonException
+    {
+        if (_currToken != null) { // null only before/after document
+            switch (_currToken.id()) {
+            case ID_PROPERTY_NAME:
+                return _streamReadContext.currentName().length();
+            case ID_STRING:
+                if (_tokenIncomplete) {
+                    _tokenIncomplete = false;
+                    _finishString(); // only strings can be incomplete
+                }
+                // fall through
+            case ID_NUMBER_INT:
+            case ID_NUMBER_FLOAT:
+                return _textBuffer.size();
+            default:
+                return _currToken.asCharArray().length;
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public final int getStringOffset() throws JacksonException
+    {
+        // Most have offset of 0, only some may have other values:
+        if (_currToken != null) {
+            switch (_currToken.id()) {
+            case ID_PROPERTY_NAME:
+                return 0;
+            case ID_STRING:
+                if (_tokenIncomplete) {
+                    _tokenIncomplete = false;
+                    _finishString(); // only strings can be incomplete
+                }
+                // fall through
+            case ID_NUMBER_INT:
+            case ID_NUMBER_FLOAT:
+                return _textBuffer.getTextOffset();
+            default:
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public byte[] getBinaryValue(Base64Variant b64variant) throws JacksonException
+    {
+        if ((_currToken == JsonToken.VALUE_EMBEDDED_OBJECT) && (_binaryValue != null)) {
+            return _binaryValue;
+        }
+        if (_currToken != JsonToken.VALUE_STRING) {
+            _reportError("Current token ("+_currToken+") not VALUE_STRING or VALUE_EMBEDDED_OBJECT, cannot access as binary");
+        }
+        // To ensure that we won't see inconsistent data, better clear up state
+        if (_tokenIncomplete) {
+            try {
+                _binaryValue = _decodeBase64(b64variant);
+            } catch (IllegalArgumentException iae) {
+                throw _constructReadException("Failed to decode VALUE_STRING as base64 (%s): %s",
+                        b64variant, iae.getMessage());
+            }
+            // let's clear incomplete only now; allows for accessing other
+            // textual content in error cases
+            _tokenIncomplete = false;
+        } else { // may actually require conversion...
+            if (_binaryValue == null) {
+                @SuppressWarnings("resource")
+                ByteArrayBuilder builder = _getByteArrayBuilder();
+                _decodeBase64(getString(), builder, b64variant);
+                _binaryValue = builder.toByteArray();
+            }
+        }
+        return _binaryValue;
+    }
+
+    @Override
+    public int readBinaryValue(Base64Variant b64variant, OutputStream out) throws JacksonException
+    {
+        // if we have already read the token, just use whatever we may have
+        if (!_tokenIncomplete || _currToken != JsonToken.VALUE_STRING) {
+            byte[] b = getBinaryValue(b64variant);
+            try {
+                out.write(b);
+            } catch (IOException e) {
+                throw _wrapIOFailure(e);
+            }
+            return b.length;
+        }
+        // otherwise do "real" incremental parsing...
+        byte[] buf = _ioContext.allocBase64Buffer();
+        try {
+            return _readBinary(b64variant, out, buf);
+        } finally {
+            _ioContext.releaseBase64Buffer(buf);
+        }
+    }
+
+    @Override
+    protected int _readBinary(Base64Variant b64variant, OutputStream out, byte[] buffer) throws JacksonException
+    {
+        // Delegate to the new helper class
+        _tokenIncomplete = false; // The decoder will handle the completion
+        return _base64StreamDecoder.decode(b64variant, out, buffer);
+    }
+
+    /*
+    /**********************************************************************
+    /* Public API, traversal
+    /**********************************************************************
+     */
+
+    /*
+    /**********************************************************************
+    /* Base64CharInput implementation
+    /**********************************************************************
+     */
+
+    @Override
+    public char getNextChar() throws JacksonException {
+        if (_inputPtr >= _inputEnd) {
+            _loadMoreGuaranteed();
+        }
+        return _inputBuffer[_inputPtr++];
+    }
+
+    @Override
+    public void pushBackChar() {
+        --_inputPtr;
+    }
+
+    @Override
+    public void reportInvalidBase64Char(Base64Variant b64variant, int ch, int bpt, String msg) throws JacksonException {
+        _reportInvalidBase64Char(b64variant, ch, bpt, msg);
+    }
+
+    @Override
+    public int decodeBase64Escape(Base64Variant b64variant, char ch, int bpt) throws JacksonException {
+        return _decodeBase64Escape(b64variant, ch, bpt);
+    }
+
+    @Override
+    public void handleBase64MissingPadding(Base64Variant b64variant) throws JacksonException {
+        _handleBase64MissingPadding(b64variant);
+    }
+
+    @Override
+    public JacksonException wrapIOFailure(IOException e) {
+        return _wrapIOFailure(e);
+    }
+
+    @Override
+    public IOContext getIOContext() {
+        return _ioContext;
+    }
+
+    @Override
+    public int getSpaceChar() {
+        return INT_SPACE;
+    }
+
+    /**
+     * @return Next token from the stream, if any found, or null
+     *   to indicate end-of-input
+     */
+    @Override
+    public final JsonToken nextToken() throws JacksonException
+    {
+        /* First: Object Property names are special -- we will always tokenize
+         * (part of) value along with the property name to simplify
+         * state handling. If so, can and need to use secondary token:
+         */
+        if (_currToken == JsonToken.PROPERTY_NAME) {
+            return _nextAfterName();
+        }
+        // But if we didn't already have a name, and (partially?) decode number,
+        // need to ensure no numeric information is leaked
+        _numTypesValid = NR_UNKNOWN;
+        if (_tokenIncomplete) {
+            _skipString(); // only strings can be partial
+        }
+        int i = _skipWSOrEnd();
+        if (i < 0) { // end-of-input
+            // Should actually close/release things
+            // like input source, symbol table and recyclable buffers now.
+            close();
+            return _updateTokenToNull();
+        }
+        // clear any data retained so far
+        _binaryValue = null;
+
+        // Closing scope?
+        if ((i | 0x20) == INT_RCURLY) { // ~ '}]'
+            _closeScope(i);
+            return _currToken;
+        }
+
+        // Nope: do we then expect a comma?
+        if (_streamReadContext.expectComma()) {
+            i = _skipComma(i);
+
+            // Was that a trailing comma?
+            if ((_formatReadFeatures & FEAT_MASK_TRAILING_COMMA) != 0) {
+                if ((i | 0x20) == INT_RCURLY) { // ~ '}]'
+                    _closeScope(i);
+                    return _currToken;
+                }
+            }
+        }
+
+        /* And should we now have a name? Always true for Object contexts, since
+         * the intermediate 'expect-value' state is never retained.
+         */
+        boolean inObject = _streamReadContext.inObject();
+        if (inObject) {
+            // First, the property name itself:
+            _updateNameLocation();
+            String name = (i == INT_QUOTE) ? _parseName() : _handleOddName(i);
+            _streamReadContext.setCurrentName(name);
+            _updateToken(JsonToken.PROPERTY_NAME);
+            i = _skipColon();
+        }
+        _updateLocation();
+
+        // Ok: we must have a value... what is it?
+
+        JsonToken t;
+
+        switch (i) {
+        case '"':
+            _tokenIncomplete = true;
+            t = JsonToken.VALUE_STRING;
+            break;
+        case '[':
+            if (!inObject) {
+                createChildArrayContext(_tokenInputRow, _tokenInputCol);
+            }
+            t = JsonToken.START_ARRAY;
+            break;
+        case '{':
+            if (!inObject) {
+                createChildObjectContext(_tokenInputRow, _tokenInputCol);
+            }
+            t = JsonToken.START_OBJECT;
+            break;
+        case '}':
+            // Error: } is not valid at this point; valid closers have
+            // been handled earlier
+            _reportUnexpectedChar(i, "expected a value");
+        case 't':
+            _matchTrue();
+            t = JsonToken.VALUE_TRUE;
+            break;
+        case 'f':
+            _matchFalse();
+            t = JsonToken.VALUE_FALSE;
+            break;
+        case 'n':
+            _matchNull();
+            t = JsonToken.VALUE_NULL;
+            break;
+
+        case '-':
+            t = _parseSignedNumber(true);
+            break;
+        case '+':
+            if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {
+                t = _parseSignedNumber(false);
+            } else {
+                t = _handleOddValue(i);
+            }
+            break;
+        case '.': // [core#61]]
+            t = _parseFloatThatStartsWithPeriod();
+            break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            t = _parseUnsignedNumber(i);
+            break;
+        default:
+            t = _handleOddValue(i);
+            break;
+        }
+
+        if (inObject) {
+            _nextToken = t;
+            return _currToken;
+        }
+        return _updateToken(t);
+    }
+
+    private final JsonToken _nextAfterName() throws JacksonException
+    {
+        _nameCopied = false; // need to invalidate if it was copied
+        JsonToken t = _nextToken;
+        _nextToken = null;
+
+// !!! 16-Nov-2015, tatu: TODO: fix [databind#37], copy next location to current here
+
+        // Also: may need to start new context?
+        if (t == JsonToken.START_ARRAY) {
+            createChildArrayContext(_tokenInputRow, _tokenInputCol);
+        } else if (t == JsonToken.START_OBJECT) {
+            createChildObjectContext(_tokenInputRow, _tokenInputCol);
+        }
+        return _updateToken(t);
+    }
+
+    @Override
+    public void finishToken() throws JacksonException {
+        if (_tokenIncomplete) {
+            _tokenIncomplete = false;
+            _finishString(); // only strings can be incomplete
+        }
+    }
+
+    /*
+    /**********************************************************************
+    /* Public API, nextXxx() overrides
+    /**********************************************************************
+     */
+# ... 2226 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/json/Base64CharInput.java`
+- `src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java`
+- `src/main/java/tools/jackson/core/json/CharOutputTarget.java`
+- `src/main/java/tools/jackson/core/json/DupDetector.java`
+- `src/main/java/tools/jackson/core/json/JsonFactory.java`
+- `src/main/java/tools/jackson/core/json/JsonFactoryBuilder.java`
+- `src/main/java/tools/jackson/core/json/JsonGeneratorBase.java`
+- `src/main/java/tools/jackson/core/json/JsonParserBase.java`
+- `src/main/java/tools/jackson/core/json/JsonReadContext.java`
+- `src/main/java/tools/jackson/core/json/JsonReadFeature.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteContext.java`
+- `src/main/java/tools/jackson/core/json/JsonWriteFeature.java`
+- `src/main/java/tools/jackson/core/json/package-info.java`
+- `src/main/java/tools/jackson/core/json/ReaderBasedBase64StreamDecoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8Base64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputBase64Decoder.java`
+- `src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java`
+- `src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java`
+- `src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedBase64Encoder.java`
+- `src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

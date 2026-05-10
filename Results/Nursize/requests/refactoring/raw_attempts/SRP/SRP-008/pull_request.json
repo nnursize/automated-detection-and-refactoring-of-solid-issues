@@ -1,0 +1,40 @@
+{
+  "issue_id": "SRP-008",
+  "principle": "SRP",
+  "title": "Refactor SRP-008 (SRP): Handles JSON serialization, streamed body management, multipart file encoding...",
+  "branch": "refactor/SRP-008",
+  "base": "main",
+  "head_commit": "178332b19159a5d45228c36e03126748061c76d5",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_body",
+    "entity_type": "method",
+    "line_start": 320,
+    "line_end": 378,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "Handles JSON serialization, streamed body management, multipart file encoding, URL-encoded data, and Content-Type inference.",
+    "reasoning": "This method is a 'god method' for preparing the request body. It has too many reasons to change: 1) Changes in JSON serialization (e.g., `complexjson.dumps` behavior, error handling). 2) Changes in streamed body handling (e.g., `super_len`, `body.tell()`, `Content-Length`/`Transfer-Encoding` logic). 3) Changes in multipart file encoding (delegating to `_encode_files`). 4) Changes in URL-encoded data handling (delegating to `_encode_params`). 5) Changes in how `Content-Type` is inferred and set. Each of these is a distinct responsibility that could evolve independently."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

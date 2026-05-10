@@ -1,0 +1,183 @@
+{
+  "scan_id": "Catch2_OCP_scan_08",
+  "repo_name": "Catch2",
+  "principle": "OCP",
+  "scan_number": 8,
+  "timestamp": "2026-05-02T11:24:55.030953",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following c++ classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyin...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Columns\",\n      \"entity_type\": \"class\",\n      \"line_start\": 69,\n      \"line_end\": 241,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"The 'Columns' class itself does not show a direct OCP violation. Its internal iterator logic uses conditional statements for formatting, but these are not dispatching based on external types.\",\n      \"reasoning\": \"The class primarily handles text wrapping and formatting. While there are if/else statements within its iterator for calculating length and applying indents/suffixes, these are internal logic for a single type of operation (text column formatting), not dispatch points for different external types or strategies. Adding new text formatting strategies would likely involve creating new Column-like classes or modifying parameters, rather than extending a switch/if-else chain within this class.\"\n    },\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Column\",\n      \"entity_type\": \"class\",\n      \"line_start\": 71,\n      \"line_end\": 241,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"The 'Column' class itself does not show a direct OCP violation. Its internal iterator logic uses conditional statements for formatting, but these are not dispatching based on external types.\",\n      \"reasoning\": \"The class primarily handles text wrapping and formatting. While there are if/else statements within its iterator for calculating length and applying indents/suffixes, these are internal logic for a single type of operation (text column formatting), not dispatch points for different external types or strategies. Adding new text formatting strategies would likely involve creating new Column-like classes or modifying parameters, rather than extending a switch/if-else chain within this class.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"TapAssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 11494,\n      \"line_end\": 11658,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.\",\n      \"reasoning\": \"The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_tap.cpp\",\n      \"entity_name\": \"TapAssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 27,\n      \"line_end\": 191,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.\",\n      \"reasoning\": \"The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"AssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 9033,\n      \"line_end\": 9196,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.\",\n      \"reasoning\": \"The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_compact.cpp\",\n      \"entity_name\": \"AssertionPrinter.print\",\n      \"entity_type\": \"method\",\n      \"line_start\": 36,\n      \"line_end\": 199,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.\",\n      \"reasoning\": \"The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"ExprLhs\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5451,\n      \"line_end\": 5605,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"The class uses macros to define operator overloads with `std::enable_if_t` for compile-time type dispatch.\",\n      \"reasoning\": \"While adding entirely new operators would require modifying the class (by adding new macro calls), the design is open for extension regarding new types (`LhsT`, `RhsT`) that can be used with existing operators, as this is handled by template instantiation and SFINAE. This is a form of compile-time polymorphism and is generally considered an acceptable pattern for operator overloading, rather than a runtime OCP violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_decomposer.hpp\",\n      \"entity_name\": \"ExprLhs\",\n      \"entity_type\": \"class\",\n      \"line_start\": 285,\n      \"line_end\": 439,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"The class uses macros to define operator overloads with `std::enable_if_t` for compile-time type dispatch.\",\n      \"reasoning\": \"While adding entirely new operators would require modifying the class (by adding new macro calls), the design is open for extension regarding new types (`LhsT`, `RhsT`) that can be used with existing operators, as this is handled by template instantiation and SFINAE. This is a form of compile-time polymorphism and is generally considered an acceptable pattern for operator overloading, rather than a runtime OCP violation.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter.ConsoleAssertionPrinter\",\n      \"entity_type\": \"method\",\n      \"line_start\": 9278,\n      \"line_end\": 9426,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The constructor uses a large switch statement to initialize properties based on 'result.getResultType()'.\",\n      \"reasoning\": \"The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this constructor will need to be modified to add a new 'case' branch to correctly set 'colour', 'passOrFail', and 'messageLabel'. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own initialization logic.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_console.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter.ConsoleAssertionPrinter\",\n      \"entity_type\": \"method\",\n      \"line_start\": 45,\n      \"line_end\": 193,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The constructor uses a large switch statement to initialize properties based on 'result.getResultType()'.\",\n      \"reasoning\": \"The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this constructor will need to be modified to add a new 'case' branch to correctly set 'colour', 'passOrFail', and 'messageLabel'. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own initialization logic.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IGeneratorTracker\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10653,\n      \"line_end\": 10786,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).\",\n      \"reasoning\": \"IGeneratorTracker is an interface. The `RunContext` class uses `IGeneratorTracker*` and `ITracker*` polymorphically. This design adheres to OCP because new types of generators or trackers can be added by implementing these interfaces without modifying the `RunContext` or the interfaces themselves.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"IGeneratorTracker\",\n      \"entity_type\": \"class\",\n      \"line_start\": 28,\n      \"line_end\": 161,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).\",\n      \"reasoning\": \"IGeneratorTracker is an interface. The `RunContext` class uses `IGeneratorTracker*` and `ITracker*` polymorphically. This design adheres to OCP because new types of generators or trackers can be added by implementing these interfaces without modifying the `RunContext` or the interfaces themselves.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IConfig\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10655,\n      \"line_end\": 10786,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).\",\n      \"reasoning\": \"IConfig is an interface. The `RunContext` class uses `IConfig const*` polymorphically. This design adheres to OCP because new configuration implementations can be added by implementing this interface without modifying the `RunContext` or the interface itself.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"IConfig\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 161,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).\",\n      \"reasoning\": \"IConfig is an interface. The `RunContext` class uses `IConfig const*` polymorphically. This design adheres to OCP because new configuration implementations can be added by implementing this interface without modifying the `RunContext` or the interface itself.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IEventListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10656,\n      \"line_end\": 10786,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).\",\n      \"reasoning\": \"IEventListener is an interface. The `RunContext` class uses `IEventListenerPtr` (a unique_ptr to an IEventListener) polymorphically. This design adheres to OCP because new event listener implementations (reporters) can be added by implementing this interface without modifying the `RunContext` or the interface itself.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Columns",
+      "entity_type": "class",
+      "line_start": 69,
+      "line_end": 241,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "The 'Columns' class itself does not show a direct OCP violation. Its internal iterator logic uses conditional statements for formatting, but these are not dispatching based on external types.",
+      "reasoning": "The class primarily handles text wrapping and formatting. While there are if/else statements within its iterator for calculating length and applying indents/suffixes, these are internal logic for a single type of operation (text column formatting), not dispatch points for different external types or strategies. Adding new text formatting strategies would likely involve creating new Column-like classes or modifying parameters, rather than extending a switch/if-else chain within this class."
+    },
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Column",
+      "entity_type": "class",
+      "line_start": 71,
+      "line_end": 241,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "The 'Column' class itself does not show a direct OCP violation. Its internal iterator logic uses conditional statements for formatting, but these are not dispatching based on external types.",
+      "reasoning": "The class primarily handles text wrapping and formatting. While there are if/else statements within its iterator for calculating length and applying indents/suffixes, these are internal logic for a single type of operation (text column formatting), not dispatch points for different external types or strategies. Adding new text formatting strategies would likely involve creating new Column-like classes or modifying parameters, rather than extending a switch/if-else chain within this class."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "TapAssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 11494,
+      "line_end": 11658,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.",
+      "reasoning": "The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_tap.cpp",
+      "entity_name": "TapAssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 27,
+      "line_end": 191,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.",
+      "reasoning": "The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "AssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 9033,
+      "line_end": 9196,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.",
+      "reasoning": "The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_compact.cpp",
+      "entity_name": "AssertionPrinter.print",
+      "entity_type": "method",
+      "line_start": 36,
+      "line_end": 199,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The 'print' method uses a large switch statement to dispatch behavior based on 'result.getResultType()'.",
+      "reasoning": "The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this method will need to be modified to add a new 'case' branch. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own printing logic via a virtual method."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "ExprLhs",
+      "entity_type": "class",
+      "line_start": 5451,
+      "line_end": 5605,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "The class uses macros to define operator overloads with `std::enable_if_t` for compile-time type dispatch.",
+      "reasoning": "While adding entirely new operators would require modifying the class (by adding new macro calls), the design is open for extension regarding new types (`LhsT`, `RhsT`) that can be used with existing operators, as this is handled by template instantiation and SFINAE. This is a form of compile-time polymorphism and is generally considered an acceptable pattern for operator overloading, rather than a runtime OCP violation."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_decomposer.hpp",
+      "entity_name": "ExprLhs",
+      "entity_type": "class",
+      "line_start": 285,
+      "line_end": 439,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "The class uses macros to define operator overloads with `std::enable_if_t` for compile-time type dispatch.",
+      "reasoning": "While adding entirely new operators would require modifying the class (by adding new macro calls), the design is open for extension regarding new types (`LhsT`, `RhsT`) that can be used with existing operators, as this is handled by template instantiation and SFINAE. This is a form of compile-time polymorphism and is generally considered an acceptable pattern for operator overloading, rather than a runtime OCP violation."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "ConsoleAssertionPrinter.ConsoleAssertionPrinter",
+      "entity_type": "method",
+      "line_start": 9278,
+      "line_end": 9426,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The constructor uses a large switch statement to initialize properties based on 'result.getResultType()'.",
+      "reasoning": "The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this constructor will need to be modified to add a new 'case' branch to correctly set 'colour', 'passOrFail', and 'messageLabel'. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own initialization logic."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_console.cpp",
+      "entity_name": "ConsoleAssertionPrinter.ConsoleAssertionPrinter",
+      "entity_type": "method",
+      "line_start": 45,
+      "line_end": 193,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The constructor uses a large switch statement to initialize properties based on 'result.getResultType()'.",
+      "reasoning": "The 'switch' statement on 'ResultWas::OfType' means that if a new assertion result type is introduced, this constructor will need to be modified to add a new 'case' branch to correctly set 'colour', 'passOrFail', and 'messageLabel'. This directly violates the Open/Closed Principle, as the class is not closed for modification with respect to new result types. A more OCP-compliant design would involve polymorphic dispatch, where each 'ResultWas' type is represented by a distinct object that handles its own initialization logic."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IGeneratorTracker",
+      "entity_type": "class",
+      "line_start": 10653,
+      "line_end": 10786,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).",
+      "reasoning": "IGeneratorTracker is an interface. The `RunContext` class uses `IGeneratorTracker*` and `ITracker*` polymorphically. This design adheres to OCP because new types of generators or trackers can be added by implementing these interfaces without modifying the `RunContext` or the interfaces themselves."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "IGeneratorTracker",
+      "entity_type": "class",
+      "line_start": 28,
+      "line_end": 161,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).",
+      "reasoning": "IGeneratorTracker is an interface. The `RunContext` class uses `IGeneratorTracker*` and `ITracker*` polymorphically. This design adheres to OCP because new types of generators or trackers can be added by implementing these interfaces without modifying the `RunContext` or the interfaces themselves."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IConfig",
+      "entity_type": "class",
+      "line_start": 10655,
+      "line_end": 10786,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).",
+      "reasoning": "IConfig is an interface. The `RunContext` class uses `IConfig const*` polymorphically. This design adheres to OCP because new configuration implementations can be added by implementing this interface without modifying the `RunContext` or the interface itself."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "IConfig",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 161,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).",
+      "reasoning": "IConfig is an interface. The `RunContext` class uses `IConfig const*` polymorphically. This design adheres to OCP because new configuration implementations can be added by implementing this interface without modifying the `RunContext` or the interface itself."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IEventListener",
+      "entity_type": "class",
+      "line_start": 10656,
+      "line_end": 10786,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Interface classes inherently support OCP by being open for extension (new implementations) and closed for modification (the interface itself).",
+      "reasoning": "IEventListener is an interface. The `RunContext` class uses `IEventListenerPtr` (a unique_ptr to an IEventListener) polymorphically. This design adheres to OCP because new event listener implementations (reporters) can be added by implementing this interface without modifying the `RunContext` or the interface itself."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 32839.21575546265,
+  "error": null
+}

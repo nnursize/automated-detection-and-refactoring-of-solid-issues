@@ -1,0 +1,100 @@
+{
+  "issue_id": "DIP-003",
+  "principle": "DIP",
+  "title": "Refactor DIP-003 (DIP): High-level Request object directly instantiates a concrete PreparedRequest.",
+  "branch": "refactor/DIP-003",
+  "base": "main",
+  "head_commit": "f3b44f9283ed3f26a9bfb8c8a3acf3b8f9095e77",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10195,
+    "completion_tokens": 235
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "Request.prepare",
+    "entity_type": "method",
+    "line_start": 130,
+    "line_end": 130,
+    "severity": "high",
+    "scan_count": 8,
+    "description": "High-level Request object directly instantiates a concrete PreparedRequest.",
+    "reasoning": "The `Request` class, representing a user's high-level HTTP request, directly instantiates `PreparedRequest` within its `prepare` method. This creates a tight coupling between the abstract concept of a `Request` and the concrete implementation of how it is prepared for transmission. DIP suggests that `Request` should depend on an abstraction for request preparation (e.g., an `IRequestPreparer` interface) rather than a concrete `PreparedRequest` class, allowing for more flexible and testable preparation strategies."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject PreparedRequest class into Request.prepare to decouple instantiation",
+    "rationale": "By allowing the PreparedRequest class to be passed as an argument (with a default value), we invert the dependency, allowing for easier testing and substitution of the preparation logic without hard-coding the concrete class inside the Request object.",
+    "files_touched": [
+      "src/requests/models.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/models.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/models.py",
+        "search_text": "    def prepare(self):\n        \"\"\"Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it.\"\"\"\n        p = PreparedRequest()\n        p.prepare(\n            method=self.method,",
+        "replace_text": "    def prepare(self, prepared_request_class=None):\n        \"\"\"Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it.\"\"\"\n        if prepared_request_class is None:\n            prepared_request_class = PreparedRequest\n\n        p = prepared_request_class()\n        p.prepare(\n            method=self.method,",
+        "search_lines": 5,
+        "replace_lines": 8
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165662.3318195343,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [WinError 10054] An existing connection was forcibly closed by the remote host\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.84s (0:02:44)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 763,
+        "blank_lines": 193,
+        "comment_lines": 99,
+        "function_count": 51,
+        "avg_cc": 3.86,
+        "max_cc": 19.0,
+        "mi": 20.36
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 765,
+        "blank_lines": 194,
+        "comment_lines": 99,
+        "function_count": 51,
+        "avg_cc": 3.88,
+        "max_cc": 19.0,
+        "mi": 20.13
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/models.py b/src/requests/models.py\nindex 5d97b63..9d14d8c 100644\n--- a/src/requests/models.py\n+++ b/src/requests/models.py\n@@ -301,9 +301,12 @@ class Request(RegisterOnlyHooksMixin):\n     def __repr__(self):\n         return f\"<Request [{self.method}]>\"\n \n-    def prepare(self):\n+    def prepare(self, prepared_request_class=None):\n         \"\"\"Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it.\"\"\"\n-        p = PreparedRequest()\n+        if prepared_request_class is None:\n+            prepared_request_class = PreparedRequest\n+\n+        p = prepared_request_class()\n         p.prepare(\n             method=self.method,\n             url=self.url,\n",
+  "duration_ms": 167662.7118587494
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "logstash-core/lib/logstash/java_pipeline.rb",
+    "entity_name": "LogStash::JavaPipeline.filter",
+    "entity_type": "method",
+    "line_start": 366,
+    "line_end": 367,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Method implemented as empty for backward compatibility, suggesting a fat implicit interface.",
+    "reasoning": "The comment explicitly states 'this method is not used anymore and just here to not break TestPipeline that inherits this class.' This indicates that LogStash::JavaPipeline is forced to implement a method (or inherit an expectation for it) that it doesn't need for its own functionality, solely to satisfy a client (TestPipeline). This is a direct violation of ISP, as the client (TestPipeline) is forced to depend on an interface that includes unnecessary methods."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/java_pipeline.rb",
+    "entity_name": "LogStash::JavaPipeline.flush_filters",
+    "entity_type": "method",
+    "line_start": 370,
+    "line_end": 371,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Method implemented as empty for backward compatibility, suggesting a fat implicit interface.",
+    "reasoning": "Similar to the 'filter' method, this method is explicitly marked as 'not used anymore and just here to not break TestPipeline that inherits this class.' This indicates that LogStash::JavaPipeline is forced to implement a method that it doesn't need, to satisfy a client (TestPipeline). This is a clear ISP violation, as TestPipeline is forced to depend on an interface that includes unnecessary methods."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/config/config_ast.rb",
+    "entity_name": "LogStash::Config::AST::ComparisonExpression",
+    "entity_type": "class",
+    "line_start": 302,
+    "line_end": 302,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Module is empty but other similar AST nodes implement a 'compile' method.",
+    "reasoning": "Other AST expression nodes like `InExpression` and `RegexpExpression` implement a `compile` method. The `ComparisonExpression` module is empty, implying it is part of a broader implicit interface for AST expression nodes that it does not fully implement. This forces any client that expects all AST expression nodes to implement `compile` to depend on a fat interface."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "co.elastic.logstash.api.Event",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 40,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The 'Event' interface is a fat interface combining many responsibilities.",
+    "reasoning": "The `co.elastic.logstash.api.Event` interface includes methods for data access (`getData`, `getField`), metadata access (`getMetadata`), lifecycle (`cancel`, `uncancel`, `isCancelled`), timestamp management (`getEventTimestamp`, `setEventTimestamp`), manipulation (`setField`, `remove`, `overwrite`, `append`, `tag`), and cloning (`clone`). This wide range of responsibilities means that any client needing only a subset of these functionalities (e.g., just reading data) is forced to depend on and potentially mock/implement methods it doesn't use, violating ISP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "org.logstash.secret.store.SecretStore",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 45,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The 'SecretStore' interface combines management, query, and persistence operations.",
+    "reasoning": "The `SecretStore` interface includes methods for creating/deleting the store (`create`, `delete`), loading (`load`), listing/checking secrets (`list`, `containsSecret`), and persisting/retrieving/purging individual secrets (`persistSecret`, `retrieveSecret`, `purgeSecret`). A client that only needs to read secrets (e.g., for configuration expansion) is forced to depend on methods for modifying the store or secrets, which it does not use. This makes the interface fat for such clients."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+    "entity_name": "org.logstash.ackedqueue.io.PageIO",
+    "entity_type": "class",
+    "line_start": 27,
+    "line_end": 27,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The 'PageIO' interface is a fat interface mixing I/O, lifecycle, and state query methods.",
+    "reasoning": "The `PageIO` interface defines a very broad set of operations including opening/closing (`open`, `close`), reading/writing data (`read`, `write`), lifecycle management (`create`, `deactivate`, `activate`, `purge`, `recover`), persistence (`ensurePersisted`), and state queries (`getCapacity`, `getMinSeqNum`, `getElementCount`, `hasSpace`, `persistedByteCount`, `getHead`, `isCorruptedPage`). Clients interacting with a page might only need a subset of these methods (e.g., a reader client only needs read-related methods, a writer client only needs write-related methods). Forcing all clients to depend on all these methods violates ISP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "org.logstash.ackedqueue.io.MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 32,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class implements 'PageIO' but throws UnsupportedOperationException for several methods.",
+    "reasoning": "The `MmapPageIOV1` class implements `PageIO` but explicitly throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`, and `hasSpace()`. This is a classic violation of ISP, as the class is forced to depend on methods it does not support or use, indicating that the `PageIO` interface is too broad for `MmapPageIOV1`'s specific purpose (reading V1 pages for upgrade, not writing or full management)."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "org.logstash.plugins.factory.RubyIntegration.PluginFactory",
+    "entity_type": "class",
+    "line_start": 21,
+    "line_end": 21,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The 'PluginFactory' interface combines factory methods for different plugin types and codec builders.",
+    "reasoning": "The `RubyIntegration.PluginFactory` interface defines methods to build different types of plugins (`buildInput`, `buildOutput`, `buildFilter`, `buildCodec`) as well as specific codec builders (`buildDefaultCodec`, `buildRubyCodecWrapper`). A client that only needs to instantiate, for example, filter plugins, is forced to depend on methods for building inputs, outputs, or codecs, which it does not use. This makes the interface fat for clients with specific plugin instantiation needs, violating ISP."
+  }
+]

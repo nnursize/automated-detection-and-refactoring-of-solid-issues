@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-016",
+  "principle": "DIP",
+  "title": "Refactor DIP-016 (DIP): Abstract base class depends on a concrete context implementation.",
+  "branch": "refactor/DIP-016",
+  "base": "main",
+  "head_commit": "ad97fd088b013aa530f0a76273739381cb67c8cd",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5870,
+    "completion_tokens": 387
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/JsonParserBase.java",
+    "entity_name": "JsonParserBase",
+    "entity_type": "class",
+    "line_start": 74,
+    "line_end": 80,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Abstract base class depends on a concrete context implementation.",
+    "reasoning": "The abstract class JsonParserBase directly instantiates and depends on the concrete class JsonReadContext via the call to JsonReadContext.createRootContext(dups). This violates DIP as the high-level abstraction (JsonParserBase) depends on a low-level implementation detail (JsonReadContext) instead of an abstraction."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject JsonReadContext factory into JsonParserBase to decouple from concrete implementation",
+    "rationale": "JsonParserBase was directly instantiating JsonReadContext. By introducing a protected abstract method to create the root context, subclasses can provide the specific implementation, adhering to the Dependency Inversion Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/JsonParserBase.java",
+        "loc": 371,
+        "blank_lines": 47,
+        "comment_lines": 33,
+        "function_count": 23,
+        "avg_cc": 3.48,
+        "max_cc": 58.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2209.106922149658
+}

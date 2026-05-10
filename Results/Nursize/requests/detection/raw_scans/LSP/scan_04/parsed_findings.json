@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "requests/src/requests/structures.py",
+    "entity_name": "LookupDict.__getitem__",
+    "entity_type": "method",
+    "line_start": 108,
+    "line_end": 112,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass overrides dict.__getitem__ to return None instead of raising KeyError.",
+    "reasoning": "The LookupDict class inherits from the built-in dict. The standard contract for dict.__getitem__ is to raise a KeyError when a key is missing. By overriding this to return None, LookupDict violates the expectations of any code that treats it as a standard dictionary (e.g., code using try-except KeyError blocks), thus breaking substitutability."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "method",
+    "line_start": 400,
+    "line_end": 406,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass raises an unexpected exception type (CookieConflictError) for a standard Mapping operation.",
+    "reasoning": "RequestsCookieJar inherits from MutableMapping. The Mapping contract specifies that __getitem__ should return a value or raise a KeyError. By raising a custom CookieConflictError (which inherits from RuntimeError), it introduces a new failure mode that callers of the base Mapping interface would not be prepared to handle, violating the principle that subtypes should not raise exceptions not defined by the base type."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 92,
+    "line_end": 96,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Refused Bequest smell: Subclass nullifies a method from the interface it mimics.",
+    "reasoning": "MockRequest is explicitly documented to mimic urllib2.Request. However, it overrides add_header to raise a NotImplementedError. This is a Refused Bequest smell; if a component (like http.cookiejar) expects the urllib2.Request interface and calls add_header, the program will crash, meaning MockRequest is not a valid substitute for the type it mimics."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth.__call__",
+    "entity_type": "method",
+    "line_start": 95,
+    "line_end": 98,
+    "principle": "LSP",
+    "severity": "low",
+    "description": "Subclass changes the side-effect behavior of the parent class method.",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth. While HTTPBasicAuth.__call__ is expected to attach an 'Authorization' header to the request, HTTPProxyAuth overrides this to attach a 'Proxy-Authorization' header instead. If a consumer expects an HTTPBasicAuth instance to provide server-level authentication, substituting it with HTTPProxyAuth will result in different, unexpected behavior (authenticating with a proxy instead of the target server)."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.set",
+    "entity_type": "method",
+    "line_start": 324,
+    "line_end": 341,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass changes the expected behavior of assignment in a MutableMapping.",
+    "reasoning": "In RequestsCookieJar (which implements MutableMapping via __setitem__ calling set), assigning None to a key (jar[name] = None) results in the deletion of the cookie rather than storing the value None. This violates the postconditions of the MutableMapping contract where a set operation is expected to result in the key being present with the assigned value."
+  }
+]

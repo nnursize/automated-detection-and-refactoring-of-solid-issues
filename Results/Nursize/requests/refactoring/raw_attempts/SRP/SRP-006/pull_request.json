@@ -1,0 +1,40 @@
+{
+  "issue_id": "SRP-006",
+  "principle": "SRP",
+  "title": "Refactor SRP-006 (SRP): Combines URL path construction with two distinct data encoding responsibiliti...",
+  "branch": "refactor/SRP-006",
+  "base": "main",
+  "head_commit": "178332b19159a5d45228c36e03126748061c76d5",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "RequestEncodingMixin",
+    "entity_type": "class",
+    "line_start": 50,
+    "line_end": 134,
+    "severity": "medium",
+    "scan_count": 7,
+    "description": "Combines URL path construction with two distinct data encoding responsibilities (URL parameters and multipart files).",
+    "reasoning": "This mixin includes `path_url` (URL path construction), `_encode_params` (URL-encoded parameter serialization), and `_encode_files` (multipart/form-data serialization). While both `_encode_params` and `_encode_files` are about 'encoding', they handle fundamentally different data formats and involve distinct logic (simple key-value encoding vs. complex file handling, content-type inference, filename guessing). A change in URL parameter encoding would not affect multipart file encoding, and vice-versa, indicating separate responsibilities."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}
