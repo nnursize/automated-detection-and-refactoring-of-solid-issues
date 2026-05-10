@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getBinaryValue",
+    "entity_type": "class",
+    "line_start": 333,
+    "line_end": 355,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass changes the contract of getBinaryValue by throwing a checked JacksonException instead of returning null for invalid tokens.",
+    "reasoning": "The base class JsonParser defines getBinaryValue which implies a contract where it might return null or throw specific exceptions. By explicitly reporting an error via _reportError (which throws a checked exception) when the current token is not VALUE_STRING or VALUE_EMBEDDED_OBJECT, the subclass restricts the caller's ability to handle unexpected tokens gracefully compared to what the base class contract might suggest."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator.writeRawUTF8String",
+    "entity_type": "class",
+    "line_start": 444,
+    "line_end": 448,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass violates LSP by throwing UnsupportedOperationException for a method defined in the base contract.",
+    "reasoning": "The JsonGenerator (base) class defines writeRawUTF8String as an abstract method, implying it is part of the contract for all generators. The UTF8JsonGenerator implementation throws an UnsupportedOperationException, meaning it is not substitutable for a general JsonGenerator where this method is expected to work."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+    "entity_type": "class",
+    "line_start": 490,
+    "line_end": 493,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass violates LSP by throwing UnsupportedOperationException for a method defined in the base contract.",
+    "reasoning": "Similar to UTF8JsonGenerator, the WriterBasedJsonGenerator implements JsonGenerator (via JsonGeneratorBase) and provides a non-functional implementation (UnsupportedOperationException) for writeRawUTF8String, breaking the behavioral contract expected by consumers of the base class."
+  }
+]

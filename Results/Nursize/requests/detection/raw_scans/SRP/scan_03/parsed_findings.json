@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "method",
+    "line_start": 98,
+    "line_end": 161,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Calculates content length using disparate mechanisms for various object types.",
+    "reasoning": "The `super_len` function has multiple reasons to change. It incorporates logic for determining length from: 1) `__len__` or `.len` attributes, 2) file system metadata via `fileno()` and `os.fstat`, 3) stream positioning via `tell()` and `seek()`, and 4) string encoding based on `urllib3` version. It also issues a `FileModeWarning`. Each of these represents a distinct concern and a separate reason for modification (e.g., changes in file I/O, string encoding, or stream API)."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "extract_zipped_paths",
+    "entity_type": "method",
+    "line_start": 178,
+    "line_end": 208,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Performs path validation, zip archive detection, content lookup, and atomic extraction to a temporary location.",
+    "reasoning": "This function is responsible for several distinct concerns: 1) checking if a path exists, 2) parsing a path to identify a potential zip archive and member, 3) determining if a file is a valid zip archive, 4) listing members within a zip archive, 5) extracting a specific member, and 6) writing the extracted file atomically to a temporary location. Changes to zip file handling, path parsing, or temporary file management would all require modifying this single function."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "requote_uri",
+    "entity_type": "method",
+    "line_start": 334,
+    "line_end": 349,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Applies one URI quoting strategy, and falls back to a different one upon failure.",
+    "reasoning": "The `requote_uri` function attempts to apply a specific quoting strategy (`unquote_unreserved` then `quote` with `safe_with_percent`). If this fails due to an `InvalidURL` exception, it then applies a different, more aggressive quoting strategy (`quote` with `safe_without_percent`). This means the function has two distinct reasons to change: if the primary quoting logic changes, or if the fallback quoting logic changes, or if the condition for falling back needs adjustment."
+  }
+]

@@ -1,0 +1,74 @@
+{
+  "issue_id": "ISP-001",
+  "principle": "ISP",
+  "title": "Refactor ISP-001 (ISP): The MockRequest class is forced to implement add_header but explicitly raises...",
+  "branch": "refactor/ISP-001",
+  "base": "main",
+  "head_commit": "2de64a995585a0d6c740cb951d8eee572aa200f6",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "patch applied but produced no net source changes; the LLM replacement was likely identical to the matched text",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6105,
+    "completion_tokens": 189
+  },
+  "detected_issue": {
+    "file_path": "src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 49,
+    "line_end": 51,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "The MockRequest class is forced to implement add_header but explicitly raises NotImplementedError.",
+    "reasoning": "The `MockRequest` class is designed to mimic the interface of `urllib2.Request` for `http.cookiejar.CookieJar`. However, `MockRequest`'s internal design for handling headers (collecting new headers via `add_unredirected_header`) means it does not legitimately use or need the `add_header` method. By raising `NotImplementedError`, `MockRequest` signals that it is forced to depend on a method from a broader interface (`urllib2.Request`'s expected interface) that is irrelevant to its specific responsibilities, thus violating the Interface Segregation Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove unused add_header method from MockRequest",
+    "rationale": "The MockRequest class was implementing add_header only to raise NotImplementedError, which violates the Interface Segregation Principle. Since the class manages headers via add_unredirected_header and does not require add_header, removing it cleans up the interface.",
+    "files_touched": [
+      "src/requests/cookies.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/cookies.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/cookies.py",
+        "search_text": "    def add_unredirected_header(self, name, value):\n        self._new_headers[name] = value\n\n    def get_new_headers(self):",
+        "replace_text": "    def add_unredirected_header(self, name, value):\n        self._new_headers[name] = value\n\n    def get_new_headers(self):",
+        "search_lines": 4,
+        "replace_lines": 4
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/cookies.py",
+        "loc": 436,
+        "blank_lines": 109,
+        "comment_lines": 12,
+        "function_count": 48,
+        "avg_cc": 2.42,
+        "max_cc": 9.0,
+        "mi": 39.73
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 4524.411916732788
+}

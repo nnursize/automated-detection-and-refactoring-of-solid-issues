@@ -1,0 +1,64 @@
+diff --git a/gson/src/main/java/com/google/gson/GsonBuilder.java b/gson/src/main/java/com/google/gson/GsonBuilder.java
+index c7da8ab..6503100 100644
+--- a/gson/src/main/java/com/google/gson/GsonBuilder.java
++++ b/gson/src/main/java/com/google/gson/GsonBuilder.java
+@@ -106,44 +106,33 @@ public final class GsonBuilder {
+   private static final ToNumberStrategy DEFAULT_NUMBER_TO_NUMBER_STRATEGY =
+       ToNumberPolicy.LAZILY_PARSED_NUMBER;
+ 
+-  static final ConstructorConstructor DEFAULT_CONSTRUCTOR_CONSTRUCTOR =
+-      new ConstructorConstructor(
+-          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());
+-
+-  static final JsonAdapterAnnotationTypeAdapterFactory
+-      DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY =
+-          new JsonAdapterAnnotationTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR);
+-
+-  /**
+-   * Default instance of the builder, to be used only by the default {@link Gson#Gson()}
+-   * constructor. Must not be used for anything else and must not be leaked to user code, since that
+-   * could lead to accidental modification of this default builder.
+-   */
+-  static final GsonBuilder DEFAULT = new GsonBuilder();
+-
+-  static final List<TypeAdapterFactory> DEFAULT_TYPE_ADAPTER_FACTORIES =
+-      GsonBuilder.DEFAULT.createFactories(
+-          DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);
+-
+   private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();
+ 
+   static {
+     BUILT_IN_FACTORY_PROVIDERS.add(factories -> {
+       factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
+-      factories.add(ObjectTypeAdapter.getFactory(DEFAULT.objectToNumberStrategy));
++      factories.add(ObjectTypeAdapter.getFactory(ToNumberPolicy.DOUBLE));
+     });
+     BUILT_IN_FACTORY_PROVIDERS.add(factories -> {
+-      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));
+-      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));
+-      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);
++      ConstructorConstructor constructorConstructor = new ConstructorConstructor(
++          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());
++      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory =
++          new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);
++      factories.add(new CollectionTypeAdapterFactory(constructorConstructor));
++      factories.add(new MapTypeAdapterFactory(constructorConstructor, DEFAULT_COMPLEX_MAP_KEYS));
++      factories.add(jsonAdapterFactory);
+       factories.add(TypeAdapters.ENUM_FACTORY);
+     });
+     BUILT_IN_FACTORY_PROVIDERS.add(factories -> {
++      ConstructorConstructor constructorConstructor = new ConstructorConstructor(
++          Collections.emptyMap(), DEFAULT_USE_JDK_UNSAFE, Collections.emptyList());
++      JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory =
++          new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);
+       factories.add(new ReflectiveTypeAdapterFactory(
+-          DEFAULT_CONSTRUCTOR_CONSTRUCTOR,
+-          DEFAULT.fieldNamingPolicy,
++          constructorConstructor,
++          DEFAULT_FIELD_NAMING_STRATEGY,
+           Excluder.DEFAULT,
+-          DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY,
++          jsonAdapterFactory,
+           Collections.emptyList()));
+     });
+   }

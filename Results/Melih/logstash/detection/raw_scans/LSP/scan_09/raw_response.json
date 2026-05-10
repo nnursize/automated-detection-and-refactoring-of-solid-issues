@@ -1,0 +1,73 @@
+{
+  "scan_id": "logstash_LSP_scan_09",
+  "repo_name": "logstash",
+  "principle": "LSP",
+  "scan_number": 9,
+  "timestamp": "2026-04-19T15:31:55.109366",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Liskov Substitution Principle (LSP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a s...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.isShutdownRequested\",\n      \"entity_type\": \"method\",\n      \"line_start\": 910,\n      \"line_end\": 913,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype throws IllegalStateException for a method that clients might expect to return a functional value.\",\n      \"reasoning\": \"The `isShutdownRequested` method in `AbstractPipelineExt` throws an `IllegalStateException` indicating it 'MUST be implemented' by concrete subclasses. A client holding a reference to `AbstractPipelineExt` and calling this method would expect a meaningful `IRubyObject` (e.g., a boolean true/false), not an exception indicating an unimplemented state. This violates LSP as the subtype is not substitutable for the base type without altering program correctness (i.e., by unexpectedly throwing a runtime exception instead of fulfilling the method's implied contract).\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter.close\",\n      \"entity_type\": \"method\",\n      \"line_start\": 412,\n      \"line_end\": 427,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype suppresses IOException declared by the Closeable interface, changing the exception contract.\",\n      \"reasoning\": \"The `DeadLetterQueueWriter` class implements the `Closeable` interface, which declares `void close() throws IOException`. However, `DeadLetterQueueWriter.close()` catches `Exception` (including `IOException`) and logs a warning without rethrowing it. This alters the method's exception contract, as clients expecting to handle `IOException` from `Closeable.close()` will not receive it. This violates LSP by changing the postcondition regarding error propagation, potentially masking critical resource release failures and leading to unhandled issues in calling code.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.overwrite\",\n      \"entity_type\": \"method\",\n      \"line_start\": 361,\n      \"line_end\": 366,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Method returns the argument unchanged instead of modifying the receiver or returning a modified receiver when the argument is not a specific subtype.\",\n      \"reasoning\": \"The `overwrite(co.elastic.logstash.api.Event e)` method is expected to overwrite the current `Event` instance (`this`) with the contents of `e`. However, if `e` is not an instance of `org.logstash.Event`, the method simply returns `e` unmodified, leaving `this` event untouched. This violates LSP because the method's postcondition (that `this` event is overwritten) is not met for all valid subtypes of `co.elastic.logstash.api.Event`, altering the correctness of programs that rely on polymorphic behavior.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.append\",\n      \"entity_type\": \"method\",\n      \"line_start\": 368,\n      \"line_end\": 373,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Method returns the argument unchanged instead of modifying the receiver or returning a modified receiver when the argument is not a specific subtype.\",\n      \"reasoning\": \"Similar to `overwrite`, the `append(co.elastic.logstash.api.Event e)` method is expected to append the contents of `e` to the current `Event` instance (`this`). If `e` is not an instance of `org.logstash.Event`, the method returns `e` unmodified, leaving `this` event untouched. This violates LSP because the method's postcondition (that `e`'s content is appended to `this`) is not met for all valid subtypes of `co.elastic.logstash.api.Event`, leading to incorrect program behavior when used polymorphically.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\",\n      \"entity_name\": \"DatasetCompiler.Complement.compute\",\n      \"entity_type\": \"method\",\n      \"line_start\": 512,\n      \"line_end\": 521,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subtype silently swallows a ConditionalEvaluationError, altering expected error propagation.\",\n      \"reasoning\": \"The `compute` method in `DatasetCompiler.Complement` catches `ConditionalEvaluationError` but does not rethrow it or provide any explicit error handling beyond returning the `data` collection. If the `Dataset` interface contract implies that computational errors should be propagated (e.g., by rethrowing, wrapping in a declared exception, or indicating failure in the return value), then silently swallowing this exception violates LSP. This can mask underlying issues, lead to unexpected program flow, and make debugging difficult, as clients might not be aware that a condition evaluation failed.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.isShutdownRequested",
+      "entity_type": "method",
+      "line_start": 910,
+      "line_end": 913,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype throws IllegalStateException for a method that clients might expect to return a functional value.",
+      "reasoning": "The `isShutdownRequested` method in `AbstractPipelineExt` throws an `IllegalStateException` indicating it 'MUST be implemented' by concrete subclasses. A client holding a reference to `AbstractPipelineExt` and calling this method would expect a meaningful `IRubyObject` (e.g., a boolean true/false), not an exception indicating an unimplemented state. This violates LSP as the subtype is not substitutable for the base type without altering program correctness (i.e., by unexpectedly throwing a runtime exception instead of fulfilling the method's implied contract)."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter.close",
+      "entity_type": "method",
+      "line_start": 412,
+      "line_end": 427,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype suppresses IOException declared by the Closeable interface, changing the exception contract.",
+      "reasoning": "The `DeadLetterQueueWriter` class implements the `Closeable` interface, which declares `void close() throws IOException`. However, `DeadLetterQueueWriter.close()` catches `Exception` (including `IOException`) and logs a warning without rethrowing it. This alters the method's exception contract, as clients expecting to handle `IOException` from `Closeable.close()` will not receive it. This violates LSP by changing the postcondition regarding error propagation, potentially masking critical resource release failures and leading to unhandled issues in calling code."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.overwrite",
+      "entity_type": "method",
+      "line_start": 361,
+      "line_end": 366,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Method returns the argument unchanged instead of modifying the receiver or returning a modified receiver when the argument is not a specific subtype.",
+      "reasoning": "The `overwrite(co.elastic.logstash.api.Event e)` method is expected to overwrite the current `Event` instance (`this`) with the contents of `e`. However, if `e` is not an instance of `org.logstash.Event`, the method simply returns `e` unmodified, leaving `this` event untouched. This violates LSP because the method's postcondition (that `this` event is overwritten) is not met for all valid subtypes of `co.elastic.logstash.api.Event`, altering the correctness of programs that rely on polymorphic behavior."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.append",
+      "entity_type": "method",
+      "line_start": 368,
+      "line_end": 373,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Method returns the argument unchanged instead of modifying the receiver or returning a modified receiver when the argument is not a specific subtype.",
+      "reasoning": "Similar to `overwrite`, the `append(co.elastic.logstash.api.Event e)` method is expected to append the contents of `e` to the current `Event` instance (`this`). If `e` is not an instance of `org.logstash.Event`, the method returns `e` unmodified, leaving `this` event untouched. This violates LSP because the method's postcondition (that `e`'s content is appended to `this`) is not met for all valid subtypes of `co.elastic.logstash.api.Event`, leading to incorrect program behavior when used polymorphically."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+      "entity_name": "DatasetCompiler.Complement.compute",
+      "entity_type": "method",
+      "line_start": 512,
+      "line_end": 521,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subtype silently swallows a ConditionalEvaluationError, altering expected error propagation.",
+      "reasoning": "The `compute` method in `DatasetCompiler.Complement` catches `ConditionalEvaluationError` but does not rethrow it or provide any explicit error handling beyond returning the `data` collection. If the `Dataset` interface contract implies that computational errors should be propagated (e.g., by rethrowing, wrapping in a declared exception, or indicating failure in the return value), then silently swallowing this exception violates LSP. This can mask underlying issues, lead to unexpected program flow, and make debugging difficult, as clients might not be aware that a condition evaluation failed."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 42284.061670303345,
+  "error": null
+}

@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-004",
+  "principle": "ISP",
+  "title": "Refactor ISP-004 (ISP): IEventListener interface has too many methods, potentially forcing implementa...",
+  "branch": "refactor/ISP-004",
+  "base": "main",
+  "head_commit": "4e2fc2dad834aa20fef855b5c3f9c851106412f3",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3160,
+    "completion_tokens": 111
+  },
+  "detected_issue": {
+    "file_path": "src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "IEventListener",
+    "entity_type": "class",
+    "line_start": 31,
+    "line_end": 161,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.",
+    "reasoning": "The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Give up on ISP refactoring for IEventListener due to high complexity and risk of breaking public API.",
+    "rationale": "The IEventListener interface is a core component of Catch2's reporter system. Splitting it into smaller interfaces would require significant changes to the entire reporter infrastructure, including all existing reporter implementations, which would break the public API and violate the constraint of preserving existing behavior without massive, high-risk refactoring.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/catch2/internal/catch_run_context.hpp",
+        "loc": 116,
+        "blank_lines": 35,
+        "comment_lines": 16,
+        "function_count": 0,
+        "avg_cc": 12.0,
+        "max_cc": 12.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 1671.5199947357178
+}

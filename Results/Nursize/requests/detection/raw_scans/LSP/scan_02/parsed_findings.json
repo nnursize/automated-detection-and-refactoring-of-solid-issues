@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "requests/src/requests/structures.py",
+    "entity_name": "LookupDict.__getitem__",
+    "entity_type": "method",
+    "line_start": 101,
+    "line_end": 104,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass overrides __getitem__ to return None instead of raising KeyError",
+    "reasoning": "LookupDict inherits from the built-in dict class. The standard contract for dict.__getitem__ is to raise a KeyError when a key is missing. LookupDict violates this contract by returning None, which breaks substitutability for any client code relying on standard dictionary error handling for flow control or data integrity."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "method",
+    "line_start": 294,
+    "line_end": 301,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass raises a custom exception not defined in the base Mapping interface",
+    "reasoning": "RequestsCookieJar implements the MutableMapping interface. The contract for Mapping.__getitem__ specifies that it should return a value or raise a KeyError. RequestsCookieJar introduces CookieConflictError when multiple cookies match a name, which is an unexpected exception type for callers of the standard Mapping interface, violating the principle that subtypes should not raise new exceptions not raised by the parent."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__setitem__",
+    "entity_type": "method",
+    "line_start": 303,
+    "line_end": 307,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass changes the behavior of assignment to delete keys on None value",
+    "reasoning": "In a standard MutableMapping, assigning a value to a key (jar[key] = value) is expected to store that value. RequestsCookieJar overrides this behavior so that assigning None actually deletes the key. This unexpected side effect violates the postconditions of the base interface contract."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__delitem__",
+    "entity_type": "method",
+    "line_start": 309,
+    "line_end": 312,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass nullifies the required exception behavior for missing keys",
+    "reasoning": "The MutableMapping interface requires that __delitem__ raise a KeyError if the key being deleted is not present in the mapping. RequestsCookieJar suppresses this behavior by calling remove_cookie_by_name, which fails silently if the cookie is missing, thus weakening the preconditions/contract of the base type."
+  },
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth.__call__",
+    "entity_type": "method",
+    "line_start": 101,
+    "line_end": 103,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass modifies a different header than its parent class, breaking expected side effects",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth. While HTTPBasicAuth is expected to set the 'Authorization' header, HTTPProxyAuth overrides the __call__ method to set the 'Proxy-Authorization' header instead. Because it inherits from HTTPBasicAuth rather than AuthBase directly, it fails to fulfill the specific contract of its parent class (setting the standard Auth header), making it non-substitutable in contexts expecting Basic Authentication behavior."
+  }
+]

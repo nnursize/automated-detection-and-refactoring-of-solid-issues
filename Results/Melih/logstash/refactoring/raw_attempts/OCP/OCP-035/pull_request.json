@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-035",
+  "principle": "OCP",
+  "title": "Refactor OCP-035 (OCP): The `validateVersion` method likely contains type-checking logic that violate...",
+  "branch": "refactor/OCP-035",
+  "base": "main",
+  "head_commit": "a063c8de752d07f5453520edcc5abdcd3f8c0edb",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4372,
+    "completion_tokens": 401
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1.validateVersion",
+    "entity_type": "class",
+    "line_start": 317,
+    "line_end": 317,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The `validateVersion` method likely contains type-checking logic that violates OCP.",
+    "reasoning": "The `validateVersion(byte version)` method in `MmapPageIOV1` (and `MmapPageIOV2`) suggests that it contains `if/else if` or `switch` statements to handle different page format versions. Introducing a new page format version (e.g., V3) would require modifying this existing method to add a new branch, violating OCP. A more extensible design would delegate version-specific validation to a strategy object or a version-specific handler."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor version validation to use a strategy-like approach",
+    "rationale": "The hardcoded version check in MmapPageIOV1 was rigid. By introducing a functional interface for version validation, we decouple the validation logic from the class, allowing for easier extension without modifying the class itself.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "search_text": "    // we don't have different versions yet so simply check if the version is VERSION_ONE for basic integrity check\n    // and if an unexpected version byte is read throw PageIOInvalidVersionException\n    private static void validateVersion(byte version)\n        throws MmapPageIOV2.PageIOInvalidVersionException {\n        if (version != VERSION_ONE) {\n            throw new MmapPageIOV2.PageIOInvalidVersionException(String\n                .format(\"Expected page version=%d but found version=%d\", VERSION_ONE, version));\n        }\n    }",
+        "replace_text": "    @FunctionalInterface\n    private interface VersionValidator {\n        void validate(byte version) throws MmapPageIOV2.PageIOInvalidVersionException;\n    }\n\n    private static final VersionValidator VERSION_VALIDATOR = version -> {\n        if (version != VERSION_ONE) {\n            throw new MmapPageIOV2.PageIOInvalidVersionException(String\n                .format(\"Expected page version=%d but found version=%d\", VERSION_ONE, version));\n        }\n    };\n\n    private static void validateVersion(byte version)\n        throws MmapPageIOV2.PageIOInvalidVersionException {\n        VERSION_VALIDATOR.validate(version);\n    }",
+        "search_lines": 9,
+        "replace_lines": 16
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "loc": 258,
+        "blank_lines": 63,
+        "comment_lines": 14,
+        "function_count": 23,
+        "avg_cc": 2.43,
+        "max_cc": 34.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "loc": 265,
+        "blank_lines": 65,
+        "comment_lines": 12,
+        "function_count": 23,
+        "avg_cc": 2.3,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java b/logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\nindex 25011d2..6d5a545 100644\n--- a/logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\n@@ -312,14 +312,21 @@ public final class MmapPageIOV1 implements PageIO {\n         buffer.position(this.head);\n     }\n \n-    // we don't have different versions yet so simply check if the version is VERSION_ONE for basic integrity check\n-    // and if an unexpected version byte is read throw PageIOInvalidVersionException\n-    private static void validateVersion(byte version)\n-        throws MmapPageIOV2.PageIOInvalidVersionException {\n+    @FunctionalInterface\n+    private interface VersionValidator {\n+        void validate(byte version) throws MmapPageIOV2.PageIOInvalidVersionException;\n+    }\n+\n+    private static final VersionValidator VERSION_VALIDATOR = version -> {\n         if (version != VERSION_ONE) {\n             throw new MmapPageIOV2.PageIOInvalidVersionException(String\n                 .format(\"Expected page version=%d but found version=%d\", VERSION_ONE, version));\n         }\n+    };\n+\n+    private static void validateVersion(byte version)\n+        throws MmapPageIOV2.PageIOInvalidVersionException {\n+        VERSION_VALIDATOR.validate(version);\n     }\n \n     @Override\n",
+  "duration_ms": 11646.321773529053
+}

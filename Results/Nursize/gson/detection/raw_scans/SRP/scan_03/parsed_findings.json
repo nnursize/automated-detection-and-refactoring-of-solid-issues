@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 744,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Gson class is responsible for object serialization/deserialization, managing a type adapter cache, and configuring JSON I/O streams.",
+    "reasoning": "The core responsibility of Gson is to coordinate object graph serialization and deserialization. However, it also directly holds and applies numerous configuration settings (e.g., `serializeNulls`, `htmlSafe`, `formattingStyle`, `strictness`) that dictate how the underlying `JsonReader` and `JsonWriter` instances are configured. This mixes the high-level object mapping responsibility with the more granular responsibility of configuring I/O stream behavior. A change in JSON formatting rules or parsing strictness requires modifying `Gson`, which is distinct from changes to its core object mapping logic."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters",
+    "entity_type": "class",
+    "line_start": 27,
+    "line_end": 579,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The TypeAdapters class acts as a monolithic registry and factory for a vast array of unrelated basic Java types.",
+    "reasoning": "This class bundles a multitude of distinct concerns: providing static `TypeAdapter` instances for various primitives, wrappers, standard library types (e.g., `BitSet`, `URL`, `Locale`, `Calendar`, atomic types), custom number parsing logic (`checkValidFloatingPoint`, `IntegerFieldsTypeAdapter`), and factory methods for creating generic type adapter factories. A change in the default adapter for any of these types, the logic for handling floating-point numbers, or the factory creation mechanism would all necessitate changes to this single class. This is a clear violation of SRP, indicating a 'God class' symptom."
+  }
+]

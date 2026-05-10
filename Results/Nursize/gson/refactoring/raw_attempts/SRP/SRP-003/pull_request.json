@@ -1,0 +1,160 @@
+{
+  "issue_id": "SRP-003",
+  "principle": "SRP",
+  "title": "Refactor SRP-003 (SRP): The Gson class is responsible for object serialization/deserialization, manag...",
+  "branch": "refactor/SRP-003",
+  "base": "main",
+  "head_commit": "cf52d3b9a5ea63893866f818757d67a215f63462",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 17112,
+    "completion_tokens": 3320
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 744,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "The Gson class is responsible for object serialization/deserialization, managing a type adapter cache, and configuring JSON I/O streams.",
+    "reasoning": "The core responsibility of Gson is to coordinate object graph serialization and deserialization. However, it also directly holds and applies numerous configuration settings (e.g., `serializeNulls`, `htmlSafe`, `formattingStyle`, `strictness`) that dictate how the underlying `JsonReader` and `JsonWriter` instances are configured. This mixes the high-level object mapping responsibility with the more granular responsibility of configuring I/O stream behavior. A change in JSON formatting rules or parsing strictness requires modifying `Gson`, which is distinct from changes to its core object mapping logic."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract JSON I/O configuration into a dedicated JsonWriterSettings class",
+    "rationale": "The Gson class was violating SRP by managing both object mapping and low-level JSON I/O configuration. By extracting the configuration fields into a separate class, we separate the responsibility of defining how JSON should be written/read from the responsibility of orchestrating the serialization/deserialization process.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/Gson.java",
+      "gson/src/main/java/com/google/gson/JsonWriterSettings.java"
+    ],
+    "files_created": [
+      "gson/src/main/java/com/google/gson/JsonWriterSettings.java"
+    ],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/Gson.java"
+    ],
+    "patch_blocks_count": 9,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  final boolean serializeNulls;\n  final boolean complexMapKeySerialization;\n  final boolean generateNonExecutableJson;\n  final boolean htmlSafe;\n  final FormattingStyle formattingStyle;\n  final Strictness strictness;",
+        "replace_text": "  final boolean complexMapKeySerialization;\n  final JsonWriterSettings jsonWriterSettings;",
+        "search_lines": 6,
+        "replace_lines": 2
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "    this.serializeNulls = builder.serializeNulls;\n    this.complexMapKeySerialization = builder.complexMapKeySerialization;\n    this.generateNonExecutableJson = builder.generateNonExecutableJson;\n    this.htmlSafe = builder.escapeHtmlChars;\n    this.formattingStyle = builder.formattingStyle;\n    this.strictness = builder.strictness;",
+        "replace_text": "    this.complexMapKeySerialization = builder.complexMapKeySerialization;\n    this.jsonWriterSettings = new JsonWriterSettings(\n        builder.serializeNulls,\n        builder.generateNonExecutableJson,\n        builder.escapeHtmlChars,\n        builder.formattingStyle,\n        builder.strictness\n    );",
+        "search_lines": 6,
+        "replace_lines": 8
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  public boolean serializeNulls() {\n    return serializeNulls;\n  }\n\n  /**\n   * Returns whether this Gson instance produces JSON output which is HTML-safe, that means all HTML\n   * characters are escaped.\n   *\n   * @see GsonBuilder#disableHtmlEscaping()\n   */\n  public boolean htmlSafe() {\n    return htmlSafe;\n  }",
+        "replace_text": "  public boolean serializeNulls() {\n    return jsonWriterSettings.serializeNulls;\n  }\n\n  /**\n   * Returns whether this Gson instance produces JSON output which is HTML-safe, that means all HTML\n   * characters are escaped.\n   *\n   * @see GsonBuilder#disableHtmlEscaping()\n   */\n  public boolean htmlSafe() {\n    return jsonWriterSettings.htmlSafe;\n  }",
+        "search_lines": 13,
+        "replace_lines": 13
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  public void toJson(Object src, Type typeOfSrc, JsonWriter writer) throws JsonIOException {\n    @SuppressWarnings(\"unchecked\")\n    TypeAdapter<Object> adapter = (TypeAdapter<Object>) getAdapter(TypeToken.get(typeOfSrc));\n\n    Strictness oldStrictness = writer.getStrictness();\n    if (this.strictness != null) {\n      writer.setStrictness(this.strictness);\n    } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {\n      // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT\n      writer.setStrictness(Strictness.LENIENT);\n    }\n\n    boolean oldHtmlSafe = writer.isHtmlSafe();\n    boolean oldSerializeNulls = writer.getSerializeNulls();\n\n    writer.setHtmlSafe(htmlSafe);\n    writer.setSerializeNulls(serializeNulls);\n    try {\n      adapter.write(writer, src);\n    } catch (IOException e) {\n      throw new JsonIOException(e);\n    } catch (AssertionError e) {\n      throw new AssertionError(\n          \"AssertionError (GSON \" + GsonBuildConfig.VERSION + \"): \" + e.getMessage(), e);\n    } finally {\n      writer.setStrictness(oldStrictness);\n      writer.setHtmlSafe(oldHtmlSafe);\n      writer.setSerializeNulls(oldSerializeNulls);\n    }\n  }",
+        "replace_text": "  public void toJson(Object src, Type typeOfSrc, JsonWriter writer) throws JsonIOException {\n    @SuppressWarnings(\"unchecked\")\n    TypeAdapter<Object> adapter = (TypeAdapter<Object>) getAdapter(TypeToken.get(typeOfSrc));\n\n    Strictness oldStrictness = writer.getStrictness();\n    if (jsonWriterSettings.strictness != null) {\n      writer.setStrictness(jsonWriterSettings.strictness);\n    } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {\n      // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT\n      writer.setStrictness(Strictness.LENIENT);\n    }\n\n    boolean oldHtmlSafe = writer.isHtmlSafe();\n    boolean oldSerializeNulls = writer.getSerializeNulls();\n\n    writer.setHtmlSafe(jsonWriterSettings.htmlSafe);\n    writer.setSerializeNulls(jsonWriterSettings.serializeNulls);\n    try {\n      adapter.write(writer, src);\n    } catch (IOException e) {\n      throw new JsonIOException(e);\n    } catch (AssertionError e) {\n      throw new AssertionError(\n          \"AssertionError (GSON \" + GsonBuildConfig.VERSION + \"): \" + e.getMessage(), e);\n    } finally {\n      writer.setStrictness(oldStrictness);\n      writer.setHtmlSafe(oldHtmlSafe);\n      writer.setSerializeNulls(oldSerializeNulls);\n    }\n  }",
+        "search_lines": 30,
+        "replace_lines": 30
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  public void toJson(JsonElement jsonElement, JsonWriter writer) throws JsonIOException {\n    Strictness oldStrictness = writer.getStrictness();\n    boolean oldHtmlSafe = writer.isHtmlSafe();\n    boolean oldSerializeNulls = writer.getSerializeNulls();\n\n    writer.setHtmlSafe(htmlSafe);\n    writer.setSerializeNulls(serializeNulls);\n\n    if (this.strictness != null) {\n      writer.setStrictness(this.strictness);\n    } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {\n      // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT\n      writer.setStrictness(Strictness.LENIENT);\n    }\n\n    try {\n      Streams.write(jsonElement, writer);\n    } catch (IOException e) {\n      throw new JsonIOException(e);\n    } catch (AssertionError e) {\n      throw new AssertionError(\n          \"AssertionError (GSON \" + GsonBuildConfig.VERSION + \"): \" + e.getMessage(), e);\n    } finally {\n      writer.setStrictness(oldStrictness);\n      writer.setHtmlSafe(oldHtmlSafe);\n      writer.setSerializeNulls(oldSerializeNulls);\n    }\n  }",
+        "replace_text": "  public void toJson(JsonElement jsonElement, JsonWriter writer) throws JsonIOException {\n    Strictness oldStrictness = writer.getStrictness();\n    boolean oldHtmlSafe = writer.isHtmlSafe();\n    boolean oldSerializeNulls = writer.getSerializeNulls();\n\n    writer.setHtmlSafe(jsonWriterSettings.htmlSafe);\n    writer.setSerializeNulls(jsonWriterSettings.serializeNulls);\n\n    if (jsonWriterSettings.strictness != null) {\n      writer.setStrictness(jsonWriterSettings.strictness);\n    } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {\n      // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT\n      writer.setStrictness(Strictness.LENIENT);\n    }\n\n    try {\n      Streams.write(jsonElement, writer);\n    } catch (IOException e) {\n      throw new JsonIOException(e);\n    } catch (AssertionError e) {\n      throw new AssertionError(\n          \"AssertionError (GSON \" + GsonBuildConfig.VERSION + \"): \" + e.getMessage(), e);\n    } finally {\n      writer.setStrictness(oldStrictness);\n      writer.setHtmlSafe(oldHtmlSafe);\n      writer.setSerializeNulls(oldSerializeNulls);\n    }\n  }",
+        "search_lines": 28,
+        "replace_lines": 28
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  public JsonWriter newJsonWriter(Writer writer) throws IOException {\n    if (generateNonExecutableJson) {\n      writer.write(JSON_NON_EXECUTABLE_PREFIX);\n    }\n    JsonWriter jsonWriter = new JsonWriter(writer);\n    jsonWriter.setFormattingStyle(formattingStyle);\n    jsonWriter.setHtmlSafe(htmlSafe);\n    jsonWriter.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);\n    jsonWriter.setSerializeNulls(serializeNulls);\n    return jsonWriter;\n  }\n\n  /**\n   * Returns a new JSON reader configured for the settings on this Gson instance.\n   *\n   * <p>The following settings are considered:\n   *\n   * <ul>\n   *   <li>{@link GsonBuilder#setStrictness(Strictness)}. If no {@linkplain\n   *       GsonBuilder#setStrictness(Strictness) explicit strictness has been set} the created\n   *       reader will have a strictness of {@link Strictness#LEGACY_STRICT}. Otherwise, the\n   *       strictness of the {@code Gson} instance will be used for the created reader.\n   * </ul>\n   */\n  public JsonReader newJsonReader(Reader reader) {\n    JsonReader jsonReader = new JsonReader(reader);\n    jsonReader.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);\n    return jsonReader;\n  }",
+        "replace_text": "  public JsonWriter newJsonWriter(Writer writer) throws IOException {\n    if (jsonWriterSettings.generateNonExecutableJson) {\n      writer.write(JSON_NON_EXECUTABLE_PREFIX);\n    }\n    JsonWriter jsonWriter = new JsonWriter(writer);\n    jsonWriter.setFormattingStyle(jsonWriterSettings.formattingStyle);\n    jsonWriter.setHtmlSafe(jsonWriterSettings.htmlSafe);\n    jsonWriter.setStrictness(jsonWriterSettings.strictness == null ? Strictness.LEGACY_STRICT : jsonWriterSettings.strictness);\n    jsonWriter.setSerializeNulls(jsonWriterSettings.serializeNulls);\n    return jsonWriter;\n  }\n\n  /**\n   * Returns a new JSON reader configured for the settings on this Gson instance.\n   *\n   * <p>The following settings are considered:\n   *\n   * <ul>\n   *   <li>{@link GsonBuilder#setStrictness(Strictness)}. If no {@linkplain\n   *       GsonBuilder#setStrictness(Strictness) explicit strictness has been set} the created\n   *       reader will have a strictness of {@link Strictness#LEGACY_STRICT}. Otherwise, the\n   *       strictness of the {@code Gson} instance will be used for the created reader.\n   * </ul>\n   */\n  public JsonReader newJsonReader(Reader reader) {\n    JsonReader jsonReader = new JsonReader(reader);\n    jsonReader.setStrictness(jsonWriterSettings.strictness == null ? Strictness.LEGACY_STRICT : jsonWriterSettings.strictness);\n    return jsonReader;\n  }",
+        "search_lines": 29,
+        "replace_lines": 29
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  public <T> T fromJson(JsonReader reader, TypeToken<T> typeOfT)\n      throws JsonIOException, JsonSyntaxException {\n    boolean isEmpty = true;\n    Strictness oldStrictness = reader.getStrictness();\n\n    if (this.strictness != null) {\n      reader.setStrictness(this.strictness);\n    } else if (reader.getStrictness() == Strictness.LEGACY_STRICT) {\n      // For backward compatibility change to LENIENT if reader has default strictness LEGACY_STRICT\n      reader.setStrictness(Strictness.LENIENT);\n    }",
+        "replace_text": "  public <T> T fromJson(JsonReader reader, TypeToken<T> typeOfT)\n      throws JsonIOException, JsonSyntaxException {\n    boolean isEmpty = true;\n    Strictness oldStrictness = reader.getStrictness();\n\n    if (jsonWriterSettings.strictness != null) {\n      reader.setStrictness(jsonWriterSettings.strictness);\n    } else if (reader.getStrictness() == Strictness.LEGACY_STRICT) {\n      // For backward compatibility change to LENIENT if reader has default strictness LEGACY_STRICT\n      reader.setStrictness(Strictness.LENIENT);\n    }",
+        "search_lines": 11,
+        "replace_lines": 11
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "  @Override\n  public String toString() {\n    return \"{serializeNulls:\"\n        + serializeNulls\n        + \",factories:\"\n        + factories\n        + \",instanceCreators:\"\n        + constructorConstructor\n        + \"}\";\n  }",
+        "replace_text": "  @Override\n  public String toString() {\n    return \"{serializeNulls:\"\n        + jsonWriterSettings.serializeNulls\n        + \",factories:\"\n        + factories\n        + \",instanceCreators:\"\n        + constructorConstructor\n        + \"}\";\n  }",
+        "search_lines": 10,
+        "replace_lines": 10
+      },
+      {
+        "kind": "create",
+        "file_path": "gson/src/main/java/com/google/gson/JsonWriterSettings.java",
+        "new_content": "package com.google.gson;\n\n/**\n * Configuration settings for JSON I/O operations.\n */\npublic final class JsonWriterSettings {\n  final boolean serializeNulls;\n  final boolean generateNonExecutableJson;\n  final boolean htmlSafe;\n  final FormattingStyle formattingStyle;\n  final Strictness strictness;\n\n  public JsonWriterSettings(boolean serializeNulls, boolean generateNonExecutableJson, boolean htmlSafe, FormattingStyle formattingStyle, Strictness strictness) {\n    this.serializeNulls = serializeNulls;\n    this.generateNonExecutableJson = generateNonExecutableJson;\n    this.htmlSafe = htmlSafe;\n    this.formattingStyle = formattingStyle;\n    this.strictness = strictness;\n  }\n}",
+        "new_content_lines": 20
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/Gson.java",
+        "loc": 1183,
+        "blank_lines": 69,
+        "comment_lines": 13,
+        "function_count": 38,
+        "avg_cc": 7.21,
+        "max_cc": 237.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/Gson.java",
+        "loc": 1181,
+        "blank_lines": 69,
+        "comment_lines": 13,
+        "function_count": 38,
+        "avg_cc": 7.21,
+        "max_cc": 237.0,
+        "mi": 0.0
+      },
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonWriterSettings.java",
+        "loc": 18,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 2.0,
+        "max_cc": 2.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/Gson.java b/gson/src/main/java/com/google/gson/Gson.java\nindex a06f290..07666ac 100644\n--- a/gson/src/main/java/com/google/gson/Gson.java\n+++ b/gson/src/main/java/com/google/gson/Gson.java\n@@ -162,12 +162,8 @@ public final class Gson {\n   final Excluder excluder;\n   final FieldNamingStrategy fieldNamingStrategy;\n   final Map<Type, InstanceCreator<?>> instanceCreators;\n-  final boolean serializeNulls;\n   final boolean complexMapKeySerialization;\n-  final boolean generateNonExecutableJson;\n-  final boolean htmlSafe;\n-  final FormattingStyle formattingStyle;\n-  final Strictness strictness;\n+  final JsonWriterSettings jsonWriterSettings;\n   final boolean serializeSpecialFloatingPointValues;\n   final boolean useJdkUnsafe;\n   final String datePattern;\n@@ -227,12 +223,14 @@ public final class Gson {\n     this.excluder = builder.excluder;\n     this.fieldNamingStrategy = builder.fieldNamingPolicy;\n     this.instanceCreators = new HashMap<>(builder.instanceCreators);\n-    this.serializeNulls = builder.serializeNulls;\n     this.complexMapKeySerialization = builder.complexMapKeySerialization;\n-    this.generateNonExecutableJson = builder.generateNonExecutableJson;\n-    this.htmlSafe = builder.escapeHtmlChars;\n-    this.formattingStyle = builder.formattingStyle;\n-    this.strictness = builder.strictness;\n+    this.jsonWriterSettings = new JsonWriterSettings(\n+        builder.serializeNulls,\n+        builder.generateNonExecutableJson,\n+        builder.escapeHtmlChars,\n+        builder.formattingStyle,\n+        builder.strictness\n+    );\n     this.serializeSpecialFloatingPointValues = builder.serializeSpecialFloatingPointValues;\n     this.useJdkUnsafe = builder.useJdkUnsafe;\n     this.longSerializationPolicy = builder.longSerializationPolicy;\n@@ -292,7 +290,7 @@ public final class Gson {\n    * @see GsonBuilder#serializeNulls()\n    */\n   public boolean serializeNulls() {\n-    return serializeNulls;\n+    return jsonWriterSettings.serializeNulls;\n   }\n \n   /**\n@@ -302,7 +300,7 @@ public final class Gson {\n    * @see GsonBuilder#disableHtmlEscaping()\n    */\n   public boolean htmlSafe() {\n-    return htmlSafe;\n+    return jsonWriterSettings.htmlSafe;\n   }\n \n   /**\n@@ -649,8 +647,8 @@ public final class Gson {\n     TypeAdapter<Object> adapter = (TypeAdapter<Object>) getAdapter(TypeToken.get(typeOfSrc));\n \n     Strictness oldStrictness = writer.getStrictness();\n-    if (this.strictness != null) {\n-      writer.setStrictness(this.strictness);\n+    if (jsonWriterSettings.strictness != null) {\n+      writer.setStrictness(jsonWriterSettings.strictness);\n     } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {\n       // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT\n       writer.setStrictness(Strictness.LENIENT);\n@@ -659,8 +657,8 @@ public final class Gson {\n     boolean oldHtmlSafe = writer.isHtmlSafe();\n     boolean oldSerializeNulls = writer.getSerializeNulls();\n \n-    writer.setHtmlSafe(htmlSafe);\n-    writer.setSerializeNulls(serializeNulls);\n+    writer.setHtmlSafe(jsonWriterSettings.htmlSafe);\n+    writer.setSerializeNulls(jsonWriterSettings.serializeNulls);\n     try {\n       adapter.write(writer, src);\n     } catch (IOException e) {\n@@ -730,11 +728,11 @@ public final class Gson {\n     boolean oldHtmlSafe = writer.isHtmlSafe();\n     boolean oldSerializeNulls = writer.getSerializeNulls();\n \n-    writer.setHtmlSafe(htmlSafe);\n-    writer.setSerializeNulls(serializeNulls);\n+    writer.setHtmlSafe(jsonWriterSettings.htmlSafe);\n+    writer.setSerializeNulls(jsonWriterSettings.serializeNulls);\n \n-    if (this.strictness != null) {\n-      writer.setStrictness(this.strictness);\n+    if (jsonWriterSettings.strictness != null) {\n+      writer.setStrictness(jsonWriterSettings.strictness);\n     } else if (writer.getStrictness() == Strictness.LEGACY_STRICT) {\n       // For backward compatibility change to LENIENT if writer has default strictness LEGACY_STRICT\n       writer.setStrictness(Strictness.LENIENT);\n@@ -772,14 +770,14 @@ public final class Gson {\n    * </ul>\n    */\n   public JsonWriter newJsonWriter(Writer writer) throws IOException {\n-    if (generateNonExecutableJson) {\n+    if (jsonWriterSettings.generateNonExecutableJson) {\n       writer.write(JSON_NON_EXECUTABLE_PREFIX);\n     }\n     JsonWriter jsonWriter = new JsonWriter(writer);\n-    jsonWriter.setFormattingStyle(formattingStyle);\n-    jsonWriter.setHtmlSafe(htmlSafe);\n-    jsonWriter.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);\n-    jsonWriter.setSerializeNulls(serializeNulls);\n+    jsonWriter.setFormattingStyle(jsonWriterSettings.formattingStyle);\n+    jsonWriter.setHtmlSafe(jsonWriterSettings.htmlSafe);\n+    jsonWriter.setStrictness(jsonWriterSettings.strictness == null ? Strictness.LEGACY_STRICT : jsonWriterSettings.strictness);\n+    jsonWriter.setSerializeNulls(jsonWriterSettings.serializeNulls);\n     return jsonWriter;\n   }\n \n@@ -797,7 +795,7 @@ public final class Gson {\n    */\n   public JsonReader newJsonReader(Reader reader) {\n     JsonReader jsonReader = new JsonReader(reader);\n-    jsonReader.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);\n+    jsonReader.setStrictness(jsonWriterSettings.strictness == null ? Strictness.LEGACY_STRICT : jsonWriterSettings.strictness);\n     return jsonReader;\n   }\n \n@@ -1066,8 +1064,8 @@ public final class Gson {\n     boolean isEmpty = true;\n     Strictness oldStrictness = reader.getStrictness();\n \n-    if (this.strictness != null) {\n-      reader.setStrictness(this.strictness);\n+    if (jsonWriterSettings.strictness != null) {\n+      reader.setStrictness(jsonWriterSettings.strictness);\n     } else if (reader.getStrictness() == Strictness.LEGACY_STRICT) {\n       // For backward compatibility change to LENIENT if reader has default strictness LEGACY_STRICT\n       reader.setStrictness(Strictness.LENIENT);\n@@ -1255,7 +1253,7 @@ public final class Gson {\n   @Override\n   public String toString() {\n     return \"{serializeNulls:\"\n-        + serializeNulls\n+        + jsonWriterSettings.serializeNulls\n         + \",factories:\"\n         + factories\n         + \",instanceCreators:\"\ndiff --git a/gson/src/main/java/com/google/gson/JsonWriterSettings.java b/gson/src/main/java/com/google/gson/JsonWriterSettings.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/gson/src/main/java/com/google/gson/JsonWriterSettings.java\n@@ -0,0 +1,20 @@\n+package com.google.gson;\n+\n+/**\n+ * Configuration settings for JSON I/O operations.\n+ */\n+public final class JsonWriterSettings {\n+  final boolean serializeNulls;\n+  final boolean generateNonExecutableJson;\n+  final boolean htmlSafe;\n+  final FormattingStyle formattingStyle;\n+  final Strictness strictness;\n+\n+  public JsonWriterSettings(boolean serializeNulls, boolean generateNonExecutableJson, boolean htmlSafe, FormattingStyle formattingStyle, Strictness strictness) {\n+    this.serializeNulls = serializeNulls;\n+    this.generateNonExecutableJson = generateNonExecutableJson;\n+    this.htmlSafe = htmlSafe;\n+    this.formattingStyle = formattingStyle;\n+    this.strictness = strictness;\n+  }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 8803.661584854126
+}

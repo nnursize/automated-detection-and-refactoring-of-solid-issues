@@ -1,0 +1,40 @@
+{
+  "scan_id": "jackson-core_ISP_scan_08",
+  "repo_name": "jackson-core",
+  "principle": "ISP",
+  "scan_number": 8,
+  "timestamp": "2026-05-01T19:41:37.518144",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 20,\n      \"line_end\": 4341,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"UTF8StreamJsonParser implements a large number of data access methods from the JsonParser interface that are not fully applicable to a stream-based parser.\",\n      \"reasoning\": \"The class inherits from JsonParserBase and implements the JsonParser interface, which is a 'fat' interface containing methods for various types of parsing (binary, textual, numeric). Many of these methods, such as those for binary value access or specific numeric conversions, are complex and might not be applicable or efficiently supported by all implementations, forcing the class to handle them via complex internal state or throw errors.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 2483,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonGenerator is a 'fat' interface containing too many disparate responsibilities.\",\n      \"reasoning\": \"JsonGenerator combines structural writing (arrays/objects), scalar writing (strings, numbers, booleans, nulls), binary data writing, raw data writing, and type/object ID writing. Implementations are forced to implement every single method, even if the underlying format does not support them (e.g., binary formats vs. JSON), leading to many methods throwing UnsupportedOperationException.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 20,
+      "line_end": 4341,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "UTF8StreamJsonParser implements a large number of data access methods from the JsonParser interface that are not fully applicable to a stream-based parser.",
+      "reasoning": "The class inherits from JsonParserBase and implements the JsonParser interface, which is a 'fat' interface containing methods for various types of parsing (binary, textual, numeric). Many of these methods, such as those for binary value access or specific numeric conversions, are complex and might not be applicable or efficiently supported by all implementations, forcing the class to handle them via complex internal state or throw errors."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 2483,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonGenerator is a 'fat' interface containing too many disparate responsibilities.",
+      "reasoning": "JsonGenerator combines structural writing (arrays/objects), scalar writing (strings, numbers, booleans, nulls), binary data writing, raw data writing, and type/object ID writing. Implementations are forced to implement every single method, even if the underlying format does not support them (e.g., binary formats vs. JSON), leading to many methods throwing UnsupportedOperationException."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 4076.040267944336,
+  "error": null
+}

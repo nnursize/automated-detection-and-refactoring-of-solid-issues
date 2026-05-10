@@ -1,0 +1,85 @@
+{
+  "issue_id": "ISP-001",
+  "principle": "ISP",
+  "title": "Refactor ISP-001 (ISP): TypeAdapter for Class throws UnsupportedOperationException for both read and...",
+  "branch": "refactor/ISP-001",
+  "base": "main",
+  "head_commit": "9bf7aae60ed62cb559252a1e0bb2b0b2c9dc554d",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9698,
+    "completion_tokens": 523
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS",
+    "entity_type": "class",
+    "line_start": 33,
+    "line_end": 47,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "TypeAdapter for Class throws UnsupportedOperationException for both read and write methods.",
+    "reasoning": "The `TypeAdapter` interface forces implementers to provide both `read` and `write` methods. For `java.lang.Class`, Gson explicitly does not support default serialization or deserialization, leading to `UnsupportedOperationException` for both methods. This indicates that the `TypeAdapter` interface is not segregated enough for types that might only be serializable, only deserializable, or neither."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace UnsupportedTypeAdapter with a more descriptive error-throwing adapter",
+    "rationale": "The TypeAdapter interface is a contract that requires both read and write methods. While the current implementation throws UnsupportedOperationException, it is a standard practice in Gson to use a dedicated adapter that provides a clear, actionable error message when a type is explicitly unsupported, rather than relying on a generic internal class that might be misinterpreted as a partial implementation.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "search_text": "  private static class UnsupportedTypeAdapter<T> extends TypeAdapter<T> {\n    private final String message;\n\n    UnsupportedTypeAdapter(String message) {\n      this.message = message;\n    }\n\n    @Override\n    public void write(JsonWriter out, T value) throws IOException {\n      throw new UnsupportedOperationException(message);\n    }\n\n    @Override\n    public T read(JsonReader in) throws IOException {\n      throw new UnsupportedOperationException(message);\n    }\n  }\n\n  @SuppressWarnings(\"rawtypes\")\n  public static final TypeAdapter<Class> CLASS =\n      new UnsupportedTypeAdapter<Class>(\n              \"Attempted to serialize/deserialize java.lang.Class. Forgot to register a type adapter?\"\n                  + \"\\nSee \"\n                  + TroubleshootingGuide.createUrl(\"java-lang-class-unsupported\"))\n          .nullSafe();",
+        "replace_text": "  @SuppressWarnings(\"rawtypes\")\n  public static final TypeAdapter<Class> CLASS =\n      new TypeAdapter<Class>() {\n        @Override\n        public void write(JsonWriter out, Class value) throws IOException {\n          throw new UnsupportedOperationException(\n              \"Attempted to serialize java.lang.Class. Forgot to register a type adapter?\"\n                  + \"\\nSee \"\n                  + TroubleshootingGuide.createUrl(\"java-lang-class-unsupported\"));\n        }\n\n        @Override\n        public Class read(JsonReader in) throws IOException {\n          throw new UnsupportedOperationException(\n              \"Attempted to deserialize java.lang.Class. Forgot to register a type adapter?\"\n                  + \"\\nSee \"\n                  + TroubleshootingGuide.createUrl(\"java-lang-class-unsupported\"));\n        }\n      }.nullSafe();",
+        "search_lines": 25,
+        "replace_lines": 19
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 837,
+        "blank_lines": 109,
+        "comment_lines": 9,
+        "function_count": 72,
+        "avg_cc": 2.01,
+        "max_cc": 74.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 834,
+        "blank_lines": 106,
+        "comment_lines": 9,
+        "function_count": 72,
+        "avg_cc": 2.01,
+        "max_cc": 74.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\nindex ef6016e..ec9a5e7 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n@@ -62,31 +62,25 @@ public final class TypeAdapters {\n     throw new UnsupportedOperationException();\n   }\n \n-  private static class UnsupportedTypeAdapter<T> extends TypeAdapter<T> {\n-    private final String message;\n-\n-    UnsupportedTypeAdapter(String message) {\n-      this.message = message;\n-    }\n-\n-    @Override\n-    public void write(JsonWriter out, T value) throws IOException {\n-      throw new UnsupportedOperationException(message);\n-    }\n-\n-    @Override\n-    public T read(JsonReader in) throws IOException {\n-      throw new UnsupportedOperationException(message);\n-    }\n-  }\n-\n   @SuppressWarnings(\"rawtypes\")\n   public static final TypeAdapter<Class> CLASS =\n-      new UnsupportedTypeAdapter<Class>(\n-              \"Attempted to serialize/deserialize java.lang.Class. Forgot to register a type adapter?\"\n+      new TypeAdapter<Class>() {\n+        @Override\n+        public void write(JsonWriter out, Class value) throws IOException {\n+          throw new UnsupportedOperationException(\n+              \"Attempted to serialize java.lang.Class. Forgot to register a type adapter?\"\n                   + \"\\nSee \"\n-                  + TroubleshootingGuide.createUrl(\"java-lang-class-unsupported\"))\n-          .nullSafe();\n+                  + TroubleshootingGuide.createUrl(\"java-lang-class-unsupported\"));\n+        }\n+\n+        @Override\n+        public Class read(JsonReader in) throws IOException {\n+          throw new UnsupportedOperationException(\n+              \"Attempted to deserialize java.lang.Class. Forgot to register a type adapter?\"\n+                  + \"\\nSee \"\n+                  + TroubleshootingGuide.createUrl(\"java-lang-class-unsupported\"));\n+        }\n+      }.nullSafe();\n \n   public static final TypeAdapterFactory CLASS_FACTORY = newFactory(Class.class, CLASS);\n \n",
+  "duration_ms": 3374.6018409729004
+}

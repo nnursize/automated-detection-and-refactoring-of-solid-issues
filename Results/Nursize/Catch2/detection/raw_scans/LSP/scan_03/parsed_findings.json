@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ITransientExpression",
+    "entity_type": "class",
+    "line_start": 1845,
+    "line_end": 1868,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Base class uses type-querying methods to distinguish subtypes.",
+    "reasoning": "The base class ITransientExpression includes the method isBinaryExpression(). This pattern of 'Type Tagging' or manual type querying suggests that consumers of the interface are expected to branch logic based on the concrete subtype rather than relying on polymorphic behavior. Subtypes should be substitutable without the caller needing to query their specific nature."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Clara::Detail::BoundRef",
+    "entity_type": "class",
+    "line_start": 3777,
+    "line_end": 3781,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Interface defines type-specific property queries (isContainer, isFlag).",
+    "reasoning": "BoundRef defines virtual methods isContainer() and isFlag() which are overridden by subclasses to identify their specific type category. This forces components working with BoundRef pointers to handle different subtypes through conditional logic based on these tags, violating the expectation that a subtype can replace its base type transparently."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::TestCaseTracking::ITracker",
+    "entity_type": "class",
+    "line_start": 4712,
+    "line_end": 4762,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "The ITracker interface uses explicit methods to identify specific subtypes (isSectionTracker, isGeneratorTracker).",
+    "reasoning": "By including isSectionTracker() and isGeneratorTracker() in the ITracker interface, the design forces the base class to be aware of its potential specializations. Callers are encouraged to use these methods to downcast or change behavior depending on the concrete subtype, which breaks the polymorphic contract where the base type should be sufficient for all interactions."
+  }
+]

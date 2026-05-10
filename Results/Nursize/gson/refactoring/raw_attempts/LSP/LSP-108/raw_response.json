@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1690.4566287994385,
+  "prompt_tokens": 4078,
+  "completion_tokens": 388,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove UnsupportedOperationException from RecordNotSupportedHelper methods\",\n  \"rationale\": \"The Liskov Substitution Principle is violated when a subclass throws an exception that the base class contract does not specify. Since RecordNotSupportedHelper is only used when isRecord(clazz) returns false, these methods should return safe default values (empty arrays, nulls) instead of throwing exceptions, allowing callers to handle the 'not a record' case gracefully without catching runtime exceptions.\",\n  \"files_touched\": [\"gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    @Override\n    String[] getRecordComponentNames(Class<?> clazz) {\n      throw new UnsupportedOperationException(\n          \"Records are not supported on this JVM, this method should not be called\");\n    }\n\n    @Override\n    <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {\n      throw new UnsupportedOperationException(\n          \"Records are not supported on this JVM, this method should not be called\");\n    }\n\n    @Override\n    public Method getAccessor(Class<?> raw, Field field) {\n      throw new UnsupportedOperationException(\n          \"Records are not supported on this JVM, this method should not be called\");\n    }\n=======\n    @Override\n    String[] getRecordComponentNames(Class<?> clazz) {\n      return new String[0];\n    }\n\n    @Override\n    <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {\n      return null;\n    }\n\n    @Override\n    public Method getAccessor(Class<?> raw, Field field) {\n      return null;\n    }\n>>>>>>> REPLACE"
+}

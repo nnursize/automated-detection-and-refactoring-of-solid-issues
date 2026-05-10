@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 10662,
+    "line_end": 10785,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "RunContext directly instantiates and owns concrete low-level components like FatalConditionHandler and OutputRedirect.",
+    "reasoning": "RunContext is a high-level orchestrator for test execution, yet it is tightly coupled to concrete, platform-specific implementations for signal handling (FatalConditionHandler) and IO redirection (OutputRedirect). These components are not received through injection, violating DIP. This hard-coded dependency makes the class difficult to test in isolation and less portable across different environments where signal handling or output management might differ."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 36,
+    "line_end": 161,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "RunContext directly instantiates and owns concrete low-level components like FatalConditionHandler and OutputRedirect.",
+    "reasoning": "The class directly embeds concrete types (FatalConditionHandler, OutputRedirect, TrackerContext) rather than depending on abstractions. As a high-level module, it should not depend on these low-level implementation details; instead, such dependencies should be abstracted behind interfaces and injected, allowing for better modularity and testability."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.cpp",
+    "entity_name": "ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 9278,
+    "line_end": 9426,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Directly instantiates the concrete TextFlow::Column class for text formatting within its print methods.",
+    "reasoning": "In methods like printReconstructedExpression and printMessage, ConsoleAssertionPrinter directly instantiates TextFlow::Column objects. This couples the high-level reporting logic to a specific, concrete text layout implementation. Following DIP, the class should depend on an abstraction for text layout or have the layout service injected."
+  },
+  {
+    "file_path": "Catch2/src/catch2/reporters/catch_reporter_console.cpp",
+    "entity_name": "ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 193,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Directly instantiates the concrete TextFlow::Column class for text formatting within its print methods.",
+    "reasoning": "The class violates DIP by directly creating instances of TextFlow::Column to handle text wrapping and indentation. This makes the reporter dependent on a concrete low-level formatting utility, rather than an abstraction, limiting the ability to modify or mock the text layout behavior independently."
+  }
+]

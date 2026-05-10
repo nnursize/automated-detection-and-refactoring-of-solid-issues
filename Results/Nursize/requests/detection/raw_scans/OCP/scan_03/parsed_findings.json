@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "requests/src/requests/auth.py",
+    "entity_name": "HTTPDigestAuth.build_digest_header",
+    "entity_type": "method",
+    "line_start": 154,
+    "line_end": 182,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded if/elif chain for hashing algorithms",
+    "reasoning": "The method uses a hardcoded conditional chain to select hashing algorithms (MD5, SHA, SHA-256, SHA-512). Adding support for a new algorithm like SHA-3 would require modifying this existing class rather than extending it through a strategy pattern or registry."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "method",
+    "line_start": 315,
+    "line_end": 334,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded redirection logic based on specific HTTP status codes",
+    "reasoning": "This method explicitly checks for status codes (301, 302, 303) to determine when to switch HTTP methods. Adding new redirection behaviors for different status codes requires manual modification of this method instead of using a polymorphic approach."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "class",
+    "line_start": 135,
+    "line_end": 207,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Function uses multiple hasattr checks to handle different object types",
+    "reasoning": "The function calculates object length by checking for various attributes (__len__, len, fileno, tell, seek). Supporting a new type of stream or custom object with a unique way to determine length would require adding more conditional branches to this utility."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "method",
+    "line_start": 183,
+    "line_end": 207,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Explicit string checking for proxy protocols",
+    "reasoning": "The method uses a hardcoded check for 'socks' to instantiate SOCKSProxyManager. Adding support for other proxy protocols (e.g., FTP, SSH) would require modifying this method with additional elif branches."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "method",
+    "line_start": 431,
+    "line_end": 465,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Exception mapping uses long isinstance chains",
+    "reasoning": "The exception handling logic catches MaxRetryError and then uses multiple isinstance checks (ConnectTimeoutError, ResponseError, ProxyError, etc.) to re-raise as Requests-specific exceptions. Adding a new exception mapping requires modifying this core method."
+  }
+]

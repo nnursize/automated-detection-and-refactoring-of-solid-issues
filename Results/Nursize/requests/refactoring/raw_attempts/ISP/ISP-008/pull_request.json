@@ -1,0 +1,100 @@
+{
+  "issue_id": "ISP-008",
+  "principle": "ISP",
+  "title": "Refactor ISP-008 (ISP): MockRequest is forced to implement 'add_header' from an interface it mimics b...",
+  "branch": "refactor/ISP-008",
+  "base": "main",
+  "head_commit": "6cad4efca4870f1c10fbd19c87f95c456fb680ac",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6107,
+    "completion_tokens": 198
+  },
+  "detected_issue": {
+    "file_path": "src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 71,
+    "line_end": 73,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "MockRequest is forced to implement 'add_header' from an interface it mimics but explicitly raises NotImplementedError.",
+    "reasoning": "The MockRequest class is designed to mimic the urllib2.Request interface, which is expected by `http.cookiejar.CookieJar`. By explicitly raising NotImplementedError in the `add_header` method, MockRequest signals that it cannot or will not provide this functionality. This forces clients (users of MockRequest) to depend on a method that is not supported, directly violating the Interface Segregation Principle. It indicates that the interface MockRequest is adapting to is too broad for its specific needs."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove unused add_header method from MockRequest",
+    "rationale": "The MockRequest class was implementing add_header, which is not required by the interface it mimics for cookie management. Removing this unused method adheres to the Interface Segregation Principle.",
+    "files_touched": [
+      "src/requests/cookies.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/cookies.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/cookies.py",
+        "search_text": "    def add_unredirected_header(self, name, value):\n        self._new_headers[name] = value\n\n    def add_header(self, name, value):\n        self._new_headers[name] = value\n\n    def get_new_headers(self):",
+        "replace_text": "    def add_unredirected_header(self, name, value):\n        self._new_headers[name] = value\n\n    def get_new_headers(self):",
+        "search_lines": 7,
+        "replace_lines": 4
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165927.70719528198,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [WinError 10054] An existing connection was forcibly closed by the remote host\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.11s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 14:22:31] \"GET /get HTTP/1.1\" 200 222\n127.0.0.1 - - [04/May/2026 14:22:31] \"GET /get HTTP/1.1\" 200 222\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/cookies.py",
+        "loc": 438,
+        "blank_lines": 110,
+        "comment_lines": 12,
+        "function_count": 49,
+        "avg_cc": 2.4,
+        "max_cc": 9.0,
+        "mi": 39.51
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/cookies.py",
+        "loc": 436,
+        "blank_lines": 109,
+        "comment_lines": 12,
+        "function_count": 48,
+        "avg_cc": 2.42,
+        "max_cc": 9.0,
+        "mi": 39.73
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/cookies.py b/src/requests/cookies.py\nindex eb135a5..2a787ba 100644\n--- a/src/requests/cookies.py\n+++ b/src/requests/cookies.py\n@@ -78,9 +78,6 @@ class MockRequest:\n     def add_unredirected_header(self, name, value):\n         self._new_headers[name] = value\n \n-    def add_header(self, name, value):\n-        self._new_headers[name] = value\n-\n     def get_new_headers(self):\n         return self._new_headers\n \n",
+  "duration_ms": 167563.46440315247
+}

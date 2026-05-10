@@ -1,0 +1,47 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 7aac429..f63e59b 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -178,10 +178,16 @@ class RequestEncodingMixin:
+                         )
+                     )
+ 
++        def _get_file_data(fp):
++            if isinstance(fp, (str, bytes, bytearray)):
++                return fp
++            if hasattr(fp, "read"):
++                return fp.read()
++            return fp
++
+         for k, v in files:
+-            # support for explicit filename
+-            ft = None
+-            fh = None
++            fn, fp, ft, fh = None, None, None, None
++
+             if isinstance(v, (tuple, list)):
+                 if len(v) == 2:
+                     fn, fp = v
+@@ -190,19 +196,12 @@ class RequestEncodingMixin:
+                 else:
+                     fn, fp, ft, fh = v
+             else:
+-                fn = guess_filename(v) or k
+-                fp = v
++                fn, fp = guess_filename(v) or k, v
+ 
+-            if isinstance(fp, (str, bytes, bytearray)):
+-                fdata = fp
+-            elif hasattr(fp, "read"):
+-                fdata = fp.read()
+-            elif fp is None:
++            if fp is None:
+                 continue
+-            else:
+-                fdata = fp
+ 
+-            rf = RequestField(name=k, data=fdata, filename=fn, headers=fh)
++            rf = RequestField(name=k, data=_get_file_data(fp), filename=fn, headers=fh)
+             rf.make_multipart(content_type=ft)
+             new_fields.append(rf)
+ 

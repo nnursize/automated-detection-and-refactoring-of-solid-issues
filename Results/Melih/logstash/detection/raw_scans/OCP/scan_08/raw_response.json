@@ -1,0 +1,73 @@
+{
+  "scan_id": "logstash_OCP_scan_08",
+  "repo_name": "logstash",
+  "principle": "OCP",
+  "scan_number": 8,
+  "timestamp": "2026-04-19T13:39:33.090782",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyi...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\",\n      \"entity_name\": \"Compiler.buildCondition\",\n      \"entity_type\": \"class\",\n      \"line_start\": 124,\n      \"line_end\": 152,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Uses an instanceof chain to handle different BooleanExpression types, requiring modification for every new expression type.\",\n      \"reasoning\": \"The buildCondition method explicitly checks for every known subtype of BooleanExpression (Eq, RegexEq, In, etc.) using an if-else instanceof chain. Adding a new expression type to the Logstash IR would require modifying this method to add a new branch, which violates the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.getPipelineSourceDetails\",\n      \"entity_type\": \"class\",\n      \"line_start\": 876,\n      \"line_end\": 896,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on protocol strings prevents extension without modification.\",\n      \"reasoning\": \"The getPipelineSourceDetails method uses a switch statement to map protocol strings ('string', 'file', etc.) to display names. Adding a new configuration source protocol requires modifying this existing class, rather than allowing the protocol to provide its own description through polymorphism or a registry.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.getUnconvertedField\",\n      \"entity_type\": \"class\",\n      \"line_start\": 160,\n      \"line_end\": 169,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switching on FieldReference types requires modification for new field namespaces.\",\n      \"reasoning\": \"The Event class uses switch statements (in getUnconvertedField, setField, includes, and remove) to handle different types of FieldReferences (META_PARENT, META_CHILD, etc.). If Logstash were to add a new metadata namespace or field type, the core Event class would need to be modified in multiple places to handle the new type.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.openPages\",\n      \"entity_type\": \"class\",\n      \"line_start\": 151,\n      \"line_end\": 245,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded instantiation of MmapPageIOV2 prevents extending the storage mechanism.\",\n      \"reasoning\": \"The Queue class directly instantiates MmapPageIOV2 in openPages and newCheckpointedHeadpage. This tight coupling means that the Queue is not open for extension regarding its underlying PageIO implementation; adding a new storage format or version would require modifying the Queue class itself.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\",\n      \"entity_name\": \"CompiledPipeline.expandConfigVariable\",\n      \"entity_type\": \"class\",\n      \"line_start\": 257,\n      \"line_end\": 273,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking logic for configuration expansion prevents support for new data types.\",\n      \"reasoning\": \"The expandConfigVariable method uses a series of instanceof checks to determine how to expand configuration values (List, Map, String). Adding a new type of configuration object that requires expansion would necessitate modifying this method.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+      "entity_name": "Compiler.buildCondition",
+      "entity_type": "class",
+      "line_start": 124,
+      "line_end": 152,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Uses an instanceof chain to handle different BooleanExpression types, requiring modification for every new expression type.",
+      "reasoning": "The buildCondition method explicitly checks for every known subtype of BooleanExpression (Eq, RegexEq, In, etc.) using an if-else instanceof chain. Adding a new expression type to the Logstash IR would require modifying this method to add a new branch, which violates the Open/Closed Principle."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+      "entity_type": "class",
+      "line_start": 876,
+      "line_end": 896,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on protocol strings prevents extension without modification.",
+      "reasoning": "The getPipelineSourceDetails method uses a switch statement to map protocol strings ('string', 'file', etc.) to display names. Adding a new configuration source protocol requires modifying this existing class, rather than allowing the protocol to provide its own description through polymorphism or a registry."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.getUnconvertedField",
+      "entity_type": "class",
+      "line_start": 160,
+      "line_end": 169,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switching on FieldReference types requires modification for new field namespaces.",
+      "reasoning": "The Event class uses switch statements (in getUnconvertedField, setField, includes, and remove) to handle different types of FieldReferences (META_PARENT, META_CHILD, etc.). If Logstash were to add a new metadata namespace or field type, the core Event class would need to be modified in multiple places to handle the new type."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.openPages",
+      "entity_type": "class",
+      "line_start": 151,
+      "line_end": 245,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded instantiation of MmapPageIOV2 prevents extending the storage mechanism.",
+      "reasoning": "The Queue class directly instantiates MmapPageIOV2 in openPages and newCheckpointedHeadpage. This tight coupling means that the Queue is not open for extension regarding its underlying PageIO implementation; adding a new storage format or version would require modifying the Queue class itself."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+      "entity_name": "CompiledPipeline.expandConfigVariable",
+      "entity_type": "class",
+      "line_start": 257,
+      "line_end": 273,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Type-checking logic for configuration expansion prevents support for new data types.",
+      "reasoning": "The expandConfigVariable method uses a series of instanceof checks to determine how to expand configuration values (List, Map, String). Adding a new type of configuration object that requires expansion would necessitate modifying this method."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 51625.503063201904,
+  "error": null
+}

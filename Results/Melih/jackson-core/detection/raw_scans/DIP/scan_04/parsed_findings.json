@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator.writeBinary",
+    "entity_type": "method",
+    "line_start": 1041,
+    "line_end": 1043,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstraction depends on concrete detail Base64Variants",
+    "reasoning": "The abstract class JsonGenerator (a high-level abstraction) directly depends on the concrete class Base64Variants (a low-level detail) to provide a default variant. This couples the abstraction to a specific implementation of Base64 encoding rules, violating the principle that abstractions should not depend on details."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator.streamWriteConstraints",
+    "entity_type": "method",
+    "line_start": 58,
+    "line_end": 60,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstraction depends on concrete detail StreamWriteConstraints",
+    "reasoning": "The abstract class JsonGenerator depends on the concrete class StreamWriteConstraints to provide default limits. This hard-codes a dependency on a specific implementation of constraint management into the base abstraction, making it difficult to substitute different constraint logic without modifying the core API."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 48,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Concrete parser depends on concrete symbol table implementation",
+    "reasoning": "The UTF8StreamJsonParser (a low-level detail) is tightly coupled to the concrete ByteQuadsCanonicalizer class for symbol management. According to DIP, details should depend on abstractions. The lack of an interface for symbol tables (a 'Missing Abstraction' smell) forces the parser to depend on a specific hash-table implementation, preventing the substitution of alternative symbol-matching strategies."
+  }
+]

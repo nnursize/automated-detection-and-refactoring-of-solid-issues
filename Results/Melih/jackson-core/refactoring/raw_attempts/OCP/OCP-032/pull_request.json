@@ -1,0 +1,93 @@
+{
+  "issue_id": "OCP-032",
+  "principle": "OCP",
+  "title": "Refactor OCP-032 (OCP): Switch statement on JsonToken ID requires modification to support new token t...",
+  "branch": "refactor/OCP-032",
+  "base": "main",
+  "head_commit": "3bd25e544e5cf1956a7ae004f360f589ba35cf21",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3558,
+    "completion_tokens": 1154
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.getStringCharacters",
+    "entity_type": "method",
+    "line_start": 311,
+    "line_end": 331,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Switch statement on JsonToken ID requires modification to support new token types.",
+    "reasoning": "The switch statement on `_currToken.id()` necessitates changes to existing code whenever new token types are introduced in the Jackson framework."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Replaced switch statement in `getStringCharacters` with an EnumMap for OCP adherence.",
+    "rationale": "The original `getStringCharacters` method contained a switch statement on `_currToken.id()`, which violates the Open/Closed Principle (OCP) because adding new `JsonToken` types would necessitate modifying this method. The refactoring replaces the switch statement with a static `EnumMap` that maps `JsonToken` instances to `TokenCharGetter` functional interfaces. This approach centralizes the token-specific logic into the map's initialization block. Now, `getStringCharacters` is closed for modification; if a new `JsonToken` requires special handling, only the `TOKEN_CHAR_GETTERS` map needs to be updated, rather than altering the method's core logic. For tokens not explicitly in the map, the default `_currToken.asCharArray()` is used, leveraging existing polymorphism.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    protected final String _getText2(JsonToken t) throws JacksonException\n    {\n        if (t == null) {\n            return null;\n        }\n        switch (t.id()) {\n        case ID_PROPERTY_NAME:\n            return _streamReadContext.currentName();\n\n        case ID_STRING:\n            // fall through\n        case ID_NUMBER_INT:\n        case ID_NUMBER_FLOAT:\n            return _textBuffer.contentsAsString();\n        default:\n        \treturn t.asString();\n        }\n    }\n\n    @Override\n    public char[] getStringCharacters() throws JacksonException",
+        "replace_text": "    protected final String _getText2(JsonToken t) throws JacksonException\n    {\n        if (t == null) {\n            return null;\n        }\n        switch (t.id()) {\n        case ID_PROPERTY_NAME:\n            return _streamReadContext.currentName();\n\n        case ID_STRING:\n            // fall through\n        case ID_NUMBER_INT:\n        case ID_NUMBER_FLOAT:\n            return _textBuffer.contentsAsString();\n        default:\n        \treturn t.asString();\n        }\n    }\n\n    // --- OCP Refactoring for getStringCharacters ---\n    @FunctionalInterface\n    private interface TokenCharGetter {\n        char[] get(UTF8StreamJsonParser parser) throws JacksonException;\n    }\n\n    private static final java.util.Map<tools.jackson.core.JsonToken, TokenCharGetter> TOKEN_CHAR_GETTERS;\n\n    static {\n        TOKEN_CHAR_GETTERS = new java.util.EnumMap<>(tools.jackson.core.JsonToken.class);\n        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.PROPERTY_NAME, UTF8StreamJsonParser::currentNameInBuffer);\n        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_STRING, parser -> {\n            if (parser._tokenIncomplete) {\n                parser._tokenIncomplete = false;\n                parser._finishString();\n            }\n            return parser._textBuffer.getTextBuffer();\n        });\n        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_INT, UTF8StreamJsonParser::getTextBufferContents);\n        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_FLOAT, UTF8StreamJsonParser::getTextBufferContents);\n    }\n\n    // Helper method to avoid repeating _textBuffer.getTextBuffer() in lambda\n    private char[] getTextBufferContents() {\n        return _textBuffer.getTextBuffer();\n    }\n\n    @Override\n    public char[] getStringCharacters() throws JacksonException",
+        "search_lines": 21,
+        "replace_lines": 48
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    public char[] getStringCharacters() throws JacksonException\n    {\n        if (_currToken != null) { // null only before/after document\n            switch (_currToken.id()) {\n\n            case ID_PROPERTY_NAME:\n                return currentNameInBuffer();\n            case ID_STRING:\n                if (_tokenIncomplete) {\n                    _tokenIncomplete = false;\n                    _finishString(); // only strings can be incomplete\n                }\n                // fall through\n            case ID_NUMBER_INT:\n            case ID_NUMBER_FLOAT:\n                return _textBuffer.getTextBuffer();\n\n            default:\n                return _currToken.asCharArray();\n            }\n        }\n        return null;\n    }",
+        "replace_text": "    public char[] getStringCharacters() throws JacksonException\n    {\n        if (_currToken == null) { // null only before/after document\n            return null;\n        }\n        TokenCharGetter getter = TOKEN_CHAR_GETTERS.get(_currToken);\n        if (getter != null) {\n            return getter.get(this);\n        }\n        return _currToken.asCharArray();\n    }",
+        "search_lines": 23,
+        "replace_lines": 11
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3534,
+        "blank_lines": 274,
+        "comment_lines": 282,
+        "function_count": 112,
+        "avg_cc": 9.81,
+        "max_cc": 988.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3546,
+        "blank_lines": 276,
+        "comment_lines": 283,
+        "function_count": 113,
+        "avg_cc": 9.72,
+        "max_cc": 986.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\nindex 8a3e347..39108fe 100644\n--- a/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\n+++ b/src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\n@@ -422,29 +422,44 @@ public class UTF8StreamJsonParser\n         }\n     }\n \n-    @Override\n-    public char[] getStringCharacters() throws JacksonException\n-    {\n-        if (_currToken != null) { // null only before/after document\n-            switch (_currToken.id()) {\n+    // --- OCP Refactoring for getStringCharacters ---\n+    @FunctionalInterface\n+    private interface TokenCharGetter {\n+        char[] get(UTF8StreamJsonParser parser) throws JacksonException;\n+    }\n \n-            case ID_PROPERTY_NAME:\n-                return currentNameInBuffer();\n-            case ID_STRING:\n-                if (_tokenIncomplete) {\n-                    _tokenIncomplete = false;\n-                    _finishString(); // only strings can be incomplete\n-                }\n-                // fall through\n-            case ID_NUMBER_INT:\n-            case ID_NUMBER_FLOAT:\n-                return _textBuffer.getTextBuffer();\n+    private static final java.util.Map<tools.jackson.core.JsonToken, TokenCharGetter> TOKEN_CHAR_GETTERS;\n \n-            default:\n-                return _currToken.asCharArray();\n+    static {\n+        TOKEN_CHAR_GETTERS = new java.util.EnumMap<>(tools.jackson.core.JsonToken.class);\n+        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.PROPERTY_NAME, UTF8StreamJsonParser::currentNameInBuffer);\n+        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_STRING, parser -> {\n+            if (parser._tokenIncomplete) {\n+                parser._tokenIncomplete = false;\n+                parser._finishString();\n             }\n+            return parser._textBuffer.getTextBuffer();\n+        });\n+        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_INT, UTF8StreamJsonParser::getTextBufferContents);\n+        TOKEN_CHAR_GETTERS.put(tools.jackson.core.JsonToken.VALUE_NUMBER_FLOAT, UTF8StreamJsonParser::getTextBufferContents);\n+    }\n+\n+    // Helper method to avoid repeating _textBuffer.getTextBuffer() in lambda\n+    private char[] getTextBufferContents() {\n+        return _textBuffer.getTextBuffer();\n+    }\n+\n+    @Override\n+    public char[] getStringCharacters() throws JacksonException\n+    {\n+        if (_currToken == null) { // null only before/after document\n+            return null;\n         }\n-        return null;\n+        TokenCharGetter getter = TOKEN_CHAR_GETTERS.get(_currToken);\n+        if (getter != null) {\n+            return getter.get(this);\n+        }\n+        return _currToken.asCharArray();\n     }\n \n     @Override\n",
+  "duration_ms": 51845.67141532898
+}

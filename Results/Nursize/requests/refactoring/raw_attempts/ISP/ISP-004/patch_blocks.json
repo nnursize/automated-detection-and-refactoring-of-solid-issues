@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/adapters.py",
+    "search_text": "    def add_headers(self, request, **kwargs):\n        \"\"\"Add any headers needed by the connection. As of v2.0 this does\n        nothing by default, but is left for overriding by users that subclass\n        the :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        This should not be called from user code, and is only exposed for use\n        when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        :param request: The :class:`PreparedRequest <PreparedRequest>` to add headers to.\n        :param kwargs: The keyword arguments from the call to send().\n        \"\"\"\n        pass",
+    "replace_text": "class HeaderAdapter:\n    \"\"\"Mixin for adapters that need to add headers to requests.\"\"\"\n\n    def add_headers(self, request, **kwargs):\n        \"\"\"Add any headers needed by the connection.\n\n        :param request: The :class:`PreparedRequest <PreparedRequest>` to add headers to.\n        :param kwargs: The keyword arguments from the call to send().\n        \"\"\"\n        pass"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/adapters.py",
+    "search_text": "        self.cert_verify(conn, request.url, verify, cert)\n        url = self.request_url(request, proxies)\n        self.add_headers(\n            request,\n            stream=stream,\n            timeout=timeout,\n            verify=verify,\n            cert=cert,\n            proxies=proxies,\n        )\n\n        chunked = not (request.body is None or \"Content-Length\" in request.headers)",
+    "replace_text": "        self.cert_verify(conn, request.url, verify, cert)\n        url = self.request_url(request, proxies)\n\n        if hasattr(self, \"add_headers\"):\n            self.add_headers(\n                request,\n                stream=stream,\n                timeout=timeout,\n                verify=verify,\n                cert=cert,\n                proxies=proxies,\n            )\n\n        chunked = not (request.body is None or \"Content-Length\" in request.headers)"
+  }
+]

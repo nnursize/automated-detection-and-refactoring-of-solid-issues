@@ -1,0 +1,98 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 256091f..4f6d4ad 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -9016,51 +9016,51 @@ namespace Catch {
+         }
+ 
+         //! Called when no test cases match provided test spec
+-        virtual void noMatchingTestCases( StringRef unmatchedSpec ) = 0;
++        virtual void noMatchingTestCases( StringRef ) {}
+         //! Called for all invalid test specs from the cli
+-        virtual void reportInvalidTestSpec( StringRef invalidArgument ) = 0;
++        virtual void reportInvalidTestSpec( StringRef ) {}
+ 
+         /**
+          * Called once in a testing run before tests are started
+          *
+          * Not called if tests won't be run (e.g. only listing will happen)
+          */
+-        virtual void testRunStarting( TestRunInfo const& testRunInfo ) = 0;
++        virtual void testRunStarting( TestRunInfo const& ) {}
+ 
+         //! Called _once_ for each TEST_CASE, no matter how many times it is entered
+-        virtual void testCaseStarting( TestCaseInfo const& testInfo ) = 0;
++        virtual void testCaseStarting( TestCaseInfo const& ) {}
+         //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)
+-        virtual void testCasePartialStarting( TestCaseInfo const& testInfo, uint64_t partNumber ) = 0;
++        virtual void testCasePartialStarting( TestCaseInfo const&, uint64_t ) {}
+         //! Called when a `SECTION` is being entered. Not called for skipped sections
+-        virtual void sectionStarting( SectionInfo const& sectionInfo ) = 0;
++        virtual void sectionStarting( SectionInfo const& ) {}
+ 
+         //! Called when user-code is being probed before the actual benchmark runs
+-        virtual void benchmarkPreparing( StringRef benchmarkName ) = 0;
++        virtual void benchmarkPreparing( StringRef ) {}
+         //! Called after probe but before the user-code is being benchmarked
+-        virtual void benchmarkStarting( BenchmarkInfo const& benchmarkInfo ) = 0;
++        virtual void benchmarkStarting( BenchmarkInfo const& ) {}
+         //! Called with the benchmark results if benchmark successfully finishes
+-        virtual void benchmarkEnded( BenchmarkStats<> const& benchmarkStats ) = 0;
++        virtual void benchmarkEnded( BenchmarkStats<> const& ) {}
+         //! Called if running the benchmarks fails for any reason
+-        virtual void benchmarkFailed( StringRef benchmarkName ) = 0;
++        virtual void benchmarkFailed( StringRef ) {}
+ 
+         //! Called before assertion success/failure is evaluated
+-        virtual void assertionStarting( AssertionInfo const& assertionInfo ) = 0;
++        virtual void assertionStarting( AssertionInfo const& ) {}
+ 
+         //! Called after assertion was fully evaluated
+-        virtual void assertionEnded( AssertionStats const& assertionStats ) = 0;
++        virtual void assertionEnded( AssertionStats const& ) {}
+ 
+         //! Called after a `SECTION` has finished running
+-        virtual void sectionEnded( SectionStats const& sectionStats ) = 0;
++        virtual void sectionEnded( SectionStats const& ) {}
+         //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)
+-        virtual void testCasePartialEnded(TestCaseStats const& testCaseStats, uint64_t partNumber ) = 0;
++        virtual void testCasePartialEnded(TestCaseStats const&, uint64_t ) {}
+         //! Called _once_ for each TEST_CASE, no matter how many times it is entered
+-        virtual void testCaseEnded( TestCaseStats const& testCaseStats ) = 0;
++        virtual void testCaseEnded( TestCaseStats const& ) {}
+         /**
+          * Called once after all tests in a testing run are finished
+          *
+          * Not called if tests weren't run (e.g. only listings happened)
+          */
+-        virtual void testRunEnded( TestRunStats const& testRunStats ) = 0;
++        virtual void testRunEnded( TestRunStats const& ) {}
+ 
+         /**
+          * Called with test cases that are skipped due to the test run aborting.
+@@ -9068,19 +9068,19 @@ namespace Catch {
+          *
+          * Deprecated - will be removed in the next major release.
+          */
+-        virtual void skipTest( TestCaseInfo const& testInfo ) = 0;
++        virtual void skipTest( TestCaseInfo const& ) {}
+ 
+         //! Called if a fatal error (signal/structured exception) occurred
+-        virtual void fatalErrorEncountered( StringRef error ) = 0;
++        virtual void fatalErrorEncountered( StringRef ) {}
+ 
+         //! Writes out information about provided reporters using reporter-specific format
+-        virtual void listReporters(std::vector<ReporterDescription> const& descriptions) = 0;
++        virtual void listReporters(std::vector<ReporterDescription> const&) {}
+         //! Writes out the provided listeners descriptions using reporter-specific format
+-        virtual void listListeners(std::vector<ListenerDescription> const& descriptions) = 0;
++        virtual void listListeners(std::vector<ListenerDescription> const&) {}
+         //! Writes out information about provided tests using reporter-specific format
+-        virtual void listTests(std::vector<TestCaseHandle> const& tests) = 0;
++        virtual void listTests(std::vector<TestCaseHandle> const&) {}
+         //! Writes out information about the provided tags using reporter-specific format
+-        virtual void listTags(std::vector<TagInfo> const& tags) = 0;
++        virtual void listTags(std::vector<TagInfo> const&) {}
+     };
+     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+ 

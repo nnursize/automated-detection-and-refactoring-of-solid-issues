@@ -1,0 +1,13 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "JavaKeyStore",
+    "entity_type": "class",
+    "line_start": 77,
+    "line_end": 447,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JavaKeyStore implements SecretStore but contains lifecycle and persistence methods not shared by all potential SecretStore implementations.",
+    "reasoning": "The SecretStore interface forces all implementations to include methods like 'create', 'delete', 'load', and 'persistSecret', which might be specific to persistent backend stores. Simpler implementations (e.g., an in-memory or read-only store) are forced to implement these methods, likely with 'UnsupportedOperationException' or empty bodies, violating ISP."
+  }
+]

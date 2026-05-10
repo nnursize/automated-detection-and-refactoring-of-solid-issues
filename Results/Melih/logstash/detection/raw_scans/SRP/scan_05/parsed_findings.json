@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 57,
+    "line_end": 801,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Queue class manages high-level queue logic, low-level file I/O, and serialization.",
+    "reasoning": "God Class smell -> SRP violation because it encapsulates multiple unrelated responsibilities: 1) High-level queue orchestration (head/tail management), 2) Low-level file system operations and locking (lines 169-185, 716-723), 3) Serialization/Deserialization logic via reflection (lines 142-148, 646-653), and 4) Disk capacity management (line 784). This makes the class fragile and difficult to test in isolation."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 98,
+    "line_end": 648,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class mixes pipeline execution orchestration with detailed metric instrumentation logic.",
+    "reasoning": "Divergent Change smell -> SRP violation because the class must change for two unrelated reasons: changes to the pipeline execution lifecycle and changes to how Logstash instruments its internal metrics. Methods like 'initializeFlowMetrics' (lines 409-450) and 'initializePluginFlowMetrics' (lines 507-521) contain extensive, hard-coded logic for specific monitoring keys and throughput calculations that should be encapsulated in a separate Monitoring or Reporter class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event",
+    "entity_type": "class",
+    "line_start": 48,
+    "line_end": 444,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Event class acts as a data container while also handling complex serialization and field-access logic.",
+    "reasoning": "God Class smell -> SRP violation because it violates the boundary between a Data Transfer Object (DTO) and a Service. It handles: 1) Core data storage (ConvertedMap), 2) Serialization/Deserialization formats like JSON and CBOR (lines 208-251, 417-425), and 3) Complex business logic for field normalization, specifically for timestamps and tags (lines 359-415). Changes to the serialization format or the logic for field references both force changes to this single class."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/agent.rb",
+    "entity_name": "LogStash::Agent",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 504,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Agent class is a central 'God Object' managing pipelines, webservers, metrics, and configuration.",
+    "reasoning": "God Class smell -> SRP violation because it centralizes too many unrelated system concerns. It manages the lifecycle of the API WebServer (lines 388-408), the convergence of pipeline states (lines 194-225), global metric collection/polling (lines 410-424), and even persistent filesystem identity (the 'id' method, lines 251-281). A change in the HTTP API implementation or the configuration loading strategy would both require modifying this class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 84,
+    "line_end": 637,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class manages both DLQ persistence logic and filesystem monitoring for external cleanup.",
+    "reasoning": "Divergent Change smell -> SRP violation because it handles two distinct concerns: 1) The logic of writing and rolling over DLQ segments based on size/age policies, and 2) Monitoring the filesystem for notification files created by the Reader process to update metrics (lines 261-298). The mechanism for inter-process notification (WatchService) is an infrastructure concern that should be separated from the DLQ storage policy logic."
+  }
+]

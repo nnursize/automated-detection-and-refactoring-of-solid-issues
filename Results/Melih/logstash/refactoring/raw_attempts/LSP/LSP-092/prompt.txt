@@ -1,0 +1,441 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-092
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java`
+- **Entity**: `MmapPageIOV1.ensurePersisted` (current lines L167-L167 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+Subtype throws UnsupportedOperationException for a base type method.
+
+### Reasoning
+The `ensurePersisted()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `ensurePersisted()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java`
+```java
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *	http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+
+package org.logstash.ackedqueue.io;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.zip.CRC32;
+
+import org.logstash.ackedqueue.SequencedList;
+
+/**
+ * {@link PageIO} implementation for V1 PQ serialization format. Only supports read operations
+ * for use in {@link org.logstash.ackedqueue.QueueUpgrade}.
+ */
+public final class MmapPageIOV1 implements PageIO {
+
+    public static final byte VERSION_ONE = 1;
+
+    /**
+     * Cleaner function for forcing unmapping of backing {@link MmapPageIOV1#buffer}.
+     */
+    private static final ByteBufferCleaner BUFFER_CLEANER = new ByteBufferCleanerImpl();
+
+    private final File file;
+
+    private final CRC32 checkSummer;
+
+    private final IntVector offsetMap;
+
+    private int capacity; // page capacity is an int per the ByteBuffer class.
+    private long minSeqNum;
+    private int elementCount;
+    private int head; // head is the write position and is an int per ByteBuffer class position
+    private byte version;
+
+    private MappedByteBuffer buffer;
+
+    public MmapPageIOV1(int pageNum, int capacity, Path dirPath) {
+        this.minSeqNum = 0;
+        this.elementCount = 0;
+        this.version = 0;
+        this.head = 0;
+        this.capacity = capacity;
+        this.offsetMap = new IntVector();
+        this.checkSummer = new CRC32();
+        this.file = dirPath.resolve("page." + pageNum).toFile();
+    }
+
+    @Override
+    public void open(long minSeqNum, int elementCount) throws IOException {
+        mapFile();
+        buffer.position(0);
+        this.version = buffer.get();
+        validateVersion(this.version);
+        this.head = 1;
+
+        this.minSeqNum = minSeqNum;
+        this.elementCount = elementCount;
+
+        if (this.elementCount > 0) {
+            // verify first seqNum to be same as expected minSeqNum
+            long seqNum = buffer.getLong();
+            if (seqNum != this.minSeqNum) {
+                throw new IOException(String.format("first seqNum=%d is different than minSeqNum=%d", seqNum, this.minSeqNum));
+            }
+
+            // reset back position to first seqNum
+            buffer.position(this.head);
+
+            for (int i = 0; i < this.elementCount; i++) {
+                // verify that seqNum must be of strict + 1 increasing order
+                readNextElement(this.minSeqNum + i, !MmapPageIOV2.VERIFY_CHECKSUM);
+            }
+        }
+    }
+
+    @Override
+    public SequencedList<byte[]> read(long seqNum, int limit) throws IOException {
+        assert seqNum >= this.minSeqNum :
+            String.format("seqNum=%d < minSeqNum=%d", seqNum, this.minSeqNum);
+        assert seqNum <= maxSeqNum() :
+            String.format("seqNum=%d is > maxSeqNum=%d", seqNum, maxSeqNum());
+
+        List<byte[]> elements = new ArrayList<>();
+        final LongVector seqNums = new LongVector(limit);
+
+        int offset = this.offsetMap.get((int) (seqNum - this.minSeqNum));
+
+        buffer.position(offset);
+
+        for (int i = 0; i < limit; i++) {
+            long readSeqNum = buffer.getLong();
+
+            assert readSeqNum == (seqNum + i) :
+                String.format("unmatched seqNum=%d to readSeqNum=%d", seqNum + i, readSeqNum);
+
+            int readLength = buffer.getInt();
+            byte[] readBytes = new byte[readLength];
+            buffer.get(readBytes);
+            int checksum = buffer.getInt();
+            int computedChecksum = checksum(readBytes);
+            if (computedChecksum != checksum) {
+                throw new IOException(String.format("computed checksum=%d != checksum for file=%d", computedChecksum, checksum));
+            }
+
+            elements.add(readBytes);
+            seqNums.add(readSeqNum);
+
+            if (seqNum + i >= maxSeqNum()) {
+                break;
+            }
+        }
+
+        return new SequencedList<>(elements, seqNums);
+    }
+
+    @Override
+    public void recover() {
+        // No-op for read-only legacy V1 pages
+    }
+
+    @Override
+    public void create() {
+        // No-op for read-only legacy V1 pages
+    }
+
+    @Override
+    public void deactivate() {
+        close(); // close can be called multiple times
+    }
+
+    @Override
+    public void activate() throws IOException {
+        if (this.buffer == null) {
+            try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
+                this.buffer = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, this.capacity);
+            }
+            this.buffer.load();
+        }
+    }
+
+    @Override
+    public void ensurePersisted() {
+        // No-op for read-only legacy V1 pages
+    }
+
+    @Override
+    public void purge() {
+        // No-op for read-only legacy V1 pages
+    }
+
+    @Override
+    public void write(byte[] bytes, long seqNum) {
+        throw new UnsupportedOperationException("MmapPageIOV1 is read-only");
+    }
+
+    @Override
+    public void close() {
+        if (this.buffer != null) {
+            this.buffer.force();
+            BUFFER_CLEANER.clean(buffer);
+
+        }
+        this.buffer = null;
+    }
+
+    @Override
+    public int getCapacity() {
+        return this.capacity;
+    }
+
+    @Override
+    public long getMinSeqNum() {
+        return this.minSeqNum;
+    }
+
+    @Override
+    public int getElementCount() {
+        return this.elementCount;
+    }
+
+    @Override
+    public boolean hasSpace(int bytes) {
+        return false;
+    }
+
+    @Override
+    public int persistedByteCount(int byteCount) {
+        return MmapPageIOV2.SEQNUM_SIZE + MmapPageIOV2.LENGTH_SIZE
+            + byteCount + MmapPageIOV2.CHECKSUM_SIZE;
+    }
+
+    @Override
+    public int getHead() {
+        return this.head;
+    }
+
+    @Override
+    public boolean isCorruptedPage() throws IOException {
+        try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
+            return raf.length() < MmapPageIOV2.MIN_CAPACITY;
+        }
+    }
+
+    private int checksum(byte[] bytes) {
+        checkSummer.reset();
+        checkSummer.update(bytes, 0, bytes.length);
+        return (int) checkSummer.getValue();
+    }
+
+    private long maxSeqNum() {
+        return this.minSeqNum + this.elementCount - 1;
+    }
+
+    // memory map data file to this.buffer and read initial version byte
+    private void mapFile() throws IOException {
+        try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
+
+            if (raf.length() > Integer.MAX_VALUE) {
+                throw new IOException("Page file too large " + this.file);
+            }
+            int pageFileCapacity = (int) raf.length();
+
+            // update capacity to actual raf length. this can happen if a page size was changed on a non empty queue directory for example.
+            this.capacity = pageFileCapacity;
+
+            if (this.capacity < MmapPageIOV2.MIN_CAPACITY) {
+                throw new IOException(String.format("Page file size is too small to hold elements"));
+            }
+            this.buffer = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, this.capacity);
+        }
+        this.buffer.load();
+    }
+
+    // read and validate next element at page head
+    // @param verifyChecksum if true the actual element data will be read + checksumed and compared to written checksum
+    private void readNextElement(long expectedSeqNum, boolean verifyChecksum) throws MmapPageIOV2.PageIOInvalidElementException {
+        // if there is no room for the seqNum and length bytes stop here
+        if (this.head + MmapPageIOV2.SEQNUM_SIZE + MmapPageIOV2.LENGTH_SIZE > capacity) {
+            throw new MmapPageIOV2.PageIOInvalidElementException(
+                "cannot read seqNum and length bytes past buffer capacity");
+        }
+
+        int elementOffset = this.head;
+        int newHead = this.head;
+
+        long seqNum = buffer.getLong();
+        newHead += MmapPageIOV2.SEQNUM_SIZE;
+
+        if (seqNum != expectedSeqNum) {
+            throw new MmapPageIOV2.PageIOInvalidElementException(
+                String.format("Element seqNum %d is expected to be %d", seqNum, expectedSeqNum));
+        }
+
+        int length = buffer.getInt();
+        newHead += MmapPageIOV2.LENGTH_SIZE;
+
+        // length must be > 0
+        if (length <= 0) {
+            throw new MmapPageIOV2.PageIOInvalidElementException("Element invalid length");
+        }
+
+        // if there is no room for the proposed data length and checksum just stop here
+        if (newHead + length + MmapPageIOV2.CHECKSUM_SIZE > capacity) {
+            throw new MmapPageIOV2.PageIOInvalidElementException(
+                "cannot read element payload and checksum past buffer capacity");
+        }
+
+        if (verifyChecksum) {
+            // read data and compute checksum;
+            this.checkSummer.reset();
+            final int prevLimit = buffer.limit();
+            buffer.limit(buffer.position() + length);
+            this.checkSummer.update(buffer);
+            buffer.limit(prevLimit);
+            int checksum = buffer.getInt();
+            int computedChecksum = (int) this.checkSummer.getValue();
+            if (computedChecksum != checksum) {
+                throw new MmapPageIOV2.PageIOInvalidElementException(
+                    "Element invalid checksum");
+            }
+        }
+
+        // at this point we recovered a valid element
+        this.offsetMap.add(elementOffset);
+        this.head = newHead + length + MmapPageIOV2.CHECKSUM_SIZE;
+
+        buffer.position(this.head);
+    }
+
+    @FunctionalInterface
+    private interface VersionValidator {
+        void validate(byte version) throws MmapPageIOV2.PageIOInvalidVersionException;
+    }
+
+    private static final VersionValidator VERSION_VALIDATOR = version -> {
+        if (version != VERSION_ONE) {
+            throw new MmapPageIOV2.PageIOInvalidVersionException(String
+                .format("Expected page version=%d but found version=%d", VERSION_ONE, version));
+        }
+    };
+
+    private static void validateVersion(byte version)
+        throws MmapPageIOV2.PageIOInvalidVersionException {
+        VERSION_VALIDATOR.validate(version);
+    }
+
+    @Override
+    public String toString() {
+        return "MmapPageIOV1{" +
+                "file=" + file +
+                ", capacity=" + capacity +
+                ", minSeqNum=" + minSeqNum +
+                ", elementCount=" + elementCount +
+                ", head=" + head +
+                '}';
+    }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/ByteBufferCleaner.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/ByteBufferCleanerImpl.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/CheckpointIO.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/FileCheckpointIO.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/IntVector.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/LongVector.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/PageIO.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/PageIOFactory.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/ReadablePageIO.java`
+- `logstash-core/src/main/java/org/logstash/ackedqueue/io/WritablePageIO.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

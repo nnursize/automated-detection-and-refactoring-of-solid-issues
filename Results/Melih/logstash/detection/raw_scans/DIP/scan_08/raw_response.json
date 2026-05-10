@@ -1,0 +1,51 @@
+{
+  "scan_id": "logstash_DIP_scan_08",
+  "repo_name": "logstash",
+  "principle": "DIP",
+  "scan_number": 8,
+  "timestamp": "2026-04-19T17:22:26.037504",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions ...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 980,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Class directly instantiates concrete dependencies in its constructor.\",\n      \"reasoning\": \"The Queue class directly instantiates FileCheckpointIO, ArrayList, and MmapPageIOV2. It should rely on abstractions (interfaces) injected via the constructor to allow for easier testing and decoupling from low-level implementations.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 950,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Class directly instantiates concrete dependencies.\",\n      \"reasoning\": \"The class directly instantiates CompiledPipeline, PluginFactoryExt, PluginMetricsFactoryExt, ExecutionContextFactoryExt, NullMetricExt, PipelineReporterExt, ConfigVariableExpander, and DeadLetterQueueWriter. These dependencies should be injected via an abstraction layer.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 109,\n      \"line_end\": 814,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Class directly instantiates thread pools and scheduling services.\",\n      \"reasoning\": \"The class directly instantiates Executors and FixedRateScheduler. It should depend on a Scheduler abstraction injected via the constructor to facilitate testing and allow for different scheduling strategies.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 980,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Class directly instantiates concrete dependencies in its constructor.",
+      "reasoning": "The Queue class directly instantiates FileCheckpointIO, ArrayList, and MmapPageIOV2. It should rely on abstractions (interfaces) injected via the constructor to allow for easier testing and decoupling from low-level implementations."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 950,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Class directly instantiates concrete dependencies.",
+      "reasoning": "The class directly instantiates CompiledPipeline, PluginFactoryExt, PluginMetricsFactoryExt, ExecutionContextFactoryExt, NullMetricExt, PipelineReporterExt, ConfigVariableExpander, and DeadLetterQueueWriter. These dependencies should be injected via an abstraction layer."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 109,
+      "line_end": 814,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Class directly instantiates thread pools and scheduling services.",
+      "reasoning": "The class directly instantiates Executors and FixedRateScheduler. It should depend on a Scheduler abstraction injected via the constructor to facilitate testing and allow for different scheduling strategies."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3473.100185394287,
+  "error": null
+}

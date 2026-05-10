@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "Catch2/third_party/clara.hpp",
+    "entity_name": "Column",
+    "entity_type": "class",
+    "line_start": 71,
+    "line_end": 241,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Column class combines text content storage, text layout configuration, and rendering logic.",
+    "reasoning": "The class stores the raw text (`m_strings`), defines layout parameters (`m_width`, `m_indent`, `m_initialIndent`), and provides an iterator that applies these layout rules. Additionally, it offers `operator<<` and `toString()` for rendering the formatted output. A change in text content, layout rules, or rendering mechanism would all require modifications to this single class."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "ExprLhs",
+    "entity_type": "class",
+    "line_start": 5451,
+    "line_end": 5605,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The ExprLhs class combines expression decomposition with early test failure logic for specific comparison patterns.",
+    "reasoning": "Its primary role is to capture the left-hand side of an expression and, through overloaded operators, construct `BinaryExpr` objects for later evaluation. However, some operator overloads (specifically for `is_eq_0_comparable` cases) also contain `throw_test_failure_exception()` calls, introducing a responsibility for enforcing specific semantic rules and potentially short-circuiting test execution. This mixes expression representation with test control flow."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_decomposer.hpp",
+    "entity_name": "ExprLhs",
+    "entity_type": "class",
+    "line_start": 285,
+    "line_end": 439,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The ExprLhs class combines expression decomposition with early test failure logic for specific comparison patterns.",
+    "reasoning": "Its primary role is to capture the left-hand side of an expression and, through overloaded operators, construct `BinaryExpr` objects for later evaluation. However, some operator overloads (specifically for `is_eq_0_comparable` cases) also contain `throw_test_failure_exception()` calls, introducing a responsibility for enforcing specific semantic rules and potentially short-circuiting test execution. This mixes expression representation with test control flow."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.cpp",
+    "entity_name": "ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 9278,
+    "line_end": 9426,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The ConsoleAssertionPrinter class is responsible for interpreting assertion results, applying complex text layout, and rendering the output to a console stream.",
+    "reasoning": "The constructor contains extensive logic to categorize assertion results and determine presentation metadata (e.g., `passOrFail` string, `messageLabel`, `colour`). The `print` methods then use this metadata, along with `TextFlow::Column` for sophisticated text layout (indentation, line wrapping), to render the final output to `std::ostream`. This combines result interpretation, text formatting/layout, and output rendering, giving it multiple distinct reasons to change."
+  },
+  {
+    "file_path": "Catch2/src/catch2/reporters/catch_reporter_console.cpp",
+    "entity_name": "ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 193,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The ConsoleAssertionPrinter class is responsible for interpreting assertion results, applying complex text layout, and rendering the output to a console stream.",
+    "reasoning": "The constructor contains extensive logic to categorize assertion results and determine presentation metadata (e.g., `passOrFail` string, `messageLabel`, `colour`). The `print` methods then use this metadata, along with `TextFlow::Column` for sophisticated text layout (indentation, line wrapping), to render the final output to `std::ostream`. This combines result interpretation, text formatting/layout, and output rendering, giving it multiple distinct reasons to change."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 10653,
+    "line_end": 10786,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The RunContext class acts as a 'God Object,' encompassing responsibilities for test execution, assertion capture, section management, generator tracking, benchmark handling, reporting coordination, configuration caching, output redirection, fatal error handling, and concurrency management.",
+    "reasoning": "This class is responsible for nearly every aspect of a test run. Any change to how tests are executed, how results are captured, how sections or generators are managed, how benchmarks are processed, how reporting is coordinated, or how fatal errors are handled would require modifications to this single class. This violates SRP by having far too many reasons to change and managing too many disparate concerns."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 28,
+    "line_end": 161,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The RunContext class acts as a 'God Object,' encompassing responsibilities for test execution, assertion capture, section management, generator tracking, benchmark handling, reporting coordination, configuration caching, output redirection, fatal error handling, and concurrency management.",
+    "reasoning": "This class is responsible for nearly every aspect of a test run. Any change to how tests are executed, how results are captured, how sections or generators are managed, how benchmarks are processed, how reporting is coordinated, or how fatal errors are handled would require modifications to this single class. This violates SRP by having far too many reasons to change and managing too many disparate concerns."
+  }
+]

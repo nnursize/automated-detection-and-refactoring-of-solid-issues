@@ -1,0 +1,416 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-009
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `CumulativeReporterBase` (current lines L13502-L13587 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+Subclasses can disable mandatory data collection, leading to Undefined Behavior in the base class contract
+
+### Reasoning
+Refused Bequest smell -> LSP violation because the base class provides protected flags (m_shouldStoreSuccesfulAssertions and m_shouldStoreFailedAssertions) that allow subclasses to opt-out of fulfilling the data collection contract. However, the base class's internal logic and its consumers (who interact with the resulting node tree) expect this data to be present. As noted in the source comments (line 3505), accessing this data when a subclass has opted out results in Undefined Behavior. This makes such subclasses non-substitutable for the base type in any context where the cumulative results are processed, as they break the expected postconditions of the event-handling methods.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 13381 earlier lines elided ...
+
+        void sectionEnded(SectionStats const& _sectionStats) override;
+
+        void testRunEnded(TestRunStats const& _testRunStats) override;
+
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_REPORTER_COMPACT_HPP_INCLUDED
+
+
+#ifndef CATCH_REPORTER_CONSOLE_HPP_INCLUDED
+#define CATCH_REPORTER_CONSOLE_HPP_INCLUDED
+
+
+namespace Catch {
+    // Fwd decls
+    class TablePrinter;
+
+    class ConsoleReporter final : public StreamingReporterBase {
+        Detail::unique_ptr<TablePrinter> m_tablePrinter;
+
+    public:
+        ConsoleReporter(ReporterConfig&& config);
+        ~ConsoleReporter() override;
+        static std::string getDescription();
+
+        void noMatchingTestCases( StringRef unmatchedSpec ) override;
+        void reportInvalidTestSpec( StringRef arg ) override;
+
+        void assertionEnded(AssertionStats const& _assertionStats) override;
+
+        void sectionStarting(SectionInfo const& _sectionInfo) override;
+        void sectionEnded(SectionStats const& _sectionStats) override;
+
+        void benchmarkPreparing( StringRef name ) override;
+        void benchmarkStarting(BenchmarkInfo const& info) override;
+        void benchmarkEnded(BenchmarkStats<> const& stats) override;
+        void benchmarkFailed( StringRef error ) override;
+
+        void testCaseEnded(TestCaseStats const& _testCaseStats) override;
+        void testRunEnded(TestRunStats const& _testRunStats) override;
+        void testRunStarting(TestRunInfo const& _testRunInfo) override;
+
+    private:
+        void lazyPrint();
+
+        void lazyPrintWithoutClosingBenchmarkTable();
+        void lazyPrintRunInfo();
+        void printTestCaseAndSectionHeader();
+
+        void printClosedHeader(std::string const& _name);
+        void printOpenHeader(std::string const& _name);
+
+        // if string has a : in first line will set indent to follow it on
+        // subsequent lines
+        void printHeaderString(std::string const& _string, std::size_t indent = 0);
+
+        void printTotalsDivider(Totals const& totals);
+
+        bool m_headerPrinted = false;
+        bool m_testRunInfoPrinted = false;
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_REPORTER_CONSOLE_HPP_INCLUDED
+
+
+#ifndef CATCH_REPORTER_CUMULATIVE_BASE_HPP_INCLUDED
+#define CATCH_REPORTER_CUMULATIVE_BASE_HPP_INCLUDED
+
+
+#include <string>
+#include <vector>
+
+namespace Catch {
+
+    namespace Detail {
+
+        //! Represents either an assertion or a benchmark result to be handled by cumulative reporter later
+        class AssertionOrBenchmarkResult {
+            // This should really be a variant, but this is much faster
+            // to write and the data layout here is already terrible
+            // enough that we do not have to care about the object size.
+            Optional<AssertionStats> m_assertion;
+            Optional<BenchmarkStats<>> m_benchmark;
+        public:
+            AssertionOrBenchmarkResult(AssertionStats const& assertion);
+            AssertionOrBenchmarkResult(BenchmarkStats<> const& benchmark);
+
+            bool isAssertion() const;
+            bool isBenchmark() const;
+
+            AssertionStats const& asAssertion() const;
+            BenchmarkStats<> const& asBenchmark() const;
+        };
+    }
+
+    /**
+     * Utility base for reporters that need to handle all results at once
+     *
+     * It stores tree of all test cases, sections and assertions, and after the
+     * test run is finished, calls into `testRunEndedCumulative` to pass the
+     * control to the deriving class.
+     *
+     * If you are deriving from this class and override any testing related
+     * member functions, you should first call into the base's implementation to
+     * avoid breaking the tree construction.
+     *
+     * Due to the way this base functions, it has to expand assertions up-front,
+     * even if they are later unused (e.g. because the deriving reporter does
+     * not report successful assertions, or because the deriving reporter does
+     * not use assertion expansion at all). Derived classes can use two
+     * customization points, `m_shouldStoreSuccesfulAssertions` and
+     * `m_shouldStoreFailedAssertions`, to disable the expansion and gain extra
+     * performance. **Accessing the assertion expansions if it wasn't stored is
+     * UB.**
+     */
+    class CumulativeReporterBase : public ReporterBase {
+    public:
+        template<typename T, typename ChildNodeT>
+        struct Node {
+            explicit Node( T const& _value ) : value( _value ) {}
+
+            using ChildNodes = std::vector<Detail::unique_ptr<ChildNodeT>>;
+            T value;
+            ChildNodes children;
+        };
+        struct SectionNode {
+            explicit SectionNode(SectionStats const& _stats) : stats(_stats) {}
+
+            bool operator == (SectionNode const& other) const {
+                return stats.sectionInfo.lineInfo == other.stats.sectionInfo.lineInfo;
+            }
+
+            bool hasAnyAssertions() const;
+
+            SectionStats stats;
+            std::vector<Detail::unique_ptr<SectionNode>> childSections;
+            std::vector<Detail::AssertionOrBenchmarkResult> assertionsAndBenchmarks;
+            std::string stdOut;
+            std::string stdErr;
+        };
+
+
+        using TestCaseNode = Node<TestCaseStats, SectionNode>;
+        using TestRunNode = Node<TestRunStats, TestCaseNode>;
+
+        // GCC5 compat: we cannot use inherited constructor, because it
+        //              doesn't implement backport of P0136
+        CumulativeReporterBase(ReporterConfig&& _config):
+            ReporterBase(CATCH_MOVE(_config))
+        {}
+        ~CumulativeReporterBase() override;
+
+        void benchmarkPreparing( StringRef ) override {}
+        void benchmarkStarting( BenchmarkInfo const& ) override {}
+        void benchmarkEnded( BenchmarkStats<> const& benchmarkStats ) override;
+        void benchmarkFailed( StringRef ) override {}
+
+        void noMatchingTestCases( StringRef ) override {}
+        void reportInvalidTestSpec( StringRef ) override {}
+        void fatalErrorEncountered( StringRef /*error*/ ) override {}
+
+        void testRunStarting( TestRunInfo const& ) override {}
+
+        void testCaseStarting( TestCaseInfo const& ) override {}
+        void testCasePartialStarting( TestCaseInfo const&, uint64_t ) override {}
+        void sectionStarting( SectionInfo const& sectionInfo ) override;
+
+        void assertionStarting( AssertionInfo const& ) override {}
+
+        void assertionEnded( AssertionStats const& assertionStats ) override;
+        void sectionEnded( SectionStats const& sectionStats ) override;
+        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}
+        void testCaseEnded( TestCaseStats const& testCaseStats ) override;
+        void testRunEnded( TestRunStats const& testRunStats ) override;
+        //! Customization point: called after last test finishes (testRunEnded has been handled)
+        virtual void testRunEndedCumulative() = 0;
+
+        void skipTest(TestCaseInfo const&) override {}
+
+    protected:
+        //! Should the cumulative base store the assertion expansion for successful assertions?
+        bool m_shouldStoreSuccesfulAssertions = true;
+        //! Should the cumulative base store the assertion expansion for failed assertions?
+        bool m_shouldStoreFailedAssertions = true;
+
+        // We need lazy construction here. We should probably refactor it
+        // later, after the events are redone.
+        //! The root node of the test run tree.
+        Detail::unique_ptr<TestRunNode> m_testRun;
+
+    private:
+        // Note: We rely on pointer identity being stable, which is why
+        //       we store pointers to the nodes rather than the values.
+        std::vector<Detail::unique_ptr<TestCaseNode>> m_testCases;
+        // Root section of the _current_ test case
+        Detail::unique_ptr<SectionNode> m_rootSection;
+        // Deepest section of the _current_ test case
+        SectionNode* m_deepestSection = nullptr;
+        // Stack of _active_ sections in the _current_ test case
+        std::vector<SectionNode*> m_sectionStack;
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_REPORTER_CUMULATIVE_BASE_HPP_INCLUDED
+
+
+#ifndef CATCH_REPORTER_EVENT_LISTENER_HPP_INCLUDED
+#define CATCH_REPORTER_EVENT_LISTENER_HPP_INCLUDED
+
+
+namespace Catch {
+
+    /**
+     * Base class to simplify implementing listeners.
+     *
+     * Provides empty default implementation for all IEventListener member
+     * functions, so that a listener implementation can pick which
+     * member functions it actually cares about.
+     */
+    class EventListenerBase : public IEventListener {
+    public:
+        using IEventListener::IEventListener;
+
+        void reportInvalidTestSpec( StringRef unmatchedSpec ) override;
+        void fatalErrorEncountered( StringRef error ) override;
+
+        void benchmarkPreparing( StringRef name ) override;
+        void benchmarkStarting( BenchmarkInfo const& benchmarkInfo ) override;
+        void benchmarkEnded( BenchmarkStats<> const& benchmarkStats ) override;
+        void benchmarkFailed( StringRef error ) override;
+
+        void assertionStarting( AssertionInfo const& assertionInfo ) override;
+        void assertionEnded( AssertionStats const& assertionStats ) override;
+
+        void listReporters(
+            std::vector<ReporterDescription> const& descriptions ) override;
+        void listListeners(
+            std::vector<ListenerDescription> const& descriptions ) override;
+        void listTests( std::vector<TestCaseHandle> const& tests ) override;
+        void listTags( std::vector<TagInfo> const& tagInfos ) override;
+
+        void noMatchingTestCases( StringRef unmatchedSpec ) override;
+        void testRunStarting( TestRunInfo const& testRunInfo ) override;
+        void testCaseStarting( TestCaseInfo const& testInfo ) override;
+        void testCasePartialStarting( TestCaseInfo const& testInfo,
+                                      uint64_t partNumber ) override;
+        void sectionStarting( SectionInfo const& sectionInfo ) override;
+        void sectionEnded( SectionStats const& sectionStats ) override;
+        void testCasePartialEnded( TestCaseStats const& testCaseStats,
+                                   uint64_t partNumber ) override;
+        void testCaseEnded( TestCaseStats const& testCaseStats ) override;
+        void testRunEnded( TestRunStats const& testRunStats ) override;
+        void skipTest( TestCaseInfo const& testInfo ) override;
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_REPORTER_EVENT_LISTENER_HPP_INCLUDED
+
+
+#ifndef CATCH_REPORTER_HELPERS_HPP_INCLUDED
+#define CATCH_REPORTER_HELPERS_HPP_INCLUDED
+
+#include <iosfwd>
+#include <string>
+#include <vector>
+
+
+namespace Catch {
+
+    class IConfig;
+    class TestCaseHandle;
+    class ColourImpl;
+
+    // Returns double formatted as %.3f (format expected on output)
+    std::string getFormattedDuration( double duration );
+
+    //! Should the reporter show duration of test given current configuration?
+    bool shouldShowDuration( IConfig const& config, double duration );
+
+    std::string serializeFilters( std::vector<std::string> const& filters );
+
+    struct lineOfChars {
+        char c;
+        constexpr lineOfChars( char c_ ): c( c_ ) {}
+
+        friend std::ostream& operator<<( std::ostream& out, lineOfChars value );
+    };
+
+    /**
+     * Lists reporter descriptions to the provided stream in user-friendly
+     * format
+     *
+     * Used as the default listing implementation by the first party reporter
+     * bases. The output should be backwards compatible with the output of
+     * Catch2 v2 binaries.
+     */
+    void
+    defaultListReporters( std::ostream& out,
+                          std::vector<ReporterDescription> const& descriptions,
+                          Verbosity verbosity );
+
+    /**
+     * Lists listeners descriptions to the provided stream in user-friendly
+     * format
+     */
+    void defaultListListeners( std::ostream& out,
+                               std::vector<ListenerDescription> const& descriptions );
+
+    /**
+     * Lists tag information to the provided stream in user-friendly format
+     *
+     * Used as the default listing implementation by the first party reporter
+     * bases. The output should be backwards compatible with the output of
+     * Catch2 v2 binaries.
+     */
+    void defaultListTags( std::ostream& out, std::vector<TagInfo> const& tags, bool isFiltered );
+
+    /**
+     * Lists test case information to the provided stream in user-friendly
+# ... 561 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

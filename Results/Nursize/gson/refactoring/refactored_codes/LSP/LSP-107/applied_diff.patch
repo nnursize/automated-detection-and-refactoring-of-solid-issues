@@ -1,0 +1,22 @@
+diff --git a/gson/src/main/java/com/google/gson/JsonPrimitive.java b/gson/src/main/java/com/google/gson/JsonPrimitive.java
+index 88f4466..8d080e2 100644
+--- a/gson/src/main/java/com/google/gson/JsonPrimitive.java
++++ b/gson/src/main/java/com/google/gson/JsonPrimitive.java
+@@ -133,7 +133,7 @@ public final class JsonPrimitive extends JsonElement {
+    * #isString() is a string}, a lazily parsed {@code Number} is constructed which parses the string
+    * when any of its methods are called (which can lead to a {@link NumberFormatException}).
+    *
+-   * @throws UnsupportedOperationException if this primitive is neither a number nor a string.
++   * @throws NumberFormatException if this primitive is neither a number nor a string.
+    */
+   @Override
+   public Number getAsNumber() {
+@@ -142,7 +142,7 @@ public final class JsonPrimitive extends JsonElement {
+     } else if (value instanceof String) {
+       return new LazilyParsedNumber((String) value);
+     }
+-    throw new UnsupportedOperationException("Primitive is neither a number nor a string");
++    throw new NumberFormatException("Primitive is neither a number nor a string");
+   }
+ 
+   /**

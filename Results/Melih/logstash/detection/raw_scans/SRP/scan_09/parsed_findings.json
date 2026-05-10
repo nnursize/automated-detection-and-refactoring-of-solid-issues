@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Queue class acts as a God Object, mixing high-level queue logic with low-level infrastructure concerns.",
+    "reasoning": "The class manages multiple unrelated responsibilities: 1) Core queue state and concurrency control (locks, conditions), 2) File system management (directory creation, file locking via FileLockFactory), 3) Serialization details (using reflection to obtain the 'deserialize' method), and 4) Resource monitoring (checking disk space availability via FsUtil). Each of these is a distinct reason to change."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "AbstractPipelineExt aggregates pipeline lifecycle, configuration, metrics, and DLQ management.",
+    "reasoning": "This class handles too many distinct concerns: 1) Pipeline lifecycle management (initialization, opening/closing), 2) Complex metric registration and collection logic for various scopes (workers, plugins, flow metrics), 3) Dead Letter Queue (DLQ) configuration and writer lifecycle management, and 4) Configuration parsing and variable expansion. Changes to the metric reporting system or DLQ logic would force changes to this core execution class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event",
+    "entity_type": "class",
+    "line_start": 51,
+    "line_end": 583,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Event class mixes core data encapsulation with serialization and formatting logic.",
+    "reasoning": "The class is responsible for the internal representation and manipulation of event data (tags, timestamps, field accessors). However, it also includes static methods and instance logic for JSON serialization (toJson/fromJson), binary CBOR serialization (serialize/deserialize), and string interpolation (sprintf). These I/O and formatting concerns are distinct from the data model itself."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "DeadLetterQueueWriter manages both I/O operations and background maintenance tasks.",
+    "reasoning": "While its primary role is writing entries to the DLQ, the class also takes on the responsibility of managing file segment rotation logic, implementing data retention policies (age and size-based cleanup), and setting up background scheduling/monitoring (WatchService and ScheduledExecutorService) to detect deleted segments. Maintenance and I/O should be decoupled."
+  }
+]

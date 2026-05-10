@@ -1,0 +1,279 @@
+# SOLID Violation Detection Summary: flask
+
+**Total unique issues**: 263
+
+## By Principle
+
+| Principle | Issues | Multi-scan |
+|-----------|--------|------------|
+| SRP | 64 | 22 |
+| OCP | 67 | 15 |
+| LSP | 36 | 4 |
+| ISP | 85 | 6 |
+| DIP | 11 | 6 |
+
+## All Issues (sorted by confidence)
+
+- **DIP-001** [HIGH] `src/flask/app.py` — Flask.__init__ (found 12x): Direct instantiation of CLI command group
+- **SRP-001** [MEDIUM] `src/flask/app.py` — Flask.send_static_file (found 11x): The Flask application directly implements static file serving logic.
+- **DIP-003** [MEDIUM] `src/flask/sansio/app.py` — App.__init__ (found 8x): Direct instantiation of JSONProvider via json_provider_class
+- **SRP-040** [HIGH] `src/flask/sansio/blueprints.py` — Blueprint.register (found 7x): The 'register' method is responsible for both defining the blueprint's components and orchestrating their integration into the main 'App' object, including merging various types of functions and static files.
+- **SRP-025** [MEDIUM] `src/flask/sansio/app.py` — App.auto_find_instance_path (found 6x): Automatically locates the application's instance path, mixing file system path resolution with core app logic.
+- **SRP-004** [MEDIUM] `src/flask/app.py` — Flask.run (found 5x): The Flask application directly implements the logic for running a development server.
+- **SRP-030** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.static_folder (found 5x): Property for resolving the absolute path of the static folder, mixing path resolution with component registration.
+- **OCP-001** [HIGH] `src/flask/app.py` — Flask.make_response (found 5x): The method uses a long if/elif/else chain to convert various return types into a Response object.
+- **SRP-014** [MEDIUM] `src/flask/blueprints.py` — Blueprint.get_send_file_max_age (found 4x): The 'get_send_file_max_age' method handles specific logic for determining cache control for static files within a blueprint.
+- **SRP-036** [LOW] `src/flask/json/provider.py` — JSONProvider.response (found 4x): Combines JSON serialization with HTTP response object creation.
+- **OCP-002** [MEDIUM] `src/flask/cli.py` — find_best_app (found 4x): Hardcoded logic to discover Flask application instances or factory functions by specific names.
+- **OCP-003** [MEDIUM] `src/flask/cli.py` — find_app_by_string (found 4x): Fixed parsing logic for app string and type-checking for attribute handling.
+- **OCP-008** [MEDIUM] `src/flask/sansio/app.py` — App.select_jinja_autoescape (found 4x): Hardcoded list of file extensions to determine Jinja autoescape behavior.
+- **OCP-010** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold._get_exc_class_and_code (found 4x): Fixed logic for determining exception class and HTTP code from various input types.
+- **OCP-011** [MEDIUM] `src/flask/sansio/blueprints.py` — Blueprint.register (found 4x): Contains multiple if/elif/else blocks for handling blueprint registration options and nested blueprints.
+- **ISP-074** [MEDIUM] `src/flask/sessions.py` — SessionInterface (found 4x): The SessionInterface defines many configuration getters and core methods, potentially forcing implementers to provide unused functionality.
+- **DIP-002** [HIGH] `src/flask/blueprints.py` — Blueprint.__init__ (found 4x): Direct instantiation of CLI AppGroup in Blueprint
+- **SRP-005** [MEDIUM] `src/flask/app.py` — Flask.test_client (found 3x): The Flask application provides methods for creating a test client.
+- **SRP-041** [MEDIUM] `src/flask/sansio/blueprints.py` — Blueprint.app_template_filter (found 3x): The 'Blueprint' class provides methods like 'app_template_filter' to register global application-wide hooks, blurring its responsibility for modular components with global application configuration.
+- **SRP-043** [HIGH] `src/flask/ctx.py` — AppContext (found 3x): The 'AppContext' class manages the entire lifecycle of application and request contexts, including state, session initialization, routing, and teardown orchestration.
+- **SRP-044** [HIGH] `src/flask/sessions.py` — SessionInterface (found 3x): The 'SessionInterface' class defines the core contract for session storage and also provides a comprehensive set of methods for configuring all aspects of the session cookie.
+- **SRP-046** [HIGH] `src/flask/config.py` — Config (found 3x): The 'Config' class acts as a dictionary for configuration storage but also implements numerous strategies for loading configuration from environment variables, Python files, generic files, and objects.
+- **SRP-052** [MEDIUM] `src/flask/wrappers.py` — Request (found 3x): The 'Request' class extends Werkzeug's request object but also directly accesses application-level configuration for request limits and includes debug-specific behavior for form data handling.
+- **SRP-061** [MEDIUM] `src/flask/cli.py` — FlaskGroup.get_command (found 3x): The 'get_command' method combines responsibilities for loading plugin commands, loading the Flask application, and pushing an application context, in addition to its primary role of retrieving a CLI command.
+- **OCP-013** [HIGH] `src/flask/json/provider.py` — DefaultJSONProvider._default (found 3x): A series of if statements to handle custom JSON serialization for specific Python types.
+- **OCP-027** [HIGH] `src/flask/app.py` — Flask.make_response (found 3x): Extensive if/elif chain with isinstance checks for various return types to convert to a Response object.
+- **OCP-042** [MEDIUM] `src/flask/cli.py` — FlaskGroup.get_command (found 3x): The `get_command` method might contain logic to find commands that needs modification to support new command discovery mechanisms.
+- **LSP-022** [LOW] `src/flask/sansio/app.py` — App.create_jinja_environment (found 3x): Subclass must implement create_jinja_environment to provide a Jinja environment.
+- **LSP-024** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold._check_setup_finished (found 3x): Subclasses must implement _check_setup_finished to prevent modification after registration.
+- **LSP-027** [MEDIUM] `src/flask/sansio/blueprints.py` — Blueprint.app_template_filter (found 3x): Abstract method `app_template_filter` in base class `Blueprint` is not implemented by subclasses.
+- **ISP-001** [MEDIUM] `src/flask/app.py` — Flask.handle_http_exception (found 3x): The handle_http_exception method handles both routing exceptions and other HTTP exceptions, violating ISP.
+- **ISP-044** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold.add_url_rule (found 3x): The add_url_rule method handles methods, endpoint naming, automatic OPTIONS, defaults, and rule object creation, violating ISP.
+- **ISP-079** [MEDIUM] `src/flask/json/provider.py` — JSONProvider (found 3x): Fat interface mixing JSON serialization with Flask-specific HTTP response logic.
+- **ISP-083** [MEDIUM] `src/flask/ctx.py` — AppContext (found 3x): AppContext violates ISP by merging request-specific functionality into a general application context.
+- **DIP-004** [MEDIUM] `src/flask/ctx.py` — AppContext.__init__ (found 3x): Direct instantiation of the globals container (_AppCtxGlobals)
+- **SRP-002** [MEDIUM] `src/flask/app.py` — Flask.open_resource (found 2x): The Flask application directly handles opening resource files from the filesystem.
+- **SRP-003** [MEDIUM] `src/flask/app.py` — Flask.open_instance_resource (found 2x): The Flask application directly handles opening instance resource files from the filesystem.
+- **SRP-007** [MEDIUM] `src/flask/cli.py` — ScriptInfo.load_app (found 2x): The method mixes application loading/discovery with application configuration.
+- **SRP-008** [HIGH] `src/flask/cli.py` — FlaskGroup (found 2x): The FlaskGroup class acts as a 'God object' for Flask CLI, handling multiple unrelated responsibilities.
+- **SRP-051** [MEDIUM] `src/flask/templating.py` — DispatchingJinjaLoader (found 2x): The 'DispatchingJinjaLoader' class is responsible for loading templates from various sources (app, blueprints) and for integrating with debug-specific template loading explanation logic.
+- **SRP-059** [LOW] `src/flask/ctx.py` — AppContext.match_request (found 2x): The 'match_request' method performs URL routing, which is a distinct responsibility from managing the application context's lifecycle.
+- **SRP-062** [MEDIUM] `src/flask/cli.py` — ScriptInfo (found 2x): The ScriptInfo class is responsible for both finding/loading a Flask application and applying configuration during the loading process.
+- **SRP-063** [LOW] `src/flask/cli.py` — CertParamType (found 2x): The CertParamType class handles multiple distinct conversion strategies for certificate options within a single 'convert' method.
+- **OCP-014** [MEDIUM] `src/flask/debughelpers.py` — explain_template_loading_attempts (found 2x): Fixed dispatch logic for identifying the source object of a template loader.
+- **OCP-017** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold._get_exc_class_and_code (found 2x): Distinguishes error handlers based on integer codes vs. exception classes using isinstance and issubclass.
+- **OCP-020** [MEDIUM] `src/flask/app.py` — Flask.create_url_adapter (found 2x): Conditional logic based on host_matching and subdomain_matching config flags.
+- **OCP-022** [MEDIUM] `src/flask/app.py` — Flask.run (found 2x): Multiple conditional branches for configuration, environment variables, and argument handling.
+- **OCP-033** [HIGH] `src/flask/app.py` — Flask.make_response (found 2x): The method uses extensive type-checking and conditional logic to convert various return values into a Response object.
+- **OCP-061** [LOW] `src/flask/sessions.py` — SessionInterface.make_null_session (found 2x): The `make_null_session` method returns a null session object.
+- **LSP-001** [MEDIUM] `src/flask/app.py` — Flask.handle_http_exception (found 2x): Subclass might override handle_http_exception and not handle RoutingException or RequestRedirect correctly.
+- **ISP-027** [MEDIUM] `src/flask/sansio/app.py` — App.create_jinja_environment (found 2x): The create_jinja_environment method configures Jinja with autoescape and auto_reload based on app debug status, potentially forcing unwanted configurations.
+- **DIP-005** [MEDIUM] `src/flask/cli.py` — FlaskGroup.make_context (found 2x): Direct instantiation of ScriptInfo within the method.
+- **DIP-009** [HIGH] `src/flask/json/provider.py` — JSONProvider (found 2x): Low-level JSON provider depends on the concrete high-level App class.
+- **SRP-006** [MEDIUM] `src/flask/app.py` — Flask.test_cli_runner (found 1x): The Flask application provides methods for creating a CLI runner for testing.
+- **SRP-009** [MEDIUM] `src/flask/cli.py` — load_dotenv (found 1x): The function performs file I/O and environment variable manipulation, which is distinct from core CLI command definition.
+- **SRP-010** [MEDIUM] `src/flask/cli.py` — run_command (found 1x): The CLI command directly implements the logic for starting the Werkzeug development server.
+- **SRP-011** [MEDIUM] `src/flask/app.py` — Flask.send_static_file (found 1x): The 'send_static_file' method is responsible for serving static files from the filesystem.
+- **SRP-012** [MEDIUM] `src/flask/app.py` — Flask.open_resource (found 1x): The 'open_resource' method handles file system I/O for reading resources relative to the application's root path.
+- **SRP-013** [MEDIUM] `src/flask/app.py` — Flask.open_instance_resource (found 1x): The 'open_instance_resource' method handles file system I/O for reading/writing resources relative to the application's instance path.
+- **SRP-015** [MEDIUM] `src/flask/blueprints.py` — Blueprint.send_static_file (found 1x): The 'send_static_file' method is responsible for serving static files from a blueprint's static folder.
+- **SRP-016** [MEDIUM] `src/flask/blueprints.py` — Blueprint.open_resource (found 1x): The 'open_resource' method handles file system I/O for reading resources relative to the blueprint's root path.
+- **SRP-017** [MEDIUM] `src/flask/app.py` — Flask.get_send_file_max_age (found 1x): Determines the max-age cache value for static files, a specific static file serving concern.
+- **SRP-018** [MEDIUM] `src/flask/app.py` — Flask.send_static_file (found 1x): Serves static files from the configured folder, mixing I/O and HTTP response generation with core app logic.
+- **SRP-019** [MEDIUM] `src/flask/app.py` — Flask.open_resource (found 1x): Handles opening resource files relative to the application's root path, mixing file I/O with core app logic.
+- **SRP-020** [MEDIUM] `src/flask/app.py` — Flask.open_instance_resource (found 1x): Handles opening resource files relative to the application's instance path, mixing file I/O with core app logic.
+- **SRP-021** [HIGH] `src/flask/app.py` — Flask.run (found 1x): Manages the local development server, including environment variable loading, debug mode settings, and calling Werkzeug's run_simple.
+- **SRP-022** [MEDIUM] `src/flask/app.py` — Flask.test_client (found 1x): Creates a test client for the application, integrating testing concerns directly into the main app class.
+- **SRP-023** [MEDIUM] `src/flask/app.py` — Flask.test_cli_runner (found 1x): Creates a CLI runner for testing, integrating CLI testing concerns directly into the main app class.
+- **SRP-024** [HIGH] `src/flask/app.py` — Flask.wsgi_app (found 1x): The main WSGI application entry point, orchestrating request context, dispatch, error handling, and response processing.
+- **SRP-026** [MEDIUM] `src/flask/sansio/app.py` — App.make_config (found 1x): Creates and initializes the application's configuration object, mixing configuration management with core app logic.
+- **SRP-027** [LOW] `src/flask/sansio/app.py` — App.make_aborter (found 1x): Creates the aborter object, mixing object instantiation with core app logic.
+- **SRP-028** [MEDIUM] `src/flask/sansio/app.py` — App._find_error_handler (found 1x): Locates the appropriate error handler for a given exception and blueprint context.
+- **SRP-029** [MEDIUM] `src/flask/sansio/app.py` — App.trap_http_exception (found 1x): Determines whether an HTTP exception should be trapped based on configuration, mixing error policy with core app logic.
+- **SRP-031** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.static_url_path (found 1x): Property for deriving the URL prefix for static files, mixing URL generation logic with component registration.
+- **SRP-032** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold.jinja_loader (found 1x): Property for creating the Jinja template loader, mixing templating setup with component registration.
+- **SRP-033** [MEDIUM] `src/flask/blueprints.py` — Blueprint.get_send_file_max_age (found 1x): Determines the max-age cache value for static files, duplicating logic from Flask and mixing static file serving with blueprint definition.
+- **SRP-034** [MEDIUM] `src/flask/blueprints.py` — Blueprint.send_static_file (found 1x): Serves static files from the blueprint's static folder, duplicating logic from Flask and mixing static file serving with blueprint definition.
+- **SRP-035** [MEDIUM] `src/flask/cli.py` — load_dotenv (found 1x): Loads environment variables from dotenv files, a distinct responsibility from CLI command execution or app discovery.
+- **SRP-037** [LOW] `src/flask/json/provider.py` — DefaultJSONProvider.response (found 1x): Combines JSON serialization with HTTP response object creation, including formatting based on debug mode.
+- **SRP-038** [MEDIUM] `src/flask/cli.py` — ScriptInfo.load_app (found 1x): The 'load_app' method is responsible for both locating/instantiating the Flask application and applying CLI-specific debug configuration to it.
+- **SRP-039** [MEDIUM] `src/flask/sansio/app.py` — App.debug (found 1x): The 'debug' property setter couples configuration setting with template engine behavior by modifying 'jinja_env.auto_reload'.
+- **SRP-042** [MEDIUM] `src/flask/helpers.py` — _prepare_send_file_kwargs (found 1x): The '_prepare_send_file_kwargs' function is responsible for gathering various configuration parameters from 'current_app' and 'request' contexts for file sending.
+- **SRP-045** [HIGH] `src/flask/sessions.py` — SecureCookieSessionInterface (found 1x): The 'SecureCookieSessionInterface' class combines cryptographic signing/serialization of session data with the actual setting and deletion of HTTP cookies on the response.
+- **SRP-047** [MEDIUM] `src/flask/json/tag.py` — TaggedJSONSerializer (found 1x): The 'TaggedJSONSerializer' class manages the registration and ordering of JSON tags and performs the actual JSON serialization/deserialization using these tags.
+- **SRP-048** [MEDIUM] `src/flask/json/provider.py` — JSONProvider (found 1x): The 'JSONProvider' class defines the interface for JSON serialization/deserialization and also includes methods specifically for creating HTTP 'Response' objects with JSON content.
+- **SRP-049** [MEDIUM] `src/flask/json/provider.py` — DefaultJSONProvider (found 1x): The 'DefaultJSONProvider' class implements JSON serialization/deserialization, configures the underlying 'json' library, and handles specific formatting and mimetype for HTTP responses.
+- **SRP-050** [LOW] `src/flask/templating.py` — Environment (found 1x): The 'Environment' class, a Jinja environment, is responsible for knowing how to get its loader from the Flask application.
+- **SRP-053** [MEDIUM] `src/flask/logging.py` — create_logger (found 1x): The 'create_logger' function is responsible for both creating a logger instance and applying specific configuration policies to it (setting debug level, adding default handler).
+- **SRP-054** [LOW] `src/flask/json/provider.py` — DefaultJSONProvider.response (found 1x): The response method combines JSON serialization with HTTP response object creation and configuration.
+- **SRP-055** [HIGH] `src/flask/cli.py` — FlaskGroup (found 1x): The FlaskGroup class acts as a God Class for Flask's command-line interface, combining many distinct responsibilities.
+- **SRP-056** [MEDIUM] `src/flask/cli.py` — FlaskGroup (found 1x): The 'FlaskGroup' class is a God Class for the Flask CLI, orchestrating various CLI-related responsibilities.
+- **SRP-057** [MEDIUM] `src/flask/testing.py` — FlaskClient (found 1x): The 'FlaskClient' class extends a generic HTTP test client with multiple Flask-specific testing concerns.
+- **SRP-058** [LOW] `src/flask/sansio/app.py` — App._find_error_handler (found 1x): The '_find_error_handler' method encapsulates the logic for looking up error handlers based on exception type and HTTP code, which is a specific error handling strategy responsibility.
+- **SRP-060** [LOW] `src/flask/ctx.py` — AppContext._get_session (found 1x): The '_get_session' method encapsulates logic for opening and potentially creating a null session, which is a session management responsibility.
+- **SRP-064** [MEDIUM] `src/flask/sansio/blueprints.py` — Blueprint.register (found 1x): The 'register' method combines multiple responsibilities including blueprint validation, static file routing setup, merging blueprint functions, CLI command integration, and recursive registration of nested blueprints with complex URL/subdomain merging.
+- **OCP-004** [MEDIUM] `src/flask/cli.py` — ScriptInfo.load_app (found 1x): Fixed set of strategies for locating and loading the Flask application.
+- **OCP-005** [MEDIUM] `src/flask/cli.py` — load_dotenv (found 1x): Hardcoded list of default dotenv filenames to load.
+- **OCP-006** [MEDIUM] `src/flask/cli.py` — CertParamType.convert (found 1x): Fixed logic for converting certificate parameter values based on specific string literals or types.
+- **OCP-007** [MEDIUM] `src/flask/cli.py` — _validate_key (found 1x): Conditional logic based on specific certificate types and presence of key.
+- **OCP-009** [MEDIUM] `src/flask/sansio/app.py` — App.trap_http_exception (found 1x): Conditional logic based on specific exception types and configuration flags.
+- **OCP-012** [MEDIUM] `src/flask/json/tag.py` — TaggedJSONSerializer._untag_scan (found 1x): Fixed type-checking for recursive untagging of container types.
+- **OCP-015** [MEDIUM] `src/flask/cli.py` — CertParamType.convert (found 1x): Explicitly handles 'adhoc' string and 'ssl.SSLContext' for certificate types.
+- **OCP-016** [MEDIUM] `src/flask/sansio/app.py` — App.trap_http_exception (found 1x): Contains specific isinstance checks for BadRequestKeyError and BadRequest.
+- **OCP-018** [MEDIUM] `src/flask/testing.py` — FlaskClient.open (found 1x): Uses isinstance checks to handle different input types for request creation.
+- **OCP-019** [LOW] `src/flask/json/tag.py` — TaggedJSONSerializer._untag_scan (found 1x): Recursively scans only dict and list types for untagging.
+- **OCP-021** [MEDIUM] `src/flask/app.py` — Flask.raise_routing_exception (found 1x): Specific type checking for RequestRedirect exception and string comparison for HTTP methods.
+- **OCP-023** [MEDIUM] `src/flask/app.py` — Flask.handle_http_exception (found 1x): Specific type checking for exception codes and RoutingException.
+- **OCP-024** [MEDIUM] `src/flask/app.py` — Flask.handle_user_exception (found 1x): Specific type checking for BadRequestKeyError and HTTPException.
+- **OCP-025** [MEDIUM] `src/flask/app.py` — Flask.dispatch_request (found 1x): Conditional logic based on routing exception presence and specific HTTP methods.
+- **OCP-026** [MEDIUM] `src/flask/app.py` — Flask.url_for (found 1x): Specific logic for relative endpoints, external URL schemes, and validation.
+- **OCP-028** [MEDIUM] `src/flask/cli.py` — FlaskGroup (and related app/command discovery functions) (found 1x): CLI app and command discovery logic relies on hardcoded names, file paths, and type checks.
+- **OCP-029** [MEDIUM] `src/flask/sansio/app.py` — App.trap_http_exception (found 1x): The method uses `isinstance` checks for specific exception types to determine trapping behavior.
+- **OCP-030** [HIGH] `src/flask/app.py` — Flask.make_response (found 1x): The method uses a long if/elif/else chain with isinstance checks to convert view return values.
+- **OCP-031** [MEDIUM] `src/flask/sansio/app.py` — App.add_url_rule (found 1x): The method includes a type check for 'methods' parameter, limiting extensibility for how HTTP methods are specified.
+- **OCP-032** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold._get_exc_class_and_code (found 1x): The method uses multiple isinstance/issubclass checks to determine how to handle different exception types and codes.
+- **OCP-034** [HIGH] `src/flask/sansio/blueprints.py` — Blueprint.register (found 1x): Complex conditional logic for merging blueprint options, handling CLI groups, and nested blueprints.
+- **OCP-035** [HIGH] `src/flask/cli.py` — ScriptInfo.load_app (found 1x): Extensive if/else chain for discovering and loading the Flask application based on various strategies.
+- **OCP-036** [HIGH] `src/flask/cli.py` — CertParamType.convert (found 1x): Multiple try/except and if/isinstance checks for different certificate input types.
+- **OCP-037** [MEDIUM] `src/flask/app.py` — Flask.__init_subclass__ (found 1x): Introspection and conditional wrapping of methods based on parameter signatures for backward compatibility.
+- **OCP-038** [MEDIUM] `src/flask/sansio/app.py` — App.select_jinja_autoescape (found 1x): Hardcoded file extensions for determining Jinja autoescape behavior.
+- **OCP-039** [MEDIUM] `src/flask/sansio/app.py` — App.add_url_rule (found 1x): Conditional logic for determining endpoint, methods, and automatic options when adding URL rules.
+- **OCP-040** [MEDIUM] `src/flask/sansio/app.py` — App.trap_http_exception (found 1x): Isinstance checks for specific exception types to determine if an HTTP exception should be trapped.
+- **OCP-041** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold._get_exc_class_and_code (found 1x): Isinstance and issubclass checks to parse and validate exception class or HTTP status code inputs.
+- **OCP-043** [LOW] `src/flask/cli.py` — run_command (found 1x): The `run_command` function has many options, and adding new ones might require modifying the function signature and internal logic.
+- **OCP-044** [MEDIUM] `src/flask/sansio/blueprints.py` — BlueprintSetupState.add_url_rule (found 1x): The `add_url_rule` method within `BlueprintSetupState` might contain logic that needs modification to support new ways of defining or processing URL rules during blueprint registration.
+- **OCP-045** [LOW] `src/flask/helpers.py` — _CollectErrors.__enter__ (found 1x): The `__enter__` method is abstract, requiring subclasses to implement it, which can lead to modification if base class expectations change.
+- **OCP-046** [LOW] `src/flask/helpers.py` — stream_with_context (found 1x): The `@stream_with_context` decorator is abstract, requiring subclasses to implement it, which can lead to modification if base class expectations change.
+- **OCP-047** [MEDIUM] `src/flask/helpers.py` — make_response (found 1x): The `make_response` function might contain logic to convert various return types to Responses, requiring modification for new return types.
+- **OCP-048** [MEDIUM] `src/flask/helpers.py` — url_for (found 1x): The `url_for` function's internal routing logic might need modification to support new URL generation strategies or complex rule parsing.
+- **OCP-049** [LOW] `src/flask/helpers.py` — redirect (found 1x): The `redirect` function's default `Response` class might need modification if custom response classes for redirects are introduced.
+- **OCP-050** [MEDIUM] `src/flask/helpers.py` — abort (found 1x): The `abort` function might contain logic to handle different error codes or exceptions, requiring modification for new error types.
+- **OCP-051** [LOW] `src/flask/helpers.py` — get_template_attribute (found 1x): The `get_template_attribute` function might have hardcoded logic for accessing template attributes, limiting extensibility.
+- **OCP-052** [LOW] `src/flask/helpers.py` — flash (found 1x): The `flash` function might have hardcoded logic for storing messages, limiting extensibility.
+- **OCP-053** [LOW] `src/flask/helpers.py` — get_flashed_messages (found 1x): The `get_flashed_messages` function might have hardcoded logic for retrieving messages, limiting extensibility.
+- **OCP-054** [LOW] `src/flask/helpers.py` — _prepare_send_file_kwargs (found 1x): The `_prepare_send_file_kwargs` function might have hardcoded logic for preparing arguments, limiting extensibility.
+- **OCP-055** [MEDIUM] `src/flask/helpers.py` — send_file (found 1x): The `send_file` function might contain logic that needs modification to support new file sending strategies or custom response types.
+- **OCP-056** [MEDIUM] `src/flask/helpers.py` — send_from_directory (found 1x): The `send_from_directory` function might contain logic that needs modification to support new directory serving strategies or custom response types.
+- **OCP-057** [LOW] `src/flask/helpers.py` — get_root_path (found 1x): The `get_root_path` function might have hardcoded logic for determining the root path, limiting extensibility.
+- **OCP-058** [LOW] `src/flask/helpers.py` — _split_blueprint_path (found 1x): The `_split_blueprint_path` function might have hardcoded logic for splitting paths, limiting extensibility.
+- **OCP-059** [MEDIUM] `src/flask/ctx.py` — _AppCtxGlobals.__getattr__ (found 1x): The `__getattr__` method in `_AppCtxGlobals` uses dynamic attribute access, which can lead to modification of behavior when new attributes are expected.
+- **OCP-060** [LOW] `src/flask/ctx.py` — AppContext.from_environ (found 1x): The `from_environ` method is a class method that constructs an `AppContext` from WSGI environment.
+- **OCP-062** [LOW] `src/flask/sessions.py` — SecureCookieSessionInterface.get_signing_serializer (found 1x): The `get_signing_serializer` method creates a serializer for secure cookies.
+- **OCP-063** [LOW] `src/flask/json/provider.py` — JSONProvider.dumps (found 1x): The `dumps` method in `JSONProvider` handles JSON serialization.
+- **OCP-064** [LOW] `src/flask/templating.py` — Environment.__init__ (found 1x): The `Environment` constructor takes `app` and `**options`.
+- **OCP-065** [LOW] `src/flask/templating.py` — DispatchingJinjaLoader.get_source (found 1x): The `get_source` method in `DispatchingJinjaLoader` retrieves template source.
+- **OCP-066** [LOW] `src/flask/views.py` — View.dispatch_request (found 1x): The `dispatch_request` method in `View` is intended to be overridden.
+- **OCP-067** [LOW] `src/flask/views.py` — MethodView.dispatch_request (found 1x): The `dispatch_request` method in `MethodView` handles HTTP method dispatch.
+- **LSP-002** [MEDIUM] `src/flask/app.py` — Flask.handle_user_exception (found 1x): Subclass might override handle_user_exception and not correctly delegate HTTP exceptions or handle error handlers.
+- **LSP-003** [MEDIUM] `src/flask/app.py` — Flask.handle_exception (found 1x): Subclass might override handle_exception and alter the propagation of exceptions or the finalization of requests.
+- **LSP-004** [LOW] `src/flask/app.py` — Flask.log_exception (found 1x): Subclass might override log_exception and not log exceptions appropriately.
+- **LSP-005** [MEDIUM] `src/flask/app.py` — Flask.dispatch_request (found 1x): Subclass might override dispatch_request and not handle routing exceptions, OPTIONS requests, or view function dispatching correctly.
+- **LSP-006** [MEDIUM] `src/flask/app.py` — Flask.full_dispatch_request (found 1x): Subclass might override full_dispatch_request and alter the request lifecycle, including preprocessing, dispatching, exception handling, and finalization.
+- **LSP-007** [MEDIUM] `src/flask/app.py` — Flask.finalize_request (found 1x): Subclass might override finalize_request and not correctly process the response or send the request_finished signal.
+- **LSP-008** [LOW] `src/flask/app.py` — Flask.make_default_options_response (found 1x): Subclass might override make_default_options_response and not provide a valid OPTIONS response.
+- **LSP-009** [LOW] `src/flask/app.py` — Flask.ensure_sync (found 1x): Subclass might override ensure_sync and not correctly convert async functions to sync.
+- **LSP-010** [LOW] `src/flask/app.py` — Flask.async_to_sync (found 1x): Subclass might override async_to_sync and not correctly convert async code to be synchronously callable.
+- **LSP-011** [MEDIUM] `src/flask/app.py` — Flask.url_for (found 1x): Subclass might override url_for and not correctly generate URLs or handle URL build errors.
+- **LSP-012** [MEDIUM] `src/flask/app.py` — Flask.make_response (found 1x): Subclass might override make_response and not correctly convert view return values into response objects.
+- **LSP-013** [MEDIUM] `src/flask/app.py` — Flask.preprocess_request (found 1x): Subclass might override preprocess_request and alter the execution of URL value preprocessors or before_request functions.
+- **LSP-014** [MEDIUM] `src/flask/app.py` — Flask.process_response (found 1x): Subclass might override process_response and alter the modification of the response or saving of the session.
+- **LSP-015** [MEDIUM] `src/flask/app.py` — Flask.do_teardown_request (found 1x): Subclass might override do_teardown_request and not execute teardown functions or send the request_tearing_down signal.
+- **LSP-016** [MEDIUM] `src/flask/app.py` — Flask.do_teardown_appcontext (found 1x): Subclass might override do_teardown_appcontext and not execute teardown functions or send the appcontext_tearing_down signal.
+- **LSP-017** [HIGH] `src/flask/app.py` — Flask.wsgi_app (found 1x): Subclass might override wsgi_app and not correctly handle the WSGI application lifecycle, including context management and exception handling.
+- **LSP-018** [MEDIUM] `src/flask/cli.py` — FlaskGroup.get_command (found 1x): Subclass might override get_command and not correctly load the app or retrieve commands from it.
+- **LSP-019** [MEDIUM] `src/flask/cli.py` — FlaskGroup.list_commands (found 1x): Subclass might override list_commands and not correctly list all available commands, including those from the app.
+- **LSP-020** [MEDIUM] `src/flask/cli.py` — FlaskGroup.make_context (found 1x): Subclass might override make_context and not properly initialize ScriptInfo or set environment variables.
+- **LSP-021** [LOW] `src/flask/cli.py` — FlaskGroup.parse_args (found 1x): Subclass might override parse_args and not handle eager options like --env-file and --app correctly.
+- **LSP-023** [MEDIUM] `src/flask/sansio/app.py` — App.add_url_rule (found 1x): Subclass must implement add_url_rule to register URL rules.
+- **LSP-025** [HIGH] `src/flask/views.py` — View.dispatch_request (found 1x): Subclasses must implement dispatch_request to define view logic.
+- **LSP-026** [MEDIUM] `src/flask/views.py` — MethodView.dispatch_request (found 1x): Subclass might override dispatch_request and not correctly map HTTP methods to instance methods.
+- **LSP-028** [MEDIUM] `src/flask/ctx.py` — _AppCtxGlobals.__enter__ (found 1x): Abstract method `__enter__` in base class `_CollectErrors` is not implemented by subclasses.
+- **LSP-029** [LOW] `src/flask/app.py` — Flask.__init__ (found 1x): The Flask.__init__ method has a large number of parameters, which can make it difficult to substitute.
+- **LSP-030** [LOW] `src/flask/sansio/app.py` — App.__init__ (found 1x): The App.__init__ method has a large number of parameters, which can make it difficult to substitute.
+- **LSP-031** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.__init__ (found 1x): The Scaffold.__init__ method has a large number of parameters, potentially impacting substitutability.
+- **LSP-032** [LOW] `src/flask/ctx.py` — AppContext.__init__ (found 1x): The AppContext.__init__ method has a large number of parameters, which can make it difficult to substitute.
+- **LSP-033** [MEDIUM] `src/flask/sessions.py` — SessionInterface.__init__ (found 1x): SessionInterface defines numerous methods for cookie properties that subclasses might not need or fully implement.
+- **LSP-034** [MEDIUM] `src/flask/sessions.py` — SecureCookieSessionInterface.open_session (found 1x): SecureCookieSessionInterface.open_session returns a specific type (SecureCookieSession) but the base interface allows a more general type (SessionMixin).
+- **LSP-035** [LOW] `src/flask/testing.py` — FlaskClient.open (found 1x): FlaskClient.open has a complex signature with many optional parameters, making substitution difficult.
+- **LSP-036** [LOW] `src/flask/wrappers.py` — Request.max_content_length (found 1x): The Request class has setters for max_content_length, max_form_memory_size, and max_form_parts, which could be misused by subclasses.
+- **ISP-002** [MEDIUM] `src/flask/app.py` — Flask.handle_user_exception (found 1x): The handle_user_exception method handles general exceptions and HTTP exceptions, violating ISP.
+- **ISP-003** [MEDIUM] `src/flask/app.py` — Flask.handle_exception (found 1x): The handle_exception method handles unhandled exceptions and propagates them, potentially involving other handlers, violating ISP.
+- **ISP-004** [LOW] `src/flask/app.py` — Flask.log_exception (found 1x): The log_exception method is part of the broader exception handling mechanism, potentially violating ISP by being coupled to it.
+- **ISP-005** [MEDIUM] `src/flask/app.py` — Flask.dispatch_request (found 1x): The dispatch_request method handles routing exceptions, OPTIONS responses, and view function calls, violating ISP.
+- **ISP-006** [MEDIUM] `src/flask/app.py` — Flask.full_dispatch_request (found 1x): The full_dispatch_request method orchestrates request processing, including preprocessing, dispatching, and exception handling, violating ISP.
+- **ISP-007** [MEDIUM] `src/flask/app.py` — Flask.finalize_request (found 1x): The finalize_request method handles response creation, postprocessing, and signal sending, violating ISP.
+- **ISP-008** [LOW] `src/flask/app.py` — Flask.make_default_options_response (found 1x): The make_default_options_response method is specific to OPTIONS requests, but its dependency on URL adapter might be considered a minor ISP violation if not used broadly.
+- **ISP-009** [LOW] `src/flask/app.py` — Flask.ensure_sync (found 1x): The ensure_sync method bridges async and sync, but its direct coupling might be seen as a minor ISP violation.
+- **ISP-010** [LOW] `src/flask/app.py` — Flask.async_to_sync (found 1x): The async_to_sync method is specifically for async to sync conversion, potentially forcing sync-only clients to depend on async logic.
+- **ISP-011** [MEDIUM] `src/flask/app.py` — Flask.url_for (found 1x): The url_for method handles URL generation with numerous parameters, potentially forcing clients to depend on unused parameters.
+- **ISP-012** [MEDIUM] `src/flask/app.py` — Flask.make_response (found 1x): The make_response method handles conversion of various return types to Response objects, violating ISP by having a large, multifaceted interface.
+- **ISP-013** [MEDIUM] `src/flask/app.py` — Flask.preprocess_request (found 1x): The preprocess_request method handles URL value preprocessors and before_request functions, violating ISP by combining distinct concerns.
+- **ISP-014** [MEDIUM] `src/flask/app.py` — Flask.process_response (found 1x): The process_response method handles after_request functions, session saving, and signal sending, violating ISP.
+- **ISP-015** [MEDIUM] `src/flask/app.py` — Flask.do_teardown_request (found 1x): The do_teardown_request method handles teardown_request functions and sends a signal, violating ISP by combining concerns.
+- **ISP-016** [MEDIUM] `src/flask/app.py` — Flask.do_teardown_appcontext (found 1x): The do_teardown_appcontext method handles teardown_appcontext functions and sends a signal, violating ISP by combining concerns.
+- **ISP-017** [LOW] `src/flask/app.py` — Flask.app_context (found 1x): The app_context method creates an AppContext, which might be seen as a broad interface.
+- **ISP-018** [LOW] `src/flask/app.py` — Flask.request_context (found 1x): The request_context method creates a RequestContext, which might be seen as a broad interface.
+- **ISP-019** [LOW] `src/flask/app.py` — Flask.test_request_context (found 1x): The test_request_context method exposes many parameters from EnvironBuilder, potentially violating ISP.
+- **ISP-020** [MEDIUM] `src/flask/app.py` — Flask.wsgi_app (found 1x): The wsgi_app method handles context pushing/popping, request dispatching, exception handling, and WSGI response generation, violating ISP.
+- **ISP-021** [LOW] `src/flask/cli.py` — AppGroup.command (found 1x): The command method wraps commands with with_appcontext by default, potentially forcing sync-only users to depend on context logic.
+- **ISP-022** [LOW] `src/flask/cli.py` — AppGroup.group (found 1x): The group method defaults the group class to AppGroup, potentially forcing non-Flask CLI groups to depend on Flask-specific context logic.
+- **ISP-023** [MEDIUM] `src/flask/cli.py` — FlaskGroup.get_command (found 1x): The get_command method loads the app and pushes context even for commands that might not need it, violating ISP.
+- **ISP-024** [MEDIUM] `src/flask/cli.py` — FlaskGroup.list_commands (found 1x): The list_commands method attempts to load the app and its commands, potentially failing for commands that don't need the app context, violating ISP.
+- **ISP-025** [MEDIUM] `src/flask/cli.py` — FlaskGroup.make_context (found 1x): The make_context method initializes ScriptInfo, setting debug flag and loading dotenv, which might be unwanted by clients.
+- **ISP-026** [LOW] `src/flask/cli.py` — FlaskGroup.parse_args (found 1x): The parse_args method eagerly handles env-file and app options, potentially affecting clients that don't use them.
+- **ISP-028** [LOW] `src/flask/sansio/app.py` — App.select_jinja_autoescape (found 1x): The select_jinja_autoescape method's logic is tied to specific file extensions.
+- **ISP-029** [MEDIUM] `src/flask/sansio/app.py` — App.register_blueprint (found 1x): The register_blueprint method handles blueprint registration, URL rules, and nested blueprint registration, violating ISP.
+- **ISP-030** [MEDIUM] `src/flask/sansio/app.py` — App.add_url_rule (found 1x): The add_url_rule method handles methods, endpoint naming, automatic OPTIONS, defaults, and rule object creation, violating ISP.
+- **ISP-031** [LOW] `src/flask/sansio/app.py` — App.template_filter (found 1x): The template_filter decorator registers filters, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-032** [LOW] `src/flask/sansio/app.py` — App.add_template_filter (found 1x): The add_template_filter method directly modifies the Jinja environment's filters.
+- **ISP-033** [LOW] `src/flask/sansio/app.py` — App.template_test (found 1x): The template_test decorator registers tests, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-034** [LOW] `src/flask/sansio/app.py` — App.add_template_test (found 1x): The add_template_test method directly modifies the Jinja environment's tests.
+- **ISP-035** [LOW] `src/flask/sansio/app.py` — App.template_global (found 1x): The template_global decorator registers globals, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-036** [LOW] `src/flask/sansio/app.py` — App.add_template_global (found 1x): The add_template_global method directly modifies the Jinja environment's globals.
+- **ISP-037** [LOW] `src/flask/sansio/app.py` — App.teardown_appcontext (found 1x): The teardown_appcontext decorator registers functions, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-038** [LOW] `src/flask/sansio/app.py` — App.shell_context_processor (found 1x): The shell_context_processor decorator registers context processors, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-039** [MEDIUM] `src/flask/sansio/app.py` — App._find_error_handler (found 1x): The _find_error_handler method searches through multiple scopes and exception types, potentially forcing clients to be aware of this complex lookup.
+- **ISP-040** [LOW] `src/flask/sansio/app.py` — App.trap_http_exception (found 1x): The trap_http_exception method's logic depends on multiple configuration options and exception types.
+- **ISP-041** [LOW] `src/flask/sansio/app.py` — App.redirect (found 1x): The redirect method's behavior depends on the application's response_class and the context.
+- **ISP-042** [MEDIUM] `src/flask/sansio/app.py` — App.inject_url_defaults (found 1x): The inject_url_defaults method handles blueprint-specific defaults and application-wide defaults, violating ISP by combining concerns.
+- **ISP-043** [MEDIUM] `src/flask/sansio/app.py` — App.handle_url_build_error (found 1x): The handle_url_build_error method iterates through error handlers and handles BuildErrors, violating ISP.
+- **ISP-045** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.errorhandler (found 1x): The errorhandler decorator registers handlers, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-046** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.register_error_handler (found 1x): The register_error_handler method directly modifies the error_handler_spec.
+- **ISP-047** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.before_request (found 1x): The before_request decorator registers functions, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-048** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.after_request (found 1x): The after_request decorator registers functions, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-049** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.teardown_request (found 1x): The teardown_request decorator registers functions, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-050** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.context_processor (found 1x): The context_processor decorator registers context processors, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-051** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.url_value_preprocessor (found 1x): The url_value_preprocessor decorator registers preprocessors, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-052** [LOW] `src/flask/sansio/scaffold.py` — Scaffold.url_defaults (found 1x): The url_defaults decorator registers default functions, but the decorator pattern itself can be seen as a minor ISP violation.
+- **ISP-053** [MEDIUM] `src/flask/blueprints.py` — Blueprint.register_blueprint (found 1x): The register_blueprint method handles nested blueprint registration, potentially forcing clients to depend on nested registration logic.
+- **ISP-054** [MEDIUM] `src/flask/blueprints.py` — Blueprint.register (found 1x): The register method handles multiple aspects of blueprint registration, including static files, deferred functions, CLI groups, and nested blueprints, violating ISP.
+- **ISP-055** [LOW] `src/flask/blueprints.py` — Blueprint.app_template_filter (found 1x): The app_template_filter decorator registers filters globally, potentially forcing clients to depend on global scope.
+- **ISP-056** [LOW] `src/flask/blueprints.py` — Blueprint.add_app_template_filter (found 1x): The add_app_template_filter method registers filters globally, potentially forcing clients to depend on global scope.
+- **ISP-057** [LOW] `src/flask/blueprints.py` — Blueprint.app_template_test (found 1x): The app_template_test decorator registers tests globally, potentially forcing clients to depend on global scope.
+- **ISP-058** [LOW] `src/flask/blueprints.py` — Blueprint.add_app_template_test (found 1x): The add_app_template_test method registers tests globally, potentially forcing clients to depend on global scope.
+- **ISP-059** [LOW] `src/flask/blueprints.py` — Blueprint.app_template_global (found 1x): The app_template_global decorator registers globals globally, potentially forcing clients to depend on global scope.
+- **ISP-060** [LOW] `src/flask/blueprints.py` — Blueprint.add_app_template_global (found 1x): The add_app_template_global method registers globals globally, potentially forcing clients to depend on global scope.
+- **ISP-061** [LOW] `src/flask/blueprints.py` — Blueprint.before_app_request (found 1x): The before_app_request decorator registers hooks globally, potentially forcing clients to depend on global scope.
+- **ISP-062** [LOW] `src/flask/blueprints.py` — Blueprint.after_app_request (found 1x): The after_app_request decorator registers hooks globally, potentially forcing clients to depend on global scope.
+- **ISP-063** [LOW] `src/flask/blueprints.py` — Blueprint.teardown_app_request (found 1x): The teardown_app_request decorator registers teardown hooks globally, potentially forcing clients to depend on global scope.
+- **ISP-064** [LOW] `src/flask/blueprints.py` — Blueprint.app_context_processor (found 1x): The app_context_processor decorator registers context processors globally, potentially forcing clients to depend on global scope.
+- **ISP-065** [LOW] `src/flask/blueprints.py` — Blueprint.app_errorhandler (found 1x): The app_errorhandler decorator registers handlers globally, potentially forcing clients to depend on global scope.
+- **ISP-066** [LOW] `src/flask/blueprints.py` — Blueprint.app_url_value_preprocessor (found 1x): The app_url_value_preprocessor decorator registers preprocessors globally, potentially forcing clients to depend on global scope.
+- **ISP-067** [LOW] `src/flask/blueprints.py` — Blueprint.app_url_defaults (found 1x): The app_url_defaults decorator registers default functions globally, potentially forcing clients to depend on global scope.
+- **ISP-068** [MEDIUM] `src/flask/helpers.py` — stream_with_context (found 1x): The stream_with_context function couples generator logic with context management, potentially forcing clients to depend on context details.
+- **ISP-069** [MEDIUM] `src/flask/helpers.py` — send_file (found 1x): The send_file function has a large number of parameters and depends on context-specific configurations, violating ISP.
+- **ISP-070** [MEDIUM] `src/flask/helpers.py` — send_from_directory (found 1x): The send_from_directory function wraps send_file and inherits its ISP violations, plus adds directory parameter.
+- **ISP-071** [LOW] `src/flask/helpers.py` — get_root_path (found 1x): The get_root_path function's logic for finding the path depends on import machinery and file system checks.
+- **ISP-072** [LOW] `src/flask/helpers.py` — _CollectErrors (found 1x): The _CollectErrors class manages errors and provides a raise_any method, potentially coupling error collection with specific raising mechanisms.
+- **ISP-073** [MEDIUM] `src/flask/ctx.py` — AppContext (found 1x): The AppContext class combines application and request context features, potentially forcing clients to depend on unused features.
+- **ISP-075** [MEDIUM] `src/flask/sessions.py` — SecureCookieSessionInterface.open_session (found 1x): The open_session method depends on getting the signing serializer, which itself depends on secret_key, creating a chain of dependencies.
+- **ISP-076** [MEDIUM] `src/flask/sessions.py` — SecureCookieSessionInterface.save_session (found 1x): The save_session method handles cookie parameters and serialization, depending on multiple configuration values and the session object.
+- **ISP-077** [MEDIUM] `src/flask/json/provider.py` — JSONProvider.response (found 1x): The response method handles serialization and response object creation, potentially coupling these concerns.
+- **ISP-078** [LOW] `src/flask/json/provider.py` — DefaultJSONProvider.dumps (found 1x): The dumps method sets defaults for ensure_ascii and sort_keys, potentially forcing clients to depend on these defaults.
+- **ISP-080** [LOW] `src/flask/json/tag.py` — PassDict (found 1x): Class implements a fat interface (JSONTag) but refuses to implement the to_python method.
+- **ISP-081** [MEDIUM] `src/flask/sessions.py` — SessionInterface (found 1x): Fat interface coupling session management to cookie-specific implementation details
+- **ISP-082** [LOW] `src/flask/json/tag.py` — JSONTag (found 1x): Subclasses forced to inherit unused deserialization methods
+- **ISP-084** [HIGH] `src/flask/sessions.py` — NullSession (found 1x): NullSession implements a mutable session interface only to disable it by raising errors.
+- **ISP-085** [MEDIUM] `src/flask/sansio/blueprints.py` — Blueprint (found 1x): The Blueprint class interface is bloated with redundant 'app-level' registration methods.
+- **DIP-006** [MEDIUM] `src/flask/sansio/scaffold.py` — Scaffold.jinja_loader (found 1x): Direct instantiation of a concrete template loader.
+- **DIP-007** [HIGH] `src/flask/config.py` — Config.from_pyfile (found 1x): High-level configuration class depends on low-level file system details.
+- **DIP-008** [MEDIUM] `src/flask/sessions.py` — SessionInterface.make_null_session (found 1x): Abstraction depends on concrete implementation detail (NullSession).
+- **DIP-010** [HIGH] `src/flask/templating.py` — Environment (found 1x): Templating environment depends on the concrete App class.
+- **DIP-011** [MEDIUM] `src/flask/templating.py` — DispatchingJinjaLoader (found 1x): Low-level template loader depends on the high-level App object.

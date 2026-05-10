@@ -1,0 +1,40 @@
+{
+  "scan_id": "logstash_LSP_scan_12",
+  "repo_name": "logstash",
+  "principle": "LSP",
+  "scan_number": 12,
+  "timestamp": "2026-04-19T15:37:33.432091",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1\",\n      \"entity_type\": \"class\",\n      \"line_start\": 39,\n      \"line_end\": 335,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 explicitly throws UnsupportedOperationException for multiple methods defined in its parent contract.\",\n      \"reasoning\": \"The `MmapPageIOV1` class overrides methods such as `recover` (L140-L142), `create` (L146-L147), `ensurePersisted` (L166-L167), `purge` (L171-L172), and `write` (L177-L178) to explicitly throw `UnsupportedOperationException`. This directly violates the Liskov Substitution Principle because a client programmed against the `PageIO` abstraction (the inferred parent interface/abstract class) cannot safely substitute an instance of `MmapPageIOV1` without risking runtime errors for operations that the `PageIO` contract implies should be supported. This indicates that `MmapPageIOV1` is not a true subtype, or that the `PageIO` interface is a 'fat interface' containing operations not applicable to all its conceptual subtypes.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/outputs/base.rb\",\n      \"entity_name\": \"LogStash::Outputs::Base.declare_workers_not_supported!\",\n      \"entity_type\": \"method\",\n      \"line_start\": 62,\n      \"line_end\": 62,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclasses of LogStash::Outputs::Base can declare non-support for workers, restricting the base class's implied contract for concurrency.\",\n      \"reasoning\": \"The `declare_workers_not_supported!` method allows subclasses of `LogStash::Outputs::Base` to explicitly opt out of worker-based processing. If the base class contract, particularly through the presence of methods like `multi_receive` (L100), implies that outputs should generally be capable of handling events with worker parallelism, then a subclass declaring itself as 'workers not supported' restricts this capability. A client expecting to use any `LogStash::Outputs::Base` instance with workers would find that some subclasses break this expectation, thus violating substitutability. This is a form of LSP violation where a subtype restricts the expected capabilities offered by its supertype.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1",
+      "entity_type": "class",
+      "line_start": 39,
+      "line_end": 335,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 explicitly throws UnsupportedOperationException for multiple methods defined in its parent contract.",
+      "reasoning": "The `MmapPageIOV1` class overrides methods such as `recover` (L140-L142), `create` (L146-L147), `ensurePersisted` (L166-L167), `purge` (L171-L172), and `write` (L177-L178) to explicitly throw `UnsupportedOperationException`. This directly violates the Liskov Substitution Principle because a client programmed against the `PageIO` abstraction (the inferred parent interface/abstract class) cannot safely substitute an instance of `MmapPageIOV1` without risking runtime errors for operations that the `PageIO` contract implies should be supported. This indicates that `MmapPageIOV1` is not a true subtype, or that the `PageIO` interface is a 'fat interface' containing operations not applicable to all its conceptual subtypes."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/outputs/base.rb",
+      "entity_name": "LogStash::Outputs::Base.declare_workers_not_supported!",
+      "entity_type": "method",
+      "line_start": 62,
+      "line_end": 62,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclasses of LogStash::Outputs::Base can declare non-support for workers, restricting the base class's implied contract for concurrency.",
+      "reasoning": "The `declare_workers_not_supported!` method allows subclasses of `LogStash::Outputs::Base` to explicitly opt out of worker-based processing. If the base class contract, particularly through the presence of methods like `multi_receive` (L100), implies that outputs should generally be capable of handling events with worker parallelism, then a subclass declaring itself as 'workers not supported' restricts this capability. A client expecting to use any `LogStash::Outputs::Base` instance with workers would find that some subclasses break this expectation, thus violating substitutability. This is a form of LSP violation where a subtype restricts the expected capabilities offered by its supertype."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 45872.69711494446,
+  "error": null
+}

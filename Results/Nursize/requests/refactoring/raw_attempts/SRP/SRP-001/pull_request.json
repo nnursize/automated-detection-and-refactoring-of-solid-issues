@@ -1,0 +1,51 @@
+{
+  "issue_id": "SRP-001",
+  "principle": "SRP",
+  "title": "Refactor SRP-001 (SRP): Combines multiple strategies for determining content length and issues warnings.",
+  "branch": "refactor/SRP-001",
+  "base": "main",
+  "head_commit": "fbbb51ee88d79384e571ee7f04ba1b13f1b954a9",
+  "status": "llm_error",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": "unhandled error: FatalLLMError: Server unavailable (503) \u2014 skipping to preserve quota: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/utils.py",
+    "entity_name": "super_len",
+    "entity_type": "method",
+    "line_start": 98,
+    "line_end": 160,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Combines multiple strategies for determining content length and issues warnings.",
+    "reasoning": "This function has several reasons to change: 1) Changes in how length is determined for different object types (e.g., `__len__`, `len` attribute, `fileno`, `tell`/`seek`). 2) Changes in `urllib3` string handling. 3) Changes in warning policies (e.g., `FileModeWarning`). 4) Changes in error handling for `tell()` on special file descriptors. These are distinct concerns that could evolve independently."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/utils.py",
+        "loc": 769,
+        "blank_lines": 231,
+        "comment_lines": 84,
+        "function_count": 43,
+        "avg_cc": 4.55,
+        "max_cc": 18.0,
+        "mi": 25.21
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2457.2243690490723
+}

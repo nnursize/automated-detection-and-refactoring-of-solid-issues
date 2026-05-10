@@ -1,0 +1,89 @@
+{
+  "issue_id": "ISP-002",
+  "principle": "ISP",
+  "title": "Refactor ISP-002 (ISP): UTF8StreamJsonParser implements the fat JsonParser interface, forcing it to i...",
+  "branch": "refactor/ISP-002",
+  "base": "main",
+  "head_commit": "c0312adeb68851e7c649cb513bc9afa5dc665f48",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in src/main/java/tools/jackson/core/JsonParser.java (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 40555,
+    "completion_tokens": 1514
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 21,
+    "line_end": 1780,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "UTF8StreamJsonParser implements the fat JsonParser interface, forcing it to implement many methods that may not be relevant for a stream-based parser.",
+    "reasoning": "The JsonParser interface is a large, monolithic interface containing methods for all possible parsing behaviors (e.g., binary, textual, numeric, and traversal). A stream-based parser like UTF8StreamJsonParser is forced to implement the entire contract, even though some functionality (like arbitrary binary access) might be secondary or require complex state management not naturally supported by the primary stream-reading model."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract binary data access methods into a separate interface to improve ISP compliance.",
+    "rationale": "The JsonParser interface is monolithic. By extracting binary-specific methods into a new BinaryValueParser interface, we allow implementations to opt-in to binary support, reducing the burden on stream-based parsers that may not require full binary access capabilities.",
+    "files_touched": [],
+    "files_created": [
+      "src/main/java/tools/jackson/core/BinaryValueParser.java"
+    ],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/JsonParser.java",
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+        "search_text": "public abstract class JsonParser\n    implements AutoCloseable, Versioned\n{",
+        "replace_text": "public abstract class JsonParser\n    implements AutoCloseable, Versioned, tools.jackson.core.BinaryValueParser\n{",
+        "search_lines": 3,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    @Override\n    public byte[] getBinaryValue(Base64Variant b64variant) throws JacksonException\n    {\n        if (_currToken != JsonToken.VALUE_STRING &&\n                (_currToken != JsonToken.VALUE_EMBEDDED_OBJECT || _binaryValue == null)) {\n            return _reportError(\"Current token (\"+_currToken+\") not VALUE_STRING or VALUE_EMBEDDED_OBJECT, cannot access as binary\");\n        }\n        // To ensure that we won't see inconsistent data, better clear up state...\n        if (_tokenIncomplete) {\n            try {\n                _binaryValue = _base64Decoder.decodeBase64(b64variant);\n            } catch (IllegalArgumentException iae) {\n                throw _constructReadException(\"Failed to decode VALUE_STRING as base64 (\"+b64variant+\"): \"+iae.getMessage());\n            }\n            // let's clear incomplete only now; allows for accessing other textual content in error cases\n            _tokenIncomplete = false;\n        } else { // may actually require conversion...\n            if (_binaryValue == null) {\n                @SuppressWarnings(\"resource\")\n                ByteArrayBuilder builder = _getByteArrayBuilder();\n                // This calls JsonParser.decodeBase64, which is a default method, not a method of this class.\n                // So no change needed here.\n                decodeBase64(getString(), builder, b64variant);\n                _binaryValue = builder.toByteArray();\n            }\n        }\n        return _binaryValue;\n    }\n\n    @Override\n    public int readBinaryValue(Base64Variant b64variant, OutputStream out) throws JacksonException\n    {\n        // if we have already read the token, just use whatever we may have\n        if (!_tokenIncomplete || _currToken != JsonToken.VALUE_STRING) {\n            byte[] b = getBinaryValue(b64variant);\n            try {\n                out.write(b);\n            } catch (IOException e) {\n                throw _wrapIOFailure(e);\n            }\n            return b.length;\n        }\n        // otherwise do \"real\" incremental parsing...\n        byte[] buf = _ioContext.allocBase64Buffer();\n        try {\n            return _base64Decoder.readBinary(b64variant, out, buf);\n        } catch (IOException e) {\n            throw _wrapIOFailure(e);\n        } finally {\n            _ioContext.releaseBase64Buffer(buf);\n        }\n    }",
+        "replace_text": "    @Override\n    public byte[] getBinaryValue(Base64Variant b64variant) throws JacksonException\n    {\n        if (_currToken != JsonToken.VALUE_STRING &&\n                (_currToken != JsonToken.VALUE_EMBEDDED_OBJECT || _binaryValue == null)) {\n            return _reportError(\"Current token (\"+_currToken+\") not VALUE_STRING or VALUE_EMBEDDED_OBJECT, cannot access as binary\");\n        }\n        // To ensure that we won't see inconsistent data, better clear up state...\n        if (_tokenIncomplete) {\n            try {\n                _binaryValue = _base64Decoder.decodeBase64(b64variant);\n            } catch (IllegalArgumentException iae) {\n                throw _constructReadException(\"Failed to decode VALUE_STRING as base64 (\"+b64variant+\"): \"+iae.getMessage());\n            }\n            // let's clear incomplete only now; allows for accessing other textual content in error cases\n            _tokenIncomplete = false;\n        } else { // may actually require conversion...\n            if (_binaryValue == null) {\n                @SuppressWarnings(\"resource\")\n                ByteArrayBuilder builder = _getByteArrayBuilder();\n                // This calls JsonParser.decodeBase64, which is a default method, not a method of this class.\n                // So no change needed here.\n                decodeBase64(getString(), builder, b64variant);\n                _binaryValue = builder.toByteArray();\n            }\n        }\n        return _binaryValue;\n    }\n\n    @Override\n    public int readBinaryValue(Base64Variant b64variant, OutputStream out) throws JacksonException\n    {\n        // if we have already read the token, just use whatever we may have\n        if (!_tokenIncomplete || _currToken != JsonToken.VALUE_STRING) {\n            byte[] b = getBinaryValue(b64variant);\n            try {\n                out.write(b);\n            } catch (IOException e) {\n                throw _wrapIOFailure(e);\n            }\n            return b.length;\n        }\n        // otherwise do \"real\" incremental parsing...\n        byte[] buf = _ioContext.allocBase64Buffer();\n        try {\n            return _base64Decoder.readBinary(b64variant, out, buf);\n        } catch (IOException e) {\n            throw _wrapIOFailure(e);\n        } finally {\n            _ioContext.releaseBase64Buffer(buf);\n        }\n    }",
+        "search_lines": 52,
+        "replace_lines": 52
+      },
+      {
+        "kind": "create",
+        "file_path": "src/main/java/tools/jackson/core/BinaryValueParser.java",
+        "new_content": "package tools.jackson.core;\n\nimport java.io.OutputStream;\n\n/**\n * Interface for parsers that support binary data access.\n */\npublic interface BinaryValueParser {\n    byte[] getBinaryValue(Base64Variant b64variant) throws JacksonException;\n    int readBinaryValue(Base64Variant b64variant, OutputStream out) throws JacksonException;\n}",
+        "new_content_lines": 11
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3558,
+        "blank_lines": 278,
+        "comment_lines": 284,
+        "function_count": 114,
+        "avg_cc": 9.62,
+        "max_cc": 984.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 37532.007455825806
+}

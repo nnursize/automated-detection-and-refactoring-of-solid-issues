@@ -1,0 +1,117 @@
+{
+  "scan_id": "logstash_LSP_scan_11",
+  "repo_name": "logstash",
+  "principle": "LSP",
+  "scan_number": 11,
+  "timestamp": "2026-04-19T15:35:47.525637",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1.recover\",\n      \"entity_type\": \"method\",\n      \"line_start\": 140,\n      \"line_end\": 142,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method recover().\",\n      \"reasoning\": \"The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `recover()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `recover()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `recover()` might be called.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1.create\",\n      \"entity_type\": \"method\",\n      \"line_start\": 146,\n      \"line_end\": 147,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method create().\",\n      \"reasoning\": \"The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `create()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `create()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `create()` might be called.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1.ensurePersisted\",\n      \"entity_type\": \"method\",\n      \"line_start\": 166,\n      \"line_end\": 167,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method ensurePersisted().\",\n      \"reasoning\": \"The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `ensurePersisted()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `ensurePersisted()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `ensurePersisted()` might be called.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1.purge\",\n      \"entity_type\": \"method\",\n      \"line_start\": 171,\n      \"line_end\": 172,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method purge().\",\n      \"reasoning\": \"The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `purge()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `purge()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `purge()` might be called.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"MmapPageIOV1.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 177,\n      \"line_end\": 178,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method write(byte[], long).\",\n      \"reasoning\": \"The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `write(byte[], long)` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `write()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `write()` might be called.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/AbstractFilterDelegatorExt.java\",\n      \"entity_name\": \"AbstractFilterDelegatorExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 43,\n      \"line_end\": 186,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"AbstractFilterDelegatorExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.\",\n      \"reasoning\": \"AbstractFilterDelegatorExt declares a large number of abstract methods including `doRegister`, `closeImpl`, `doCloseImpl`, `doStopImpl`, `reloadable`, `isThreadsafe`, `getConfigName`, `doMultiFilter`, `doFlush`, `getHasFlush`, and `getPeriodicFlush`. This 'fat interface' forces all concrete subclasses to implement a wide array of behaviors, even if some are irrelevant to a specific filter's concerns. This can lead to subclasses providing empty or no-op implementations, which is a symptom of an LSP violation where a subtype cannot fully fulfill the contract of its base type without altering correctness or requiring unnecessary implementations.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/AbstractOutputDelegatorExt.java\",\n      \"entity_name\": \"AbstractOutputDelegatorExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 43,\n      \"line_end\": 151,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"AbstractOutputDelegatorExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.\",\n      \"reasoning\": \"AbstractOutputDelegatorExt declares a significant number of abstract methods including `getConfigName`, `getConcurrency`, `doOutput`, `close`, `doRegister`, and `reloadable`. This 'fat interface' forces all concrete subclasses to implement a broad range of behaviors, some of which might not be relevant to every specific output type. This can lead to subclasses providing empty or no-op implementations, which is a symptom of an LSP violation where a subtype cannot fully fulfill the contract of its base type without altering correctness or requiring unnecessary implementations.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/instrument/metrics/AbstractNamespacedMetricExt.java\",\n      \"entity_name\": \"AbstractNamespacedMetricExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 35,\n      \"line_end\": 122,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"AbstractNamespacedMetricExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.\",\n      \"reasoning\": \"AbstractNamespacedMetricExt defines a large set of abstract methods such as `getGauge`, `getNamespaceName`, `getCounter`, `getTimer`, `doTime`, `doReportTime`, `doIncrement`, `doDecrement`, `asApiMetric`, `doRegister`, and `getMetric`. This comprehensive contract may be too broad for all possible namespaced metric extensions. Subclasses might be forced to implement methods they don't conceptually need, leading to empty or trivial implementations, which is a sign of a 'fat interface' and a potential LSP violation.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/instrument/metrics/AbstractSimpleMetricExt.java\",\n      \"entity_name\": \"AbstractSimpleMetricExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 34,\n      \"line_end\": 105,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"AbstractSimpleMetricExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.\",\n      \"reasoning\": \"AbstractSimpleMetricExt defines numerous abstract methods including `doDecrement`, `doIncrement`, `getGauge`, `getTimer`, `doReportTime`, `doTime`, and `doRegister`. This broad interface forces all concrete subclasses to implement a wide range of metric operations. If a 'simple' metric only needs a subset of these functionalities, other methods would require empty or default implementations, indicating a potential LSP violation due to a bloated contract that is not tailored to all subtypes' needs.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1.recover",
+      "entity_type": "method",
+      "line_start": 140,
+      "line_end": 142,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method recover().",
+      "reasoning": "The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `recover()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `recover()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `recover()` might be called."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1.create",
+      "entity_type": "method",
+      "line_start": 146,
+      "line_end": 147,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method create().",
+      "reasoning": "The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `create()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `create()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `create()` might be called."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1.ensurePersisted",
+      "entity_type": "method",
+      "line_start": 166,
+      "line_end": 167,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method ensurePersisted().",
+      "reasoning": "The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `ensurePersisted()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `ensurePersisted()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `ensurePersisted()` might be called."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1.purge",
+      "entity_type": "method",
+      "line_start": 171,
+      "line_end": 172,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method purge().",
+      "reasoning": "The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `purge()` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `purge()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `purge()` might be called."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "MmapPageIOV1.write",
+      "entity_type": "method",
+      "line_start": 177,
+      "line_end": 178,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subtype MmapPageIOV1 throws UnsupportedOperationException for inherited method write(byte[], long).",
+      "reasoning": "The MmapPageIOV1 class, a subtype of PageIO, throws an UnsupportedOperationException for the `write(byte[], long)` method. This violates the Liskov Substitution Principle because a client expecting a PageIO instance would assume that `write()` is a supported operation, and receiving an UnsupportedOperationException breaks the contract of the base type. This indicates that MmapPageIOV1 is not truly substitutable for PageIO in all contexts where `write()` might be called."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/AbstractFilterDelegatorExt.java",
+      "entity_name": "AbstractFilterDelegatorExt",
+      "entity_type": "class",
+      "line_start": 43,
+      "line_end": 186,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "AbstractFilterDelegatorExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.",
+      "reasoning": "AbstractFilterDelegatorExt declares a large number of abstract methods including `doRegister`, `closeImpl`, `doCloseImpl`, `doStopImpl`, `reloadable`, `isThreadsafe`, `getConfigName`, `doMultiFilter`, `doFlush`, `getHasFlush`, and `getPeriodicFlush`. This 'fat interface' forces all concrete subclasses to implement a wide array of behaviors, even if some are irrelevant to a specific filter's concerns. This can lead to subclasses providing empty or no-op implementations, which is a symptom of an LSP violation where a subtype cannot fully fulfill the contract of its base type without altering correctness or requiring unnecessary implementations."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/AbstractOutputDelegatorExt.java",
+      "entity_name": "AbstractOutputDelegatorExt",
+      "entity_type": "class",
+      "line_start": 43,
+      "line_end": 151,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "AbstractOutputDelegatorExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.",
+      "reasoning": "AbstractOutputDelegatorExt declares a significant number of abstract methods including `getConfigName`, `getConcurrency`, `doOutput`, `close`, `doRegister`, and `reloadable`. This 'fat interface' forces all concrete subclasses to implement a broad range of behaviors, some of which might not be relevant to every specific output type. This can lead to subclasses providing empty or no-op implementations, which is a symptom of an LSP violation where a subtype cannot fully fulfill the contract of its base type without altering correctness or requiring unnecessary implementations."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/instrument/metrics/AbstractNamespacedMetricExt.java",
+      "entity_name": "AbstractNamespacedMetricExt",
+      "entity_type": "class",
+      "line_start": 35,
+      "line_end": 122,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "AbstractNamespacedMetricExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.",
+      "reasoning": "AbstractNamespacedMetricExt defines a large set of abstract methods such as `getGauge`, `getNamespaceName`, `getCounter`, `getTimer`, `doTime`, `doReportTime`, `doIncrement`, `doDecrement`, `asApiMetric`, `doRegister`, and `getMetric`. This comprehensive contract may be too broad for all possible namespaced metric extensions. Subclasses might be forced to implement methods they don't conceptually need, leading to empty or trivial implementations, which is a sign of a 'fat interface' and a potential LSP violation."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/instrument/metrics/AbstractSimpleMetricExt.java",
+      "entity_name": "AbstractSimpleMetricExt",
+      "entity_type": "class",
+      "line_start": 34,
+      "line_end": 105,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "AbstractSimpleMetricExt is a 'fat' abstract class with many abstract methods, suggesting a bloated contract.",
+      "reasoning": "AbstractSimpleMetricExt defines numerous abstract methods including `doDecrement`, `doIncrement`, `getGauge`, `getTimer`, `doReportTime`, `doTime`, and `doRegister`. This broad interface forces all concrete subclasses to implement a wide range of metric operations. If a 'simple' metric only needs a subset of these functionalities, other methods would require empty or default implementations, indicating a potential LSP violation due to a bloated contract that is not tailored to all subtypes' needs."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 69652.02713012695,
+  "error": null
+}

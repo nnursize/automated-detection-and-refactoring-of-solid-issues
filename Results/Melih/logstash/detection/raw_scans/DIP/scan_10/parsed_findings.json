@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level Queue class directly instantiates low-level dependencies",
+    "reasoning": "The Queue class directly instantiates dependencies like CheckpointIO and PageIO within its methods (e.g., L770, L230, L319, L406, L471). It should receive these dependencies via constructor injection or a factory abstraction to decouple the queue logic from specific IO implementations."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "DeadLetterQueueWriter directly instantiates its scheduler dependencies",
+    "reasoning": "The class creates concrete instances of schedulers (e.g., FixedRateScheduler, NoopScheduler) within its builder or internal logic. It should depend on a SchedulerService abstraction and have the implementation injected."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+    "entity_name": "CompiledPipeline",
+    "entity_type": "class",
+    "line_start": 69,
+    "line_end": 580,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "CompiledPipeline directly instantiates execution strategies",
+    "reasoning": "The class directly instantiates CompiledOrderedExecution and CompiledUnorderedExecution (via buildExecution). These execution strategies should be injected or provided by a factory to adhere to DIP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 364,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "PluginFactoryExt directly instantiates concrete delegators",
+    "reasoning": "The factory methods (buildInput, buildOutput, buildFilter) directly instantiate concrete classes like AbstractOutputDelegatorExt and AbstractFilterDelegatorExt. These should be abstracted to allow for different implementations without modifying the factory."
+  }
+]

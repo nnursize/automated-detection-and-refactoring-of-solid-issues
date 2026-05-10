@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "class",
+    "line_start": 231,
+    "line_end": 260,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded protocol check for proxy manager instantiation",
+    "reasoning": "The method uses a hardcoded string check (proxy.lower().startswith('socks')) to decide whether to instantiate a SOCKSProxyManager or a standard ProxyManager. Adding support for new proxy protocols (e.g., FTP or custom protocols) would require modifying this method to add more conditional branches rather than allowing for an extensible registry or strategy pattern."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "class",
+    "line_start": 584,
+    "line_end": 698,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Extensive use of type-checking for exception mapping and timeout handling",
+    "reasoning": "The send method uses multiple isinstance checks to handle various timeout types and a complex try/except block that performs type-checking on urllib3 exception reasons (e.g., e.reason) to map them to requests exceptions. This tight coupling to the internal structure of urllib3 means the method must be modified whenever urllib3 introduces new error types or when requests needs to support new timeout behaviors."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "class",
+    "line_start": 335,
+    "line_end": 354,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded status code logic for method transformation",
+    "reasoning": "The method uses hardcoded HTTP status codes (301, 302, 303) and specific logic for each to determine how to transform the request method during a redirect. This logic is not extensible; supporting new redirect behaviors or standard updates requires modifying the method's internal code."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_body",
+    "entity_type": "class",
+    "line_start": 487,
+    "line_end": 549,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Conditional logic for multiple body serialization types",
+    "reasoning": "This method uses a sequence of if/else blocks and isinstance checks to process different request body formats, such as JSON, multipart files, streams, and form-encoded data. Adding support for a new body type or serialization format (e.g., msgpack or protobuf) would require modifying this core method's logic rather than extending the system through a plugin or strategy architecture."
+  }
+]

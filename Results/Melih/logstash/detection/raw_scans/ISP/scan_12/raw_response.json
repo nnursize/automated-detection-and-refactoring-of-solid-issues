@@ -1,0 +1,62 @@
+{
+  "scan_id": "logstash_ISP_scan_12",
+  "repo_name": "logstash",
+  "principle": "ISP",
+  "scan_number": 12,
+  "timestamp": "2026-04-19T17:12:47.843107",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 980,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The Queue class is a fat interface implementing too many responsibilities (IO, locking, batching, serialization, and lifecycle management).\",\n      \"reasoning\": \"The Queue class contains methods ranging from low-level IO operations (purgeTailPage, newCheckpointedHeadpage) to high-level queue management (readBatch, ack, close). Clients that only need to read from the queue are forced to depend on internal IO and checkpointing logic, violating ISP.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 950,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"AbstractPipelineExt is bloated with unrelated responsibilities including metric initialization, queue management, DLQ handling, and configuration access.\",\n      \"reasoning\": \"This class forces any subclass to inherit a massive API that spans across pipeline execution, metric storage, DLQ management, and configuration settings. Many of these methods are irrelevant to specific pipeline operations, making the class an overly broad API.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\",\n      \"entity_name\": \"Compiler\",\n      \"entity_type\": \"class\",\n      \"line_start\": 82,\n      \"line_end\": 721,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Compiler class is forced to hold logic for every possible condition type, violating ISP by coupling the compiler to all specific condition implementations.\",\n      \"reasoning\": \"The Compiler class contains methods for every single condition variant (regex, comparison, in, truthy). Adding a new condition type requires modifying this fat compiler class, which should be segregated into individual condition factory interfaces.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java\",\n      \"entity_name\": \"MmapPageIOV2\",\n      \"entity_type\": \"class\",\n      \"line_start\": 40,\n      \"line_end\": 438,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"MmapPageIOV2 implements methods it cannot fully support, leading to UnsupportedOperationException scenarios in legacy IO code.\",\n      \"reasoning\": \"While this class inherits from PageIO, it is forced to implement methods that the underlying IO architecture (v2) might not conceptually support or that are remnants of legacy support, violating the expectation that implementing classes provide a complete, usable contract.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 980,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The Queue class is a fat interface implementing too many responsibilities (IO, locking, batching, serialization, and lifecycle management).",
+      "reasoning": "The Queue class contains methods ranging from low-level IO operations (purgeTailPage, newCheckpointedHeadpage) to high-level queue management (readBatch, ack, close). Clients that only need to read from the queue are forced to depend on internal IO and checkpointing logic, violating ISP."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 950,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "AbstractPipelineExt is bloated with unrelated responsibilities including metric initialization, queue management, DLQ handling, and configuration access.",
+      "reasoning": "This class forces any subclass to inherit a massive API that spans across pipeline execution, metric storage, DLQ management, and configuration settings. Many of these methods are irrelevant to specific pipeline operations, making the class an overly broad API."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+      "entity_name": "Compiler",
+      "entity_type": "class",
+      "line_start": 82,
+      "line_end": 721,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The Compiler class is forced to hold logic for every possible condition type, violating ISP by coupling the compiler to all specific condition implementations.",
+      "reasoning": "The Compiler class contains methods for every single condition variant (regex, comparison, in, truthy). Adding a new condition type requires modifying this fat compiler class, which should be segregated into individual condition factory interfaces."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+      "entity_name": "MmapPageIOV2",
+      "entity_type": "class",
+      "line_start": 40,
+      "line_end": 438,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "MmapPageIOV2 implements methods it cannot fully support, leading to UnsupportedOperationException scenarios in legacy IO code.",
+      "reasoning": "While this class inherits from PageIO, it is forced to implement methods that the underlying IO architecture (v2) might not conceptually support or that are remnants of legacy support, violating the expectation that implementing classes provide a complete, usable contract."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 5577.913284301758,
+  "error": null
+}

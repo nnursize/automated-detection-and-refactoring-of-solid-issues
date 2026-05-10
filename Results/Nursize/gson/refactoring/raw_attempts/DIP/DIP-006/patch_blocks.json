@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "search_text": "    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));\n      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));\n      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n      factories.add(TypeAdapters.ENUM_FACTORY);\n    });",
+    "replace_text": "    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));\n      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));\n      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n      factories.add(TypeAdapters.ENUM_FACTORY);\n    });\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(new ReflectiveTypeAdapterFactory(\n          DEFAULT_CONSTRUCTOR_CONSTRUCTOR,\n          DEFAULT.fieldNamingPolicy,\n          Excluder.DEFAULT,\n          DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY,\n          Collections.emptyList()));\n    });"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "search_text": "    factories.add(\n        new ReflectiveTypeAdapterFactory(\n            constructorConstructor,\n            fieldNamingPolicy,\n            excluder,\n            jsonAdapterFactory,\n            newImmutableList(reflectionFilters)));\n\n    factories.trimToSize();",
+    "replace_text": "    factories.trimToSize();"
+  }
+]

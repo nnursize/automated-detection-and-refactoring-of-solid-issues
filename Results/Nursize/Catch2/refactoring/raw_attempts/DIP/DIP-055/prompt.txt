@@ -1,0 +1,331 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-055
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `Catch::Generators::chunk` (current lines L8108-L8108 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Generator factory `chunk` directly uses `Detail::make_unique<ChunkGenerator>`.
+
+### Reasoning
+The `Catch::Generators::chunk` function directly uses `Catch::Detail::make_unique<ChunkGenerator>`. This creates a dependency on a specific generator implementation (`ChunkGenerator`). DIP requires high-level modules to depend on abstractions. The `chunk` function should ideally accept an `IGenerator` or an abstract factory for generators, rather than directly instantiating `ChunkGenerator`.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 7987 earlier lines elided ...
+            m_generator(CATCH_MOVE(generator)),
+            m_target_repeats(repeats)
+        {
+            assert(m_target_repeats > 0 && "Repeat generator must repeat at least once");
+        }
+
+        T const& get() const override {
+            if (m_current_repeat == 0) {
+                m_returned.push_back(m_generator.get());
+                return m_returned.back();
+            }
+            return m_returned[m_repeat_index];
+        }
+
+        bool next() override {
+            // There are 2 basic cases:
+            // 1) We are still reading the generator
+            // 2) We are reading our own cache
+
+            // In the first case, we need to poke the underlying generator.
+            // If it happily moves, we are left in that state, otherwise it is time to start reading from our cache
+            if (m_current_repeat == 0) {
+                const auto success = m_generator.next();
+                if (!success) {
+                    ++m_current_repeat;
+                }
+                return m_current_repeat < m_target_repeats;
+            }
+
+            // In the second case, we need to move indices forward and check that we haven't run up against the end
+            ++m_repeat_index;
+            if (m_repeat_index == m_returned.size()) {
+                m_repeat_index = 0;
+                ++m_current_repeat;
+            }
+            return m_current_repeat < m_target_repeats;
+        }
+    };
+
+    template <typename T>
+    GeneratorWrapper<T> repeat(size_t repeats, GeneratorWrapper<T>&& generator) {
+        return GeneratorWrapper<T>(Catch::Detail::make_unique<RepeatGenerator<T>>(repeats, CATCH_MOVE(generator)));
+    }
+
+    template <typename T, typename U, typename Func>
+    class MapGenerator final : public IGenerator<T> {
+        // TBD: provide static assert for mapping function, for friendly error message
+        GeneratorWrapper<U> m_generator;
+        Func m_function;
+        // To avoid returning dangling reference, we have to save the values
+        T m_cache;
+    public:
+        template <typename F2 = Func>
+        MapGenerator(F2&& function, GeneratorWrapper<U>&& generator) :
+            m_generator(CATCH_MOVE(generator)),
+            m_function(CATCH_FORWARD(function)),
+            m_cache(m_function(m_generator.get()))
+        {}
+
+        T const& get() const override {
+            return m_cache;
+        }
+        bool next() override {
+            const auto success = m_generator.next();
+            if (success) {
+                m_cache = m_function(m_generator.get());
+            }
+            return success;
+        }
+    };
+
+    template <typename Func, typename U, typename T = FunctionReturnType<Func, U>>
+    GeneratorWrapper<T> map(Func&& function, GeneratorWrapper<U>&& generator) {
+        return GeneratorWrapper<T>(
+            Catch::Detail::make_unique<MapGenerator<T, U, Func>>(CATCH_FORWARD(function), CATCH_MOVE(generator))
+        );
+    }
+
+    template <typename T, typename U, typename Func>
+    GeneratorWrapper<T> map(Func&& function, GeneratorWrapper<U>&& generator) {
+        return GeneratorWrapper<T>(
+            Catch::Detail::make_unique<MapGenerator<T, U, Func>>(CATCH_FORWARD(function), CATCH_MOVE(generator))
+        );
+    }
+
+    template <typename T>
+    class ChunkGenerator final : public IGenerator<std::vector<T>> {
+        std::vector<T> m_chunk;
+        size_t m_chunk_size;
+        GeneratorWrapper<T> m_generator;
+        bool m_used_up = false;
+    public:
+        ChunkGenerator(size_t size, GeneratorWrapper<T> generator) :
+            m_chunk_size(size), m_generator(CATCH_MOVE(generator))
+        {
+            m_chunk.reserve(m_chunk_size);
+            if (m_chunk_size != 0) {
+                m_chunk.push_back(m_generator.get());
+                for (size_t i = 1; i < m_chunk_size; ++i) {
+                    if (!m_generator.next()) {
+                        Detail::throw_generator_exception("Not enough values to initialize the first chunk");
+                    }
+                    m_chunk.push_back(m_generator.get());
+                }
+            }
+        }
+        std::vector<T> const& get() const override {
+            return m_chunk;
+        }
+        bool next() override {
+            m_chunk.clear();
+            for (size_t idx = 0; idx < m_chunk_size; ++idx) {
+                if (!m_generator.next()) {
+                    return false;
+                }
+                m_chunk.push_back(m_generator.get());
+            }
+            return true;
+        }
+    };
+
+    template <typename T>
+    GeneratorWrapper<std::vector<T>> chunk(size_t size, GeneratorWrapper<T>&& generator) {
+        return GeneratorWrapper<std::vector<T>>(
+            Catch::Detail::make_unique<ChunkGenerator<T>>(size, CATCH_MOVE(generator))
+        );
+    }
+
+} // namespace Generators
+} // namespace Catch
+
+
+#endif // CATCH_GENERATORS_ADAPTERS_HPP_INCLUDED
+
+
+#ifndef CATCH_GENERATORS_RANDOM_HPP_INCLUDED
+#define CATCH_GENERATORS_RANDOM_HPP_INCLUDED
+
+
+
+#ifndef CATCH_RANDOM_NUMBER_GENERATOR_HPP_INCLUDED
+#define CATCH_RANDOM_NUMBER_GENERATOR_HPP_INCLUDED
+
+#include <cstdint>
+
+namespace Catch {
+
+    // This is a simple implementation of C++11 Uniform Random Number
+    // Generator. It does not provide all operators, because Catch2
+    // does not use it, but it should behave as expected inside stdlib's
+    // distributions.
+    // The implementation is based on the PCG family (http://pcg-random.org)
+    class SimplePcg32 {
+        using state_type = std::uint64_t;
+    public:
+        using result_type = std::uint32_t;
+        static constexpr result_type (min)() {
+            return 0;
+        }
+        static constexpr result_type (max)() {
+            return static_cast<result_type>(-1);
+        }
+
+        // Provide some default initial state for the default constructor
+        SimplePcg32():SimplePcg32(0xed743cc4U) {}
+
+        explicit SimplePcg32(result_type seed_);
+
+        void seed(result_type seed_);
+        void discard(uint64_t skip);
+
+        result_type operator()();
+
+    private:
+        friend bool operator==(SimplePcg32 const& lhs, SimplePcg32 const& rhs);
+        friend bool operator!=(SimplePcg32 const& lhs, SimplePcg32 const& rhs);
+
+        // In theory we also need operator<< and operator>>
+        // In practice we do not use them, so we will skip them for now
+
+
+        std::uint64_t m_state;
+        // This part of the state determines which "stream" of the numbers
+        // is chosen -- we take it as a constant for Catch2, so we only
+        // need to deal with seeding the main state.
+        // Picked by reading 8 bytes from `/dev/random` :-)
+        static const std::uint64_t s_inc = (0x13ed0cc53f939476ULL << 1ULL) | 1ULL;
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_RANDOM_NUMBER_GENERATOR_HPP_INCLUDED
+
+
+
+#ifndef CATCH_UNIFORM_INTEGER_DISTRIBUTION_HPP_INCLUDED
+#define CATCH_UNIFORM_INTEGER_DISTRIBUTION_HPP_INCLUDED
+
+
+
+
+#ifndef CATCH_RANDOM_INTEGER_HELPERS_HPP_INCLUDED
+#define CATCH_RANDOM_INTEGER_HELPERS_HPP_INCLUDED
+
+#include <climits>
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
+
+// Note: We use the usual enable-disable-autodetect dance here even though
+//       we do not support these in CMake configuration options (yet?).
+//       It is highly unlikely that we will need to make these actually
+//       user-configurable, but this will make it simpler if weend up needing
+//       it, and it provides an escape hatch to the users who need it.
+#if defined( __SIZEOF_INT128__ )
+#    define CATCH_CONFIG_INTERNAL_UINT128
+// Unlike GCC, MSVC does not polyfill umul as mulh + mul pair on ARM machines.
+// Currently we do not bother doing this ourselves, but we could if it became
+// important for perf.
+#elif defined( _MSC_VER ) && defined( _M_X64 )
+#    define CATCH_CONFIG_INTERNAL_MSVC_UMUL128
+#endif
+
+#if defined( CATCH_CONFIG_INTERNAL_UINT128 ) && \
+    !defined( CATCH_CONFIG_NO_UINT128 ) &&      \
+    !defined( CATCH_CONFIG_UINT128 )
+#define CATCH_CONFIG_UINT128
+#endif
+
+#if defined( CATCH_CONFIG_INTERNAL_MSVC_UMUL128 ) && \
+    !defined( CATCH_CONFIG_NO_MSVC_UMUL128 ) &&      \
+    !defined( CATCH_CONFIG_MSVC_UMUL128 )
+#    define CATCH_CONFIG_MSVC_UMUL128
+#    include <intrin.h>
+#endif
+
+
+namespace Catch {
+    namespace Detail {
+
+        template <std::size_t>
+# ... 6105 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

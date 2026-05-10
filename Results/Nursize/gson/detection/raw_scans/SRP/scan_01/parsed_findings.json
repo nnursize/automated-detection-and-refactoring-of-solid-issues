@@ -1,0 +1,13 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 1004,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The JsonReader class is responsible for parsing JSON tokens from a character stream, but also handles buffer management, character escaping, and error reporting.",
+    "reasoning": "The `JsonReader` class has multiple reasons to change. It's responsible for: \n1.  **JSON Tokenization**: Identifying and extracting JSON tokens (objects, arrays, primitives, names). (e.g., `doPeek()`, `peekKeyword()`, `peekNumber()`).\n2.  **Input Stream Management**: Reading characters from the underlying `Reader`, buffering them, and managing the buffer position (`fillBuffer()`, `pos`, `limit`).\n3.  **Lexical Analysis / Character Handling**: Skipping whitespace, comments, and handling escape sequences (`nextNonWhitespace()`, `readEscapeCharacter()`, `skipTo()`, `skipToEndOfLine()`).\n4.  **Error Reporting / Context**: Generating detailed error messages with line/column numbers and JSON path (`syntaxError()`, `unexpectedTokenError()`, `locationString()`, `getPath()`).\n\nThese responsibilities are distinct. For example, changes to how the input stream is buffered (e.g., a different buffering strategy) would require modifying `fillBuffer()`, while changes to JSON parsing rules (e.g., new lenient modes) would affect `doPeek()` and `peekKeyword()`. Changes to error message formatting would affect `locationString()` and `syntaxError()`. Separating these concerns into smaller, more focused classes would improve maintainability and testability."
+  }
+]

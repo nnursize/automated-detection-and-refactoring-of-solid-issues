@@ -1,0 +1,40 @@
+{
+  "scan_id": "requests_ISP_scan_11",
+  "repo_name": "requests",
+  "principle": "ISP",
+  "scan_number": 11,
+  "timestamp": "2026-05-03T12:23:43.699173",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response\",\n      \"entity_type\": \"class\",\n      \"line_start\": 642,\n      \"line_end\": 1041,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Response class presents a broad API combining multiple concerns like content access, status checking, and resource management.\",\n      \"reasoning\": \"The Response class includes methods for various client needs (e.g., `iter_content` for streaming, `json` for JSON parsing, `ok` for status, `close` for resource management). Clients interacting with a Response object are forced to depend on the entire broad interface, even if they only require a subset of its functionalities (e.g., only checking status or only streaming content). This suggests the API could be segregated into more role-specific interfaces (e.g., IResponseStatus, IResponseContent, IResponseResource) to allow clients to depend only on what they use.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 357,\n      \"line_end\": 817,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Session class provides a broad API encompassing request preparation, sending, redirect handling, adapter management, and various HTTP verb shortcuts.\",\n      \"reasoning\": \"The Session class combines many responsibilities, including high-level HTTP verb methods (`get`, `post`), lower-level request dispatch (`send`), and configuration (`mount`, `get_adapter`). Clients using a Session object are exposed to and depend on this entire broad interface, even if they only interact with a specific subset of its capabilities (e.g., only using the high-level verbs without needing to manage adapters or redirects manually). Segregating these concerns into more focused interfaces could reduce client dependencies on unused parts of the API.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Response",
+      "entity_type": "class",
+      "line_start": 642,
+      "line_end": 1041,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The Response class presents a broad API combining multiple concerns like content access, status checking, and resource management.",
+      "reasoning": "The Response class includes methods for various client needs (e.g., `iter_content` for streaming, `json` for JSON parsing, `ok` for status, `close` for resource management). Clients interacting with a Response object are forced to depend on the entire broad interface, even if they only require a subset of its functionalities (e.g., only checking status or only streaming content). This suggests the API could be segregated into more role-specific interfaces (e.g., IResponseStatus, IResponseContent, IResponseResource) to allow clients to depend only on what they use."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session",
+      "entity_type": "class",
+      "line_start": 357,
+      "line_end": 817,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The Session class provides a broad API encompassing request preparation, sending, redirect handling, adapter management, and various HTTP verb shortcuts.",
+      "reasoning": "The Session class combines many responsibilities, including high-level HTTP verb methods (`get`, `post`), lower-level request dispatch (`send`), and configuration (`mount`, `get_adapter`). Clients using a Session object are exposed to and depend on this entire broad interface, even if they only interact with a specific subset of its capabilities (e.g., only using the high-level verbs without needing to manage adapters or redirects manually). Segregating these concerns into more focused interfaces could reduce client dependencies on unused parts of the API."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 29546.419858932495,
+  "error": null
+}

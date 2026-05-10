@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 128,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete implementations (FileCheckpointIO, MmapPageIOV2) in constructor",
+    "reasoning": "The Queue class directly instantiates concrete dependencies like FileCheckpointIO and MmapPageIOV2 inside its constructor. This violates the Dependency Inversion Principle, as the high-level module (Queue) depends on low-level implementation details rather than abstractions. These dependencies should be injected via an interface."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 218,
+    "line_end": 218,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of RecordIOWriter in nextWriter() method",
+    "reasoning": "The DeadLetterQueueWriter class directly instantiates the RecordIOWriter class. The high-level module (Writer) should depend on an interface for writing records, rather than a concrete implementation, to allow for better testability and loose coupling."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+    "entity_name": "CompiledPipeline",
+    "entity_type": "class",
+    "line_start": 113,
+    "line_end": 113,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Hard-coded instantiation of EventCondition.Compiler",
+    "reasoning": "The class directly instantiates the compiler for conditional expressions. While this is a small utility, it creates a tight coupling. If the compiler implementation needs to change or be mocked for tests, it is currently impossible without modifying the CompiledPipeline class."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "JavaKeyStore",
+    "entity_type": "class",
+    "line_start": 104,
+    "line_end": 104,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of ReentrantLock",
+    "reasoning": "While standard in many Java applications, in a strict architecture, locking mechanisms should be abstracted if the store backend is to be swappable. Relying on concrete ReentrantLock prevents swapping for other concurrency models or testing/monitoring wrappers."
+  }
+]

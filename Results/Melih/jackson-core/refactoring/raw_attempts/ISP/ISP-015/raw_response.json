@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1386.3985538482666,
+  "prompt_tokens": 3592,
+  "completion_tokens": 245,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove unsupported UTF8 string write methods from WriterBasedJsonGenerator\",\n  \"rationale\": \"WriterBasedJsonGenerator is a character-based generator and does not support UTF8 byte array operations. Implementing these methods and throwing UnsupportedOperationException violates the Interface Segregation Principle. Since these methods are part of the base JsonGenerator interface, they should be removed from this implementation to avoid forcing the class to expose irrelevant functionality.\",\n  \"files_touched\": [\"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    @Override\n    public JsonGenerator writeRawUTF8String(byte[] text, int offset, int length) throws JacksonException {\n        // could add support for buffering if we really want it...\n        return _reportUnsupportedOperation();\n    }\n\n    @Override\n    public JsonGenerator writeUTF8String(byte[] text, int offset, int length) throws JacksonException {\n        // could add support for buffering if we really want it...\n        return _reportUnsupportedOperation();\n    }\n=======\n>>>>>>> REPLACE"
+}

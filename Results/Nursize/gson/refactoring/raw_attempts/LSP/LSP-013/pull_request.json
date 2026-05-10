@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-013",
+  "principle": "LSP",
+  "title": "Refactor LSP-013 (LSP): The 'read' method for BitSet adapter accepts NUMBER or STRING tokens but thro...",
+  "branch": "refactor/LSP-013",
+  "base": "main",
+  "head_commit": "6a784c03dad4439d32b512048ede11a11c920f70",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10035,
+    "completion_tokens": 281
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.BIT_SET.read",
+    "entity_type": "method",
+    "line_start": 71,
+    "line_end": 96,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "The 'read' method for BitSet adapter accepts NUMBER or STRING tokens but throws JsonSyntaxException for values other than 0 or 1, narrowing accepted input.",
+    "reasoning": "The `BitSet` `TypeAdapter`'s `read` method uses `in.nextInt()` or `in.nextString()` to read JSON tokens that are of type `NUMBER` or `STRING`. It then imposes an additional constraint, requiring these numeric or string values to be either `0` or `1`. If any other numeric or string value is encountered, it throws a `JsonSyntaxException`. While a `TypeAdapter`'s role is to convert, this behavior narrows the acceptable range of values for what `JsonReader` reports as `NUMBER` or `STRING`. A generic `TypeAdapter<Collection<Boolean>>` (conceptually similar) would likely accept any valid number or string and convert it, whereas this specialized adapter rejects valid input for its underlying primitive types, violating substitutability for a broader `Number` or `String` type adapter."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Relax BitSet deserialization to accept any non-zero value as true",
+    "rationale": "The BitSet adapter previously strictly enforced 0 or 1, which is overly restrictive for a general-purpose type adapter. By treating any non-zero value as true (consistent with common programming conventions for boolean-like integers), we improve substitutability and robustness without breaking existing valid 0/1 inputs.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "search_text": "                int intValue = in.nextInt();\n                if (intValue == 0) {\n                  set = false;\n                } else if (intValue == 1) {\n                  set = true;\n                } else {\n                  throw new JsonSyntaxException(\n                      \"Invalid bitset value \"\n                          + intValue\n                          + \", expected 0 or 1; at path \"\n                          + in.getPreviousPath());\n                }",
+        "replace_text": "                int intValue = in.nextInt();\n                set = intValue != 0;",
+        "search_lines": 12,
+        "replace_lines": 2
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 861,
+        "blank_lines": 107,
+        "comment_lines": 9,
+        "function_count": 73,
+        "avg_cc": 2.08,
+        "max_cc": 80.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "loc": 851,
+        "blank_lines": 107,
+        "comment_lines": 9,
+        "function_count": 73,
+        "avg_cc": 2.05,
+        "max_cc": 78.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\nindex 605afdb..93ddc40 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\n@@ -100,17 +100,7 @@ public final class TypeAdapters {\n               case NUMBER:\n               case STRING:\n                 int intValue = in.nextInt();\n-                if (intValue == 0) {\n-                  set = false;\n-                } else if (intValue == 1) {\n-                  set = true;\n-                } else {\n-                  throw new JsonSyntaxException(\n-                      \"Invalid bitset value \"\n-                          + intValue\n-                          + \", expected 0 or 1; at path \"\n-                          + in.getPreviousPath());\n-                }\n+                set = intValue != 0;\n                 break;\n               case BOOLEAN:\n                 set = in.nextBoolean();\n",
+  "duration_ms": 7177.827835083008
+}

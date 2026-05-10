@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "search_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return (TypeAdapter<T>) new RecordAdapter<>(\n          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n    // We return null to let other factories handle it or to let Gson skip it.\n    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n      return null;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));",
+    "replace_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return RecordAdapter.create(raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n    // We return null to let other factories handle it or to let Gson skip it.\n    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n      return null;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return FieldReflectionAdapter.create(constructor, getBoundFields(gson, type, raw, blockInaccessible, false));"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "search_text": "  private static final class FieldReflectionAdapter<T> extends Adapter<T, T> {\n    private final ObjectConstructor<T> constructor;\n\n    FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n      super(fieldsData);\n      this.constructor = constructor;\n    }\n\n    @Override",
+    "replace_text": "  private static final class FieldReflectionAdapter<T> extends Adapter<T, T> {\n    private final ObjectConstructor<T> constructor;\n\n    static <T> FieldReflectionAdapter<T> create(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n      return new FieldReflectionAdapter<>(constructor, fieldsData);\n    }\n\n    private FieldReflectionAdapter(ObjectConstructor<T> constructor, FieldsData fieldsData) {\n      super(fieldsData);\n      this.constructor = constructor;\n    }\n\n    @Override"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "search_text": "    RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n      super(fieldsData);\n      constructor = ReflectionHelper.getCanonicalRecordConstructor(raw);\n\n      if (blockInaccessible) {",
+    "replace_text": "    static <T> RecordAdapter<T> create(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n      return new RecordAdapter<>(raw, fieldsData, blockInaccessible);\n    }\n\n    private RecordAdapter(Class<T> raw, FieldsData fieldsData, boolean blockInaccessible) {\n      super(fieldsData);\n      constructor = ReflectionHelper.getCanonicalRecordConstructor(raw);\n\n      if (blockInaccessible) {"
+  }
+]

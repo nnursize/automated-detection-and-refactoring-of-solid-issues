@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.isShutdownRequested",
+    "entity_type": "method",
+    "line_start": 745,
+    "line_end": 748,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Abstract method in a base class throws IllegalStateException if not overridden, forcing subclasses to implement functionality they might not need.",
+    "reasoning": "The 'isShutdownRequested' method in 'AbstractPipelineExt' explicitly states that it 'MUST be implemented in the concrete implementation' and throws an 'IllegalStateException' if not. This violates ISP because any subclass that extends 'AbstractPipelineExt' is forced to implement this method, even if its specific role does not require shutdown request logic. This indicates that the 'AbstractPipelineExt' abstraction is too broad and could be segregated into more focused interfaces or abstract classes, or that this functionality should be provided via a separate optional interface."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "co.elastic.logstash.api.Event",
+    "entity_type": "class",
+    "line_start": 39,
+    "line_end": 449,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The 'Event' interface is a fat interface, bundling too many distinct responsibilities into a single contract.",
+    "reasoning": "The 'co.elastic.logstash.api.Event' interface includes a wide range of methods covering data reading ('getData', 'getField'), data writing/manipulation ('setField', 'remove', 'overwrite', 'append'), lifecycle management ('cancel', 'uncancel'), and utility/conversion methods ('sprintf', 'toMap', 'clone'). Clients (e.g., Logstash plugins) that only require a subset of these functionalities (e.g., only reading specific fields or only tagging an event) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP by making clients dependent on an interface that is not specific to their needs."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+    "entity_name": "org.logstash.ackedqueue.io.PageIO",
+    "entity_type": "class",
+    "line_start": 29,
+    "line_end": 286,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The 'PageIO' interface is a fat interface, combining distinct responsibilities for page lifecycle, read, write, and state queries.",
+    "reasoning": "The 'PageIO' interface defines methods for managing the lifecycle of a page ('open', 'create', 'deactivate', 'activate', 'close', 'purge'), reading data ('read', 'recover'), writing data ('write', 'ensurePersisted'), and querying its state ('getCapacity', 'getMinSeqNum', 'getElementCount', 'hasSpace', 'persistedByteCount', 'getHead', 'isCorruptedPage'). This broad contract forces any implementing class, or any client interacting with a 'PageIO', to depend on all these responsibilities. For instance, a component only concerned with reading from a page would still be exposed to write and creation methods, violating ISP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "org.logstash.secret.store.SecretStore",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 353,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The 'SecretStore' interface is a fat interface, bundling responsibilities for store lifecycle management, existence/content queries, and secret CRUD operations.",
+    "reasoning": "The 'SecretStore' interface combines methods for creating, loading, and deleting the store itself ('create', 'delete', 'load'), querying its state and contents ('exists', 'list', 'containsSecret'), and performing CRUD operations on individual secrets ('persistSecret', 'purgeSecret', 'retrieveSecret'). Clients that only need to retrieve secrets (e.g., during configuration expansion) are forced to depend on methods for creating or deleting the entire store, which they do not use. This violates ISP by coupling clients to a broader interface than necessary for their specific needs."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "org.logstash.ackedqueue.io.MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 29,
+    "line_end": 302,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The 'MmapPageIOV1' class violates ISP by implementing the 'PageIO' interface but throwing 'UnsupportedOperationException' for multiple methods.",
+    "reasoning": "The 'MmapPageIOV1' class is designed specifically for read-only operations during queue upgrades. However, it implements the 'PageIO' interface, which includes methods for page creation, writing, persisting, recovering, and purging. Consequently, 'MmapPageIOV1' is forced to provide empty implementations or, more severely, throw 'UnsupportedOperationException' for methods like 'recover()', 'create()', 'ensurePersisted()', 'purge()', and 'write()'. This is a clear violation of ISP, as the class is compelled to depend on and implement methods it does not use, indicating that the 'PageIO' interface is not sufficiently segregated."
+  }
+]

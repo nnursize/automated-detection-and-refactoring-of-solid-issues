@@ -1,0 +1,14 @@
+diff --git a/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java b/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java
+index b56b78e..abfa460 100644
+--- a/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java
++++ b/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java
+@@ -539,9 +539,6 @@ public final class DeadLetterQueueWriter implements Closeable {
+         lock.lock();
+         try {
+             finalizeSegment(FinalizeWhen.ONLY_IF_STALE, SealReason.SCHEDULED_FLUSH);
+-
+-            updateOldestSegmentReference();
+-            executeAgeRetentionPolicy();
+         } catch (Exception e) {
+             logger.warn("Unable to finalize segment", e);
+         } finally {

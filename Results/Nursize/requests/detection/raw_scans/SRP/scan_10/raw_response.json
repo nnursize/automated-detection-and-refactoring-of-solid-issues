@@ -1,0 +1,51 @@
+{
+  "scan_id": "requests_SRP_scan_10",
+  "repo_name": "requests",
+  "principle": "SRP",
+  "scan_number": 10,
+  "timestamp": "2026-05-03T00:27:34.760845",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest\",\n      \"entity_type\": \"class\",\n      \"line_start\": 315,\n      \"line_end\": 639,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The PreparedRequest class handles too many distinct request preparation concerns.\",\n      \"reasoning\": \"The `PreparedRequest` class is responsible for preparing all aspects of an HTTP request, including URL construction and encoding (`prepare_url`), header management (`prepare_headers`), body encoding (handling form data, files, JSON via `prepare_body`), content length calculation (`prepare_content_length`), authentication (`prepare_auth`), and cookie attachment (`prepare_cookies`). Each of these `prepare_*` methods represents a distinct responsibility. A change in URL encoding logic, header validation rules, multipart file encoding, JSON serialization, authentication schemes, or cookie handling would all require modifications to this single class. This violates SRP because the class has multiple, independent reasons to change, acting as a 'god builder' for requests rather than delegating these distinct preparation concerns to specialized components.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 357,\n      \"line_end\": 817,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Session class orchestrates too many high-level request lifecycle responsibilities.\",\n      \"reasoning\": \"The `Session` class acts as a central orchestrator for making HTTP requests, bundling several high-level responsibilities. These include managing session-wide settings and merging them with request-specific and environment settings (`merge_environment_settings`), orchestrating request preparation (`prepare_request`), selecting and managing HTTP adapters (`get_adapter`, `mount`), delegating the actual request sending (`send`), handling the entire redirect flow (`resolve_redirects` via `SessionRedirectMixin`), and managing cookies (extracting and merging into its cookie jar). The core `request` method, in particular, demonstrates this bundling. Changes in environment setting logic, adapter selection, redirect handling, or cookie processing would all necessitate changes to this single class, indicating multiple reasons for change and a violation of SRP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 145,\n      \"line_end\": 698,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The HTTPAdapter class combines connection pooling, SSL verification, proxy management, and response building.\",\n      \"reasoning\": \"The `HTTPAdapter` class is responsible for the low-level interaction with the HTTP protocol via `urllib3`, but it combines several distinct concerns. These include connection pool management (`init_poolmanager`, `get_connection`, `close`), SSL/TLS certificate verification (`cert_verify`), proxy management (creating proxy managers, adding proxy headers via `proxy_manager_for`, `proxy_headers`), and transforming the raw `urllib3` response into a `requests.Response` object (`build_response`). The `send` method orchestrates these steps. A change in how connection pools are managed, how SSL certificates are verified, how proxies are handled, or how `urllib3` responses are mapped to `requests` responses would all necessitate changes to this single class. This indicates that `HTTPAdapter` has multiple reasons to change, violating SRP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest",
+      "entity_type": "class",
+      "line_start": 315,
+      "line_end": 639,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The PreparedRequest class handles too many distinct request preparation concerns.",
+      "reasoning": "The `PreparedRequest` class is responsible for preparing all aspects of an HTTP request, including URL construction and encoding (`prepare_url`), header management (`prepare_headers`), body encoding (handling form data, files, JSON via `prepare_body`), content length calculation (`prepare_content_length`), authentication (`prepare_auth`), and cookie attachment (`prepare_cookies`). Each of these `prepare_*` methods represents a distinct responsibility. A change in URL encoding logic, header validation rules, multipart file encoding, JSON serialization, authentication schemes, or cookie handling would all require modifications to this single class. This violates SRP because the class has multiple, independent reasons to change, acting as a 'god builder' for requests rather than delegating these distinct preparation concerns to specialized components."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session",
+      "entity_type": "class",
+      "line_start": 357,
+      "line_end": 817,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Session class orchestrates too many high-level request lifecycle responsibilities.",
+      "reasoning": "The `Session` class acts as a central orchestrator for making HTTP requests, bundling several high-level responsibilities. These include managing session-wide settings and merging them with request-specific and environment settings (`merge_environment_settings`), orchestrating request preparation (`prepare_request`), selecting and managing HTTP adapters (`get_adapter`, `mount`), delegating the actual request sending (`send`), handling the entire redirect flow (`resolve_redirects` via `SessionRedirectMixin`), and managing cookies (extracting and merging into its cookie jar). The core `request` method, in particular, demonstrates this bundling. Changes in environment setting logic, adapter selection, redirect handling, or cookie processing would all necessitate changes to this single class, indicating multiple reasons for change and a violation of SRP."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter",
+      "entity_type": "class",
+      "line_start": 145,
+      "line_end": 698,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The HTTPAdapter class combines connection pooling, SSL verification, proxy management, and response building.",
+      "reasoning": "The `HTTPAdapter` class is responsible for the low-level interaction with the HTTP protocol via `urllib3`, but it combines several distinct concerns. These include connection pool management (`init_poolmanager`, `get_connection`, `close`), SSL/TLS certificate verification (`cert_verify`), proxy management (creating proxy managers, adding proxy headers via `proxy_manager_for`, `proxy_headers`), and transforming the raw `urllib3` response into a `requests.Response` object (`build_response`). The `send` method orchestrates these steps. A change in how connection pools are managed, how SSL certificates are verified, how proxies are handled, or how `urllib3` responses are mapped to `requests` responses would all necessitate changes to this single class. This indicates that `HTTPAdapter` has multiple reasons to change, violating SRP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27246.152639389038,
+  "error": null
+}

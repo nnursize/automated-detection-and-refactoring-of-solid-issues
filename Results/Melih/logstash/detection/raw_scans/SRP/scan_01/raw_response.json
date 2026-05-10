@@ -1,0 +1,84 @@
+{
+  "scan_id": "logstash_SRP_scan_01",
+  "repo_name": "logstash",
+  "principle": "SRP",
+  "scan_number": 1,
+  "timestamp": "2026-04-19T13:12:31.624378",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persiste...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/lib/logstash/agent.rb\",\n      \"entity_name\": \"LogStash::Agent\",\n      \"entity_type\": \"class\",\n      \"line_start\": 45,\n      \"line_end\": 510,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God Class managing pipeline orchestration, metrics, webserver, and system validation.\",\n      \"reasoning\": \"The Agent class handles too many unrelated responsibilities: 1) Pipeline lifecycle management (start/stop/reload/converge), 2) Webserver lifecycle (API management), 3) Metric collection and poller configuration, 4) Health observation, 5) Configuration fetching via source loaders, and 6) Resource usage validation. This makes the class a central point of failure and difficult to maintain or test in isolation.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 88,\n      \"line_end\": 605,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Class mixes low-level I/O, retention policy logic, and inter-process synchronization.\",\n      \"reasoning\": \"This class is responsible for: 1) Writing entries to the DLQ, 2) Managing file segment lifecycle (rollover and sealing), 3) Implementing business logic for retention policies (age-based and size-based deletion), and 4) Monitoring the filesystem for external notifications from the reader process using a WatchService. The policy logic (when to delete) should be separated from the mechanism (how to write/delete files).\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event\",\n      \"entity_type\": \"class\",\n      \"line_start\": 53,\n      \"line_end\": 415,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Data carrier class mixed with serialization and string interpolation logic.\",\n      \"reasoning\": \"The Event class is the primary data container but also encapsulates: 1) Complex serialization/deserialization logic for JSON, CBOR, and Map formats, 2) String interpolation logic (sprintf), and 3) Metadata management. While it is a core entity, the inclusion of specific third-party mapping logic (Jackson) and interpolation engines violates the principle that a data carrier should be decoupled from its external representations and processing logic.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 88,\n      \"line_end\": 650,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Mixes pipeline state management with low-level metric registration and DLQ instantiation.\",\n      \"reasoning\": \"This class manages the high-level execution state of a pipeline but also contains detailed logic for: 1) Instantiating specific DeadLetterQueueWriter implementations based on settings, 2) Manually registering a wide array of flow metrics into specific namespaces, and 3) Handling JRuby/Java bridge concerns. The metric registration logic is particularly verbose and unrelated to the core responsibility of pipeline execution.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/runner.rb\",\n      \"entity_name\": \"LogStash::Runner\",\n      \"entity_type\": \"class\",\n      \"line_start\": 50,\n      \"line_end\": 450,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"CLI runner class mixed with system-level bootstrap checks and signal handling.\",\n      \"reasoning\": \"The Runner class handles: 1) CLI argument definition and parsing (via Clamp), 2) System-level environment validation (superuser checks, Java version checks), 3) Bootstrap checks for configuration validity, and 4) OS-level signal trapping (INT, TERM, HUP). It acts as both a configuration parser and a system supervisor, which are distinct responsibilities.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\",\n      \"entity_name\": \"PluginFactoryExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 260,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Combines plugin resolution with specific wiring logic for different plugin types.\",\n      \"reasoning\": \"The class is responsible for: 1) Resolving plugin names to classes, 2) Generating unique IDs, 3) Instantiating Ruby vs Java plugins, and 4) Wiring specific metrics and execution contexts into the plugins. It contains specialized logic for 'FilterDelegators' and 'OutputDelegators' that goes beyond simple instantiation, mixing factory logic with configuration and monitoring setup.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/lib/logstash/agent.rb",
+      "entity_name": "LogStash::Agent",
+      "entity_type": "class",
+      "line_start": 45,
+      "line_end": 510,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God Class managing pipeline orchestration, metrics, webserver, and system validation.",
+      "reasoning": "The Agent class handles too many unrelated responsibilities: 1) Pipeline lifecycle management (start/stop/reload/converge), 2) Webserver lifecycle (API management), 3) Metric collection and poller configuration, 4) Health observation, 5) Configuration fetching via source loaders, and 6) Resource usage validation. This makes the class a central point of failure and difficult to maintain or test in isolation."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 88,
+      "line_end": 605,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Class mixes low-level I/O, retention policy logic, and inter-process synchronization.",
+      "reasoning": "This class is responsible for: 1) Writing entries to the DLQ, 2) Managing file segment lifecycle (rollover and sealing), 3) Implementing business logic for retention policies (age-based and size-based deletion), and 4) Monitoring the filesystem for external notifications from the reader process using a WatchService. The policy logic (when to delete) should be separated from the mechanism (how to write/delete files)."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event",
+      "entity_type": "class",
+      "line_start": 53,
+      "line_end": 415,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Data carrier class mixed with serialization and string interpolation logic.",
+      "reasoning": "The Event class is the primary data container but also encapsulates: 1) Complex serialization/deserialization logic for JSON, CBOR, and Map formats, 2) String interpolation logic (sprintf), and 3) Metadata management. While it is a core entity, the inclusion of specific third-party mapping logic (Jackson) and interpolation engines violates the principle that a data carrier should be decoupled from its external representations and processing logic."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 88,
+      "line_end": 650,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Mixes pipeline state management with low-level metric registration and DLQ instantiation.",
+      "reasoning": "This class manages the high-level execution state of a pipeline but also contains detailed logic for: 1) Instantiating specific DeadLetterQueueWriter implementations based on settings, 2) Manually registering a wide array of flow metrics into specific namespaces, and 3) Handling JRuby/Java bridge concerns. The metric registration logic is particularly verbose and unrelated to the core responsibility of pipeline execution."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/runner.rb",
+      "entity_name": "LogStash::Runner",
+      "entity_type": "class",
+      "line_start": 50,
+      "line_end": 450,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "CLI runner class mixed with system-level bootstrap checks and signal handling.",
+      "reasoning": "The Runner class handles: 1) CLI argument definition and parsing (via Clamp), 2) System-level environment validation (superuser checks, Java version checks), 3) Bootstrap checks for configuration validity, and 4) OS-level signal trapping (INT, TERM, HUP). It acts as both a configuration parser and a system supervisor, which are distinct responsibilities."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+      "entity_name": "PluginFactoryExt",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 260,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Combines plugin resolution with specific wiring logic for different plugin types.",
+      "reasoning": "The class is responsible for: 1) Resolving plugin names to classes, 2) Generating unique IDs, 3) Instantiating Ruby vs Java plugins, and 4) Wiring specific metrics and execution contexts into the plugins. It contains specialized logic for 'FilterDelegators' and 'OutputDelegators' that goes beyond simple instantiation, mixing factory logic with configuration and monitoring setup."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 20412.078380584717,
+  "error": null
+}

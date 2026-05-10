@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "CumulativeReporterBase",
+    "entity_type": "class",
+    "line_start": 3497,
+    "line_end": 3535,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclasses can disable mandatory data collection, leading to Undefined Behavior in the base class contract",
+    "reasoning": "Refused Bequest smell -> LSP violation because the base class provides protected flags (m_shouldStoreSuccesfulAssertions and m_shouldStoreFailedAssertions) that allow subclasses to opt-out of fulfilling the data collection contract. However, the base class's internal logic and its consumers (who interact with the resulting node tree) expect this data to be present. As noted in the source comments (line 3505), accessing this data when a subclass has opted out results in Undefined Behavior. This makes such subclasses non-substitutable for the base type in any context where the cumulative results are processed, as they break the expected postconditions of the event-handling methods."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "ITracker",
+    "entity_type": "class",
+    "line_start": 2453,
+    "line_end": 2525,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Manual RTTI methods indicate a leaky abstraction where subtypes are not substitutable without type-checking",
+    "reasoning": "Type-checking smell -> LSP violation because the interface uses virtual boolean methods (isSectionTracker at line 2516, isGeneratorTracker at line 2522) to perform manual Run-Time Type Information (RTTI). This design pattern indicates that the base ITracker abstraction is insufficient, forcing callers to perform type-checks and downcasts to access subtype-specific behavior. This violates the principle that subtypes should be usable through their base interface without the caller needing to know or handle specific concrete classes differently."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "BoundRef",
+    "entity_type": "class",
+    "line_start": 1819,
+    "line_end": 1823,
+    "principle": "LSP",
+    "severity": "low",
+    "description": "Manual RTTI used to distinguish between flag and value references, bypassing polymorphic substitution",
+    "reasoning": "Type-checking smell -> LSP violation because the BoundRef interface relies on manual RTTI (isContainer, isFlag) to allow callers to distinguish between different categories of references in the CLI parser. This bypasses polymorphism; the caller must query the type and then cast to a specific derived class (like BoundFlagRefBase or BoundValueRefBase) to perform operations like setFlag or setValue. Consequently, the base type cannot be used interchangeably without altering the correctness of the calling logic."
+  }
+]

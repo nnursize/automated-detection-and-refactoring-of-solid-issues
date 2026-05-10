@@ -1,0 +1,72 @@
+{
+  "issue_id": "OCP-001",
+  "principle": "OCP",
+  "title": "Refactor OCP-001 (OCP): Switch statement on token ID requires modification to handle new token types",
+  "branch": "refactor/OCP-001",
+  "base": "main",
+  "head_commit": "68ce7e9ad175b8602bc625a892c37584b60ad05f",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3489,
+    "completion_tokens": 523
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._getText2",
+    "entity_type": "class",
+    "line_start": 339,
+    "line_end": 354,
+    "severity": "medium",
+    "scan_count": 6,
+    "description": "Switch statement on token ID requires modification to handle new token types",
+    "reasoning": "The _getText2 method uses a switch statement based on token IDs. Adding new token types would require modifying this switch block, violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Replaced switch statement on JsonToken ID with if/else if structure to improve OCP adherence.",
+    "rationale": "The original `_getText2` method used a switch statement on `JsonToken.id()`, which would require modification if new token types were introduced, violating the Open/Closed Principle. The refactored code replaces this with an `if/else if` structure that leverages `JsonToken` enum instances directly and its `isNumeric()` method. This makes the method more robust to future additions of token types, as new numeric tokens will be handled by `isNumeric()` and other non-data tokens will fall through to `t.asCharArray()`, without requiring changes to this method.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "    protected final String _getText2(JsonToken t) throws JacksonException\n    {\n        if (t == null) {\n            return null;\n        }\n        switch (t.id()) {\n        case ID_PROPERTY_NAME:\n            return _streamReadContext.currentName();\n\n        case ID_STRING:\n            // fall through\n        case ID_NUMBER_INT:\n        case ID_NUMBER_FLOAT:\n            // For these, text buffer has the value\n            return _textBuffer.contentsAsString();\n\n        default:\n            // For others, we have char[] form\n            return t.asCharArray();\n        }\n    }",
+        "replace_text": "    protected final String _getText2(JsonToken t) throws JacksonException\n    {\n        if (t == null) {\n            return null;\n        }\n        if (t == JsonToken.PROPERTY_NAME) {\n            return _streamReadContext.currentName();\n        }\n        // For VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT, text buffer has the value\n        if (t.isNumeric()) {\n            return _textBuffer.contentsAsString();\n        }\n        // For others (START_OBJECT, END_OBJECT, VALUE_TRUE, VALUE_FALSE, VALUE_NULL, etc.),\n        // we have char[] form\n        return t.asCharArray();\n    }",
+        "search_lines": 21,
+        "replace_lines": 16
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3541,
+        "blank_lines": 274,
+        "comment_lines": 281,
+        "function_count": 111,
+        "avg_cc": 9.88,
+        "max_cc": 987.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 21620.119333267212
+}

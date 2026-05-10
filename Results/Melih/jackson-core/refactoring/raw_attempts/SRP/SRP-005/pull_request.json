@@ -1,0 +1,101 @@
+{
+  "issue_id": "SRP-005",
+  "principle": "SRP",
+  "title": "Refactor SRP-005 (SRP): The abstract class defines an overly broad API, encompassing core JSON writin...",
+  "branch": "refactor/SRP-005",
+  "base": "main",
+  "head_commit": "4235320743d5749dccc98566673fa73c105b16a6",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 25098,
+    "completion_tokens": 792
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator",
+    "entity_type": "class",
+    "line_start": 14,
+    "line_end": 1064,
+    "severity": "medium",
+    "scan_count": 7,
+    "description": "The abstract class defines an overly broad API, encompassing core JSON writing, native ID handling, POJO/tree serialization delegation, copy-through methods, and numerous convenience property writing methods, making it a 'God interface'.",
+    "reasoning": "While an abstract class defines an API, the sheer breadth of responsibilities implied by its abstract methods and default implementations indicates a 'God interface' problem. For example, `writeObjectId()` and `writeTypeId()` are for format-specific native ID support, distinct from basic JSON structural (`writeStartObject()`) or value (`writeString()`) generation. Similarly, `writePOJO()` and `writeTree()` delegate to higher-level databinding, and the `copyCurrentEvent()` methods are for parser-to-generator transformation. This broad API forces concrete implementations to take on many distinct responsibilities, making them prone to SRP violations."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Make POJO/Tree serialization methods concrete with default delegation to ObjectWriteContext.",
+    "rationale": "The `JsonGenerator` abstract class currently forces all concrete implementations to provide logic for POJO and Tree serialization via abstract methods `writePOJO()` and `writeTree()`, even if they do not inherently support databinding. This violates the Single Responsibility Principle by coupling core JSON generation with higher-level object serialization. By making `objectWriteContext()`, `writePOJO()`, and `writeTree()` concrete methods with default implementations that delegate to an `ObjectWriteContext` (or throw an `UnsupportedOperationException` if no context is available), we reduce the burden on subclasses. Subclasses that do not need databinding no longer have to implement these methods, allowing them to focus solely on stream writing. Subclasses that support databinding can override `objectWriteContext()` to provide a functional context, maintaining existing behavior. This change preserves the public API while making the `JsonGenerator` less of a 'God interface' by making these responsibilities optional for implementation.",
+    "files_touched": [
+      "src/main/java/tools/jackson/core/JsonGenerator.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/JsonGenerator.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "search_text": "    /**\n     * Accessor for context object provided by higher-level databinding\n     * functionality (or, in some cases, simple placeholder of the same)\n     * that allows some level of interaction including ability to trigger\n     * serialization of Object values through generator instance.\n     *\n     * @return Object write context ({@link ObjectWriteContext}) associated with this generator\n     *\n     * @since 3.0\n     */\n    public abstract ObjectWriteContext objectWriteContext();",
+        "replace_text": "    /**\n     * Accessor for context object provided by higher-level databinding\n     * functionality (or, in some cases, simple placeholder of the same)\n     * that allows some level of interaction including ability to trigger\n     * serialization of Object values through generator instance.\n     *<p>\n     * Default implementation returns {@code null}, meaning that this generator\n     * does not have (or need) an {@link ObjectWriteContext}.\n     *\n     * @return Object write context ({@link ObjectWriteContext}) associated with this generator\n     *\n     * @since 3.0\n     */\n    public ObjectWriteContext objectWriteContext() { return null; }",
+        "search_lines": 11,
+        "replace_lines": 14
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "search_text": "    public abstract JsonGenerator writePOJO(Object pojo) throws JacksonException;",
+        "replace_text": "    public JsonGenerator writePOJO(Object pojo) throws JacksonException {\n        ObjectWriteContext ctx = objectWriteContext();\n        if (ctx == null) {\n            throw _constructWriteException(\"No ObjectWriteContext configured for this generator to write POJOs\");\n        }\n        ctx.writeValue(this, pojo);\n        return this;\n    }",
+        "search_lines": 1,
+        "replace_lines": 8
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "search_text": "    public abstract JsonGenerator writeTree(TreeNode rootNode) throws JacksonException;",
+        "replace_text": "    public JsonGenerator writeTree(TreeNode rootNode) throws JacksonException {\n        ObjectWriteContext ctx = objectWriteContext();\n        if (ctx == null) {\n            throw _constructWriteException(\"No ObjectWriteContext configured for this generator to write TreeNodes\");\n        }\n        ctx.writeTree(this, rootNode);\n        return this;\n    }",
+        "search_lines": 1,
+        "replace_lines": 8
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "loc": 2286,
+        "blank_lines": 162,
+        "comment_lines": 35,
+        "function_count": 62,
+        "avg_cc": 9.29,
+        "max_cc": 515.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/main/java/tools/jackson/core/JsonGenerator.java",
+        "loc": 2303,
+        "blank_lines": 162,
+        "comment_lines": 35,
+        "function_count": 65,
+        "avg_cc": 8.97,
+        "max_cc": 519.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/main/java/tools/jackson/core/JsonGenerator.java b/src/main/java/tools/jackson/core/JsonGenerator.java\nindex e9cb34e..ce4f301 100644\n--- a/src/main/java/tools/jackson/core/JsonGenerator.java\n+++ b/src/main/java/tools/jackson/core/JsonGenerator.java\n@@ -86,12 +86,15 @@ public abstract class JsonGenerator\n      * functionality (or, in some cases, simple placeholder of the same)\n      * that allows some level of interaction including ability to trigger\n      * serialization of Object values through generator instance.\n+     *<p>\n+     * Default implementation returns {@code null}, meaning that this generator\n+     * does not have (or need) an {@link ObjectWriteContext}.\n      *\n      * @return Object write context ({@link ObjectWriteContext}) associated with this generator\n      *\n      * @since 3.0\n      */\n-    public abstract ObjectWriteContext objectWriteContext();\n+    public ObjectWriteContext objectWriteContext() { return null; }\n \n     /**\n      * Method that can be used to get access to object that is used\n@@ -1547,7 +1550,14 @@ public abstract class JsonGenerator\n      * @throws JacksonIOException if there is an underlying I/O problem\n      * @throws StreamWriteException for problems in encoding token stream\n      */\n-    public abstract JsonGenerator writePOJO(Object pojo) throws JacksonException;\n+    public JsonGenerator writePOJO(Object pojo) throws JacksonException {\n+        ObjectWriteContext ctx = objectWriteContext();\n+        if (ctx == null) {\n+            throw _constructWriteException(\"No ObjectWriteContext configured for this generator to write POJOs\");\n+        }\n+        ctx.writeValue(this, pojo);\n+        return this;\n+    }\n \n     /**\n      * Method for writing given JSON tree (expressed as a tree\n@@ -1567,7 +1577,14 @@ public abstract class JsonGenerator\n      * @throws JacksonIOException if there is an underlying I/O problem\n      * @throws StreamWriteException for problems in encoding token stream\n      */\n-    public abstract JsonGenerator writeTree(TreeNode rootNode) throws JacksonException;\n+    public JsonGenerator writeTree(TreeNode rootNode) throws JacksonException {\n+        ObjectWriteContext ctx = objectWriteContext();\n+        if (ctx == null) {\n+            throw _constructWriteException(\"No ObjectWriteContext configured for this generator to write TreeNodes\");\n+        }\n+        ctx.writeTree(this, rootNode);\n+        return this;\n+    }\n \n     /*\n     /**********************************************************************\n",
+  "duration_ms": 30932.45244026184
+}

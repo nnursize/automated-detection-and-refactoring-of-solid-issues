@@ -1,0 +1,128 @@
+{
+  "scan_id": "requests_OCP_scan_02",
+  "repo_name": "requests",
+  "principle": "OCP",
+  "scan_number": 2,
+  "timestamp": "2026-05-03T00:34:57.261808",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Open/Closed Principle (OCP).\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.\n\n## What to Look For\n- Long if/elif/else or switch chains that would need modification to add new types\n- Functions with type-checking logic (isinstance checks) t...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"proxy_bypass\",\n      \"entity_type\": \"method\",\n      \"line_start\": 58,\n      \"line_end\": 63,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic for proxy bypassing based on environment or registry.\",\n      \"reasoning\": \"The `proxy_bypass` function uses an `if/else` statement to decide between `proxy_bypass_environment` and `proxy_bypass_registry`. If a new mechanism for proxy bypassing (e.g., from a configuration file, or another OS-specific method) were introduced, this function would require modification to add another conditional branch, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"super_len\",\n      \"entity_type\": \"method\",\n      \"line_start\": 70,\n      \"line_end\": 131,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Multiple `hasattr` and `isinstance` checks to determine object length.\",\n      \"reasoning\": \"The `super_len` function contains a series of `hasattr` and `isinstance` checks (`__len__`, `len`, `fileno`, `tell`, `seek`) to calculate the length of various object types. If a new type of object with a different way of determining its length needs to be supported, this function would need to be modified by adding new conditional branches, which is a direct violation of OCP. A more extensible design would use a strategy pattern or rely on a common interface/protocol.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"extract_zipped_paths\",\n      \"entity_type\": \"method\",\n      \"line_start\": 167,\n      \"line_end\": 197,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Specific logic for handling only zip archives.\",\n      \"reasoning\": \"The `extract_zipped_paths` function is hardcoded to detect and extract files specifically from `.zip` archives using `zipfile.is_zipfile`. If support for other archive formats (e.g., `.tar.gz`, `.rar`) were required, this function would need to be modified with additional `if/elif` blocks for each new archive type, violating OCP. A plugin architecture for archive handlers would be more extensible.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"get_encoding_from_headers\",\n      \"entity_type\": \"method\",\n      \"line_start\": 331,\n      \"line_end\": 347,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Conditional logic to guess encoding based on content type.\",\n      \"reasoning\": \"This function uses a series of `if` statements to guess the content encoding based on the `content-type` header and its parameters (e.g., `charset`, `text`, `application/json`). If new content types or specific charset rules for existing content types need to be added, this function would require modification, violating OCP. A registry or mapping of content types to encoding strategies would provide better extensibility.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"should_bypass_proxies\",\n      \"entity_type\": \"method\",\n      \"line_start\": 452,\n      \"line_end\": 509,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic for proxy bypass rules based on IP address type.\",\n      \"reasoning\": \"The `should_bypass_proxies` function contains an `if/else` block that differentiates between IPv4 addresses (`is_ipv4_address`) and other hostnames when applying `no_proxy` rules. If new types of host identifiers (e.g., IPv6 addresses, specific domain wildcard patterns) or more complex `no_proxy` matching rules were introduced, this function would need modification to accommodate them, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"_validate_header_part\",\n      \"entity_type\": \"method\",\n      \"line_start\": 600,\n      \"line_end\": 614,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking to select header validator based on `str` or `bytes`.\",\n      \"reasoning\": \"The `_validate_header_part` function uses `isinstance` checks for `str` and `bytes` to select the appropriate header validator. If `requests` were to support header parts represented by other data types (e.g., a custom object that can be serialized), this function would need modification to add new conditional branches, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"RequestEncodingMixin._encode_params\",\n      \"entity_type\": \"method\",\n      \"line_start\": 45,\n      \"line_end\": 66,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Conditional logic for parameter encoding based on input data type.\",\n      \"reasoning\": \"The `_encode_params` method uses `isinstance` and `hasattr` checks to determine how to encode the `data` (e.g., `str`/`bytes`, `read`-able object, `__iter__`-able). If a new type of data object needs to be supported for parameter encoding, this method would require modification by adding new conditional branches, violating OCP. A strategy pattern or a registry of encoders would make this more extensible.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"RequestEncodingMixin._encode_files\",\n      \"entity_type\": \"method\",\n      \"line_start\": 68,\n      \"line_end\": 118,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Extensive type and structure checks for file input formats.\",\n      \"reasoning\": \"The `_encode_files` method contains multiple `isinstance` and `len` checks to handle different formats of file input (e.g., 2-tuple, 3-tuple, 4-tuple, or other object types). If a new file input format or a custom file-like object type is introduced, this method would need to be modified, violating OCP. This complex conditional logic makes the method fragile to new requirements.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_body\",\n      \"entity_type\": \"method\",\n      \"line_start\": 269,\n      \"line_end\": 317,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Conditional logic for body preparation based on `json`, `files`, or `data` type.\",\n      \"reasoning\": \"The `prepare_body` method uses a series of `if/elif/else` statements and `isinstance`/`hasattr` checks to determine how to prepare the request body based on whether `json` is provided, `files` are provided, or `data` is a stream, string, or other iterable. Adding support for a new type of body or a new body preparation strategy would require modifying this method, which is a significant OCP violation.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_auth\",\n      \"entity_type\": \"method\",\n      \"line_start\": 336,\n      \"line_end\": 352,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Special-case handling for tuple-based basic HTTP authentication.\",\n      \"reasoning\": \"The `prepare_auth` method includes an `if isinstance(auth, tuple) and len(auth) == 2` block to special-case basic HTTP authentication. If new simple tuple-based authentication schemes were introduced that should be handled similarly (e.g., converting them into specific `AuthBase` subclasses), this `if` block would need to be modified, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response.iter_content\",\n      \"entity_type\": \"method\",\n      \"line_start\":",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "proxy_bypass",
+      "entity_type": "method",
+      "line_start": 58,
+      "line_end": 63,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic for proxy bypassing based on environment or registry.",
+      "reasoning": "The `proxy_bypass` function uses an `if/else` statement to decide between `proxy_bypass_environment` and `proxy_bypass_registry`. If a new mechanism for proxy bypassing (e.g., from a configuration file, or another OS-specific method) were introduced, this function would require modification to add another conditional branch, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "super_len",
+      "entity_type": "method",
+      "line_start": 70,
+      "line_end": 131,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Multiple `hasattr` and `isinstance` checks to determine object length.",
+      "reasoning": "The `super_len` function contains a series of `hasattr` and `isinstance` checks (`__len__`, `len`, `fileno`, `tell`, `seek`) to calculate the length of various object types. If a new type of object with a different way of determining its length needs to be supported, this function would need to be modified by adding new conditional branches, which is a direct violation of OCP. A more extensible design would use a strategy pattern or rely on a common interface/protocol."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "extract_zipped_paths",
+      "entity_type": "method",
+      "line_start": 167,
+      "line_end": 197,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Specific logic for handling only zip archives.",
+      "reasoning": "The `extract_zipped_paths` function is hardcoded to detect and extract files specifically from `.zip` archives using `zipfile.is_zipfile`. If support for other archive formats (e.g., `.tar.gz`, `.rar`) were required, this function would need to be modified with additional `if/elif` blocks for each new archive type, violating OCP. A plugin architecture for archive handlers would be more extensible."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "get_encoding_from_headers",
+      "entity_type": "method",
+      "line_start": 331,
+      "line_end": 347,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Conditional logic to guess encoding based on content type.",
+      "reasoning": "This function uses a series of `if` statements to guess the content encoding based on the `content-type` header and its parameters (e.g., `charset`, `text`, `application/json`). If new content types or specific charset rules for existing content types need to be added, this function would require modification, violating OCP. A registry or mapping of content types to encoding strategies would provide better extensibility."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "should_bypass_proxies",
+      "entity_type": "method",
+      "line_start": 452,
+      "line_end": 509,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic for proxy bypass rules based on IP address type.",
+      "reasoning": "The `should_bypass_proxies` function contains an `if/else` block that differentiates between IPv4 addresses (`is_ipv4_address`) and other hostnames when applying `no_proxy` rules. If new types of host identifiers (e.g., IPv6 addresses, specific domain wildcard patterns) or more complex `no_proxy` matching rules were introduced, this function would need modification to accommodate them, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "_validate_header_part",
+      "entity_type": "method",
+      "line_start": 600,
+      "line_end": 614,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Type-checking to select header validator based on `str` or `bytes`.",
+      "reasoning": "The `_validate_header_part` function uses `isinstance` checks for `str` and `bytes` to select the appropriate header validator. If `requests` were to support header parts represented by other data types (e.g., a custom object that can be serialized), this function would need modification to add new conditional branches, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "RequestEncodingMixin._encode_params",
+      "entity_type": "method",
+      "line_start": 45,
+      "line_end": 66,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Conditional logic for parameter encoding based on input data type.",
+      "reasoning": "The `_encode_params` method uses `isinstance` and `hasattr` checks to determine how to encode the `data` (e.g., `str`/`bytes`, `read`-able object, `__iter__`-able). If a new type of data object needs to be supported for parameter encoding, this method would require modification by adding new conditional branches, violating OCP. A strategy pattern or a registry of encoders would make this more extensible."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "RequestEncodingMixin._encode_files",
+      "entity_type": "method",
+      "line_start": 68,
+      "line_end": 118,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Extensive type and structure checks for file input formats.",
+      "reasoning": "The `_encode_files` method contains multiple `isinstance` and `len` checks to handle different formats of file input (e.g., 2-tuple, 3-tuple, 4-tuple, or other object types). If a new file input format or a custom file-like object type is introduced, this method would need to be modified, violating OCP. This complex conditional logic makes the method fragile to new requirements."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_body",
+      "entity_type": "method",
+      "line_start": 269,
+      "line_end": 317,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Conditional logic for body preparation based on `json`, `files`, or `data` type.",
+      "reasoning": "The `prepare_body` method uses a series of `if/elif/else` statements and `isinstance`/`hasattr` checks to determine how to prepare the request body based on whether `json` is provided, `files` are provided, or `data` is a stream, string, or other iterable. Adding support for a new type of body or a new body preparation strategy would require modifying this method, which is a significant OCP violation."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_auth",
+      "entity_type": "method",
+      "line_start": 336,
+      "line_end": 352,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Special-case handling for tuple-based basic HTTP authentication.",
+      "reasoning": "The `prepare_auth` method includes an `if isinstance(auth, tuple) and len(auth) == 2` block to special-case basic HTTP authentication. If new simple tuple-based authentication schemes were introduced that should be handled similarly (e.g., converting them into specific `AuthBase` subclasses), this `if` block would need to be modified, violating OCP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 71469.86126899719,
+  "error": null
+}

@@ -1,0 +1,236 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-020
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java`
+- **Entity**: `NonNullElementWrapperList.add` (current lines L63-L63 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+The 'add' and 'set' methods throw NullPointerException for null elements, strengthening preconditions compared to standard ArrayList.
+
+### Reasoning
+The `NonNullElementWrapperList` wraps an `ArrayList`. Its `add(int, E)` and `set(int, E)` methods explicitly throw `NullPointerException` if the element to be added or set is `null`. A standard `ArrayList<E>` (for object types) typically permits `null` elements. By disallowing `null` elements and throwing a `NullPointerException`, this class strengthens the precondition for these methods. If a client expects a `List` that behaves like a standard `ArrayList` (allowing `null`s), substituting `NonNullElementWrapperList` would violate LSP by introducing a stricter contract.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java`
+```java
+/*
+ * Copyright (C) 2018 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson.internal;
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.RandomAccess;
+
+/**
+ * {@link List} which wraps another {@code List} but prevents insertion of {@code null} elements.
+ * Methods which only perform checks with the element argument (e.g. {@link #contains(Object)}) do
+ * not throw exceptions for {@code null} arguments.
+ */
+public class NonNullElementWrapperList<E> extends AbstractList<E> implements RandomAccess {
+  // Explicitly specify ArrayList as type to guarantee that delegate implements RandomAccess
+  private final ArrayList<E> delegate;
+
+  @SuppressWarnings("NonApiType")
+  public NonNullElementWrapperList(ArrayList<E> delegate) {
+    this.delegate = Objects.requireNonNull(delegate);
+  }
+
+  @Override
+  public E get(int index) {
+    return delegate.get(index);
+  }
+
+  @Override
+  public int size() {
+    return delegate.size();
+  }
+
+  private E nonNull(E element) {
+    if (element == null) {
+      throw new NullPointerException("Element must be non-null");
+    }
+    return element;
+  }
+
+  @Override
+  public E set(int index, E element) {
+    return delegate.set(index, nonNull(element));
+  }
+
+  @Override
+  public void add(int index, E element) {
+    delegate.add(index, nonNull(element));
+  }
+
+  @Override
+  public E remove(int index) {
+    return delegate.remove(index);
+  }
+
+  /* The following methods are overridden because their default implementation is inefficient */
+
+  @Override
+  public void clear() {
+    delegate.clear();
+  }
+
+  @SuppressWarnings("UngroupedOverloads") // this is intentionally ungrouped, see comment above
+  @Override
+  public boolean remove(Object o) {
+    return delegate.remove(o);
+  }
+
+  @Override
+  public boolean removeAll(Collection<?> c) {
+    return delegate.removeAll(c);
+  }
+
+  @Override
+  public boolean retainAll(Collection<?> c) {
+    return delegate.retainAll(c);
+  }
+
+  @Override
+  public boolean contains(Object o) {
+    return delegate.contains(o);
+  }
+
+  @Override
+  public int indexOf(Object o) {
+    return delegate.indexOf(o);
+  }
+
+  @Override
+  public int lastIndexOf(Object o) {
+    return delegate.lastIndexOf(o);
+  }
+
+  @Override
+  public Object[] toArray() {
+    return delegate.toArray();
+  }
+
+  @Override
+  public <T> T[] toArray(T[] a) {
+    return delegate.toArray(a);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return delegate.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return delegate.hashCode();
+  }
+
+  // Maybe also delegate List#sort and List#spliterator in the future, but that
+  // requires Android API level 24
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java`
+- `gson/src/main/java/com/google/gson/internal/Excluder.java`
+- `gson/src/main/java/com/google/gson/internal/GsonTypes.java`
+- `gson/src/main/java/com/google/gson/internal/JavaVersion.java`
+- `gson/src/main/java/com/google/gson/internal/JsonReaderInternalAccess.java`
+- `gson/src/main/java/com/google/gson/internal/LazilyParsedNumber.java`
+- `gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java`
+- `gson/src/main/java/com/google/gson/internal/NumberLimits.java`
+- `gson/src/main/java/com/google/gson/internal/ObjectConstructor.java`
+- `gson/src/main/java/com/google/gson/internal/package-info.java`
+- `gson/src/main/java/com/google/gson/internal/PreJava9DateFormatProvider.java`
+- `gson/src/main/java/com/google/gson/internal/Primitives.java`
+- `gson/src/main/java/com/google/gson/internal/ReflectionAccessFilterHelper.java`
+- `gson/src/main/java/com/google/gson/internal/Streams.java`
+- `gson/src/main/java/com/google/gson/internal/TroubleshootingGuide.java`
+- `gson/src/main/java/com/google/gson/internal/UnsafeAllocator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

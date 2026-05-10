@@ -1,0 +1,42 @@
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/io/ReadablePageIO.java b/logstash-core/src/main/java/org/logstash/ackedqueue/io/ReadablePageIO.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/io/ReadablePageIO.java
+@@ -0,0 +1,17 @@
++package org.logstash.ackedqueue.io;
++
++import java.io.IOException;
++import org.logstash.ackedqueue.SequencedList;
++
++public interface ReadablePageIO {
++    void open(long minSeqNum, int elementCount) throws IOException;
++    SequencedList<byte[]> read(long seqNum, int limit) throws IOException;
++    void deactivate();
++    void activate() throws IOException;
++    void close();
++    int getCapacity();
++    long getMinSeqNum();
++    int getElementCount();
++    int getHead();
++    boolean isCorruptedPage() throws IOException;
++}
+\ No newline at end of file
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/io/WritablePageIO.java b/logstash-core/src/main/java/org/logstash/ackedqueue/io/WritablePageIO.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/io/WritablePageIO.java
+@@ -0,0 +1,11 @@
++package org.logstash.ackedqueue.io;
++
++public interface WritablePageIO {
++    void recover();
++    void create();
++    void ensurePersisted();
++    void purge();
++    void write(byte[] bytes, long seqNum);
++    boolean hasSpace(int bytes);
++    int persistedByteCount(int byteCount);
++}
+\ No newline at end of file

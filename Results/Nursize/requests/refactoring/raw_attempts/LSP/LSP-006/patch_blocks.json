@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/cookies.py",
+    "search_text": "    def __setitem__(self, name, value):\n        \"\"\"Dict-like __setitem__ for compatibility with client code. Throws\n        exception if there is already a cookie of that name in the jar. In that\n        case, use the more explicit set() method instead.\n        \"\"\"\n        self.set(name, value)",
+    "replace_text": "    def __setitem__(self, name, value):\n        \"\"\"Dict-like __setitem__ for compatibility with client code. Throws\n        exception if there is already a cookie of that name in the jar. In that\n        case, use the more explicit set() method instead.\n        \"\"\"\n        if value is None:\n            raise ValueError(\"RequestsCookieJar does not support deleting cookies via __setitem__ with None. Use del jar[name] instead.\")\n        self.set(name, value)"
+  }
+]

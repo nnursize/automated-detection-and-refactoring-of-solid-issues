@@ -1,0 +1,480 @@
+# Refactor SRP-021 (SRP): The class serves as a Caliper benchmark runner, but also defines all test dat...
+
+**Status:** `applied_unverified`  
+**Branch:** `refactor/SRP-021` -> `main`  
+**Head commit:** `4d7332f739b018967c27d93aaad232de19dc03ac`  
+**LLM finish:** `FinishReason.STOP` (prompt 4739, completion 5726)  
+
+## Detected issue
+
+- **File**: `metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java`
+- **Entity**: `ParseBenchmark` (class)
+- **Lines (at detection time)**: L58–L467
+- **Severity**: high
+- **Confidence**: detected by 4 scan(s)
+
+**Description.** The class serves as a Caliper benchmark runner, but also defines all test data models and concrete parser implementations.
+
+**Reasoning.** This class has multiple distinct reasons to change: 1) Changes to the benchmarking orchestration logic (e.g., how experiments are run, parameters are defined). 2) Changes to the test data models (e.g., `Tweet`, `User`, `Feed` structure). 3) Changes to the specific JSON parsing implementations for different libraries/APIs (e.g., `GsonStreamParser`, `JacksonBindParser`). These are separate concerns; data models and specific parser implementations should ideally be in their own files or classes, independent of the benchmark runner itself.
+
+## Fix logic
+
+- **Model**: `gemini-3.1-flash-lite-preview` (temperature 0.2)
+- **Patch blocks**: 2
+- **Files created** (2): `metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkModels.java`, `metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkParsers.java`
+
+**Summary.** Extract data models and parser implementations from ParseBenchmark
+
+**Rationale.** The ParseBenchmark class was violating SRP by acting as a container for data models, parser implementations, and the benchmark runner logic. Moving these to separate classes improves maintainability and separation of concerns.
+
+## Changes overview
+
+_2 patch block(s). Code blocks are previewed up to 60 lines each — full text is in `pull_request.json` (`fix_logic.changes`)._
+
+### 1. CREATE `metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkModels.java` (170 line(s))
+
+```java
+package com.google.gson.metrics;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.annotations.SerializedName;
+import java.util.Date;
+import java.util.List;
+
+public final class ParseBenchmarkModels {
+  @SuppressWarnings("MemberName")
+  public static class Tweet {
+    @JsonProperty String coordinates;
+    @JsonProperty boolean favorited;
+    @JsonProperty Date created_at;
+    @JsonProperty boolean truncated;
+    @JsonProperty Tweet retweeted_status;
+    @JsonProperty String id_str;
+    @JsonProperty String in_reply_to_id_str;
+    @JsonProperty String contributors;
+    @JsonProperty String text;
+    @JsonProperty long id;
+    @JsonProperty String retweet_count;
+    @JsonProperty String in_reply_to_status_id_str;
+    @JsonProperty Object geo;
+    @JsonProperty boolean retweeted;
+    @JsonProperty String in_reply_to_user_id;
+    @JsonProperty String in_reply_to_screen_name;
+    @JsonProperty Object place;
+    @JsonProperty User user;
+    @JsonProperty String source;
+    @JsonProperty String in_reply_to_user_id_str;
+  }
+
+  @SuppressWarnings("MemberName")
+  public static class User {
+    @JsonProperty String name;
+    @JsonProperty String profile_sidebar_border_color;
+    @JsonProperty boolean profile_background_tile;
+    @JsonProperty String profile_sidebar_fill_color;
+    @JsonProperty Date created_at;
+    @JsonProperty String location;
+    @JsonProperty String profile_image_url;
+    @JsonProperty boolean follow_request_sent;
+    @JsonProperty String profile_link_color;
+    @JsonProperty boolean is_translator;
+    @JsonProperty String id_str;
+    @JsonProperty int favourites_count;
+    @JsonProperty boolean contributors_enabled;
+    @JsonProperty String url;
+    @JsonProperty boolean default_profile;
+    @JsonProperty long utc_offset;
+    @JsonProperty long id;
+    @JsonProperty boolean profile_use_background_image;
+    @JsonProperty int listed_count;
+    @JsonProperty String lang;
+
+    @JsonProperty("protected")
+    @SerializedName("protected")
+    boolean isProtected;
+
+    @JsonProperty int followers_count;
+... (110 more line(s) truncated)
+```
+
+### 2. CREATE `metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkParsers.java` (116 line(s))
+
+```java
+package com.google.gson.metrics;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import java.io.CharArrayReader;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
+public final class ParseBenchmarkParsers {
+  public interface Parser {
+    void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception;
+  }
+
+  public static class GsonStreamParser implements Parser {
+    @Override
+    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
+      JsonReader jsonReader = new JsonReader(new CharArrayReader(data));
+      readToken(jsonReader);
+      jsonReader.close();
+    }
+
+    private static void readToken(JsonReader reader) throws IOException {
+      while (true) {
+        switch (reader.peek()) {
+          case BEGIN_ARRAY: reader.beginArray(); break;
+          case END_ARRAY: reader.endArray(); break;
+          case BEGIN_OBJECT: reader.beginObject(); break;
+          case END_OBJECT: reader.endObject(); break;
+          case NAME: reader.nextName(); break;
+          case BOOLEAN: reader.nextBoolean(); break;
+          case NULL: reader.nextNull(); break;
+          case NUMBER: reader.nextLong(); break;
+          case STRING: reader.nextString(); break;
+          case END_DOCUMENT: return;
+        }
+      }
+    }
+  }
+
+  public static class GsonSkipParser implements Parser {
+    @Override
+    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
+      JsonReader jsonReader = new JsonReader(new CharArrayReader(data));
+      jsonReader.skipValue();
+      jsonReader.close();
+    }
+  }
+... (56 more line(s) truncated)
+```
+
+## Code-quality metrics
+
+Per file. Cells show `before → after`. For non-Python files, MI is unavailable and CC is approximate (branching-keyword count divided by detected functions).
+
+| File | LOC | Funcs | Avg CC | Max CC | MI |
+|------|-----|------:|-------:|-------:|---:|
+| `metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java` | 422 → - | 16 → - | 2.88 → - | 31 → - | 0 → - |
+| `metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkModels.java` | - → 151 | - → 5 | - → 1.2 | - → 2 | - → 0 |
+| `metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkParsers.java` | - → 105 | - → 7 | - → 4.43 | - → 25 | - → 0 |
+
+## Diff
+
+```diff
+diff --git a/metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkModels.java b/metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkModels.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkModels.java
+@@ -0,0 +1,170 @@
++package com.google.gson.metrics;
++
++import com.fasterxml.jackson.annotation.JsonProperty;
++import com.google.gson.annotations.SerializedName;
++import java.util.Date;
++import java.util.List;
++
++public final class ParseBenchmarkModels {
++  @SuppressWarnings("MemberName")
++  public static class Tweet {
++    @JsonProperty String coordinates;
++    @JsonProperty boolean favorited;
++    @JsonProperty Date created_at;
++    @JsonProperty boolean truncated;
++    @JsonProperty Tweet retweeted_status;
++    @JsonProperty String id_str;
++    @JsonProperty String in_reply_to_id_str;
++    @JsonProperty String contributors;
++    @JsonProperty String text;
++    @JsonProperty long id;
++    @JsonProperty String retweet_count;
++    @JsonProperty String in_reply_to_status_id_str;
++    @JsonProperty Object geo;
++    @JsonProperty boolean retweeted;
++    @JsonProperty String in_reply_to_user_id;
++    @JsonProperty String in_reply_to_screen_name;
++    @JsonProperty Object place;
++    @JsonProperty User user;
++    @JsonProperty String source;
++    @JsonProperty String in_reply_to_user_id_str;
++  }
++
++  @SuppressWarnings("MemberName")
++  public static class User {
++    @JsonProperty String name;
++    @JsonProperty String profile_sidebar_border_color;
++    @JsonProperty boolean profile_background_tile;
++    @JsonProperty String profile_sidebar_fill_color;
++    @JsonProperty Date created_at;
++    @JsonProperty String location;
++    @JsonProperty String profile_image_url;
++    @JsonProperty boolean follow_request_sent;
++    @JsonProperty String profile_link_color;
++    @JsonProperty boolean is_translator;
++    @JsonProperty String id_str;
++    @JsonProperty int favourites_count;
++    @JsonProperty boolean contributors_enabled;
++    @JsonProperty String url;
++    @JsonProperty boolean default_profile;
++    @JsonProperty long utc_offset;
++    @JsonProperty long id;
++    @JsonProperty boolean profile_use_background_image;
++    @JsonProperty int listed_count;
++    @JsonProperty String lang;
++
++    @JsonProperty("protected")
++    @SerializedName("protected")
++    boolean isProtected;
++
++    @JsonProperty int followers_count;
++    @JsonProperty String profile_text_color;
++    @JsonProperty String profile_background_color;
++    @JsonProperty String time_zone;
++    @JsonProperty String description;
++    @JsonProperty boolean notifications;
++    @JsonProperty boolean geo_enabled;
++    @JsonProperty boolean verified;
++    @JsonProperty String profile_background_image_url;
++    @JsonProperty boolean default_profile_image;
++    @JsonProperty int friends_count;
++    @JsonProperty int statuses_count;
++    @JsonProperty String screen_name;
++    @JsonProperty boolean following;
++    @JsonProperty boolean show_all_inline_media;
++  }
++
++  public static class Feed {
++    @JsonProperty String id;
++    @JsonProperty String title;
++    @JsonProperty String description;
++
++    @JsonProperty("alternate")
++    @SerializedName("alternate")
++    List<Link> alternates;
++
++    @JsonProperty long updated;
++    @JsonProperty List<Item> items;
++
++    @Override
++    public String toString() {
++      StringBuilder result =
++          new StringBuilder()
++              .append(id)
++              .append('\n')
++              .append(title)
++              .append('\n')
++              .append(description)
++              .append('\n')
++              .append(alternates)
++              .append('\n')
++              .append(updated);
++      int i = 1;
++      for (Item item : items) {
++        result.append(i++).append(": ").append(item).append("\n\n");
++      }
++      return result.toString();
++    }
++  }
++
++  public static class Link {
++    @JsonProperty String href;
++
++    @Override
++    public String toString() {
++      return href;
++    }
++  }
++
++  public static class Item {
++    @JsonProperty List<String> categories;
++    @JsonProperty String title;
++    @JsonProperty long published;
++    @JsonProperty long updated;
++
++    @JsonProperty("alternate")
++    @SerializedName("alternate")
++    List<Link> alternates;
++
++    @JsonProperty Content content;
++    @JsonProperty String author;
++    @JsonProperty List<ReaderUser> likingUsers;
++
++    @Override
++    public String toString() {
++      return title
++          + "\nauthor: "
++          + author
++          + "\npublished: "
++          + published
++          + "\nupdated: "
++          + updated
++          + "\n"
++          + content
++          + "\nliking users: "
++          + likingUsers
++          + "\nalternates: "
++          + alternates
++          + "\ncategories: "
++          + categories;
++    }
++  }
++
++  public static class Content {
++    @JsonProperty String content;
++
++    @Override
++    public String toString() {
++      return content;
++    }
++  }
++
++  public static class ReaderUser {
++    @JsonProperty String userId;
++
++    @Override
++    public String toString() {
++      return userId;
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkParsers.java b/metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkParsers.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/metrics/src/main/java/com/google/gson/metrics/ParseBenchmarkParsers.java
+@@ -0,0 +1,116 @@
++package com.google.gson.metrics;
++
++import com.fasterxml.jackson.core.JsonFactory;
++import com.fasterxml.jackson.core.JsonFactoryBuilder;
++import com.fasterxml.jackson.core.JsonToken;
++import com.fasterxml.jackson.core.type.TypeReference;
++import com.fasterxml.jackson.databind.DeserializationFeature;
++import com.fasterxml.jackson.databind.MapperFeature;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.fasterxml.jackson.databind.json.JsonMapper;
++import com.google.gson.Gson;
++import com.google.gson.GsonBuilder;
++import com.google.gson.JsonElement;
++import com.google.gson.JsonParser;
++import com.google.gson.reflect.TypeToken;
++import com.google.gson.stream.JsonReader;
++import java.io.CharArrayReader;
++import java.io.IOException;
++import java.text.SimpleDateFormat;
++import java.util.Locale;
++
++public final class ParseBenchmarkParsers {
++  public interface Parser {
++    void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception;
++  }
++
++  public static class GsonStreamParser implements Parser {
++    @Override
++    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
++      JsonReader jsonReader = new JsonReader(new CharArrayReader(data));
++      readToken(jsonReader);
++      jsonReader.close();
++    }
++
++    private static void readToken(JsonReader reader) throws IOException {
++      while (true) {
++        switch (reader.peek()) {
++          case BEGIN_ARRAY: reader.beginArray(); break;
++          case END_ARRAY: reader.endArray(); break;
++          case BEGIN_OBJECT: reader.beginObject(); break;
++          case END_OBJECT: reader.endObject(); break;
++          case NAME: reader.nextName(); break;
++          case BOOLEAN: reader.nextBoolean(); break;
++          case NULL: reader.nextNull(); break;
++          case NUMBER: reader.nextLong(); break;
++          case STRING: reader.nextString(); break;
++          case END_DOCUMENT: return;
++        }
++      }
++    }
++  }
++
++  public static class GsonSkipParser implements Parser {
++    @Override
++    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
++      JsonReader jsonReader = new JsonReader(new CharArrayReader(data));
++      jsonReader.skipValue();
++      jsonReader.close();
++    }
++  }
++
++  public static class JacksonStreamParser implements Parser {
++    @Override
++    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
++      JsonFactory jsonFactory = new JsonFactoryBuilder()
++          .configure(JsonFactory.Feature.CANONICALIZE_FIELD_NAMES, false).build();
++      com.fasterxml.jackson.core.JsonParser jp = jsonFactory.createParser(new CharArrayReader(data));
++      int depth = 0;
++      do {
++        JsonToken token = jp.nextToken();
++        switch (token) {
++          case START_OBJECT: case START_ARRAY: depth++; break;
++          case END_OBJECT: case END_ARRAY: depth--; break;
++          case FIELD_NAME: jp.currentName(); break;
++          case VALUE_STRING: jp.getText(); break;
++          case VALUE_NUMBER_INT: case VALUE_NUMBER_FLOAT: jp.getLongValue(); break;
++          case VALUE_TRUE: case VALUE_FALSE: jp.getBooleanValue(); break;
++          case VALUE_NULL: break;
++          default: throw new IllegalArgumentException("Unexpected token " + token);
++        }
++      } while (depth > 0);
++      jp.close();
++    }
++  }
++
++  public static class GsonDomParser implements Parser {
++    @Override
++    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
++      JsonElement unused = JsonParser.parseReader(new CharArrayReader(data));
++    }
++  }
++
++  public static class GsonBindParser implements Parser {
++    private static final Gson gson = new GsonBuilder().setDateFormat("EEE MMM dd HH:mm:ss Z yyyy").create();
++
++    @Override
++    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
++      Object unused = gson.fromJson(new CharArrayReader(data), gsonType.getType());
++    }
++  }
++
++  public static class JacksonBindParser implements Parser {
++    private static final ObjectMapper mapper;
++    static {
++      mapper = JsonMapper.builder()
++          .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
++          .configure(MapperFeature.AUTO_DETECT_FIELDS, true).build();
++      mapper.setDateFormat(new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy", Locale.ENGLISH));
++    }
++
++    @Override
++    public void parse(char[] data, TypeToken<?> gsonType, TypeReference<?> jacksonType) throws Exception {
++      mapper.readValue(new CharArrayReader(data), mapper.getTypeFactory().constructType(jacksonType.getType()));
++    }
++  }
++}
+\ No newline at end of file
+
+```

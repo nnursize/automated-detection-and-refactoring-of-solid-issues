@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 128,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete implementations (FileCheckpointIO, MmapPageIOV2) in constructor",
+    "reasoning": "The Queue class directly instantiates FileCheckpointIO and MmapPageIOV2 within its constructor. This binds the high-level Queue logic to specific low-level storage implementations, violating the Dependency Inversion Principle which states that high-level modules should depend on abstractions, not concrete implementations."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.openQueue",
+    "entity_type": "class",
+    "line_start": 213,
+    "line_end": 213,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of QueueFactoryExt inside openQueue method",
+    "reasoning": "The AbstractPipelineExt class directly calls QueueFactoryExt.create to obtain a queue instance. This tightly couples the pipeline execution logic to the queue factory implementation, preventing the injection of alternative queue implementations or mock queues for testing."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter.Builder.build",
+    "entity_type": "class",
+    "line_start": 169,
+    "line_end": 184,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Hard-coded instantiation of FixedRateScheduler or NoopScheduler",
+    "reasoning": "The builder directly decides which concrete implementation of SchedulerService to instantiate based on internal flags. This makes the DeadLetterQueueWriter dependent on specific scheduling implementations rather than relying on an injected scheduler abstraction."
+  }
+]

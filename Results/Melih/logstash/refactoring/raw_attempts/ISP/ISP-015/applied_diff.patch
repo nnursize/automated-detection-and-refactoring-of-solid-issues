@@ -1,0 +1,74 @@
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+index e240dfb..7fe08bb 100644
+--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+@@ -52,7 +52,7 @@ import org.logstash.plugins.NamespacedMetricImpl;
+ /**
+  * Persistent queue implementation.
+  * */
+-public final class Queue implements Closeable {
++public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAdmin {
+ 
+     private long seqNum;
+ 
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java
+@@ -0,0 +1,9 @@
++package org.logstash.ackedqueue;
++
++import java.io.IOException;
++
++public interface QueueWriter {
++    long write(Queueable element) throws IOException;
++    boolean isFull();
++    boolean isClosed();
++}
+\ No newline at end of file
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java
+@@ -0,0 +1,10 @@
++package org.logstash.ackedqueue;
++
++import java.io.IOException;
++
++public interface QueueReader {
++    Batch nonBlockReadBatch(int limit) throws IOException;
++    Batch readBatch(int limit, long timeout) throws IOException;
++    void ack(long firstAckSeqNum, int ackCount) throws IOException;
++    Queueable deserialize(byte[] bytes);
++}
+\ No newline at end of file
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java
+@@ -0,0 +1,21 @@
++package org.logstash.ackedqueue;
++
++import java.io.Closeable;
++import java.io.IOException;
++
++public interface QueueAdmin extends Closeable {
++    void open() throws IOException;
++    String getDirPath();
++    long getMaxBytes();
++    long getMaxUnread();
++    long getPersistedByteSize();
++    int getPageCapacity();
++    long getUnreadCount();
++    boolean isEmpty();
++    boolean isFullyAcked();
++    void ensurePersistedUpto(long seqNum) throws IOException;
++    int firstUnackedPageNum();
++    long getAckedCount();
++    long getUnackedCount();
++    boolean isClosed();
++}
+\ No newline at end of file

@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-023",
+  "principle": "LSP",
+  "title": "Refactor LSP-023 (LSP): Method throws specific SecretStoreException subtype not declared by the base...",
+  "branch": "refactor/LSP-023",
+  "base": "main",
+  "head_commit": "dcd8375313790ad4d5184da6eab806b13724e9e9",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5962,
+    "completion_tokens": 259
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "JavaKeyStore.delete",
+    "entity_type": "method",
+    "line_start": 93,
+    "line_end": 103,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Method throws specific SecretStoreException subtype not declared by the base interface.",
+    "reasoning": "The `SecretStore` interface defines a `delete()` method. `JavaKeyStore#delete` throws `SecretStoreException.UnknownException`. If the `SecretStore` interface does not declare this specific `RuntimeException` subtype, then `JavaKeyStore` violates LSP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Replace SecretStoreException.UnknownException with SecretStoreException in delete() method to comply with interface contract.",
+    "rationale": "The SecretStore interface defines the delete() method. By throwing a specific subtype (UnknownException) not explicitly declared in the interface (or expected by the contract), the implementation violates the Liskov Substitution Principle. Using the base SecretStoreException allows the implementation to remain compliant while still signaling an error.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "search_text": "        } catch (SecretStoreException sse) {\n            throw sse;\n        } catch (Exception e) { //should never happen\n            throw new SecretStoreException.UnknownException(\"Error while trying to delete the Logstash keystore\", e);\n        } finally {",
+        "replace_text": "        } catch (SecretStoreException sse) {\n            throw sse;\n        } catch (Exception e) { //should never happen\n            throw new SecretStoreException(\"Error while trying to delete the Logstash keystore\", e);\n        } finally {",
+        "search_lines": 5,
+        "replace_lines": 5
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "loc": 409,
+        "blank_lines": 25,
+        "comment_lines": 13,
+        "function_count": 16,
+        "avg_cc": 5.44,
+        "max_cc": 72.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "loc": 409,
+        "blank_lines": 25,
+        "comment_lines": 13,
+        "function_count": 16,
+        "avg_cc": 5.44,
+        "max_cc": 72.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java b/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java\nindex 1bcf1f2..466453d 100644\n--- a/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java\n+++ b/logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java\n@@ -152,7 +152,7 @@ public final class JavaKeyStore implements SecretStore {\n         } catch (SecretStoreException sse) {\n             throw sse;\n         } catch (Exception e) { //should never happen\n-            throw new SecretStoreException.UnknownException(\"Error while trying to delete the Logstash keystore\", e);\n+            throw new SecretStoreException(\"Error while trying to delete the Logstash keystore\", e);\n         } finally {\n             releaseLock(lock);\n             config.clearValues();\n",
+  "duration_ms": 14757.839679718018
+}

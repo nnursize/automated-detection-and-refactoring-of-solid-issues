@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_ISP_scan_04",
+  "repo_name": "jackson-core",
+  "principle": "ISP",
+  "scan_number": 4,
+  "timestamp": "2026-05-01T19:37:26.075692",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Interface Segregation Principle (ISP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these int...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1,\n      \"line_end\": 1000,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"JsonGenerator is a 'God Class' interface that forces implementations to support a vast array of unrelated write operations.\",\n      \"reasoning\": \"The JsonGenerator class acts as a fat interface containing methods for structural writing (start/end array/object), scalar writing (strings, numbers, booleans, nulls), binary data handling, and raw content writing. Many implementations (e.g., binary vs. text-based) cannot meaningfully implement all these methods, often leading to UnsupportedOperationException or empty method bodies, which is a classic symptom of an ISP violation.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator.writeRawUTF8String\",\n      \"entity_type\": \"class\",\n      \"line_start\": 445,\n      \"line_end\": 448,\n      \"principle\": \"ISP\",\n      \"severity\": \"low\",\n      \"description\": \"Implementation forced to throw UnsupportedOperationException for a method it cannot support.\",\n      \"reasoning\": \"The class implements the full JsonGenerator interface but is forced to throw an UnsupportedOperationException for writeRawUTF8String, indicating that the interface is too broad and forces implementations to provide methods they do not support.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator.writeRawUTF8String\",\n      \"entity_type\": \"class\",\n      \"line_start\": 361,\n      \"line_end\": 364,\n      \"principle\": \"ISP\",\n      \"severity\": \"low\",\n      \"description\": \"Implementation forced to throw UnsupportedOperationException for a method it cannot support.\",\n      \"reasoning\": \"Similar to UTF8JsonGenerator, this class is forced to implement a method from the fat JsonGenerator interface that it cannot support, violating ISP.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator",
+      "entity_type": "class",
+      "line_start": 1,
+      "line_end": 1000,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "JsonGenerator is a 'God Class' interface that forces implementations to support a vast array of unrelated write operations.",
+      "reasoning": "The JsonGenerator class acts as a fat interface containing methods for structural writing (start/end array/object), scalar writing (strings, numbers, booleans, nulls), binary data handling, and raw content writing. Many implementations (e.g., binary vs. text-based) cannot meaningfully implement all these methods, often leading to UnsupportedOperationException or empty method bodies, which is a classic symptom of an ISP violation."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator.writeRawUTF8String",
+      "entity_type": "class",
+      "line_start": 445,
+      "line_end": 448,
+      "principle": "ISP",
+      "severity": "low",
+      "description": "Implementation forced to throw UnsupportedOperationException for a method it cannot support.",
+      "reasoning": "The class implements the full JsonGenerator interface but is forced to throw an UnsupportedOperationException for writeRawUTF8String, indicating that the interface is too broad and forces implementations to provide methods they do not support."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+      "entity_type": "class",
+      "line_start": 361,
+      "line_end": 364,
+      "principle": "ISP",
+      "severity": "low",
+      "description": "Implementation forced to throw UnsupportedOperationException for a method it cannot support.",
+      "reasoning": "Similar to UTF8JsonGenerator, this class is forced to implement a method from the fat JsonGenerator interface that it cannot support, violating ISP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3006.9313049316406,
+  "error": null
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_body",
+    "entity_type": "method",
+    "line_start": 496,
+    "line_end": 572,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded type-checking and dispatching for request body serialization.",
+    "reasoning": "The method is responsible for handling various input types (data, files, json). To support a new serialization format (e.g., Protobuf or MessagePack) or a new input type, the method body must be modified with additional conditional logic rather than being extended via a registry or strategy pattern."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session.request",
+    "entity_type": "method",
+    "line_start": 501,
+    "line_end": 592,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Monolithic method signature closed to extension for new request parameters.",
+    "reasoning": "The request method explicitly lists every possible configuration parameter (auth, proxies, hooks, etc.). Adding any new cross-cutting feature to the library (like a new caching strategy or retry configuration) requires modifying the method signature and the internal call to PreparedRequest.prepare, violating the principle of being closed to modification."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "method",
+    "line_start": 334,
+    "line_end": 354,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded logic for HTTP method transitions during redirects.",
+    "reasoning": "This method contains the specific logic for how HTTP methods change (e.g., POST to GET) based on status codes (301, 302, etc.). To support a new redirect behavior or a non-standard status code transition, this method must be modified directly."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "get_environ_proxies",
+    "entity_type": "class",
+    "line_start": 814,
+    "line_end": 824,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded dependency on environment variables for proxy discovery.",
+    "reasoning": "The function is closed to extension for other proxy discovery mechanisms (e.g., system registry on Windows, configuration files, or platform-specific APIs). Adding a new source for proxy settings requires modifying the logic within this utility function."
+  }
+]

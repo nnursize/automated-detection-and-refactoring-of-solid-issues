@@ -1,0 +1,123 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+    "entity_name": "JsonWriter",
+    "entity_type": "class",
+    "line_start": 44,
+    "line_end": 745,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The JsonWriter class handles JSON structure writing, output formatting, HTML escaping, and strictness enforcement.",
+    "reasoning": "God Class smell -> SRP violation because JsonWriter has multiple reasons to change: 1) Emitting JSON tokens (begin/end objects/arrays, names, values). 2) Applying formatting styles (indentation, newlines, spaces) via `setFormattingStyle`, `newline`, `beforeName`, `beforeValue`. 3) Handling HTML character escaping (`setHtmlSafe`, `REPLACEMENT_CHARS`, `HTML_SAFE_REPLACEMENT_CHARS` in `string` method). 4) Enforcing strictness rules for numeric values. These are distinct concerns that would change independently. For example, a change in desired output format would affect formatting methods, while a change in HTML escaping rules would affect string writing logic. This could be improved by delegating formatting and escaping to separate components."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+    "entity_name": "JsonArray",
+    "entity_type": "class",
+    "line_start": 41,
+    "line_end": 427,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "JsonArray combines its primary responsibility of representing a JSON array with convenience methods for treating a single element as a primitive value.",
+    "reasoning": "Inappropriate Intimacy smell -> SRP violation because the `getAs*` methods (e.g., `getAsNumber`, `getAsString`, `getAsDouble`) introduce a specific interpretation: treating a single-element array as if it were a primitive. This is a transformation responsibility distinct from its core role of managing a list of `JsonElement`s. If the logic for converting a single array element to a primitive changes, or if new primitive conversion rules are introduced, this class needs to change, indicating multiple reasons to change."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 33,
+    "line_end": 395,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The JsonElement abstract base class defines methods for primitive value access that are not applicable to all its subclasses.",
+    "reasoning": "Refused Bequest smell -> SRP violation because JsonElement combines the responsibility of representing JSON structural types (object, array, primitive, null) with the responsibility of providing primitive value accessors (`getAsBoolean`, `getAsNumber`, `getAsString`, etc.). Subclasses like `JsonObject` and `JsonNull` cannot meaningfully implement these primitive accessors and are forced to throw `UnsupportedOperationException`. This indicates that the interface is too broad and bundles responsibilities that should be separate (representation vs. primitive value extraction/conversion). A change to primitive conversion rules would impact this class, even if it's not a primitive itself."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonPrimitive.java",
+    "entity_name": "JsonPrimitive",
+    "entity_type": "class",
+    "line_start": 29,
+    "line_end": 320,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "JsonPrimitive combines representing a JSON primitive value with extensive conversion logic to various Java primitive types, including parsing strings.",
+    "reasoning": "Divergent Change / Inappropriate Intimacy smells -> SRP violation because JsonPrimitive is responsible for both storing a primitive JSON value and providing a wide array of conversion methods (`getAsInt`, `getAsDouble`, `getAsBigDecimal`, etc.). These conversion methods often involve complex parsing from a string representation (e.g., `Double.parseDouble(getAsString())`, `NumberLimits.parseBigDecimal`) or specific number type handling (e.g., `LazilyParsedNumber`). If the internal representation of the primitive changes, or if the rules for converting to different Java numeric types change (e.g., `NumberLimits` behavior), this class must change. This clearly indicates two distinct responsibilities: 'representing a primitive value' and 'converting that value to various Java types'."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 444,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "ReflectiveTypeAdapterFactory is responsible for field filtering, field naming, reflection access management, and specialized record adaptation logic.",
+    "reasoning": "God Class smell -> SRP violation because this class performs several distinct responsibilities: 1) Field filtering/exclusion based on modifiers, annotations (`Expose`, `Since`, `Until`), and `Excluder`. 2) Field naming translation based on `FieldNamingStrategy` and `SerializedName`. 3) Managing reflection access for fields and methods (making them accessible, handling security exceptions). 4) Specialized adaptation logic for Java Records. 5) Delegating to `JsonAdapterAnnotationTypeAdapterFactory` for `@JsonAdapter` annotations. Changes to any of these areas (e.g., new exclusion rules, different naming conventions, changes to Java's reflection API, updates to Record specification) would require modifications to this single class. These concerns are highly coupled within this class and could be more clearly separated."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/ReflectionAccessFilter.java",
+    "entity_name": "ReflectionAccessFilter.BLOCK_INACCESSIBLE_JAVA",
+    "entity_type": "class",
+    "line_start": 78,
+    "line_end": 88,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The anonymous inner class for BLOCK_INACCESSIBLE_JAVA defines policy logic directly within the interface definition.",
+    "reasoning": "Divergent Change / Inappropriate Intimacy smells -> SRP violation because this anonymous class defines a specific policy for filtering Java types, relying on the internal `ReflectionAccessFilterHelper.isJavaType` method. While it's a static constant, embedding concrete policy logic directly within an interface violates the principle of separating interface definition from implementation. If the definition of a 'Java type' changes, this anonymous class must change, coupling policy logic with the interface declaration."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/ReflectionAccessFilter.java",
+    "entity_name": "ReflectionAccessFilter.BLOCK_ALL_JAVA",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 115,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The anonymous inner class for BLOCK_ALL_JAVA defines policy logic directly within the interface definition.",
+    "reasoning": "Divergent Change / Inappropriate Intimacy smells -> SRP violation because this anonymous class defines a specific policy for blocking all reflection access to Java types, relying on `ReflectionAccessFilterHelper.isJavaType`. Similar to `BLOCK_INACCESSIBLE_JAVA`, embedding concrete policy logic within the interface couples the interface definition with a specific implementation detail that might change independently."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/ReflectionAccessFilter.java",
+    "entity_name": "ReflectionAccessFilter.BLOCK_ALL_ANDROID",
+    "entity_type": "class",
+    "line_start": 132,
+    "line_end": 142,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The anonymous inner class for BLOCK_ALL_ANDROID defines policy logic directly within the interface definition.",
+    "reasoning": "Divergent Change / Inappropriate Intimacy smells -> SRP violation because this anonymous class defines a specific policy for blocking all reflection access to Android types, relying on `ReflectionAccessFilterHelper.isAndroidType`. Similar to the other static filters, this couples policy logic with the interface declaration, which is not ideal for maintenance and separation of concerns."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/ReflectionAccessFilter.java",
+    "entity_name": "ReflectionAccessFilter.BLOCK_ALL_PLATFORM",
+    "entity_type": "class",
+    "line_start": 159,
+    "line_end": 169,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The anonymous inner class for BLOCK_ALL_PLATFORM defines policy logic directly within the interface definition.",
+    "reasoning": "Divergent Change / Inappropriate Intimacy smells -> SRP violation because this anonymous class defines a specific policy for blocking all reflection access to platform types, relying on `ReflectionAccessFilterHelper.isAnyPlatformType`. Similar to the other static filters, this couples policy logic with the interface declaration, which is not ideal for maintenance and separation of concerns."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "JsonAdapterAnnotationTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 36,
+    "line_end": 182,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "JsonAdapterAnnotationTypeAdapterFactory combines annotation processing, adapter instantiation, adapter wrapping/delegation logic, and caching.",
+    "reasoning": "God Class smell -> SRP violation because this class has multiple distinct responsibilities: 1) Discovering and interpreting the `@JsonAdapter` annotation. 2) Instantiating the class specified by the annotation (which can be a `TypeAdapter`, `TypeAdapterFactory`, `JsonSerializer`, or `JsonDeserializer`). 3) Applying `nullSafe` settings. 4) Wrapping tree-style serializers/deserializers into `TreeTypeAdapter` with specific dummy factories. 5) Caching adapter factories. These concerns are highly coupled. For instance, changes to how adapters are instantiated or how tree-style adapters are integrated would require changes in this class, even if the core annotation processing logic remains the same."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/Streams.java",
+    "entity_name": "Streams",
+    "entity_type": "class",
+    "line_start": 29,
+    "line_end": 139,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Streams class combines JSON tree-to-stream conversion with general I/O stream adaptation.",
+    "reasoning": "Divergent Change smell -> SRP violation because Streams has two unrelated responsibilities: 1) Converting between `JsonElement` trees and JSON `JsonReader`/`JsonWriter` streams (`parse`, `write`). This is specific to JSON data structures. 2) Providing a general-purpose `Writer` adapter for any `Appendable` (`writerForAppendable`, `AppendableWriter`). This is a generic I/O utility. Changes to the JSON conversion logic would affect `parse` and `write`, while changes to how `Appendable` is adapted to `Writer` would affect `writerForAppendable` and its inner class, demonstrating separate reasons for change."
+  }
+]

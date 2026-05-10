@@ -1,0 +1,13 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar",
+    "entity_type": "class",
+    "line_start": 176,
+    "line_end": 437,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "`RequestsCookieJar` implements `MutableMapping` but its `__setitem__` and `__delitem__` methods provide an incomplete or overly broad contract for cookie management.",
+    "reasoning": "`RequestsCookieJar` inherits from `collections.abc.MutableMapping`, requiring it to implement methods like `__setitem__(self, key, value)` and `__delitem__(self, key)`. The `__setitem__` method only allows setting a cookie's `name` and `value`, ignoring other critical cookie attributes like `domain`, `path`, and `expires`. Clients needing to set full cookie attributes are forced to use the more specific `set_cookie` or `set` methods. Similarly, `__delitem__` removes *all* cookies matching the given name, regardless of domain or path, which can be an overly broad operation compared to typical dictionary item deletion and might not be the desired behavior for clients needing to remove a specific cookie instance. This forces clients to depend on an interface (`MutableMapping`) that either provides an incomplete contract (`__setitem__`) or an overly broad operation (`__delitem__`) for cookie management, thus violating ISP by forcing clients to depend on methods they might not fully use or that don't precisely match their needs for granular cookie control."
+  }
+]

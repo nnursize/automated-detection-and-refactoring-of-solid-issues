@@ -1,0 +1,40 @@
+{
+  "issue_id": "DIP-033",
+  "principle": "DIP",
+  "title": "Refactor DIP-033 (DIP): Reporter registry function `registerListener` directly uses `Detail::make_uni...",
+  "branch": "refactor/DIP-033",
+  "base": "main",
+  "head_commit": "83b3c825c2fcc66cc6ff817cbc5b149ac97eea55",
+  "status": "obsolete",
+  "obsolete_reason": "entity `Catch::ReporterRegistry::registerListener` not found in current source of `extras/catch_amalgamated.hpp` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ReporterRegistry::registerListener",
+    "entity_type": "class",
+    "line_start": 317,
+    "line_end": 323,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Reporter registry function `registerListener` directly uses `Detail::make_unique<EventListenerFactory>`.",
+    "reasoning": "The `Catch::ReporterRegistry::registerListener` function directly uses `Detail::make_unique<EventListenerFactory>` to create the listener factory. This creates a dependency on a specific factory function and the concrete `EventListenerFactory` type. DIP requires high-level modules to depend on abstractions. The registry should ideally accept an `EventListenerFactory` pointer or an interface, rather than directly instantiating it. This hardcodes the dependency on the `make_unique` usage and `EventListenerFactory`."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 861.3874912261963
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "search_text": "    } else if (o instanceof JsonObject) {\n      return JsonToken.BEGIN_OBJECT;\n    } else if (o instanceof JsonArray) {\n      return JsonToken.BEGIN_ARRAY;\n    } else if (o instanceof JsonPrimitive) {\n      JsonPrimitive primitive = (JsonPrimitive) o;\n      if (primitive.isString()) {\n        return JsonToken.STRING;\n      } else if (primitive.isBoolean()) {\n        return JsonToken.BOOLEAN;\n      } else if (primitive.isNumber()) {\n        return JsonToken.NUMBER;\n      } else {\n        throw new AssertionError();\n      }\n    } else if (o instanceof JsonNull) {\n      return JsonToken.NULL;\n    } else if (o == SENTINEL_CLOSED) {",
+    "replace_text": "    } else if (o instanceof JsonElement) {\n      return getJsonToken((JsonElement) o);\n    } else if (o == SENTINEL_CLOSED) {"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "search_text": "  private Object peekStack() {\n    return stack[stackSize - 1];\n  }",
+    "replace_text": "  private JsonToken getJsonToken(JsonElement element) {\n    if (element.isJsonArray()) {\n      return JsonToken.BEGIN_ARRAY;\n    } else if (element.isJsonObject()) {\n      return JsonToken.BEGIN_OBJECT;\n    } else if (element.isJsonPrimitive()) {\n      JsonPrimitive primitive = element.getAsJsonPrimitive();\n      if (primitive.isString()) return JsonToken.STRING;\n      if (primitive.isBoolean()) return JsonToken.BOOLEAN;\n      if (primitive.isNumber()) return JsonToken.NUMBER;\n      throw new AssertionError();\n    } else if (element.isJsonNull()) {\n      return JsonToken.NULL;\n    } else {\n      throw new MalformedJsonException(\"Custom JsonElement subclass \" + element.getClass().getName() + \" is not supported\");\n    }\n  }\n\n  private Object peekStack() {\n    return stack[stackSize - 1];\n  }"
+  }
+]

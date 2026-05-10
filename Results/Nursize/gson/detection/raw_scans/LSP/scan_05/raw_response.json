@@ -1,0 +1,84 @@
+{
+  "scan_id": "gson_LSP_scan_05",
+  "repo_name": "gson",
+  "principle": "LSP",
+  "scan_number": 5,
+  "timestamp": "2026-05-02T15:24:57.864197",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Liskov Substitution Principle (LSP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inter...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\",\n      \"entity_name\": \"JsonTreeReader.close\",\n      \"entity_type\": \"method\",\n      \"line_start\": 305,\n      \"line_end\": 308,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass changes postcondition of inherited 'close()' method, not closing the underlying reader.\",\n      \"reasoning\": \"The base class `JsonReader` implements `Closeable`, and its `close()` method is expected to close the underlying `Reader`. The `JsonTreeReader` overrides `close()` but does not call `super.close()` and instead manipulates its internal stack state. This violates the postcondition of the `Closeable` interface contract regarding resource release for the underlying `Reader`.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\",\n      \"entity_name\": \"JsonTreeReader.peek\",\n      \"entity_type\": \"method\",\n      \"line_start\": 105,\n      \"line_end\": 139,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass changes exception type for unexpected input compared to base class.\",\n      \"reasoning\": \"The `JsonReader.peek()` method would throw an `AssertionError` for unexpected internal states. `JsonTreeReader.peek()`, however, throws `MalformedJsonException` if it encounters a 'Custom JsonElement subclass'. This changes the exception contract for an 'unexpected value' scenario, violating LSP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.getAsDouble\",\n      \"entity_type\": \"method\",\n      \"line_start\": 218,\n      \"line_end\": 220,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass changes exception type and strengthens precondition for 'getAsDouble()' method.\",\n      \"reasoning\": \"The abstract base class `JsonElement.getAsDouble()` declares that it throws `UnsupportedOperationException`. The `JsonArray` subclass overrides this method and introduces `IllegalStateException` if the array does not contain exactly one element (via `getAsSingleElement()`). This changes the exception contract and strengthens the precondition for the method, violating LSP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.asList\",\n      \"entity_type\": \"method\",\n      \"line_start\": 313,\n      \"line_end\": 315,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Method returns a view with a different nullability contract than the object itself.\",\n      \"reasoning\": \"The `JsonArray` class itself handles `null` elements by converting them to `JsonNull.INSTANCE` when using its `add` methods. However, `asList()` returns a `NonNullElementWrapperList` view which explicitly throws `NullPointerException` if `null` is added. This changes the nullability contract for adding elements through the view, violating the expectation that the view should behave consistently with the underlying object's core null-handling contract.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonObject.java\",\n      \"entity_name\": \"JsonObject.asMap\",\n      \"entity_type\": \"method\",\n      \"line_start\": 194,\n      \"line_end\": 197,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Method returns a view with a different nullability contract than the object itself.\",\n      \"reasoning\": \"The `JsonObject` class itself handles `null` values by converting them to `JsonNull.INSTANCE` when using its `add` methods. However, `asMap()` returns a `LinkedTreeMap` view (initialized with `allowNullValues = false`) which explicitly throws `NullPointerException` if `null` is put as a value. This changes the nullability contract for adding elements through the view, violating the expectation that the view should behave consistently with the underlying object's core null-handling contract.\"\n    },\n    {\n      \"file_path\": \"gson/extras/src/main/java/com/google/gson/graph/GraphAdapterBuilder.java\",\n      \"entity_name\": \"GraphAdapterBuilder.Factory.createInstance\",\n      \"entity_type\": \"method\",\n      \"line_start\": 234,\n      \"line_end\": 243,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Method strengthens preconditions by throwing IllegalStateException based on internal state.\",\n      \"reasoning\": \"The `InstanceCreator.createInstance(Type)` interface method is a simple factory method for creating instances. While Java allows unchecked exceptions, `GraphAdapterBuilder.Factory.createInstance()` throws `IllegalStateException` if its internal `graphThreadLocal` or `graph.nextCreate` state is not as expected. This strengthens the method's preconditions, as it can only be called in a very specific internal context, violating the spirit of LSP for a general instance creation method.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+      "entity_name": "JsonTreeReader.close",
+      "entity_type": "method",
+      "line_start": 305,
+      "line_end": 308,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass changes postcondition of inherited 'close()' method, not closing the underlying reader.",
+      "reasoning": "The base class `JsonReader` implements `Closeable`, and its `close()` method is expected to close the underlying `Reader`. The `JsonTreeReader` overrides `close()` but does not call `super.close()` and instead manipulates its internal stack state. This violates the postcondition of the `Closeable` interface contract regarding resource release for the underlying `Reader`."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+      "entity_name": "JsonTreeReader.peek",
+      "entity_type": "method",
+      "line_start": 105,
+      "line_end": 139,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass changes exception type for unexpected input compared to base class.",
+      "reasoning": "The `JsonReader.peek()` method would throw an `AssertionError` for unexpected internal states. `JsonTreeReader.peek()`, however, throws `MalformedJsonException` if it encounters a 'Custom JsonElement subclass'. This changes the exception contract for an 'unexpected value' scenario, violating LSP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.getAsDouble",
+      "entity_type": "method",
+      "line_start": 218,
+      "line_end": 220,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass changes exception type and strengthens precondition for 'getAsDouble()' method.",
+      "reasoning": "The abstract base class `JsonElement.getAsDouble()` declares that it throws `UnsupportedOperationException`. The `JsonArray` subclass overrides this method and introduces `IllegalStateException` if the array does not contain exactly one element (via `getAsSingleElement()`). This changes the exception contract and strengthens the precondition for the method, violating LSP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.asList",
+      "entity_type": "method",
+      "line_start": 313,
+      "line_end": 315,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Method returns a view with a different nullability contract than the object itself.",
+      "reasoning": "The `JsonArray` class itself handles `null` elements by converting them to `JsonNull.INSTANCE` when using its `add` methods. However, `asList()` returns a `NonNullElementWrapperList` view which explicitly throws `NullPointerException` if `null` is added. This changes the nullability contract for adding elements through the view, violating the expectation that the view should behave consistently with the underlying object's core null-handling contract."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonObject.java",
+      "entity_name": "JsonObject.asMap",
+      "entity_type": "method",
+      "line_start": 194,
+      "line_end": 197,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Method returns a view with a different nullability contract than the object itself.",
+      "reasoning": "The `JsonObject` class itself handles `null` values by converting them to `JsonNull.INSTANCE` when using its `add` methods. However, `asMap()` returns a `LinkedTreeMap` view (initialized with `allowNullValues = false`) which explicitly throws `NullPointerException` if `null` is put as a value. This changes the nullability contract for adding elements through the view, violating the expectation that the view should behave consistently with the underlying object's core null-handling contract."
+    },
+    {
+      "file_path": "gson/extras/src/main/java/com/google/gson/graph/GraphAdapterBuilder.java",
+      "entity_name": "GraphAdapterBuilder.Factory.createInstance",
+      "entity_type": "method",
+      "line_start": 234,
+      "line_end": 243,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Method strengthens preconditions by throwing IllegalStateException based on internal state.",
+      "reasoning": "The `InstanceCreator.createInstance(Type)` interface method is a simple factory method for creating instances. While Java allows unchecked exceptions, `GraphAdapterBuilder.Factory.createInstance()` throws `IllegalStateException` if its internal `graphThreadLocal` or `graph.nextCreate` state is not as expected. This strengthens the method's preconditions, as it can only be called in a very specific internal context, violating the spirit of LSP for a general instance creation method."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 37584.1748714447,
+  "error": null
+}

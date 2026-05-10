@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level module depends on low-level implementation details (e.g., FileLockFactory, CheckpointIO, PageIO) via direct instantiation.",
+    "reasoning": "The Queue class directly instantiates and depends on concrete low-level implementations like FileLockFactory and various IO classes. It should instead depend on abstractions (interfaces) for these dependencies, which should be provided via dependency injection to facilitate testing and decoupling."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level pipeline logic directly instantiates low-level components like DeadLetterQueueWriter.",
+    "reasoning": "The AbstractPipelineExt class uses 'new' to instantiate low-level components like DeadLetterQueueWriter. This creates tight coupling between the pipeline infrastructure and the DLQ implementation, violating the DIP requirement that high-level modules should depend on abstractions."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "DeadLetterQueueWriter directly instantiates its own dependencies (e.g., Builder, Schedulers) within its logic.",
+    "reasoning": "The class manages the creation of its own dependencies (e.g., Builder, Schedulers) rather than receiving them. This makes the class difficult to test in isolation and binds it to specific implementations of scheduling and storage policies."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "Compiler",
+    "entity_type": "class",
+    "line_start": 82,
+    "line_end": 721,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "The Compiler class is responsible for instantiating various concrete EventCondition implementations.",
+    "reasoning": "The Compiler class directly creates concrete instances of EventCondition subclasses (e.g., FieldMatches, ConstantMatches). This creates a dependency on concrete implementations for every condition type. A factory pattern or dependency injection should be used to decouple the compiler from specific condition logic."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 364,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "PluginFactoryExt is tightly coupled to concrete implementations of plugins and delegators.",
+    "reasoning": "The factory directly resolves and instantiates specific plugin classes and delegators. While a factory is a step towards abstraction, the tight coupling to concrete JRuby/Java delegator classes violates the principle that the factory should operate on interfaces rather than concrete implementations."
+  }
+]

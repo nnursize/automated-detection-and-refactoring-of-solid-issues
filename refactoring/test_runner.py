@@ -60,10 +60,16 @@ def run_pytest(
             json_report_file.unlink()
         except OSError:
             pass
-    passed_flag = (rc == 0) and not timed_out and counts.get("failed_count", 0) == 0
+    passed_flag = (
+        rc == 0
+        and not timed_out
+        and counts.get("failed_count", 0) == 0
+        and counts.get("error_count", 0) == 0
+    )
     return TestResult(
         passed=passed_flag,
         command=cmd_str,
+        return_code=rc,
         total=counts.get("total", 0),
         passed_count=counts.get("passed_count", 0),
         failed_count=counts.get("failed_count", 0),
@@ -128,7 +134,7 @@ def _parse_textual_summary(output: str) -> dict:
     for m in _SUMMARY_RE.finditer(output):
         match = m
     if not match:
-        return {}
+        return _parse_collection_errors(output)
     counts = {"passed_count": 0, "failed_count": 0, "skipped_count": 0, "error_count": 0}
     for n, label in _PAIR_RE.findall(match.group("body")):
         n = int(n)
@@ -144,7 +150,44 @@ def _parse_textual_summary(output: str) -> dict:
         counts["passed_count"] + counts["failed_count"]
         + counts["skipped_count"] + counts["error_count"]
     )
+    if counts["total"] == 0:
+        collection_counts = _parse_collection_errors(output)
+        if collection_counts:
+            return collection_counts
     return counts
+
+
+_COLLECTION_RE = re.compile(
+    r"(?:^|\n)_+\s+ERROR collecting (?P<node>[^\n]+?)\s+_+",
+    re.IGNORECASE,
+)
+_SHORT_ERROR_RE = re.compile(
+    r"(?:^|\n)ERROR\s+(?P<node>[^\n]+?)(?:\s+-\s+|\n)",
+    re.IGNORECASE,
+)
+
+
+def _parse_collection_errors(output: str) -> dict:
+    error_ids: list[str] = []
+    for match in _COLLECTION_RE.finditer(output):
+        node = match.group("node").strip()
+        if node and node not in error_ids:
+            error_ids.append(node)
+    for match in _SHORT_ERROR_RE.finditer(output):
+        node = match.group("node").strip()
+        if node and node not in error_ids:
+            error_ids.append(node)
+    if not error_ids:
+        return {}
+    return {
+        "total": len(error_ids),
+        "passed_count": 0,
+        "failed_count": 0,
+        "skipped_count": 0,
+        "error_count": len(error_ids),
+        "failed_node_ids": [],
+        "error_node_ids": error_ids,
+    }
 
 
 def _tail(text: str, lines: int) -> str:

@@ -1,0 +1,100 @@
+{
+  "issue_id": "SRP-020",
+  "principle": "SRP",
+  "title": "Refactor SRP-020 (SRP): Manages and returns urllib3 ProxyManager instances, differentiating between S...",
+  "branch": "refactor/SRP-020",
+  "base": "main",
+  "head_commit": "535951bd5755d8c54b5cf8b44cdc032ba0abc348",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7814,
+    "completion_tokens": 862
+  },
+  "detected_issue": {
+    "file_path": "src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "method",
+    "line_start": 125,
+    "line_end": 156,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Manages and returns urllib3 ProxyManager instances, differentiating between SOCKS and HTTP proxies, and extracting auth from SOCKS proxy URLs.",
+    "reasoning": "This method is responsible for providing the correct `urllib3` `ProxyManager` for a given proxy URL. It combines: 1) Caching `ProxyManager` instances. 2) Detecting if the proxy is SOCKS-based. 3) Extracting authentication credentials from SOCKS proxy URLs. 4) Instantiating either `SOCKSProxyManager` or `proxy_from_url` based on the proxy type. These are distinct concerns related to proxy management and configuration."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract proxy manager creation logic into a dedicated helper method to improve SRP.",
+    "rationale": "The `proxy_manager_for` method was handling both caching and the complex instantiation logic for different proxy types (SOCKS vs HTTP). By extracting the instantiation logic into `_create_proxy_manager`, we separate the concern of managing the cache from the concern of configuring and creating the specific proxy manager instance.",
+    "files_touched": [
+      "src/requests/adapters.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/adapters.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "    def proxy_manager_for(self, proxy, **proxy_kwargs):\n        \"\"\"Return urllib3 ProxyManager for the given proxy.\n\n        This method should not be called from user code, and is only\n        exposed for use when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        :param proxy: The proxy to return a urllib3 ProxyManager for.\n        :param proxy_kwargs: Extra keyword arguments used to configure the Proxy Manager.\n        :returns: ProxyManager\n        :rtype: urllib3.ProxyManager\n        \"\"\"\n        if proxy in self.proxy_manager:\n            manager = self.proxy_manager[proxy]\n        elif proxy.lower().startswith(\"socks\"):\n            username, password = get_auth_from_url(proxy)\n            manager = self.proxy_manager[proxy] = SOCKSProxyManager(\n                proxy,\n                username=username,\n                password=password,\n                num_pools=self._pool_connections,\n                maxsize=self._pool_maxsize,\n                block=self._pool_block,\n                **proxy_kwargs,\n            )\n        else:\n            proxy_headers = self.proxy_headers(proxy)\n            manager = self.proxy_manager[proxy] = proxy_from_url(\n                proxy,\n                proxy_headers=proxy_headers,\n                num_pools=self._pool_connections,\n                maxsize=self._pool_maxsize,\n                block=self._pool_block,\n                **proxy_kwargs,\n            )\n\n        return manager",
+        "replace_text": "    def _create_proxy_manager(self, proxy, **proxy_kwargs):\n        \"\"\"Creates a urllib3 ProxyManager for the given proxy.\"\"\"\n        if proxy.lower().startswith(\"socks\"):\n            username, password = get_auth_from_url(proxy)\n            return SOCKSProxyManager(\n                proxy,\n                username=username,\n                password=password,\n                num_pools=self._pool_connections,\n                maxsize=self._pool_maxsize,\n                block=self._pool_block,\n                **proxy_kwargs,\n            )\n\n        proxy_headers = self.proxy_headers(proxy)\n        return proxy_from_url(\n            proxy,\n            proxy_headers=proxy_headers,\n            num_pools=self._pool_connections,\n            maxsize=self._pool_maxsize,\n            block=self._pool_block,\n            **proxy_kwargs,\n        )\n\n    def proxy_manager_for(self, proxy, **proxy_kwargs):\n        \"\"\"Return urllib3 ProxyManager for the given proxy.\n\n        This method should not be called from user code, and is only\n        exposed for use when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        :param proxy: The proxy to return a urllib3 ProxyManager for.\n        :param proxy_kwargs: Extra keyword arguments used to configure the Proxy Manager.\n        :returns: ProxyManager\n        :rtype: urllib3.ProxyManager\n        \"\"\"\n        if proxy not in self.proxy_manager:\n            self.proxy_manager[proxy] = self._create_proxy_manager(proxy, **proxy_kwargs)\n        return self.proxy_manager[proxy]",
+        "search_lines": 37,
+        "replace_lines": 39
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165952.78692245483,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:482: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.17s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 12:47:56] \"GET /cookies HTTP/1.1\" 200 26\n127.0.0.1 - - [04/May/2026 12:48:51] \"GET /redirect-to?url=http%3A%2F%2F%3A1 HTTP/1.1\" 302 0\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 574,
+        "blank_lines": 108,
+        "comment_lines": 16,
+        "function_count": 20,
+        "avg_cc": 3.73,
+        "max_cc": 19.0,
+        "mi": 47.52
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 575,
+        "blank_lines": 109,
+        "comment_lines": 16,
+        "function_count": 21,
+        "avg_cc": 3.61,
+        "max_cc": 19.0,
+        "mi": 47.34
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/adapters.py b/src/requests/adapters.py\nindex 130154f..8aad06f 100644\n--- a/src/requests/adapters.py\n+++ b/src/requests/adapters.py\n@@ -241,6 +241,30 @@ class HTTPAdapter(BaseAdapter):\n             **pool_kwargs,\n         )\n \n+    def _create_proxy_manager(self, proxy, **proxy_kwargs):\n+        \"\"\"Creates a urllib3 ProxyManager for the given proxy.\"\"\"\n+        if proxy.lower().startswith(\"socks\"):\n+            username, password = get_auth_from_url(proxy)\n+            return SOCKSProxyManager(\n+                proxy,\n+                username=username,\n+                password=password,\n+                num_pools=self._pool_connections,\n+                maxsize=self._pool_maxsize,\n+                block=self._pool_block,\n+                **proxy_kwargs,\n+            )\n+\n+        proxy_headers = self.proxy_headers(proxy)\n+        return proxy_from_url(\n+            proxy,\n+            proxy_headers=proxy_headers,\n+            num_pools=self._pool_connections,\n+            maxsize=self._pool_maxsize,\n+            block=self._pool_block,\n+            **proxy_kwargs,\n+        )\n+\n     def proxy_manager_for(self, proxy, **proxy_kwargs):\n         \"\"\"Return urllib3 ProxyManager for the given proxy.\n \n@@ -253,31 +277,9 @@ class HTTPAdapter(BaseAdapter):\n         :returns: ProxyManager\n         :rtype: urllib3.ProxyManager\n         \"\"\"\n-        if proxy in self.proxy_manager:\n-            manager = self.proxy_manager[proxy]\n-        elif proxy.lower().startswith(\"socks\"):\n-            username, password = get_auth_from_url(proxy)\n-            manager = self.proxy_manager[proxy] = SOCKSProxyManager(\n-                proxy,\n-                username=username,\n-                password=password,\n-                num_pools=self._pool_connections,\n-                maxsize=self._pool_maxsize,\n-                block=self._pool_block,\n-                **proxy_kwargs,\n-            )\n-        else:\n-            proxy_headers = self.proxy_headers(proxy)\n-            manager = self.proxy_manager[proxy] = proxy_from_url(\n-                proxy,\n-                proxy_headers=proxy_headers,\n-                num_pools=self._pool_connections,\n-                maxsize=self._pool_maxsize,\n-                block=self._pool_block,\n-                **proxy_kwargs,\n-            )\n-\n-        return manager\n+        if proxy not in self.proxy_manager:\n+            self.proxy_manager[proxy] = self._create_proxy_manager(proxy, **proxy_kwargs)\n+        return self.proxy_manager[proxy]\n \n     def cert_verify(self, conn, url, verify, cert):\n         \"\"\"Verify a SSL certificate. This method should not be called from user\n",
+  "duration_ms": 170919.70467567444
+}

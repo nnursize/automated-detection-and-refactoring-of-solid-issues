@@ -1,0 +1,115 @@
+{
+  "issue_id": "DIP-029",
+  "principle": "DIP",
+  "title": "Refactor DIP-029 (DIP): High-level redirect handling logic directly depends on numerous concrete util...",
+  "branch": "refactor/DIP-029",
+  "base": "main",
+  "head_commit": "2438f1af4c906d0cb8147a99e660d67493be677b",
+  "status": "applied_failed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9090,
+    "completion_tokens": 2395
+  },
+  "detected_issue": {
+    "file_path": "src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.resolve_redirects",
+    "entity_type": "method",
+    "line_start": 62,
+    "line_end": 136,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "High-level redirect handling logic directly depends on numerous concrete utility functions and the session's send method.",
+    "reasoning": "The `resolve_redirects` method, which encapsulates complex redirect logic, directly calls several concrete utility functions like `urlparse`, `urljoin`, `requote_uri`, `extract_cookies_to_jar`, `merge_cookies`, `rewind_body`, and crucially, `self.send`. This tight coupling to specific implementations of URL manipulation, cookie management, request body handling, and the concrete request sending mechanism makes the redirect logic rigid and hard to modify or test in isolation."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor SessionRedirectMixin to use an abstract send method to decouple redirect logic from Session implementation.",
+    "rationale": "The SessionRedirectMixin was tightly coupled to the Session class's 'send' method. By defining an abstract 'send' method interface within the mixin (or assuming it exists on the host class), we improve the separation of concerns. While the mixin still relies on utility functions, the primary violation of coupling to the concrete 'Session.send' implementation is mitigated by treating 'send' as an interface method provided by the host class.",
+    "files_touched": [
+      "src/requests/sessions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/sessions.py"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "    def resolve_redirects(\n        self,\n        resp,\n        req,\n        stream=False,\n        timeout=None,\n        verify=True,\n        cert=None,\n        proxies=None,\n        yield_requests=False,\n        **adapter_kwargs,\n    ):\n        \"\"\"Receives a Response. Returns a generator of Responses or Requests.\"\"\"\n\n        hist = []  # keep track of history\n\n        url = self.get_redirect_target(resp)",
+        "replace_text": "    def send_redirect(self, request, **kwargs):\n        \"\"\"\n        Abstract method to send a request.\n        This should be implemented by the class using this mixin.\n        \"\"\"\n        raise NotImplementedError(\"Subclasses must implement send_redirect\")\n\n    def resolve_redirects(\n        self,\n        resp,\n        req,\n        stream=False,\n        timeout=None,\n        verify=True,\n        cert=None,\n        proxies=None,\n        yield_requests=False,\n        **adapter_kwargs,\n    ):\n        \"\"\"Receives a Response. Returns a generator of Responses or Requests.\"\"\"\n\n        hist = []  # keep track of history\n\n        url = self.get_redirect_target(resp)",
+        "search_lines": 17,
+        "replace_lines": 24
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "            if yield_requests:\n                yield req\n            else:\n                resp = self.send(\n                    req,\n                    stream=stream,\n                    timeout=timeout,\n                    verify=verify,\n                    cert=cert,\n                    proxies=proxies,\n                    allow_redirects=False,\n                    **adapter_kwargs,\n                )\n\n                extract_cookies_to_jar(self.cookies, prepared_request, resp.raw)",
+        "replace_text": "            if yield_requests:\n                yield req\n            else:\n                resp = self.send_redirect(\n                    req,\n                    stream=stream,\n                    timeout=timeout,\n                    verify=verify,\n                    cert=cert,\n                    proxies=proxies,\n                    allow_redirects=False,\n                    **adapter_kwargs,\n                )\n\n                extract_cookies_to_jar(self.cookies, prepared_request, resp.raw)",
+        "search_lines": 15,
+        "replace_lines": 15
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "        # Resolve redirects if allowed.\n        if allow_redirects:\n            # Redirect resolving generator.\n            gen = self.resolve_redirects(r, request, **kwargs)\n            history = [resp for resp in gen]\n        else:\n            history = []\n\n        # Shuffle things around if there's history.\n        if history:\n            # Insert the first (original) request at the start\n            history.insert(0, r)\n            # Get the last request made\n            r = history.pop()\n            r.history = history\n\n        # If redirects aren't being followed, store the response on the Request for Response.next().\n        if not allow_redirects:\n            try:\n                r._next = next(\n                    self.resolve_redirects(r, request, yield_requests=True, **kwargs)\n                )\n            except StopIteration:\n                pass",
+        "replace_text": "        # Resolve redirects if allowed.\n        if allow_redirects:\n            # Redirect resolving generator.\n            gen = self.resolve_redirects(r, request, **kwargs)\n            history = [resp for resp in gen]\n        else:\n            history = []\n\n        # Shuffle things around if there's history.\n        if history:\n            # Insert the first (original) request at the start\n            history.insert(0, r)\n            # Get the last request made\n            r = history.pop()\n            r.history = history\n\n        # If redirects aren't being followed, store the response on the Request for Response.next().\n        if not allow_redirects:\n            try:\n                r._next = next(\n                    self.resolve_redirects(r, request, yield_requests=True, **kwargs)\n                )\n            except StopIteration:\n                pass",
+        "search_lines": 24,
+        "replace_lines": 24
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "    def send(self, request, **kwargs):\n        \"\"\"Send a given PreparedRequest.\n\n        :rtype: requests.Response\n        \"\"\"\n        # Set defaults that the hooks can utilize to ensure they always have\n        # the correct parameters to reproduce the previous request.\n        kwargs.setdefault(\"stream\", self.stream)\n        kwargs.setdefault(\"verify\", self.verify)\n        kwargs.setdefault(\"cert\", self.cert)\n        if \"proxies\" not in kwargs:\n            kwargs[\"proxies\"] = resolve_proxies(request, self.proxies, self.trust_env)\n\n        # It's possible that users might accidentally send a Request object.\n        # Guard against that specific failure case.\n        if isinstance(request, Request):\n            raise ValueError(\"You can only send PreparedRequests.\")\n\n        # Set up variables needed for resolve_redirects and dispatching of hooks\n        allow_redirects = kwargs.pop(\"allow_redirects\", True)\n        stream = kwargs.get(\"stream\")\n        hooks = request.hooks\n\n        # Get the appropriate adapter to use\n        adapter = self.get_adapter(url=request.url)\n\n        # Start time (approximately) of the request\n        start = preferred_clock()\n\n        # Send the request\n        r = adapter.send(request, **kwargs)\n\n        # Total elapsed time of the request (approximately)\n        elapsed = preferred_clock() - start\n        r.elapsed = timedelta(seconds=elapsed)\n\n        # Response manipulation hooks\n        r = dispatch_hook(\"response\", hooks, r, **kwargs)\n\n        # Persist cookies\n        if r.history:\n            # If the hooks create history then we want those cookies too\n            for resp in r.history:\n                extract_cookies_to_jar(self.cookies, resp.request, resp.raw)\n\n        extract_cookies_to_jar(self.cookies, request, r.raw)\n\n        # Resolve redirects if allowed.\n        if allow_redirects:\n            # Redirect resolving generator.\n            gen = self.resolve_redirects(r, request, **kwargs)\n            history = [resp for resp in gen]\n        else:\n            history = []\n\n        # Shuffle things around if there's history.\n        if history:\n            # Insert the first (original) request at the start\n            history.insert(0, r)\n            # Get the last request made\n            r = history.pop()\n            r.history = history\n\n        # If redirects aren't being followed, store the response on the Request for Response.next().\n        if not allow_redirects:\n            try:\n                r._next = next(\n                    self.resolve_redirects(r, request, yield_requests=True, **kwargs)\n                )\n            except StopIteration:\n                pass\n\n        if not stream:\n            r.content\n\n        return r",
+        "replace_text": "    def send_redirect(self, request, **kwargs):\n        \"\"\"Proxy to self.send for redirect handling.\"\"\"\n        return self.send(request, **kwargs)\n\n    def send(self, request, **kwargs):\n        \"\"\"Send a given PreparedRequest.\n\n        :rtype: requests.Response\n        \"\"\"\n        # Set defaults that the hooks can utilize to ensure they always have\n        # the correct parameters to reproduce the previous request.\n        kwargs.setdefault(\"stream\", self.stream)\n        kwargs.setdefault(\"verify\", self.verify)\n        kwargs.setdefault(\"cert\", self.cert)\n        if \"proxies\" not in kwargs:\n            kwargs[\"proxies\"] = resolve_proxies(request, self.proxies, self.trust_env)\n\n        # It's possible that users might accidentally send a Request object.\n        # Guard against that specific failure case.\n        if isinstance(request, Request):\n            raise ValueError(\"You can only send PreparedRequests.\")\n\n        # Set up variables needed for resolve_redirects and dispatching of hooks\n        allow_redirects = kwargs.pop(\"allow_redirects\", True)\n        stream = kwargs.get(\"stream\")\n        hooks = request.hooks\n\n        # Get the appropriate adapter to use\n        adapter = self.get_adapter(url=request.url)\n\n        # Start time (approximately) of the request\n        start = preferred_clock()\n\n        # Send the request\n        r = adapter.send(request, **kwargs)\n\n        # Total elapsed time of the request (approximately)\n        elapsed = preferred_clock() - start\n        r.elapsed = timedelta(seconds=elapsed)\n\n        # Response manipulation hooks\n        r = dispatch_hook(\"response\", hooks, r, **kwargs)\n\n        # Persist cookies\n        if r.history:\n            # If the hooks create history then we want those cookies too\n            for resp in r.history:\n                extract_cookies_to_jar(self.cookies, resp.request, resp.raw)\n\n        extract_cookies_to_jar(self.cookies, request, r.raw)\n\n        # Resolve redirects if allowed.\n        if allow_redirects:\n            # Redirect resolving generator.\n            gen = self.resolve_redirects(r, request, **kwargs)\n            history = [resp for resp in gen]\n        else:\n            history = []\n\n        # Shuffle things around if there's history.\n        if history:\n            # Insert the first (original) request at the start\n            history.insert(0, r)\n            # Get the last request made\n            r = history.pop()\n            r.history = history\n\n        # If redirects aren't being followed, store the response on the Request for Response.next().\n        if not allow_redirects:\n            try:\n                r._next = next(\n                    self.resolve_redirects(r, request, yield_requests=True, **kwargs)\n                )\n            except StopIteration:\n                pass\n\n        if not stream:\n            r.content\n\n        return r",
+        "search_lines": 76,
+        "replace_lines": 80
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": false,
+    "total": 312,
+    "passed_count": 309,
+    "failed_count": 1,
+    "skipped_count": 1,
+    "error_count": 0,
+    "duration_ms": 116779.68049049377,
+    "timed_out": false,
+    "new_failures_count": 1,
+    "pre_existing_failures_count": 0,
+    "new_failures": [
+      "tests/test_requests.py::test_requests_are_updated_each_time"
+    ],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [WinError 10054] An existing connection was forcibly closed by the remote host\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n.......................F\n================================== FAILURES ===================================\n_____________________ test_requests_are_updated_each_time _____________________\ntests\\test_requests.py:2609: in test_requests_are_updated_each_time\n    for response in redirect_generator:\nsrc\\requests\\sessions.py:304: in resolve_redirects\n    resp = self.send_redirect(\nsrc\\requests\\sessions.py:196: in send_redirect\n    raise NotImplementedError(\"Subclasses must implement send_redirect\")\nE   NotImplementedError: Subclasses must implement send_redirect\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_requests.py::test_requests_are_updated_each_time - NotImple...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 309 passed, 1 skipped, 1 deselected, 1 xfailed, 8 warnings in 115.92s (0:01:55)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 15:18:07] \"GET /get HTTP/1.1\" 200 170\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 591,
+        "blank_lines": 157,
+        "comment_lines": 112,
+        "function_count": 31,
+        "avg_cc": 3.91,
+        "max_cc": 15.0,
+        "mi": 36.83
+      }
+    ],
+    "after": null
+  },
+  "diff": "diff --git a/src/requests/sessions.py b/src/requests/sessions.py\nindex 2dc6d7a..a72f932 100644\n--- a/src/requests/sessions.py\n+++ b/src/requests/sessions.py\n@@ -188,6 +188,13 @@ class SessionRedirectMixin:\n         # Standard case: root URI must match\n         return changed_port or changed_scheme\n \n+    def send_redirect(self, request, **kwargs):\n+        \"\"\"\n+        Abstract method to send a request.\n+        This should be implemented by the class using this mixin.\n+        \"\"\"\n+        raise NotImplementedError(\"Subclasses must implement send_redirect\")\n+\n     def resolve_redirects(\n         self,\n         resp,\n@@ -294,7 +301,7 @@ class SessionRedirectMixin:\n             if yield_requests:\n                 yield req\n             else:\n-                resp = self.send(\n+                resp = self.send_redirect(\n                     req,\n                     stream=stream,\n                     timeout=timeout,\n@@ -699,6 +706,10 @@ class Session(SessionRedirectMixin, SessionAdapterMixin):\n \n         return self.request(\"DELETE\", url, **kwargs)\n \n+    def send_redirect(self, request, **kwargs):\n+        \"\"\"Proxy to self.send for redirect handling.\"\"\"\n+        return self.send(request, **kwargs)\n+\n     def send(self, request, **kwargs):\n         \"\"\"Send a given PreparedRequest.\n \n",
+  "duration_ms": 128187.61229515076
+}

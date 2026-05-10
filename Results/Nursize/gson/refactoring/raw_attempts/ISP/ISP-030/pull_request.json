@@ -1,0 +1,85 @@
+{
+  "issue_id": "ISP-030",
+  "principle": "ISP",
+  "title": "Refactor ISP-030 (ISP): The JsonStreamParser class implements the Iterator interface but throws Unsup...",
+  "branch": "refactor/ISP-030",
+  "base": "main",
+  "head_commit": "de90492db9f3797f7f81fa43a09671d1cdfe469f",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 2855,
+    "completion_tokens": 187
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/JsonStreamParser.java",
+    "entity_name": "JsonStreamParser.remove",
+    "entity_type": "method",
+    "line_start": 95,
+    "line_end": 97,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The JsonStreamParser class implements the Iterator interface but throws UnsupportedOperationException for the remove() method.",
+    "reasoning": "This is a clear violation of ISP. Clients of JsonStreamParser are forced to depend on the remove() method of the Iterator interface, even though JsonStreamParser does not support this operation. The Iterator interface is a 'fat interface' in this context because it combines traversal and modification responsibilities. Ideally, JsonStreamParser should implement a more specialized interface that only provides traversal, or Iterator should be split into Iterable and RemovableIterator."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove the unsupported remove() method from JsonStreamParser",
+    "rationale": "The remove() method in Iterator is an optional operation that throws UnsupportedOperationException in this implementation. Removing it cleans up the API and adheres to the Interface Segregation Principle by not forcing clients to depend on a method that cannot be used.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/JsonStreamParser.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/JsonStreamParser.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/JsonStreamParser.java",
+        "search_text": "  /**\n   * This optional {@link Iterator} method is not relevant for stream parsing and hence is not\n   * implemented.\n   *\n   * @since 1.4\n   */\n  @Override\n  public void remove() {\n    throw new UnsupportedOperationException();\n  }\n}",
+        "replace_text": "}",
+        "search_lines": 11,
+        "replace_lines": 1
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonStreamParser.java",
+        "loc": 117,
+        "blank_lines": 8,
+        "comment_lines": 0,
+        "function_count": 3,
+        "avg_cc": 5.67,
+        "max_cc": 15.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonStreamParser.java",
+        "loc": 107,
+        "blank_lines": 8,
+        "comment_lines": 0,
+        "function_count": 2,
+        "avg_cc": 7.5,
+        "max_cc": 14.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/JsonStreamParser.java b/gson/src/main/java/com/google/gson/JsonStreamParser.java\nindex 2720335..1732be2 100644\n--- a/gson/src/main/java/com/google/gson/JsonStreamParser.java\n+++ b/gson/src/main/java/com/google/gson/JsonStreamParser.java\n@@ -112,14 +112,4 @@ public final class JsonStreamParser implements Iterator<JsonElement> {\n     }\n   }\n \n-  /**\n-   * This optional {@link Iterator} method is not relevant for stream parsing and hence is not\n-   * implemented.\n-   *\n-   * @since 1.4\n-   */\n-  @Override\n-  public void remove() {\n-    throw new UnsupportedOperationException();\n-  }\n }\n",
+  "duration_ms": 5557.386636734009
+}

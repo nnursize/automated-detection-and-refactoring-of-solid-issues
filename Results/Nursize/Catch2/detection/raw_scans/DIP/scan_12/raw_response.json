@@ -1,0 +1,161 @@
+{
+  "scan_id": "Catch2_DIP_scan_12",
+  "repo_name": "Catch2",
+  "principle": "DIP",
+  "scan_number": 12,
+  "timestamp": "2026-05-03T00:09:26.124786",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a c++ repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Session.cli\",\n      \"entity_type\": \"method\",\n      \"line_start\": 4980,\n      \"line_end\": 4982,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level 'Session' module depends on and exposes concrete 'Clara::Parser' for command-line parsing.\",\n      \"reasoning\": \"The Session class, a high-level orchestrator, directly exposes and likely depends on the concrete Clara::Parser class. This tightly couples the Session to a specific command-line parsing implementation rather than an abstraction (e.g., ICommandLineParser), violating DIP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Session.config\",\n      \"entity_type\": \"method\",\n      \"line_start\": 4984,\n      \"line_end\": 4984,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level 'Session' module exposes a concrete 'Config' object instead of its 'IConfig' interface.\",\n      \"reasoning\": \"The Session class, a high-level orchestrator, returns a concrete Config object directly. According to DIP, high-level modules should depend on and expose abstractions. It should return an IConfig& or IConfig const& to maintain decoupling from the concrete implementation.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"AssertionHandler.handleExpr\",\n      \"entity_type\": \"method\",\n      \"line_start\": 5662,\n      \"line_end\": 5662,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level 'AssertionHandler' depends on concrete 'ExprLhs<T>' for handling expressions.\",\n      \"reasoning\": \"The AssertionHandler, a high-level component responsible for processing assertion results, takes a concrete ExprLhs<T> type in its handleExpr method. While it also takes ITransientExpression, relying on the concrete ExprLhs<T> couples the handler to a specific expression representation, violating DIP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Generators.add_generator\",\n      \"entity_type\": \"method\",\n      \"line_start\": 7711,\n      \"line_end\": 7711,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'Generators' class, which is an 'IGenerator', depends on concrete 'GeneratorWrapper<T>' types.\",\n      \"reasoning\": \"The Generators class acts as a composite IGenerator. However, its add_generator method accepts concrete GeneratorWrapper<T> instances. For better adherence to DIP, it should depend on and compose instances of the IGenerator abstraction itself, not a specific wrapper implementation.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"ConsoleReporter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 13474,\n      \"line_end\": 13518,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'ConsoleReporter' directly depends on concrete 'TablePrinter' and 'ConsoleAssertionPrinter' classes.\",\n      \"reasoning\": \"The ConsoleReporter is a high-level module for outputting test results. Its methods like printTotalsDivider and assertionEnded directly use concrete classes such as TablePrinter and ConsoleAssertionPrinter for formatting and printing. This creates tight coupling to low-level implementation details, violating DIP. It should depend on abstractions for these printing utilities.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"JsonReporter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 13816,\n      \"line_end\": 13888,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'JsonReporter' directly depends on concrete 'JsonObjectWriter' and 'JsonArrayWriter' classes.\",\n      \"reasoning\": \"The JsonReporter is a high-level module for outputting test results in JSON format. Its methods directly create and use concrete JsonObjectWriter and JsonArrayWriter classes. This tightly couples the reporter to specific JSON serialization implementations, violating DIP. It should depend on abstractions for JSON writing.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"JunitReporter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 13900,\n      \"line_end\": 13935,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'JunitReporter' directly depends on the concrete 'XmlWriter' class.\",\n      \"reasoning\": \"The JunitReporter is a high-level module for outputting test results in JUnit XML format. Its methods directly create and use a concrete XmlWriter class. This tightly couples the reporter to a specific XML serialization implementation, violating DIP. It should depend on an abstraction for XML writing.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"RegistryHub.getReporterRegistry\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1111,\n      \"line_end\": 1111,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The high-level 'RegistryHub' exposes a concrete 'ReporterRegistry' instead of an interface.\",\n      \"reasoning\": \"The RegistryHub is a central high-level component managing various registries. Exposing the concrete ReporterRegistry type (instead of an IReporterRegistry interface, if one existed) couples clients of RegistryHub to the specific implementation, violating DIP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"RegistryHub.getStartupExceptionRegistry\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1123,\n      \"line_end\": 1123,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The high-level 'RegistryHub' exposes a concrete 'StartupExceptionRegistry' instead of an interface.\",\n      \"reasoning\": \"The RegistryHub is a central high-level component managing various registries. Exposing the concrete StartupExceptionRegistry type (instead of an IStartupExceptionRegistry interface, if one existed) couples clients of RegistryHub to the specific implementation, violating DIP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"RegistryHub.registerListener\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1131,\n      \"line_end\": 1131,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The high-level 'RegistryHub' depends on concrete 'EventListenerFactory' instead of its interface.\",\n      \"reasoning\": \"The RegistryHub's registerListener method takes a Detail::unique_ptr<EventListenerFactory>. EventListenerFactory is a concrete class implementing an interface (EventListenerFactory). The RegistryHub, a high-level module, should depend on the abstraction (unique_ptr<IEventListenerFactory>) rather than the concrete implementation, violating DIP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"RunContext.createGeneratorTracker\",\n      \"entity_type\": \"method\",\n      \"line_start\": 10711,\n      \"line_end\": 10711,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level 'RunContext' depends on concrete 'Generators::GeneratorBasePtr' for creating generator trackers.\",\n      \"reasoning\": \"The RunContext, a high-level test execution orchestrator, takes a Generators::GeneratorBasePtr (a specific concrete type representing a unique_ptr to GeneratorUntypedBase) in its createGeneratorTracker method. This couples RunContext to a concrete implementation detail of generators, violating DIP. It should instead depend on an abstraction like IGeneratorPtr.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.cpp\",\n      \"entity_name\": \"g_messageHolder\",\n      \"entity_type\": \"function\",\n      \"line_start\": 267,\n      \"line_end\": 267,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'RunContext' implicitly depends on a global concrete 'MessageHolder' instance.\",\n      \"reasoning\": \"The RunContext accesses a concrete MessageHolder instance via a global static function (g_messageHolder). This global access to a concrete implementation is a classic violation of DIP, as it hard-codes a low-level dependency into a high-level module without using an abstraction or dependency injection.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.cpp\",\n      \"entity_name\": \"GeneratorTracker.acquire\",\n      \"entity_type\": \"function\",\n      \"line_start\": 44,\n      \"line_end\": 44,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level 'RunContext' directly calls a static factory method of a concrete 'GeneratorTracker'.\",\n      \"reasoning\": \"The RunContext (a high-level orchestrator) directly calls a static factory method (acquire) on the concrete GeneratorTracker class to obtain an instance. This creates a hard-coded dependency on the concrete GeneratorTracker implementation. To adhere to DIP, RunContext should depend on an abstract factory that returns an IGeneratorTracker interface.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Session.cli",
+      "entity_type": "method",
+      "line_start": 4980,
+      "line_end": 4982,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level 'Session' module depends on and exposes concrete 'Clara::Parser' for command-line parsing.",
+      "reasoning": "The Session class, a high-level orchestrator, directly exposes and likely depends on the concrete Clara::Parser class. This tightly couples the Session to a specific command-line parsing implementation rather than an abstraction (e.g., ICommandLineParser), violating DIP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Session.config",
+      "entity_type": "method",
+      "line_start": 4984,
+      "line_end": 4984,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level 'Session' module exposes a concrete 'Config' object instead of its 'IConfig' interface.",
+      "reasoning": "The Session class, a high-level orchestrator, returns a concrete Config object directly. According to DIP, high-level modules should depend on and expose abstractions. It should return an IConfig& or IConfig const& to maintain decoupling from the concrete implementation."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "AssertionHandler.handleExpr",
+      "entity_type": "method",
+      "line_start": 5662,
+      "line_end": 5662,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level 'AssertionHandler' depends on concrete 'ExprLhs<T>' for handling expressions.",
+      "reasoning": "The AssertionHandler, a high-level component responsible for processing assertion results, takes a concrete ExprLhs<T> type in its handleExpr method. While it also takes ITransientExpression, relying on the concrete ExprLhs<T> couples the handler to a specific expression representation, violating DIP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Generators.add_generator",
+      "entity_type": "method",
+      "line_start": 7711,
+      "line_end": 7711,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The 'Generators' class, which is an 'IGenerator', depends on concrete 'GeneratorWrapper<T>' types.",
+      "reasoning": "The Generators class acts as a composite IGenerator. However, its add_generator method accepts concrete GeneratorWrapper<T> instances. For better adherence to DIP, it should depend on and compose instances of the IGenerator abstraction itself, not a specific wrapper implementation."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "ConsoleReporter",
+      "entity_type": "class",
+      "line_start": 13474,
+      "line_end": 13518,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The 'ConsoleReporter' directly depends on concrete 'TablePrinter' and 'ConsoleAssertionPrinter' classes.",
+      "reasoning": "The ConsoleReporter is a high-level module for outputting test results. Its methods like printTotalsDivider and assertionEnded directly use concrete classes such as TablePrinter and ConsoleAssertionPrinter for formatting and printing. This creates tight coupling to low-level implementation details, violating DIP. It should depend on abstractions for these printing utilities."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "JsonReporter",
+      "entity_type": "class",
+      "line_start": 13816,
+      "line_end": 13888,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The 'JsonReporter' directly depends on concrete 'JsonObjectWriter' and 'JsonArrayWriter' classes.",
+      "reasoning": "The JsonReporter is a high-level module for outputting test results in JSON format. Its methods directly create and use concrete JsonObjectWriter and JsonArrayWriter classes. This tightly couples the reporter to specific JSON serialization implementations, violating DIP. It should depend on abstractions for JSON writing."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "JunitReporter",
+      "entity_type": "class",
+      "line_start": 13900,
+      "line_end": 13935,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The 'JunitReporter' directly depends on the concrete 'XmlWriter' class.",
+      "reasoning": "The JunitReporter is a high-level module for outputting test results in JUnit XML format. Its methods directly create and use a concrete XmlWriter class. This tightly couples the reporter to a specific XML serialization implementation, violating DIP. It should depend on an abstraction for XML writing."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "RegistryHub.getReporterRegistry",
+      "entity_type": "method",
+      "line_start": 1111,
+      "line_end": 1111,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The high-level 'RegistryHub' exposes a concrete 'ReporterRegistry' instead of an interface.",
+      "reasoning": "The RegistryHub is a central high-level component managing various registries. Exposing the concrete ReporterRegistry type (instead of an IReporterRegistry interface, if one existed) couples clients of RegistryHub to the specific implementation, violating DIP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "RegistryHub.getStartupExceptionRegistry",
+      "entity_type": "method",
+      "line_start": 1123,
+      "line_end": 1123,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The high-level 'RegistryHub' exposes a concrete 'StartupExceptionRegistry' instead of an interface.",
+      "reasoning": "The RegistryHub is a central high-level component managing various registries. Exposing the concrete StartupExceptionRegistry type (instead of an IStartupExceptionRegistry interface, if one existed) couples clients of RegistryHub to the specific implementation, violating DIP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "RegistryHub.registerListener",
+      "entity_type": "method",
+      "line_start": 1131,
+      "line_end": 1131,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The high-level 'RegistryHub' depends on concrete 'EventListenerFactory' instead of its interface.",
+      "reasoning": "The RegistryHub's registerListener method takes a Detail::unique_ptr<EventListenerFactory>. EventListenerFactory is a concrete class implementing an interface (EventListenerFactory). The RegistryHub, a high-level module, should depend on the abstraction (unique_ptr<IEventListenerFactory>) rather than the concrete implementation, violating DIP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "RunContext.createGeneratorTracker",
+      "entity_type": "method",
+      "line_start": 10711,
+      "line_end": 10711,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level 'RunContext' depends on concrete 'Generators::GeneratorBasePtr' for creating generator trackers.",
+      "reasoning": "The RunContext, a high-level test execution orchestrator, takes a Generators::GeneratorBasePtr (a specific concrete type representing a unique_ptr to GeneratorUntypedBase) in its createGeneratorTracker method. This couples RunContext to a concrete implementation detail of generators, violating DIP. It should instead depend on an abstraction like IGeneratorPtr."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.cpp",
+      "entity_name": "g_messageHolder",
+      "entity_type": "class",
+      "line_start": 267,
+      "line_end": 267,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "The 'RunContext' implicitly depends on a global concrete 'MessageHolder' instance.",
+      "reasoning": "The RunContext accesses a concrete MessageHolder instance via a global static function (g_messageHolder). This global access to a concrete implementation is a classic violation of DIP, as it hard-codes a low-level dependency into a high-level module without using an abstraction or dependency injection."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.cpp",
+      "entity_name": "GeneratorTracker.acquire",
+      "entity_type": "class",
+      "line_start": 44,
+      "line_end": 44,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level 'RunContext' directly calls a static factory method of a concrete 'GeneratorTracker'.",
+      "reasoning": "The RunContext (a high-level orchestrator) directly calls a static factory method (acquire) on the concrete GeneratorTracker class to obtain an instance. This creates a hard-coded dependency on the concrete GeneratorTracker implementation. To adhere to DIP, RunContext should depend on an abstract factory that returns an IGeneratorTracker interface."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 48883.7993144989,
+  "error": null
+}

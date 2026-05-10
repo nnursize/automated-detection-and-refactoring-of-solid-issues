@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Fat interface/class: Queue implements Closeable but encompasses too many responsibilities.",
+    "reasoning": "The Queue class is a 'god object' that mixes concerns: file system management, disk space monitoring, page management, batch reading, writing, and checkpointing. It forces any client depending on it to be coupled to all these disparate functionalities, violating the Interface Segregation Principle."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Fat class: AbstractPipelineExt is bloated with unrelated metrics, configuration, and lifecycle methods.",
+    "reasoning": "AbstractPipelineExt contains methods for DLQ management, flow metrics, plugin management, and pipeline configuration. Clients needing only one of these aspects are forced to depend on the entire bloated class, which is a clear violation of ISP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Bloated class: DeadLetterQueueWriter handles file watching, retention policies, and writing logic.",
+    "reasoning": "The class manages file watchers, segment finalization, and retention policies, making it a fat interface. These responsibilities should be segregated into smaller, focused interfaces or classes (e.g., a RetentionPolicy manager and a FileIO writer)."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 39,
+    "line_end": 335,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Class implements interface but throws UnsupportedOperationException for many methods.",
+    "reasoning": "MmapPageIOV1 implements the PageIO interface but throws UnsupportedOperationException for 'recover', 'create', 'ensurePersisted', 'purge', and 'write'. This indicates the class is forced to implement a contract it cannot fulfill, violating ISP."
+  }
+]

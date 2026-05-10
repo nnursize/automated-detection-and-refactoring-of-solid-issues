@@ -1,0 +1,145 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.peek",
+    "entity_type": "method",
+    "line_start": 261,
+    "line_end": 288,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to a large switch statement on JsonToken.",
+    "reasoning": "The `peek()` method uses a `switch` statement on the `peeked` integer constant, which represents the current `JsonToken`. If a new `JsonToken` type were introduced (e.g., for a new JSON literal or structure), this `switch` statement would require modification, violating the Open/Closed Principle. This is a classic example of conditional logic that should ideally be replaced with polymorphism or a strategy pattern if new token types are expected to be added frequently."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.doPeek",
+    "entity_type": "method",
+    "line_start": 291,
+    "line_end": 401,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to extensive conditional logic (switch statements and if-else if chains) based on internal parsing state and character types.",
+    "reasoning": "The `doPeek()` method contains multiple `switch` statements and `if-else if` chains that analyze the current `JsonScope` and the next character to determine the next JSON token. This intricate conditional logic is highly coupled to the specific JSON grammar. Any extension to the supported JSON syntax (e.g., new comment styles, new literal types, or changes in separator rules) would necessitate direct modification of this method, making it closed for extension."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.skipValue",
+    "entity_type": "method",
+    "line_start": 782,
+    "line_end": 834,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to a large switch statement on JsonToken for skipping values.",
+    "reasoning": "The `skipValue()` method uses a `switch` statement on the `peeked` integer constant to determine how to skip different JSON token types. If a new `JsonToken` type were added, this method would need to be modified to include a new `case` branch, directly violating the Open/Closed Principle. This indicates that the logic for handling different token types is not sufficiently decoupled."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 506,
+    "line_end": 560,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to hardcoded registration of built-in TypeAdapterFactory instances.",
+    "reasoning": "The `createFactories()` method manually constructs and adds a fixed list of built-in `TypeAdapterFactory` instances in a specific order. If a new core type adapter or a new default serialization/deserialization behavior needs to be introduced, this method must be directly modified to add the new factory or adjust the order. This makes the factory registration process closed for extension and prone to 'Shotgun Surgery' if the core set of supported types frequently changes."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.JAVA_TIME_FACTORY.create",
+    "entity_type": "method",
+    "line_start": 508,
+    "line_end": 535,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to an extensive if-else if chain for mapping java.time types to their adapters.",
+    "reasoning": "The `create()` method within `JAVA_TIME_FACTORY` contains a long `if-else if` chain that checks the `rawType` against specific `java.time` classes (e.g., `Duration.class`, `Instant.class`, `LocalDate.class`). If new `java.time` types were to be supported with their dedicated adapters, this method would require direct modification to add new `else if` branches, violating the Open/Closed Principle. This structure makes it difficult to extend the set of supported `java.time` types without altering existing code."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.get",
+    "entity_type": "method",
+    "line_start": 82,
+    "line_end": 147,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to a long if-else if chain for selecting object constructors.",
+    "reasoning": "The `get()` method uses a lengthy `if-else if` chain to determine the appropriate `ObjectConstructor` based on the type. This includes checking for registered `InstanceCreator`s, special collection constructors, default constructors, and default implementations. Adding a new strategy for object construction or supporting a new type that requires a specific construction mechanism would necessitate modifying this method, making it closed for extension."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+    "entity_name": "JsonElementTypeAdapter.read",
+    "entity_type": "method",
+    "line_start": 44,
+    "line_end": 105,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to if-else if chains and switch statements on JsonToken for parsing JSON elements.",
+    "reasoning": "The `read()` method uses `if-else if` chains (and implicitly `switch` statements in helper methods like `tryBeginNesting` and `readTerminal`) based on `JsonToken` to parse different JSON structures (arrays, objects, primitives). While this is fundamental to parsing, introducing a new JSON token type would require modifying these methods, indicating a violation of OCP. The `instanceof JsonTreeReader` check also couples it to a specific implementation."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+    "entity_name": "JsonElementTypeAdapter.write",
+    "entity_type": "method",
+    "line_start": 107,
+    "line_end": 136,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to if-else if chains for writing different JsonElement types.",
+    "reasoning": "The `write()` method uses an `if-else if` chain (effectively a `switch` on type) to handle serialization of different `JsonElement` subclasses (`JsonNull`, `JsonPrimitive`, `JsonArray`, `JsonObject`). If a new subclass of `JsonElement` were introduced, this method would need to be modified to include a new `else if` branch, violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 41,
+    "line_end": 269,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP because adding new 'getAs' methods to the base class would require modifying all concrete subclasses.",
+    "reasoning": "The `JsonElement` class defines numerous `getAsX()` methods (e.g., `getAsBoolean()`, `getAsNumber()`, `getAsString()`) that throw `UnsupportedOperationException`. While this design forces subclasses to implement specific behavior, it creates an OCP violation. If a new `getAsY()` method were added to `JsonElement`, all existing concrete subclasses (`JsonArray`, `JsonObject`, `JsonPrimitive`, `JsonNull`) would need to be modified to either implement this new method or explicitly inherit the `UnsupportedOperationException`, making the system closed for extension regarding new `getAs` behaviors."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java",
+    "entity_name": "TypeAdapterRuntimeTypeWrapper.write",
+    "entity_type": "method",
+    "line_start": 30,
+    "line_end": 58,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to instanceof checks for specific TypeAdapter implementations.",
+    "reasoning": "The `write()` method contains `instanceof` checks against specific `TypeAdapter` implementations (`ReflectiveTypeAdapterFactory.Adapter` and `SerializationDelegatingTypeAdapter`) to determine which adapter to use. If new 'special' type adapter implementations were introduced that required different selection logic, this method would need to be modified, violating the Open/Closed Principle. This couples the runtime type wrapper to concrete adapter types."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ReflectionAccessFilterHelper.java",
+    "entity_name": "ReflectionAccessFilterHelper.isJavaType",
+    "entity_type": "method",
+    "line_start": 21,
+    "line_end": 23,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Violation of OCP due to hardcoded string prefix checks for Java types.",
+    "reasoning": "The `isJavaType()` method determines if a class is a Java platform type by checking if its name starts with 'java.' or 'javax.'. If new root packages for standard Java types were introduced, this method would need to be modified. This is a minor OCP violation as it's a fixed set of prefixes, but it's still a modification for new platform types."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ReflectionAccessFilterHelper.java",
+    "entity_name": "ReflectionAccessFilterHelper.isAndroidType",
+    "entity_type": "method",
+    "line_start": 26,
+    "line_end": 29,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Violation of OCP due to hardcoded string prefix checks for Android types.",
+    "reasoning": "The `isAndroidType()` method checks for 'android.' or 'androidx.' prefixes in class names. Similar to `isJavaType()`, if new root packages for Android types were introduced, this method would need modification. This is a minor OCP violation."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ReflectionAccessFilterHelper.java",
+    "entity_name": "ReflectionAccessFilterHelper.isAnyPlatformType",
+    "entity_type": "method",
+    "line_start": 31,
+    "line_end": 35,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Violation of OCP due to hardcoded string prefix checks for various platform types.",
+    "reasoning": "The `isAnyPlatformType()` method combines checks for Java, Android, Kotlin, and Scala types using hardcoded string prefixes. Extending support to other platform types or changing existing platform naming conventions would require modifying this method, violating OCP."
+  }
+]

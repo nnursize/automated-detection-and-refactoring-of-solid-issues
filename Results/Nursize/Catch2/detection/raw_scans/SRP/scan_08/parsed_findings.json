@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "Catch2/third_party/clara.hpp",
+    "entity_name": "Column.operator<<",
+    "entity_type": "method",
+    "line_start": 223,
+    "line_end": 230,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class mixes text formatting/management with stream output.",
+    "reasoning": "The `Column` class is primarily responsible for managing a block of text and its formatting properties (width, indent) and providing an iterator to access its formatted lines. The `operator<<` method, however, introduces a separate responsibility: serializing the formatted text to an `std::ostream`. Changes to how the column is rendered to a stream (e.g., adding headers/footers, different line endings) would require modifying this method, which is a different reason to change than modifying the text formatting logic itself (handled by the nested `iterator` class)."
+  },
+  {
+    "file_path": "Catch2/third_party/clara.hpp",
+    "entity_name": "Column.toString",
+    "entity_type": "method",
+    "line_start": 232,
+    "line_end": 236,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class mixes text formatting/management with string serialization.",
+    "reasoning": "Similar to `operator<<`, the `toString()` method adds a serialization responsibility. The primary role of `Column` is to manage and format text. Converting this formatted text into a `std::string` is an output concern. If the string representation needs to change (e.g., for debugging, logging, or specific output formats), this method would need to be modified, which is distinct from changes to the core text formatting rules."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "ExprLhs.operator op (for 0 comparison)",
+    "entity_type": "method",
+    "line_start": 5476,
+    "line_end": 5482,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class mixes expression decomposition with direct test failure handling.",
+    "reasoning": "The `ExprLhs` class's primary responsibility is to facilitate the decomposition of C++ expressions into `BinaryExpr` objects for assertion reporting. This involves capturing the operands, operator, and the boolean result of the comparison. However, the `operator op` overloads for `0` comparison (e.g., `ptr == 0` or `ptr != 0`) directly call `throw_test_failure_exception()` if `rhs != 0` or `lhs.m_lhs != 0` respectively. This introduces a side effect of test failure handling directly into the expression decomposition logic. The responsibility of throwing a test failure exception should reside with the test framework's assertion mechanism, which consumes the `BinaryExpr` object, not within the expression decomposition itself."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "ExprLhs.operator op (for 0 comparison)",
+    "entity_type": "method",
+    "line_start": 5483,
+    "line_end": 5489,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class mixes expression decomposition with direct test failure handling.",
+    "reasoning": "Similar to the previous finding, this `operator op` overload also directly calls `throw_test_failure_exception()`, coupling expression decomposition with test failure handling. The `ExprLhs` should focus on representing the expression, not on directly influencing the test outcome based on specific operand values during decomposition."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_decomposer.hpp",
+    "entity_name": "ExprLhs.operator op (for 0 comparison)",
+    "entity_type": "method",
+    "line_start": 300,
+    "line_end": 306,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class mixes expression decomposition with direct test failure handling.",
+    "reasoning": "This is a duplicate of the finding in `Catch2/extras/catch_amalgamated.hpp`. The `operator op` overloads for `0` comparison directly call `throw_test_failure_exception()`, mixing expression decomposition with test failure handling. The responsibility of throwing a test failure exception should reside with the test framework's assertion mechanism, which consumes the `BinaryExpr` object, not within the expression decomposition itself."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_decomposer.hpp",
+    "entity_name": "ExprLhs.operator op (for 0 comparison)",
+    "entity_type": "method",
+    "line_start": 307,
+    "line_end": 313,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The class mixes expression decomposition with direct test failure handling.",
+    "reasoning": "This is a duplicate of the finding in `Catch2/extras/catch_amalgamated.hpp`. Similar to the previous finding, this `operator op` overload also directly calls `throw_test_failure_exception()`, coupling expression decomposition with test failure handling."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 10660,
+    "line_end": 10786,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class acts as a 'God object', combining multiple unrelated responsibilities.",
+    "reasoning": "The `RunContext` class is responsible for an excessive number of concerns, making it a 'God object' and a severe violation of SRP. Its responsibilities include: \n1.  **Test Execution Management:** Orchestrates the running of test cases (`runTest`, `runCurrentTest`, `invokeActiveTestCase`).\n2.  **Assertion Result Capture & Processing:** Handles various assertion outcomes (`handleExpr`, `handleMessage`, `assertionEnded`), manages atomic and aggregated counts (`m_atomicAssertionCount`, `m_totals`).\n3.  **Section Management:** Tracks and manages test sections (`sectionStarted`, `sectionEnded`, `m_testCaseTracker`, `m_activeSections`, `m_unfinishedSections`).\n4.  **Generator Management:** Acquires and creates generator trackers (`acquireGeneratorTracker`, `createGeneratorTracker`).\n5.  **Benchmark Event Handling:** Dispatches events related to benchmarks (`benchmarkPreparing`, `benchmarkStarting`, `benchmarkEnded`, `benchmarkFailed`).\n6.  **Fatal Error Handling:** Manages fatal error conditions (`handleFatalErrorCondition`, `m_fatalConditionhandler`).\n7.  **Output Redirection:** Manages temporary output redirection (`m_outputRedirect`).\n8.  **Configuration Caching:** Caches various configuration settings from `IConfig` (`m_abortAfterXFailedAssertions`, `m_shouldReportUnexpected`, etc.).\n\nEach of these responsibilities represents a distinct reason for the class to change. For example, changes to how test sections are tracked should not require changes to how benchmark results are handled, or how assertion counts are aggregated. This high coupling makes the class difficult to maintain, test, and extend."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 36,
+    "line_end": 161,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The class acts as a 'God object', combining multiple unrelated responsibilities.",
+    "reasoning": "This is a duplicate of the finding in `Catch2/extras/catch_amalgamated.hpp`. The `RunContext` class is responsible for an excessive number of concerns, making it a 'God object' and a severe violation of SRP. Its responsibilities include test execution management, assertion result capture and processing, section management, generator management, benchmark event handling, fatal error handling, output redirection, and configuration caching. Each of these responsibilities represents a distinct reason for the class to change, leading to high coupling and reduced maintainability."
+  }
+]

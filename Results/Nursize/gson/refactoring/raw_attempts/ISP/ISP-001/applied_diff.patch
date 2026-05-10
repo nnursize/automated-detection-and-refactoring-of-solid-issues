@@ -1,0 +1,52 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
+index ef6016e..ec9a5e7 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
+@@ -62,31 +62,25 @@ public final class TypeAdapters {
+     throw new UnsupportedOperationException();
+   }
+ 
+-  private static class UnsupportedTypeAdapter<T> extends TypeAdapter<T> {
+-    private final String message;
+-
+-    UnsupportedTypeAdapter(String message) {
+-      this.message = message;
+-    }
+-
+-    @Override
+-    public void write(JsonWriter out, T value) throws IOException {
+-      throw new UnsupportedOperationException(message);
+-    }
+-
+-    @Override
+-    public T read(JsonReader in) throws IOException {
+-      throw new UnsupportedOperationException(message);
+-    }
+-  }
+-
+   @SuppressWarnings("rawtypes")
+   public static final TypeAdapter<Class> CLASS =
+-      new UnsupportedTypeAdapter<Class>(
+-              "Attempted to serialize/deserialize java.lang.Class. Forgot to register a type adapter?"
++      new TypeAdapter<Class>() {
++        @Override
++        public void write(JsonWriter out, Class value) throws IOException {
++          throw new UnsupportedOperationException(
++              "Attempted to serialize java.lang.Class. Forgot to register a type adapter?"
+                   + "\nSee "
+-                  + TroubleshootingGuide.createUrl("java-lang-class-unsupported"))
+-          .nullSafe();
++                  + TroubleshootingGuide.createUrl("java-lang-class-unsupported"));
++        }
++
++        @Override
++        public Class read(JsonReader in) throws IOException {
++          throw new UnsupportedOperationException(
++              "Attempted to deserialize java.lang.Class. Forgot to register a type adapter?"
++                  + "\nSee "
++                  + TroubleshootingGuide.createUrl("java-lang-class-unsupported"));
++        }
++      }.nullSafe();
+ 
+   public static final TypeAdapterFactory CLASS_FACTORY = newFactory(Class.class, CLASS);
+ 

@@ -1,0 +1,23 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
+index 605afdb..93ddc40 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java
+@@ -100,17 +100,7 @@ public final class TypeAdapters {
+               case NUMBER:
+               case STRING:
+                 int intValue = in.nextInt();
+-                if (intValue == 0) {
+-                  set = false;
+-                } else if (intValue == 1) {
+-                  set = true;
+-                } else {
+-                  throw new JsonSyntaxException(
+-                      "Invalid bitset value "
+-                          + intValue
+-                          + ", expected 0 or 1; at path "
+-                          + in.getPreviousPath());
+-                }
++                set = intValue != 0;
+                 break;
+               case BOOLEAN:
+                 set = in.nextBoolean();

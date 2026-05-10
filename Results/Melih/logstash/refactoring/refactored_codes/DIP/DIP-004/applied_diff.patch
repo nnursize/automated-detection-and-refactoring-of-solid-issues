@@ -1,0 +1,25 @@
+diff --git a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
+index 75ac666..9763d2a 100644
+--- a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
++++ b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java
+@@ -87,13 +87,17 @@ public final class PluginFactoryExt extends RubyBasicObject
+         this.metrics = metrics;
+         this.executionContextFactory = executionContextFactoryExt;
+         this.filterDelegatorClass = filterClass;
++        registerDefaultCreators(filterClass);
++        this.configVariables = ConfigVariableExpander.withoutSecret(envVars);
++        this.idGenerator = new PluginIdGenerator(lir, this.configVariables);
++        return this;
++    }
++
++    private void registerDefaultCreators(RubyClass filterClass) {
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.INPUT, new InputPluginCreator(this));
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.CODEC, new CodecPluginCreator());
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator(filterClass));
+         this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));
+-        this.configVariables = ConfigVariableExpander.withoutSecret(envVars);
+-        this.idGenerator = new PluginIdGenerator(lir, this.configVariables);
+-        return this;
+     }
+ 
+     @SuppressWarnings("unchecked")

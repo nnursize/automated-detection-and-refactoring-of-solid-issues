@@ -1,0 +1,13 @@
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+index 6288c42..608b7b5 100644
+--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+@@ -387,7 +387,7 @@ public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAd
+         PageIO headPageIO = PageIOFactory.create(pageNum, this.pageCapacity, this.queueManager.getDirPath());
+         headPageIO.create();
+         logger.debug("created new head page: {}", headPageIO);
+-        this.headPage = PageFactory.newHeadPage(headPageIO.getPageNum(), this, headPageIO);
++        this.headPage = PageFactory.newHeadPage(headPageIO, this);
+         this.headPage.forceCheckpoint();
+     }
+ 

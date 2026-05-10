@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._reportInvalidToken",
+    "entity_type": "method",
+    "line_start": 1530,
+    "line_end": 1533,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Direct instantiation of TokenStreamLocation concrete class.",
+    "reasoning": "The parser directly instantiates TokenStreamLocation instead of using a factory or receiving it via injection. While TokenStreamLocation is a value object, this creates a tight coupling between the high-level parsing logic and the specific implementation of location tracking."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser._reportInvalidToken",
+    "entity_type": "method",
+    "line_start": 1530,
+    "line_end": 1533,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Direct instantiation of TokenStreamLocation concrete class.",
+    "reasoning": "Similar to UTF8StreamJsonParser, this class directly instantiates a concrete implementation of location metadata, violating the principle that high-level modules should depend on abstractions."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator._constructWriteException",
+    "entity_type": "method",
+    "line_start": 1118,
+    "line_end": 1118,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Direct instantiation of StreamWriteException.",
+    "reasoning": "The base class for generators directly instantiates a concrete exception type. While common in Java, strictly speaking, this couples the generator abstraction to a specific detail (the exception implementation)."
+  }
+]

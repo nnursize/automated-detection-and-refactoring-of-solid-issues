@@ -1,0 +1,150 @@
+{
+  "scan_id": "gson_LSP_scan_03",
+  "repo_name": "gson",
+  "principle": "LSP",
+  "scan_number": 3,
+  "timestamp": "2026-05-02T12:56:22.406221",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses tha...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonReader.java\",\n      \"entity_name\": \"JsonReader.java (static initializer for JsonReaderInternalAccess)\",\n      \"entity_type\": \"class\",\n      \"line_start\": 744,\n      \"line_end\": 759,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Violation of LSP due to explicit 'instanceof' check for a subtype in an internal access mechanism.\",\n      \"reasoning\": \"The static initializer for `JsonReaderInternalAccess` contains an explicit `if (reader instanceof JsonTreeReader)` check. This means that the behavior of `promoteNameToValue` changes depending on the concrete type of the `JsonReader` passed to it, rather than relying on polymorphic dispatch. This directly violates the Liskov Substitution Principle, as `JsonTreeReader` is not substitutable for `JsonReader` without altering the correctness of this internal logic path. Clients using the internal access mechanism would observe different behavior based on the specific subtype, which is an anti-pattern.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.BIT_SET.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 71,\n      \"line_end\": 96,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'read' method for BitSet adapter accepts NUMBER or STRING tokens but throws JsonSyntaxException for values other than 0 or 1, narrowing accepted input.\",\n      \"reasoning\": \"The `BitSet` `TypeAdapter`'s `read` method uses `in.nextInt()` or `in.nextString()` to read JSON tokens that are of type `NUMBER` or `STRING`. It then imposes an additional constraint, requiring these numeric or string values to be either `0` or `1`. If any other numeric or string value is encountered, it throws a `JsonSyntaxException`. While a `TypeAdapter`'s role is to convert, this behavior narrows the acceptable range of values for what `JsonReader` reports as `NUMBER` or `STRING`. A generic `TypeAdapter<Collection<Boolean>>` (conceptually similar) would likely accept any valid number or string and convert it, whereas this specialized adapter rejects valid input for its underlying primitive types, violating substitutability for a broader `Number` or `String` type adapter.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.BYTE.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 136,\n      \"line_end\": 150,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'read' method for Byte adapter throws JsonSyntaxException if the integer value is outside the byte range, narrowing the acceptable range for a Number.\",\n      \"reasoning\": \"The `TypeAdapter<Number>` for `Byte` internally calls `in.nextInt()`. If the integer value returned by `in.nextInt()` is outside the valid range for a `byte` (i.e., `intValue > 255 || intValue < Byte.MIN_VALUE`), it throws a `JsonSyntaxException`. This violates LSP because `Byte` is a subtype of `Number`, and `Number` can represent a much wider range of integer values. A client substituting this `Byte` adapter for a more general `Number` adapter would expect it to handle any valid numeric JSON token. By rejecting valid integers that simply don't fit into a `byte`, it strengthens a postcondition (the value must fit in a byte) in a way that breaks substitutability for the `Number` type.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.SHORT.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 169,\n      \"line_end\": 183,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'read' method for Short adapter throws JsonSyntaxException if the integer value is outside the short range, narrowing the acceptable range for a Number.\",\n      \"reasoning\": \"Similar to the `Byte` adapter, the `TypeAdapter<Number>` for `Short` internally calls `in.nextInt()`. It then checks if the value is within the valid range for a `short` (i.e., `intValue > 65535 || intValue < Short.MIN_VALUE`), throwing `JsonSyntaxException` if it's not. This violates LSP for the same reasons as the `Byte` adapter: it narrows the acceptable range of values for `Number`, breaking substitutability for a more general `Number` type adapter.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.BOOLEAN.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 218,\n      \"line_end\": 227,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'read' method for Boolean adapter accepts STRING tokens and parses them as booleans, which JsonReader.nextBoolean() would reject.\",\n      \"reasoning\": \"The `TypeAdapter<Boolean>` for `BOOLEAN` explicitly handles `JsonToken.STRING` by reading the string and then parsing it as a boolean using `Boolean.parseBoolean()`. This changes the expected behavior of reading a boolean value. The `JsonReader.nextBoolean()` method, which is the standard way to read a boolean token, would throw an `IllegalStateException` if the `peek()` token is `JsonToken.STRING`. By accepting a token type that the base `JsonReader` method would reject, this adapter broadens the preconditions for accepted token types, violating LSP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.STRING.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 361,\n      \"line_end\": 371,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'read' method for String adapter accepts BOOLEAN tokens and converts them to strings, which JsonReader.nextString() would reject.\",\n      \"reasoning\": \"The `TypeAdapter<String>` for `STRING` explicitly handles `JsonToken.BOOLEAN` by reading the boolean and then converting it to a string using `Boolean.toString()`. This changes the expected behavior of reading a string value. The `JsonReader.nextString()` method, which is the standard way to read a string token, would throw an `IllegalStateException` if the `peek()` token is `JsonToken.BOOLEAN`. By accepting a token type that the base `JsonReader` method would reject, this adapter broadens the preconditions for accepted token types, violating LSP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.newTypeHierarchyFactory\",\n      \"entity_type\": \"method\",\n      \"line_start\": 650,\n      \"line_end\": 673,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'read' method of the created TypeAdapter performs a runtime type check and throws JsonSyntaxException if the result is not an instance of the requested subtype.\",\n      \"reasoning\": \"The `newTypeHierarchyFactory` creates a `TypeAdapter<T2>` (for a subtype `T2`) that delegates to an adapter for a supertype `T1`. After delegating, it performs a runtime check `!requestedType.isInstance(result)`. If the delegated adapter for `T1` returns an instance of `T1` that is not actually an instance of the `requestedType` `T2`, it throws a `JsonSyntaxException`. This strengthens the postcondition of the `read` method. A client substituting `TypeAdapter<T2>` for `TypeAdapter<T1>` would expect to receive an instance of at least `T1`. If the delegated `TypeAdapter<T1>` legitimately returns an instance of `T1` (but not `T2`), this factory's adapter throws an unexpected exception, breaking substitutability for `TypeAdapter<T1>`.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\",\n      \"entity_name\": \"JsonTreeReader.peek\",\n      \"entity_type\": \"method\",\n      \"line_start\": 110,\n      \"line_end\": 145,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'peek' method throws MalformedJsonException for unsupported custom JsonElement subclasses, introducing a new exception type for unexpected internal data.\",\n      \"reasoning\": \"The `JsonTreeReader.peek()` method, which overrides `JsonReader.peek()`, explicitly checks the type of the current element on its internal stack. If this element is an unsupported custom `JsonElement` subclass, it throws a `MalformedJsonException` with a specific message. The base `JsonReader.peek()` method would typically not throw such an exception for an 'unknown' token at this stage; it would usually return a generic token type (like `PEEKED_UNQUOTED`) and let subsequent `next...()` methods fail or handle it. By introducing a new, specific exception type and message for an internal data structure rather than a stream token, `JsonTreeReader` deviates from the base class's error handling contract for `peek()`.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.getAsNumber\",\n      \"entity_type\": \"method\",\n      \"line_start\": 218,\n      \"line_end\": 220,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'getAsNumber' method (and similar getAs... methods) throws IllegalStateException if the array contains more than one element, narrowing preconditions.\",\n      \"reasoning\": \"The `JsonArray.getAsNumber()` method (and all other `getAs...()` methods like `getAsString()`, `getAsDouble()`, etc.) overrides an abstract method in `JsonElement`. In `JsonElement`, these methods throw `UnsupportedOperationException`. `JsonArray` introduces a new precondition: the array must contain exactly one element, enforced by `getAsSingleElement()` throwing `IllegalStateException` if `size() != 1`. This narrows the method's precondition considerably. A client treating a `JsonArray` polymorphically as a `JsonElement` would not expect an `IllegalStateException` due to the array's size, as the base contract only specifies `UnsupportedOperationException`. This breaks substitutability.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java\",\n      \"entity_name\": \"NonNullElementWrapperList.add\",\n      \"entity_type\": \"method\",\n      \"line_start\": 43,\n      \"line_end\": 45,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'add' and 'set' methods throw NullPointerException for null elements, strengthening preconditions compared to standard ArrayList.\",\n      \"reasoning\": \"The `NonNullElementWrapperList` wraps an `ArrayList`. Its `add(int, E)` and `set(int, E)` methods explicitly throw `NullPointerException` if the element to be added or set is `null`. A standard `ArrayList<E>` (for object types) typically permits `null` elements. By disallowing `null` elements and throwing a `NullPointerException`, this class strengthens the precondition for these methods. If a client expects a `List` that behaves like a standard `ArrayList` (allowing `null`s), substituting `NonNullElementWrapperList` would violate LSP by introducing a stricter contract.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\",\n      \"entity_name\": \"ReflectiveTypeAdapterFactory.RecordAdapter.finalize\",\n      \"entity_type\": \"method\",\n      \"line_start\": 497,\n      \"line_end\": 512,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'finalize' method catches specific reflection exceptions and rethrows them as RuntimeException, changing the exception contract.\",\n      \"reasoning\": \"The `RecordAdapter.finalize` method catches `InstantiationException`, `IllegalArgumentException`, and `InvocationTargetException` (specifically its cause) and wraps them all into a generic `RuntimeException`. This changes the exception contract of the method. Clients that might expect to catch and handle these specific reflection-related exceptions (which are part of the Java reflection API's contract for constructor invocation) will instead receive a more general `RuntimeException`, making it impossible to differentiate and handle specific error conditions. This violates LSP by altering the exception types that can be thrown.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\",\n      \"entity_name\": \"ProtoTypeAdapter.deserialize\",\n      \"entity_type\": \"method\",\n      \"line_start\": 218,\n      \"line_end\": 266,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"The 'deserialize' method catches a broad 'Exception' and rethrows it as 'JsonParseException', hiding specific underlying exceptions.\",\n      \"reasoning\": \"The `ProtoTypeAdapter.deserialize` method has a broad `catch (Exception e)` block that wraps any caught exception into a `JsonParseException`. This hides specific underlying exceptions (such as `NoSuchMethodException`, `InvocationTargetException`, `IllegalAccessException`, or potentially Protobuf-specific exceptions) that might occur during reflection or message building. A client expecting to catch and handle these more specific exceptions will instead receive a `JsonParseException`, losing crucial information about the actual cause of the error. This violates LSP by changing the exception contract of the method, making it impossible for subtypes or clients to react to specific failure modes.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "entity_name": "JsonReader.java (static initializer for JsonReaderInternalAccess)",
+      "entity_type": "class",
+      "line_start": 744,
+      "line_end": 759,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Violation of LSP due to explicit 'instanceof' check for a subtype in an internal access mechanism.",
+      "reasoning": "The static initializer for `JsonReaderInternalAccess` contains an explicit `if (reader instanceof JsonTreeReader)` check. This means that the behavior of `promoteNameToValue` changes depending on the concrete type of the `JsonReader` passed to it, rather than relying on polymorphic dispatch. This directly violates the Liskov Substitution Principle, as `JsonTreeReader` is not substitutable for `JsonReader` without altering the correctness of this internal logic path. Clients using the internal access mechanism would observe different behavior based on the specific subtype, which is an anti-pattern."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.BIT_SET.read",
+      "entity_type": "method",
+      "line_start": 71,
+      "line_end": 96,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "The 'read' method for BitSet adapter accepts NUMBER or STRING tokens but throws JsonSyntaxException for values other than 0 or 1, narrowing accepted input.",
+      "reasoning": "The `BitSet` `TypeAdapter`'s `read` method uses `in.nextInt()` or `in.nextString()` to read JSON tokens that are of type `NUMBER` or `STRING`. It then imposes an additional constraint, requiring these numeric or string values to be either `0` or `1`. If any other numeric or string value is encountered, it throws a `JsonSyntaxException`. While a `TypeAdapter`'s role is to convert, this behavior narrows the acceptable range of values for what `JsonReader` reports as `NUMBER` or `STRING`. A generic `TypeAdapter<Collection<Boolean>>` (conceptually similar) would likely accept any valid number or string and convert it, whereas this specialized adapter rejects valid input for its underlying primitive types, violating substitutability for a broader `Number` or `String` type adapter."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.BYTE.read",
+      "entity_type": "method",
+      "line_start": 136,
+      "line_end": 150,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'read' method for Byte adapter throws JsonSyntaxException if the integer value is outside the byte range, narrowing the acceptable range for a Number.",
+      "reasoning": "The `TypeAdapter<Number>` for `Byte` internally calls `in.nextInt()`. If the integer value returned by `in.nextInt()` is outside the valid range for a `byte` (i.e., `intValue > 255 || intValue < Byte.MIN_VALUE`), it throws a `JsonSyntaxException`. This violates LSP because `Byte` is a subtype of `Number`, and `Number` can represent a much wider range of integer values. A client substituting this `Byte` adapter for a more general `Number` adapter would expect it to handle any valid numeric JSON token. By rejecting valid integers that simply don't fit into a `byte`, it strengthens a postcondition (the value must fit in a byte) in a way that breaks substitutability for the `Number` type."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.SHORT.read",
+      "entity_type": "method",
+      "line_start": 169,
+      "line_end": 183,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'read' method for Short adapter throws JsonSyntaxException if the integer value is outside the short range, narrowing the acceptable range for a Number.",
+      "reasoning": "Similar to the `Byte` adapter, the `TypeAdapter<Number>` for `Short` internally calls `in.nextInt()`. It then checks if the value is within the valid range for a `short` (i.e., `intValue > 65535 || intValue < Short.MIN_VALUE`), throwing `JsonSyntaxException` if it's not. This violates LSP for the same reasons as the `Byte` adapter: it narrows the acceptable range of values for `Number`, breaking substitutability for a more general `Number` type adapter."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.BOOLEAN.read",
+      "entity_type": "method",
+      "line_start": 218,
+      "line_end": 227,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'read' method for Boolean adapter accepts STRING tokens and parses them as booleans, which JsonReader.nextBoolean() would reject.",
+      "reasoning": "The `TypeAdapter<Boolean>` for `BOOLEAN` explicitly handles `JsonToken.STRING` by reading the string and then parsing it as a boolean using `Boolean.parseBoolean()`. This changes the expected behavior of reading a boolean value. The `JsonReader.nextBoolean()` method, which is the standard way to read a boolean token, would throw an `IllegalStateException` if the `peek()` token is `JsonToken.STRING`. By accepting a token type that the base `JsonReader` method would reject, this adapter broadens the preconditions for accepted token types, violating LSP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.STRING.read",
+      "entity_type": "method",
+      "line_start": 361,
+      "line_end": 371,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'read' method for String adapter accepts BOOLEAN tokens and converts them to strings, which JsonReader.nextString() would reject.",
+      "reasoning": "The `TypeAdapter<String>` for `STRING` explicitly handles `JsonToken.BOOLEAN` by reading the boolean and then converting it to a string using `Boolean.toString()`. This changes the expected behavior of reading a string value. The `JsonReader.nextString()` method, which is the standard way to read a string token, would throw an `IllegalStateException` if the `peek()` token is `JsonToken.BOOLEAN`. By accepting a token type that the base `JsonReader` method would reject, this adapter broadens the preconditions for accepted token types, violating LSP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.newTypeHierarchyFactory",
+      "entity_type": "method",
+      "line_start": 650,
+      "line_end": 673,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'read' method of the created TypeAdapter performs a runtime type check and throws JsonSyntaxException if the result is not an instance of the requested subtype.",
+      "reasoning": "The `newTypeHierarchyFactory` creates a `TypeAdapter<T2>` (for a subtype `T2`) that delegates to an adapter for a supertype `T1`. After delegating, it performs a runtime check `!requestedType.isInstance(result)`. If the delegated adapter for `T1` returns an instance of `T1` that is not actually an instance of the `requestedType` `T2`, it throws a `JsonSyntaxException`. This strengthens the postcondition of the `read` method. A client substituting `TypeAdapter<T2>` for `TypeAdapter<T1>` would expect to receive an instance of at least `T1`. If the delegated `TypeAdapter<T1>` legitimately returns an instance of `T1` (but not `T2`), this factory's adapter throws an unexpected exception, breaking substitutability for `TypeAdapter<T1>`."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+      "entity_name": "JsonTreeReader.peek",
+      "entity_type": "method",
+      "line_start": 110,
+      "line_end": 145,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "The 'peek' method throws MalformedJsonException for unsupported custom JsonElement subclasses, introducing a new exception type for unexpected internal data.",
+      "reasoning": "The `JsonTreeReader.peek()` method, which overrides `JsonReader.peek()`, explicitly checks the type of the current element on its internal stack. If this element is an unsupported custom `JsonElement` subclass, it throws a `MalformedJsonException` with a specific message. The base `JsonReader.peek()` method would typically not throw such an exception for an 'unknown' token at this stage; it would usually return a generic token type (like `PEEKED_UNQUOTED`) and let subsequent `next...()` methods fail or handle it. By introducing a new, specific exception type and message for an internal data structure rather than a stream token, `JsonTreeReader` deviates from the base class's error handling contract for `peek()`."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.getAsNumber",
+      "entity_type": "method",
+      "line_start": 218,
+      "line_end": 220,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'getAsNumber' method (and similar getAs... methods) throws IllegalStateException if the array contains more than one element, narrowing preconditions.",
+      "reasoning": "The `JsonArray.getAsNumber()` method (and all other `getAs...()` methods like `getAsString()`, `getAsDouble()`, etc.) overrides an abstract method in `JsonElement`. In `JsonElement`, these methods throw `UnsupportedOperationException`. `JsonArray` introduces a new precondition: the array must contain exactly one element, enforced by `getAsSingleElement()` throwing `IllegalStateException` if `size() != 1`. This narrows the method's precondition considerably. A client treating a `JsonArray` polymorphically as a `JsonElement` would not expect an `IllegalStateException` due to the array's size, as the base contract only specifies `UnsupportedOperationException`. This breaks substitutability."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+      "entity_name": "NonNullElementWrapperList.add",
+      "entity_type": "method",
+      "line_start": 43,
+      "line_end": 45,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'add' and 'set' methods throw NullPointerException for null elements, strengthening preconditions compared to standard ArrayList.",
+      "reasoning": "The `NonNullElementWrapperList` wraps an `ArrayList`. Its `add(int, E)` and `set(int, E)` methods explicitly throw `NullPointerException` if the element to be added or set is `null`. A standard `ArrayList<E>` (for object types) typically permits `null` elements. By disallowing `null` elements and throwing a `NullPointerException`, this class strengthens the precondition for these methods. If a client expects a `List` that behaves like a standard `ArrayList` (allowing `null`s), substituting `NonNullElementWrapperList` would violate LSP by introducing a stricter contract."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+      "entity_name": "ReflectiveTypeAdapterFactory.RecordAdapter.finalize",
+      "entity_type": "method",
+      "line_start": 497,
+      "line_end": 512,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "The 'finalize' method catches specific reflection exceptions and rethrows them as RuntimeException, changing the exception contract.",
+      "reasoning": "The `RecordAdapter.finalize` method catches `InstantiationException`, `IllegalArgumentException`, and `InvocationTargetException` (specifically its cause) and wraps them all into a generic `RuntimeException`. This changes the exception contract of the method. Clients that might expect to catch and handle these specific reflection-related exceptions (which are part of the Java reflection API's contract for constructor invocation) will instead receive a more general `RuntimeException`, making it impossible to differentiate and handle specific error conditions. This violates LSP by altering the exception types that can be thrown."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+      "entity_name": "ProtoTypeAdapter.deserialize",
+      "entity_type": "method",
+      "line_start": 218,
+      "line_end": 266,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "The 'deserialize' method catches a broad 'Exception' and rethrows it as 'JsonParseException', hiding specific underlying exceptions.",
+      "reasoning": "The `ProtoTypeAdapter.deserialize` method has a broad `catch (Exception e)` block that wraps any caught exception into a `JsonParseException`. This hides specific underlying exceptions (such as `NoSuchMethodException`, `InvocationTargetException`, `IllegalAccessException`, or potentially Protobuf-specific exceptions) that might occur during reflection or message building. A client expecting to catch and handle these more specific exceptions will instead receive a `JsonParseException`, losing crucial information about the actual cause of the error. This violates LSP by changing the exception contract of the method, making it impossible for subtypes or clients to react to specific failure modes."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 51189.81862068176,
+  "error": null
+}

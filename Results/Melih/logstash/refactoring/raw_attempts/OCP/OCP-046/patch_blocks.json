@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+    "search_text": "        HOOKS_REGISTRY_CLASS =\n            PLUGINS_MODULE.defineClassUnder(\"HooksRegistry\", RUBY.getObject(), HooksRegistryExt::new);\n        HOOKS_REGISTRY_CLASS.defineAnnotatedMethods(HooksRegistryExt.class);\n        RUBY.getGlobalVariables().set(\"$LS_JARS_LOADED\", RUBY.newString(\"true\"));\n        RubyJavaIntegration.setupRubyJavaIntegration(RUBY);\n    }",
+    "replace_text": "        HOOKS_REGISTRY_CLASS =\n            PLUGINS_MODULE.defineClassUnder(\"HooksRegistry\", RUBY.getObject(), HooksRegistryExt::new);\n        HOOKS_REGISTRY_CLASS.defineAnnotatedMethods(HooksRegistryExt.class);\n        JRubyExtensionRegistry.apply(RUBY);\n        RUBY.getGlobalVariables().set(\"$LS_JARS_LOADED\", RUBY.newString(\"true\"));\n        RubyJavaIntegration.setupRubyJavaIntegration(RUBY);\n    }"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java",
+    "search_text": null,
+    "replace_text": "package org.logstash;\n\nimport org.jruby.Ruby;\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.function.Consumer;\n\npublic final class JRubyExtensionRegistry {\n    private static final List<Consumer<Ruby>> REGISTRATIONS = new ArrayList<>();\n\n    public static void register(Consumer<Ruby> registration) {\n        REGISTRATIONS.add(registration);\n    }\n\n    public static void apply(Ruby runtime) {\n        for (Consumer<Ruby> registration : REGISTRATIONS) {\n            registration.accept(runtime);\n        }\n    }\n}"
+  }
+]

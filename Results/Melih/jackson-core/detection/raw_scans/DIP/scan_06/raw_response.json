@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_DIP_scan_06",
+  "repo_name": "jackson-core",
+  "principle": "DIP",
+  "scan_number": 6,
+  "timestamp": "2026-05-02T20:36:42.012154",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Dependency Inversion Principle (DIP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inte...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 138,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded dependency on concrete ByteQuadsCanonicalizer implementation\",\n      \"reasoning\": \"Inappropriate Intimacy smell -> DIP violation because the class depends directly on the concrete 'ByteQuadsCanonicalizer' for name canonicalization. According to DIP, high-level modules (like the JSON parser) should depend on abstractions. By referencing the concrete Quad-based implementation instead of a 'NameCanonicalizer' interface, the parser is tightly coupled to a specific hash-table implementation, making it difficult to swap or mock for testing.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\",\n      \"entity_name\": \"ReaderBasedJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 78,\n      \"line_end\": 125,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded dependency on concrete CharsToNameCanonicalizer implementation\",\n      \"reasoning\": \"Inappropriate Intimacy smell -> DIP violation because the class is tightly coupled to the 'CharsToNameCanonicalizer' concrete class. A parser should rely on a name-lookup abstraction. Hard-coding the specific symbol table implementation prevents the parser from being used with alternative canonicalization strategies without modifying the source code.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java\",\n      \"entity_name\": \"UTF8DataInputJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 48,\n      \"line_end\": 105,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hard-coded dependency on concrete ByteQuadsCanonicalizer implementation\",\n      \"reasoning\": \"Inappropriate Intimacy smell -> DIP violation because this concrete parser implementation directly instantiates and manages a 'ByteQuadsCanonicalizer' field. This violates the principle that details should depend on abstractions; here, a specific input-format parser is bound to a specific internal data structure implementation, reducing the flexibility of the architecture.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 138,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded dependency on concrete ByteQuadsCanonicalizer implementation",
+      "reasoning": "Inappropriate Intimacy smell -> DIP violation because the class depends directly on the concrete 'ByteQuadsCanonicalizer' for name canonicalization. According to DIP, high-level modules (like the JSON parser) should depend on abstractions. By referencing the concrete Quad-based implementation instead of a 'NameCanonicalizer' interface, the parser is tightly coupled to a specific hash-table implementation, making it difficult to swap or mock for testing."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "entity_name": "ReaderBasedJsonParser",
+      "entity_type": "class",
+      "line_start": 78,
+      "line_end": 125,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded dependency on concrete CharsToNameCanonicalizer implementation",
+      "reasoning": "Inappropriate Intimacy smell -> DIP violation because the class is tightly coupled to the 'CharsToNameCanonicalizer' concrete class. A parser should rely on a name-lookup abstraction. Hard-coding the specific symbol table implementation prevents the parser from being used with alternative canonicalization strategies without modifying the source code."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+      "entity_name": "UTF8DataInputJsonParser",
+      "entity_type": "class",
+      "line_start": 48,
+      "line_end": 105,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Hard-coded dependency on concrete ByteQuadsCanonicalizer implementation",
+      "reasoning": "Inappropriate Intimacy smell -> DIP violation because this concrete parser implementation directly instantiates and manages a 'ByteQuadsCanonicalizer' field. This violates the principle that details should depend on abstractions; here, a specific input-format parser is bound to a specific internal data structure implementation, reducing the flexibility of the architecture."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 145660.3057384491,
+  "error": null
+}

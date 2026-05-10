@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-022",
+  "principle": "ISP",
+  "title": "Refactor ISP-022 (ISP): JsonElement's getAsCharacter method throws UnsupportedOperationException for...",
+  "branch": "refactor/ISP-022",
+  "base": "main",
+  "head_commit": "9bf7aae60ed62cb559252a1e0bb2b0b2c9dc554d",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4906,
+    "completion_tokens": 170
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement.getAsCharacter",
+    "entity_type": "method",
+    "line_start": 257,
+    "line_end": 259,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "JsonElement's getAsCharacter method throws UnsupportedOperationException for non-character types.",
+    "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove deprecated getAsCharacter method from JsonElement to reduce interface bloat.",
+    "rationale": "The getAsCharacter method is deprecated and throws UnsupportedOperationException for most implementations, violating the Interface Segregation Principle. Removing it from the base class forces users to rely on the appropriate JsonPrimitive methods or interfaces, which is the intended design.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "loc": 284,
+        "blank_lines": 26,
+        "comment_lines": 4,
+        "function_count": 21,
+        "avg_cc": 3.24,
+        "max_cc": 48.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 4897.030591964722
+}

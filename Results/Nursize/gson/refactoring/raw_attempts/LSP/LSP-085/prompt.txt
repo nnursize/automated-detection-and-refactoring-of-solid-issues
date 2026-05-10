@@ -1,0 +1,569 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-085
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java`
+- **Entity**: `ConstructorConstructor.ThrowingObjectConstructor.construct` (current lines L45-L465 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 2 independent scans
+
+### Description
+Subtype's construct method throws a checked exception (JsonIOException) not declared by the functional interface ObjectConstructor.
+
+### Reasoning
+The `ObjectConstructor.construct()` method is part of a functional interface and declares no checked exceptions. The `ThrowingObjectConstructor.construct()` implementation explicitly throws `JsonIOException`, which is a checked exception (subclass of `IOException`). This directly violates the interface's contract, as a client using `ObjectConstructor` would not be required to catch `JsonIOException` by the compiler, leading to unexpected runtime failures.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java`
+```java
+/*
+ * Copyright (C) 2011 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson.internal;
+
+import com.google.gson.InstanceCreator;
+import com.google.gson.JsonIOException;
+import com.google.gson.ReflectionAccessFilter;
+import com.google.gson.ReflectionAccessFilter.FilterResult;
+import com.google.gson.internal.reflect.ReflectionHelper;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+
+/** Returns a function that can construct an instance of a requested type. */
+public final class ConstructorConstructor {
+  private final Map<Type, InstanceCreator<?>> instanceCreators;
+  private final boolean useJdkUnsafe;
+  private final List<ReflectionAccessFilter> reflectionFilters;
+
+  public ConstructorConstructor(
+      Map<Type, InstanceCreator<?>> instanceCreators,
+      boolean useJdkUnsafe,
+      List<ReflectionAccessFilter> reflectionFilters) {
+    this.instanceCreators = instanceCreators;
+    this.useJdkUnsafe = useJdkUnsafe;
+    this.reflectionFilters = reflectionFilters;
+  }
+
+  /**
+   * Check if the class can be instantiated by Unsafe allocator. If the instance has interface or
+   * abstract modifiers return an exception message.
+   *
+   * @param c instance of the class to be checked
+   * @return if instantiable {@code null}, else a non-{@code null} exception message
+   */
+  static String checkInstantiable(Class<?> c) {
+    int modifiers = c.getModifiers();
+    if (Modifier.isInterface(modifiers)) {
+      return "Interfaces can't be instantiated! Register an InstanceCreator"
+          + " or a TypeAdapter for this type. Interface name: "
+          + c.getName();
+    }
+    if (Modifier.isAbstract(modifiers)) {
+      // R8 performs aggressive optimizations where it removes the default constructor of a class
+      // and makes the class `abstract`; check for that here explicitly
+      /*
+       * Note: Ideally should only show this R8-specific message when it is clear that R8 was
+       * used (e.g. when `c.getDeclaredConstructors().length == 0`), but on Android where this
+       * issue with R8 occurs most, R8 seems to keep some constructors for some reason while
+       * still making the class abstract
+       */
+      return "Abstract classes can't be instantiated! Adjust the R8 configuration or register"
+          + " an InstanceCreator or a TypeAdapter for this type. Class name: "
+          + c.getName()
+          + "\nSee "
+          + TroubleshootingGuide.createUrl("r8-abstract-class");
+    }
+    return null;
+  }
+
+  /** Calls {@link #get(TypeToken, boolean)}, and allows usage of JDK Unsafe. */
+  public <T> ObjectConstructor<T> get(TypeToken<T> typeToken) {
+    return get(typeToken, true);
+  }
+
+  /**
+   * Retrieves an object constructor for the given type.
+   *
+   * @param typeToken type for which a constructor should be retrieved
+   * @param allowUnsafe whether to allow usage of JDK Unsafe; has no effect if {@link #useJdkUnsafe}
+   *     is false
+   */
+  public <T> ObjectConstructor<T> get(TypeToken<T> typeToken, boolean allowUnsafe) {
+    Type type = typeToken.getType();
+    Class<? super T> rawType = typeToken.getRawType();
+
+    // first try an instance creator
+
+    @SuppressWarnings("unchecked") // types must agree
+    InstanceCreator<T> typeCreator = (InstanceCreator<T>) instanceCreators.get(type);
+    if (typeCreator != null) {
+      return new InstanceCreatorConstructor<>(typeCreator, type);
+    }
+
+    // Next try raw type match for instance creators
+    @SuppressWarnings("unchecked") // types must agree
+    InstanceCreator<T> rawTypeCreator = (InstanceCreator<T>) instanceCreators.get(rawType);
+    if (rawTypeCreator != null) {
+      return new InstanceCreatorConstructor<>(rawTypeCreator, type);
+    }
+
+    // First consider special constructors before checking for no-args constructors
+    // below to avoid matching internal no-args constructors which might be added in
+    // future JDK versions
+    ObjectConstructor<T> specialConstructor = newSpecialCollectionConstructor(type, rawType);
+    if (specialConstructor != null) {
+      return specialConstructor;
+    }
+
+    FilterResult filterResult =
+        ReflectionAccessFilterHelper.getFilterResult(reflectionFilters, rawType);
+    ObjectConstructor<T> defaultConstructor = newDefaultConstructor(rawType, filterResult);
+    if (defaultConstructor != null) {
+      return defaultConstructor;
+    }
+
+    ObjectConstructor<T> defaultImplementation = newDefaultImplementationConstructor(type, rawType);
+    if (defaultImplementation != null) {
+      return defaultImplementation;
+    }
+
+    // Check whether type is instantiable; otherwise ReflectionAccessFilter recommendation
+    // of adjusting filter suggested below is irrelevant since it would not solve the problem
+    String exceptionMessage = checkInstantiable(rawType);
+    if (exceptionMessage != null) {
+      return new ThrowingObjectConstructor<>(exceptionMessage);
+    }
+
+    if (!allowUnsafe) {
+      String message =
+          "Unable to create instance of "
+              + rawType
+              + "; Register an InstanceCreator or a TypeAdapter for this type.";
+      return new ThrowingObjectConstructor<>(message);
+    }
+
+    // Consider usage of Unsafe as reflection, so don't use if BLOCK_ALL
+    // Additionally, since it is not calling any constructor at all, don't use if BLOCK_INACCESSIBLE
+    if (filterResult != FilterResult.ALLOW) {
+      String message =
+          "Unable to create instance of "
+              + rawType
+              + "; ReflectionAccessFilter does not permit using reflection or Unsafe. Register an"
+              + " InstanceCreator or a TypeAdapter for this type or adjust the access filter to"
+              + " allow using reflection.";
+      return new ThrowingObjectConstructor<>(message);
+    }
+
+    // finally try unsafe
+    return newUnsafeAllocator(rawType);
+  }
+
+  private interface SpecialCollectionCreator {
+    <T> ObjectConstructor<T> create(Type type, Class<? super T> rawType);
+  }
+
+  private static final List<SpecialCollectionCreator> SPECIAL_COLLECTION_CREATORS = List.of(
+      new SpecialCollectionCreator() {
+        @Override public <T> ObjectConstructor<T> create(Type type, Class<? super T> rawType) {
+          if (!EnumSet.class.isAssignableFrom(rawType)) return null;
+          return () -> {
+            if (type instanceof ParameterizedType) {
+              Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
+              if (elementType instanceof Class) {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                T set = (T) EnumSet.noneOf((Class) elementType);
+                return set;
+              }
+              throw new JsonIOException("Invalid EnumSet type: " + type);
+            }
+            throw new JsonIOException("Invalid EnumSet type: " + type);
+          };
+        }
+      },
+      new SpecialCollectionCreator() {
+        @Override public <T> ObjectConstructor<T> create(Type type, Class<? super T> rawType) {
+          if (rawType != EnumMap.class) return null;
+          return () -> {
+            if (type instanceof ParameterizedType) {
+              Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
+              if (elementType instanceof Class) {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                T map = (T) new EnumMap((Class) elementType);
+                return map;
+              }
+              throw new JsonIOException("Invalid EnumMap type: " + type);
+            }
+            throw new JsonIOException("Invalid EnumMap type: " + type);
+          };
+        }
+      }
+  );
+
+  /**
+   * Creates constructors for special JDK collection types which do not have a public no-args
+   * constructor.
+   */
+  private static <T> ObjectConstructor<T> newSpecialCollectionConstructor(
+      Type type, Class<? super T> rawType) {
+    for (SpecialCollectionCreator creator : SPECIAL_COLLECTION_CREATORS) {
+      ObjectConstructor<T> constructor = creator.create(type, rawType);
+      if (constructor != null) return constructor;
+    }
+    return null;
+  }
+
+  private static <T> ObjectConstructor<T> newDefaultConstructor(
+      Class<? super T> rawType, FilterResult filterResult) {
+    // Cannot invoke constructor of abstract class
+    if (Modifier.isAbstract(rawType.getModifiers())) {
+      return null;
+    }
+
+    Constructor<? super T> constructor;
+    try {
+      constructor = rawType.getDeclaredConstructor();
+    } catch (NoSuchMethodException e) {
+      return null;
+    }
+
+    boolean canAccess =
+        filterResult == FilterResult.ALLOW
+            || (ReflectionAccessFilterHelper.canAccess(constructor, null)
+                // Be a bit more lenient here for BLOCK_ALL; if constructor is accessible and public
+                // then allow calling it
+                && (filterResult != FilterResult.BLOCK_ALL
+                    || Modifier.isPublic(constructor.getModifiers())));
+
+    if (!canAccess) {
+      String message =
+          "Unable to invoke no-args constructor of "
+              + rawType
+              + ";"
+              + " constructor is not accessible and ReflectionAccessFilter does not permit making"
+              + " it accessible. Register an InstanceCreator or a TypeAdapter for this type, change"
+              + " the visibility of the constructor or adjust the access filter.";
+      return new ThrowingObjectConstructor<>(message);
+    }
+
+    // Only try to make accessible if allowed; in all other cases checks above should
+    // have verified that constructor is accessible
+    if (filterResult == FilterResult.ALLOW) {
+      String exceptionMessage = ReflectionHelper.tryMakeAccessible(constructor);
+      if (exceptionMessage != null) {
+        return new ThrowingObjectConstructor<>(exceptionMessage);
+      }
+    }
+
+    return () -> {
+      try {
+        @SuppressWarnings("unchecked") // T is the same raw type as is requested
+        T newInstance = (T) constructor.newInstance();
+        return newInstance;
+      }
+      // Note: InstantiationException should be impossible because check at start of method made
+      // sure that class is not abstract
+      catch (InstantiationException e) {
+        throw new RuntimeException(
+            "Failed to invoke constructor '"
+                + ReflectionHelper.constructorToString(constructor)
+                + "' with no args",
+            e);
+      } catch (InvocationTargetException e) {
+        // TODO: don't wrap if cause is unchecked?
+        // TODO: JsonParseException ?
+        throw new RuntimeException(
+            "Failed to invoke constructor '"
+                + ReflectionHelper.constructorToString(constructor)
+                + "' with no args",
+            e.getCause());
+      } catch (IllegalAccessException e) {
+        throw ReflectionHelper.createExceptionForUnexpectedIllegalAccess(e);
+      }
+    };
+  }
+
+  /** Constructors for common interface types like Map and List and their subtypes. */
+  private static <T> ObjectConstructor<T> newDefaultImplementationConstructor(
+      Type type, Class<? super T> rawType) {
+
+    /*
+     * IMPORTANT: Must only create instances for classes with public no-args constructor.
+     * For classes with special constructors / factory methods (e.g. EnumSet)
+     * `newSpecialCollectionConstructor` defined above must be used, to avoid no-args
+     * constructor check (which is called before this method) detecting internal no-args
+     * constructors which might be added in a future JDK version
+     */
+
+    if (Collection.class.isAssignableFrom(rawType)) {
+      @SuppressWarnings("unchecked")
+      ObjectConstructor<T> constructor = (ObjectConstructor<T>) newCollectionConstructor(rawType);
+      return constructor;
+    }
+
+    if (Map.class.isAssignableFrom(rawType)) {
+      @SuppressWarnings("unchecked")
+      ObjectConstructor<T> constructor = (ObjectConstructor<T>) newMapConstructor(type, rawType);
+      return constructor;
+    }
+
+    // Unsupported type; try other means of creating constructor
+    return null;
+  }
+
+  private static final Map<Class<?>, java.util.function.Supplier<Collection<Object>>> COLLECTION_CONSTRUCTORS = Map.of(
+      ArrayList.class, ArrayList::new,
+      LinkedHashSet.class, LinkedHashSet::new,
+      TreeSet.class, TreeSet::new,
+      ArrayDeque.class, ArrayDeque::new
+  );
+
+  private static ObjectConstructor<? extends Collection<?>> newCollectionConstructor(
+      Class<?> rawType) {
+    for (Map.Entry<Class<?>, java.util.function.Supplier<Collection<Object>>> entry : COLLECTION_CONSTRUCTORS.entrySet()) {
+      if (entry.getKey().isAssignableFrom(rawType)) {
+        return entry.getValue()::get;
+      }
+    }
+    return null;
+  }
+
+  private static boolean hasStringKeyType(Type mapType) {
+    // If mapType is not parameterized, assume it might have String as key type
+    if (!(mapType instanceof ParameterizedType)) {
+      return true;
+    }
+
+    Type[] typeArguments = ((ParameterizedType) mapType).getActualTypeArguments();
+    if (typeArguments.length == 0) {
+      return false;
+    }
+    return GsonTypes.getRawType(typeArguments[0]) == String.class;
+  }
+
+  private interface MapCreator {
+    ObjectConstructor<? extends Map<?, Object>> create(Type type, Class<?> rawType);
+  }
+
+  private static final List<MapCreator> MAP_CREATORS = List.of(
+      (type, rawType) -> {
+        if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {
+          return () -> new LinkedTreeMap<>();
+        }
+        return null;
+      },
+      (type, rawType) -> {
+        if (LinkedHashMap.class.isAssignableFrom(rawType)) return LinkedHashMap::new;
+        if (TreeMap.class.isAssignableFrom(rawType)) return TreeMap::new;
+        if (ConcurrentHashMap.class.isAssignableFrom(rawType)) return ConcurrentHashMap::new;
+        if (ConcurrentSkipListMap.class.isAssignableFrom(rawType)) return ConcurrentSkipListMap::new;
+        return null;
+      }
+  );
+
+  private static ObjectConstructor<? extends Map<?, Object>> newMapConstructor(
+      Type type, Class<?> rawType) {
+    for (MapCreator creator : MAP_CREATORS) {
+      ObjectConstructor<? extends Map<?, Object>> constructor = creator.create(type, rawType);
+      if (constructor != null) return constructor;
+    }
+    return null;
+  }
+
+  private <T> ObjectConstructor<T> newUnsafeAllocator(Class<? super T> rawType) {
+    if (useJdkUnsafe) {
+      return () -> {
+        try {
+          @SuppressWarnings("unchecked")
+          T newInstance = (T) UnsafeAllocator.INSTANCE.newInstance(rawType);
+          return newInstance;
+        } catch (Exception e) {
+          throw new RuntimeException(
+              ("Unable to create instance of "
+                  + rawType
+                  + ". Registering an InstanceCreator or a TypeAdapter for this type, or adding a"
+                  + " no-args constructor may fix this problem."),
+              e);
+        }
+      };
+    } else {
+      String exceptionMessage =
+          "Unable to create instance of "
+              + rawType
+              + "; usage of JDK Unsafe is disabled. Registering an InstanceCreator or a TypeAdapter"
+              + " for this type, adding a no-args constructor, or enabling usage of JDK Unsafe may"
+              + " fix this problem.";
+
+      // Check if R8 removed all constructors
+      if (rawType.getDeclaredConstructors().length == 0) {
+        // R8 with Unsafe disabled might not be common enough to warrant a separate Troubleshooting
+        // Guide entry
+        exceptionMessage +=
+            " Or adjust your R8 configuration to keep the no-args constructor of the class.";
+      }
+
+      return new ThrowingObjectConstructor<>(exceptionMessage);
+    }
+  }
+
+  @Override
+  public String toString() {
+    return instanceCreators.toString();
+  }
+
+  /**
+   * {@link ObjectConstructor} which always throws an exception.
+   *
+   * <p>This keeps backward compatibility, compared to using a {@code null} {@code
+   * ObjectConstructor}, which would then choose another way of creating the object. And it supports
+   * types which are only serialized but not deserialized (compared to directly throwing an
+   * exception when the {@code ObjectConstructor} is requested), e.g. when the runtime type of an
+   * object is inaccessible, but the compile-time type is accessible.
+   */
+  private static final class ThrowingObjectConstructor<T> implements ObjectConstructor<T> {
+    private final String exceptionMessage;
+
+    ThrowingObjectConstructor(String exceptionMessage) {
+      this.exceptionMessage = exceptionMessage;
+    }
+
+    @Override
+    public T construct() {
+      // New exception is created every time to avoid keeping a reference to an exception with
+      // potentially long stack trace, causing a memory leak
+      // (which would happen if the exception was already created when the
+      // `ThrowingObjectConstructor` is created)
+      throw new JsonIOException(exceptionMessage);
+    }
+  }
+
+  private static final class InstanceCreatorConstructor<T> implements ObjectConstructor<T> {
+    private final InstanceCreator<T> instanceCreator;
+    private final Type type;
+
+    InstanceCreatorConstructor(InstanceCreator<T> instanceCreator, Type type) {
+      this.instanceCreator = instanceCreator;
+      this.type = type;
+    }
+
+    @Override
+    public T construct() {
+      return instanceCreator.createInstance(type);
+    }
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/internal/Excluder.java`
+- `gson/src/main/java/com/google/gson/internal/GsonTypes.java`
+- `gson/src/main/java/com/google/gson/internal/JavaVersion.java`
+- `gson/src/main/java/com/google/gson/internal/JsonReaderInternalAccess.java`
+- `gson/src/main/java/com/google/gson/internal/LazilyParsedNumber.java`
+- `gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java`
+- `gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java`
+- `gson/src/main/java/com/google/gson/internal/NumberLimits.java`
+- `gson/src/main/java/com/google/gson/internal/ObjectConstructor.java`
+- `gson/src/main/java/com/google/gson/internal/package-info.java`
+- `gson/src/main/java/com/google/gson/internal/PreJava9DateFormatProvider.java`
+- `gson/src/main/java/com/google/gson/internal/Primitives.java`
+- `gson/src/main/java/com/google/gson/internal/ReflectionAccessFilterHelper.java`
+- `gson/src/main/java/com/google/gson/internal/Streams.java`
+- `gson/src/main/java/com/google/gson/internal/TroubleshootingGuide.java`
+- `gson/src/main/java/com/google/gson/internal/UnsafeAllocator.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

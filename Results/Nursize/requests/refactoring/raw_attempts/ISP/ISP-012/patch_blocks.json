@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/sessions.py",
+    "search_text": "class SessionRedirectMixin:\n    def get_redirect_target(self, resp):",
+    "replace_text": "class SessionAdapterMixin:\n    def get_adapter(self, url):\n        \"\"\"\n        Returns the appropriate connection adapter for the given URL.\n\n        :rtype: requests.adapters.BaseAdapter\n        \"\"\"\n        for prefix, adapter in self.adapters.items():\n            if url.lower().startswith(prefix.lower()):\n                return adapter\n\n        # Nothing matches :-/\n        raise InvalidSchema(f\"No connection adapters were found for {url!r}\")\n\n    def close(self):\n        \"\"\"Closes all adapters and as such the session\"\"\"\n        for v in self.adapters.values():\n            v.close()\n\n    def mount(self, prefix, adapter):\n        \"\"\"Registers a connection adapter to a prefix.\n\n        Adapters are sorted in descending order by prefix length.\n        \"\"\"\n        self.adapters[prefix] = adapter\n        keys_to_move = [k for k in self.adapters if len(k) < len(prefix)]\n\n        for key in keys_to_move:\n            self.adapters[key] = self.adapters.pop(key)\n\n\nclass SessionRedirectMixin:\n    def get_redirect_target(self, resp):"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/sessions.py",
+    "search_text": "class Session(SessionRedirectMixin):\n    \"\"\"A Requests session.",
+    "replace_text": "class Session(SessionRedirectMixin, SessionAdapterMixin):\n    \"\"\"A Requests session."
+  }
+]

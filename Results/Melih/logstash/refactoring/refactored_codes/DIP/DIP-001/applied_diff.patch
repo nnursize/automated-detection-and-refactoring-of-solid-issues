@@ -1,0 +1,13 @@
+diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+index 7fe08bb..bfff445 100644
+--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
++++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java
+@@ -111,7 +111,7 @@ public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAd
+ 
+         this.pageCapacity = settings.getCapacity();
+         this.maxBytes = settings.getQueueMaxBytes();
+-        this.checkpointIO = new FileCheckpointIO(dirPath, settings.getCheckpointRetry());
++        this.checkpointIO = settings.getCheckpointIO(this.queueManager.getDirPath().toString());
+         this.elementClass = settings.getElementClass();
+         this.compressionCodec = settings.getCompressionCodecFactory().create(metric);
+         this.tailPages = new ArrayList<>();

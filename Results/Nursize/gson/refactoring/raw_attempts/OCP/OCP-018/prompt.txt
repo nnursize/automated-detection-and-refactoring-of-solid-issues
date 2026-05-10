@@ -1,0 +1,501 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-018
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java`
+- **Entity**: `JavaTimeTypeAdapters.JAVA_TIME_FACTORY.create` (current lines L44-L394 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Large if-else if chain for specific java.time types violates OCP.
+
+### Reasoning
+The `create` method in `JAVA_TIME_FACTORY` contains a long `if-else if` chain that explicitly checks for numerous `java.time` classes (Duration, Instant, LocalDate, etc.) to return their respective type adapters. Adding support for any new `java.time` type would require modifying this method, making it a clear violation of OCP.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java`
+```java
+package com.google.gson.internal.bind;
+
+import static java.lang.Math.toIntExact;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.internal.bind.TypeAdapters.IntegerFieldsTypeAdapter;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.MonthDay;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.Period;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
+/**
+ * Type adapters for {@code java.time} types.
+ *
+ * <p>These adapters mimic what {@link ReflectiveTypeAdapterFactory} would produce for the same
+ * types. That is by no means a natural encoding, given that many of the types have standard ISO
+ * representations. If Gson had added support for the types at the same time they appeared (in Java
+ * 8, released in 2014), it would surely have used those representations. Unfortunately, in the
+ * intervening time, people have been using the reflective representations, and changing that would
+ * potentially be incompatible. Meanwhile, depending on the details of private fields in JDK classes
+ * is obviously fragile, and it also needs special {@code --add-opens} configuration with more
+ * recent JDK versions. So here we freeze the representation that was current with JDK 21, in a way
+ * that does not use reflection.
+ */
+@IgnoreJRERequirement // Protected by a reflective check
+final class JavaTimeTypeAdapters implements TypeAdapters.FactorySupplier {
+
+  @Override
+  public TypeAdapterFactory get() {
+    return JAVA_TIME_FACTORY;
+  }
+
+  private static final TypeAdapter<Duration> DURATION = new DurationAdapter();
+  private static final TypeAdapter<Instant> INSTANT = new InstantAdapter();
+  private static final TypeAdapter<LocalDate> LOCAL_DATE = new LocalDateAdapter();
+  private static final TypeAdapter<LocalTime> LOCAL_TIME = new LocalTimeAdapter();
+
+  private static final class DurationAdapter extends IntegerFieldsTypeAdapter<Duration> {
+    DurationAdapter() { super("seconds", "nanos"); }
+    @Override Duration create(long[] values) { return Duration.ofSeconds(values[0], values[1]); }
+    @Override @SuppressWarnings("JavaDurationGetSecondsGetNano") long[] integerValues(Duration d) { return new long[] {d.getSeconds(), d.getNano()}; }
+  }
+
+  private static final class InstantAdapter extends IntegerFieldsTypeAdapter<Instant> {
+    InstantAdapter() { super("seconds", "nanos"); }
+    @Override Instant create(long[] values) { return Instant.ofEpochSecond(values[0], values[1]); }
+    @Override @SuppressWarnings("JavaInstantGetSecondsGetNano") long[] integerValues(Instant i) { return new long[] {i.getEpochSecond(), i.getNano()}; }
+  }
+
+  private static final class LocalDateAdapter extends IntegerFieldsTypeAdapter<LocalDate> {
+    LocalDateAdapter() { super("year", "month", "day"); }
+    @Override LocalDate create(long[] values) { return LocalDate.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2])); }
+    @Override long[] integerValues(LocalDate d) { return new long[] {d.getYear(), d.getMonthValue(), d.getDayOfMonth()}; }
+  }
+
+  private static final class LocalTimeAdapter extends IntegerFieldsTypeAdapter<LocalTime> {
+    LocalTimeAdapter() { super("hour", "minute", "second", "nano"); }
+    @Override LocalTime create(long[] values) { return LocalTime.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2]), toIntExact(values[3])); }
+    @Override long[] integerValues(LocalTime t) { return new long[] {t.getHour(), t.getMinute(), t.getSecond(), t.getNano()}; }
+  }
+
+  private static TypeAdapter<LocalDateTime> localDateTime(Gson gson) {
+    TypeAdapter<LocalDate> localDateAdapter = gson.getAdapter(LocalDate.class);
+    TypeAdapter<LocalTime> localTimeAdapter = gson.getAdapter(LocalTime.class);
+    return new TypeAdapter<LocalDateTime>() {
+      @Override
+      public LocalDateTime read(JsonReader in) throws IOException {
+        LocalDate localDate = null;
+        LocalTime localTime = null;
+        in.beginObject();
+        while (in.peek() != JsonToken.END_OBJECT) {
+          String name = in.nextName();
+          switch (name) {
+            case "date":
+              localDate = localDateAdapter.read(in);
+              break;
+            case "time":
+              localTime = localTimeAdapter.read(in);
+              break;
+            default:
+              // Ignore other fields.
+              in.skipValue();
+          }
+        }
+        in.endObject();
+        return LocalDateTime.of(
+            requireNonNullField(localDate, "date", in), requireNonNullField(localTime, "time", in));
+      }
+
+      @Override
+      public void write(JsonWriter out, LocalDateTime value) throws IOException {
+        out.beginObject();
+        out.name("date");
+        localDateAdapter.write(out, value.toLocalDate());
+        out.name("time");
+        localTimeAdapter.write(out, value.toLocalTime());
+        out.endObject();
+      }
+    }.nullSafe();
+  }
+
+  private static final TypeAdapter<MonthDay> MONTH_DAY = new MonthDayAdapter();
+
+  private static final class MonthDayAdapter extends IntegerFieldsTypeAdapter<MonthDay> {
+    MonthDayAdapter() { super("month", "day"); }
+    @Override MonthDay create(long[] values) { return MonthDay.of(toIntExact(values[0]), toIntExact(values[1])); }
+    @Override long[] integerValues(MonthDay m) { return new long[] {m.getMonthValue(), m.getDayOfMonth()}; }
+  }
+
+  private static TypeAdapter<OffsetDateTime> offsetDateTime(Gson gson) {
+    TypeAdapter<LocalDateTime> localDateTimeAdapter = localDateTime(gson);
+    TypeAdapter<ZoneOffset> zoneOffsetAdapter = gson.getAdapter(ZoneOffset.class);
+    return new TypeAdapter<OffsetDateTime>() {
+      @Override
+      public OffsetDateTime read(JsonReader in) throws IOException {
+        in.beginObject();
+        LocalDateTime localDateTime = null;
+        ZoneOffset zoneOffset = null;
+        while (in.peek() != JsonToken.END_OBJECT) {
+          String name = in.nextName();
+          switch (name) {
+            case "dateTime":
+              localDateTime = localDateTimeAdapter.read(in);
+              break;
+            case "offset":
+              zoneOffset = zoneOffsetAdapter.read(in);
+              break;
+            default:
+              // Ignore other fields.
+              in.skipValue();
+          }
+        }
+        in.endObject();
+        return OffsetDateTime.of(
+            requireNonNullField(localDateTime, "dateTime", in),
+            requireNonNullField(zoneOffset, "offset", in));
+      }
+
+      @Override
+      public void write(JsonWriter out, OffsetDateTime value) throws IOException {
+        out.beginObject();
+        out.name("dateTime");
+        localDateTimeAdapter.write(out, value.toLocalDateTime());
+        out.name("offset");
+        zoneOffsetAdapter.write(out, value.getOffset());
+        out.endObject();
+      }
+    }.nullSafe();
+  }
+
+  private static TypeAdapter<OffsetTime> offsetTime(Gson gson) {
+    TypeAdapter<LocalTime> localTimeAdapter = gson.getAdapter(LocalTime.class);
+    TypeAdapter<ZoneOffset> zoneOffsetAdapter = gson.getAdapter(ZoneOffset.class);
+    return new TypeAdapter<OffsetTime>() {
+      @Override
+      public OffsetTime read(JsonReader in) throws IOException {
+        in.beginObject();
+        LocalTime localTime = null;
+        ZoneOffset zoneOffset = null;
+        while (in.peek() != JsonToken.END_OBJECT) {
+          String name = in.nextName();
+          switch (name) {
+            case "time":
+              localTime = localTimeAdapter.read(in);
+              break;
+            case "offset":
+              zoneOffset = zoneOffsetAdapter.read(in);
+              break;
+            default:
+              // Ignore other fields.
+              in.skipValue();
+          }
+        }
+        in.endObject();
+        return OffsetTime.of(
+            requireNonNullField(localTime, "time", in),
+            requireNonNullField(zoneOffset, "offset", in));
+      }
+
+      @Override
+      public void write(JsonWriter out, OffsetTime value) throws IOException {
+        out.beginObject();
+        out.name("time");
+        localTimeAdapter.write(out, value.toLocalTime());
+        out.name("offset");
+        zoneOffsetAdapter.write(out, value.getOffset());
+        out.endObject();
+      }
+    }.nullSafe();
+  }
+
+  private static final TypeAdapter<Period> PERIOD = new PeriodAdapter();
+  private static final TypeAdapter<Year> YEAR = new YearAdapter();
+  private static final TypeAdapter<YearMonth> YEAR_MONTH = new YearMonthAdapter();
+
+  private static final class PeriodAdapter extends IntegerFieldsTypeAdapter<Period> {
+    PeriodAdapter() { super("years", "months", "days"); }
+    @Override Period create(long[] values) { return Period.of(toIntExact(values[0]), toIntExact(values[1]), toIntExact(values[2])); }
+    @Override long[] integerValues(Period p) { return new long[] {p.getYears(), p.getMonths(), p.getDays()}; }
+  }
+
+  private static final class YearAdapter extends IntegerFieldsTypeAdapter<Year> {
+    YearAdapter() { super("year"); }
+    @Override Year create(long[] values) { return Year.of(toIntExact(values[0])); }
+    @Override long[] integerValues(Year y) { return new long[] {y.getValue()}; }
+  }
+
+  private static final class YearMonthAdapter extends IntegerFieldsTypeAdapter<YearMonth> {
+    YearMonthAdapter() { super("year", "month"); }
+    @Override YearMonth create(long[] values) { return YearMonth.of(toIntExact(values[0]), toIntExact(values[1])); }
+    @Override long[] integerValues(YearMonth y) { return new long[] {y.getYear(), y.getMonthValue()}; }
+  }
+
+  // A ZoneId is either a ZoneOffset or a ZoneRegion, where ZoneOffset is public and ZoneRegion is
+  // not. For compatibility with reflection-based serialization, we need to write the "id" field of
+  // ZoneRegion if we have a ZoneRegion, and we need to write the "totalSeconds" field of ZoneOffset
+  // if we have a ZoneOffset. When reading, we need to construct the the appropriate thing depending
+  // on which of those two fields we see.
+  private static final TypeAdapter<ZoneId> ZONE_ID =
+      new TypeAdapter<ZoneId>() {
+        @Override
+        public ZoneId read(JsonReader in) throws IOException {
+          in.beginObject();
+          String id = null;
+          Integer totalSeconds = null;
+          while (in.peek() != JsonToken.END_OBJECT) {
+            String name = in.nextName();
+            switch (name) {
+              case "id":
+                id = in.nextString();
+                break;
+              case "totalSeconds":
+                totalSeconds = in.nextInt();
+                break;
+              default:
+                // Ignore other fields.
+                in.skipValue();
+            }
+          }
+          in.endObject();
+          if (id != null) {
+            return ZoneId.of(id);
+          } else if (totalSeconds != null) {
+            return ZoneOffset.ofTotalSeconds(totalSeconds);
+          } else {
+            throw new JsonSyntaxException(
+                "Missing id or totalSeconds field; at path " + in.getPreviousPath());
+          }
+        }
+
+        @Override
+        public void write(JsonWriter out, ZoneId value) throws IOException {
+          if (value instanceof ZoneOffset) {
+            out.beginObject();
+            out.name("totalSeconds");
+            out.value(((ZoneOffset) value).getTotalSeconds());
+            out.endObject();
+          } else {
+            out.beginObject();
+            out.name("id");
+            out.value(value.getId());
+            out.endObject();
+          }
+        }
+      }.nullSafe();
+
+  private static TypeAdapter<ZonedDateTime> zonedDateTime(Gson gson) {
+    TypeAdapter<LocalDateTime> localDateTimeAdapter = localDateTime(gson);
+    TypeAdapter<ZoneOffset> zoneOffsetAdapter = gson.getAdapter(ZoneOffset.class);
+    TypeAdapter<ZoneId> zoneIdAdapter = gson.getAdapter(ZoneId.class);
+    return new TypeAdapter<ZonedDateTime>() {
+      @Override
+      public ZonedDateTime read(JsonReader in) throws IOException {
+        in.beginObject();
+        LocalDateTime localDateTime = null;
+        ZoneOffset zoneOffset = null;
+        ZoneId zoneId = null;
+        while (in.peek() != JsonToken.END_OBJECT) {
+          String name = in.nextName();
+          switch (name) {
+            case "dateTime":
+              localDateTime = localDateTimeAdapter.read(in);
+              break;
+            case "offset":
+              zoneOffset = zoneOffsetAdapter.read(in);
+              break;
+            case "zone":
+              zoneId = zoneIdAdapter.read(in);
+              break;
+            default:
+              // Ignore other fields.
+              in.skipValue();
+          }
+        }
+        in.endObject();
+        return ZonedDateTime.ofInstant(
+            requireNonNullField(localDateTime, "dateTime", in),
+            requireNonNullField(zoneOffset, "offset", in),
+            requireNonNullField(zoneId, "zone", in));
+      }
+
+      @Override
+      public void write(JsonWriter out, ZonedDateTime value) throws IOException {
+        if (value == null) {
+          out.nullValue();
+          return;
+        }
+        out.beginObject();
+        out.name("dateTime");
+        localDateTimeAdapter.write(out, value.toLocalDateTime());
+        out.name("offset");
+        zoneOffsetAdapter.write(out, value.getOffset());
+        out.name("zone");
+        zoneIdAdapter.write(out, value.getZone());
+        out.endObject();
+      }
+    }.nullSafe();
+  }
+
+  static final TypeAdapterFactory JAVA_TIME_FACTORY =
+      new TypeAdapterFactory() {
+        @Override
+        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
+          Class<? super T> rawType = typeToken.getRawType();
+          if (!rawType.getName().startsWith("java.time.")) {
+            // Immediately return null so we don't load all these classes when nobody's doing
+            // anything with java.time.
+            return null;
+          }
+          TypeAdapter<?> adapter = null;
+          if (rawType == Duration.class) {
+            adapter = DURATION;
+          } else if (rawType == Instant.class) {
+            adapter = INSTANT;
+          } else if (rawType == LocalDate.class) {
+            adapter = LOCAL_DATE;
+          } else if (rawType == LocalTime.class) {
+            adapter = LOCAL_TIME;
+          } else if (rawType == LocalDateTime.class) {
+            adapter = localDateTime(gson);
+          } else if (rawType == MonthDay.class) {
+            adapter = MONTH_DAY;
+          } else if (rawType == OffsetDateTime.class) {
+            adapter = offsetDateTime(gson);
+          } else if (rawType == OffsetTime.class) {
+            adapter = offsetTime(gson);
+          } else if (rawType == Period.class) {
+            adapter = PERIOD;
+          } else if (rawType == Year.class) {
+            adapter = YEAR;
+          } else if (rawType == YearMonth.class) {
+            adapter = YEAR_MONTH;
+          } else if (rawType == ZoneId.class || rawType == ZoneOffset.class) {
+            // We don't check ZoneId.class.isAssignableFrom(rawType) because we don't want to match
+            // the non-public class ZoneRegion in the runtime type check in
+            // TypeAdapterRuntimeTypeWrapper.write. If we did, then our ZONE_ID would take
+            // precedence over a ZoneId adapter that the user might have registered. (This exact
+            // situation showed up in a Google-internal test.)
+            adapter = ZONE_ID;
+          } else if (rawType == ZonedDateTime.class) {
+            adapter = zonedDateTime(gson);
+          }
+          @SuppressWarnings("unchecked")
+          TypeAdapter<T> result = (TypeAdapter<T>) adapter;
+          return result;
+        }
+      };
+
+  private static <T> T requireNonNullField(T field, String fieldName, JsonReader reader) {
+    if (field == null) {
+      throw new JsonSyntaxException(
+          "Missing " + fieldName + " field; at path " + reader.getPreviousPath());
+    }
+    return field;
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/internal/bind/ArrayTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/BasicTypeAdapters.java`
+- `gson/src/main/java/com/google/gson/internal/bind/BuiltInTypeAdapterFactories.java`
+- `gson/src/main/java/com/google/gson/internal/bind/CollectionTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/EnumTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java`
+- `gson/src/main/java/com/google/gson/internal/bind/IgnoreJRERequirement.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java`
+- `gson/src/main/java/com/google/gson/internal/bind/JsonTreeWriter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/MapTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/NumberTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java`
+- `gson/src/main/java/com/google/gson/internal/bind/SerializationDelegatingTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TreeTypeAdapter.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java`
+- `gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

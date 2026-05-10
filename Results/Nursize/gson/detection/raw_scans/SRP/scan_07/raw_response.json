@@ -1,0 +1,95 @@
+{
+  "scan_id": "gson_SRP_scan_07",
+  "repo_name": "gson",
+  "principle": "SRP",
+  "scan_number": 7,
+  "timestamp": "2026-05-02T12:17:43.286750",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Single Responsibility Principle (SRP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a cla...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/GsonBuilder.java\",\n      \"entity_name\": \"GsonBuilder\",\n      \"entity_type\": \"class\",\n      \"line_start\": 92,\n      \"line_end\": 1076,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class configures and builds a Gson instance, but also contains complex logic for assembling the entire chain of TypeAdapterFactories.\",\n      \"reasoning\": \"The primary responsibility of a builder is to manage configuration options and construct an object. However, the `createFactories` method and its helpers (`addUserDefinedAdapters`, `addDateTypeAdapters`) encapsulate significant logic for orchestrating and prioritizing the creation of the complete TypeAdapterFactory chain (including built-in, user-defined, and conditional ones). This assembly logic is a distinct responsibility from merely holding and applying configuration parameters, leading to a separate reason for this class to change.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java\",\n      \"entity_name\": \"JsonWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 162,\n      \"line_end\": 836,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class is responsible for writing JSON, but also handles formatting, strictness validation, HTML escaping, and null serialization policy.\",\n      \"reasoning\": \"This class combines multiple distinct responsibilities: 1) Core JSON writing operations (managing document structure, writing values). 2) JSON formatting (indentation, newlines, spaces). 3) JSON strictness validation (e.g., handling NaN/Infinity, single top-level value). 4) HTML character escaping. 5) Policy for serializing null values. Each of these concerns represents a separate reason for the class to change; for example, a change in formatting rules should not require modifications to strictness validation logic.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java\",\n      \"entity_name\": \"LinkedTreeMap\",\n      \"entity_type\": \"class\",\n      \"line_start\": 44,\n      \"line_end\": 687,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class implements a map with ordered keys and insertion order, and also handles Java serialization.\",\n      \"reasoning\": \"This class combines at least three distinct responsibilities: 1) Implementing a balanced binary search tree for efficient ordered key access (`find`, `rebalance`, `rotateLeft`, `rotateRight`). 2) Maintaining insertion order using a doubly linked list (`header`, `Node.next`, `Node.prev`). 3) Handling Java serialization (`writeReplace`, `readObject`). Changes to the tree balancing algorithm, the linked list implementation, or the Java serialization strategy would all require modifying this single class, violating SRP.\"\n    },\n    {\n      \"file_path\": \"gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java\",\n      \"entity_name\": \"ParseBenchmark\",\n      \"entity_type\": \"class\",\n      \"line_start\": 58,\n      \"line_end\": 467,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class serves as a Caliper benchmark runner, but also defines all test data models and concrete parser implementations.\",\n      \"reasoning\": \"This class has multiple distinct reasons to change: 1) Changes to the benchmarking orchestration logic (e.g., how experiments are run, parameters are defined). 2) Changes to the test data models (e.g., `Tweet`, `User`, `Feed` structure). 3) Changes to the specific JSON parsing implementations for different libraries/APIs (e.g., `GsonStreamParser`, `JacksonBindParser`). These are separate concerns; data models and specific parser implementations should ideally be in their own files or classes, independent of the benchmark runner itself.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/util/ISO8601Utils.java\",\n      \"entity_name\": \"ISO8601Utils\",\n      \"entity_type\": \"class\",\n      \"line_start\": 39,\n      \"line_end\": 386,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class provides utility methods for both formatting Date objects into ISO 8601 strings and parsing ISO 8601 strings into Date objects.\",\n      \"reasoning\": \"Date formatting and date parsing, while inverse operations, represent distinct responsibilities. A change in how dates are formatted (e.g., new precision, different timezone representation) would affect the `format` methods, while a change in how strings are parsed (e.g., new accepted input formats, different error handling) would affect the `parse` method. These are two separate reasons for the class to change.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray\",\n      \"entity_type\": \"class\",\n      \"line_start\": 42,\n      \"line_end\": 436,\n      \"principle\": \"SRP\",\n      \"severity\": \"low\",\n      \"description\": \"The class represents a JSON array and manages its elements, but also provides convenience methods to interpret the array as a single primitive value.\",\n      \"reasoning\": \"The primary responsibility of `JsonArray` is to manage a collection of `JsonElement`s. However, the `getAsXxx()` methods (e.g., `getAsNumber()`, `getAsString()`) introduce a secondary responsibility of interpreting the array's content as a single primitive value, with specific validation (must have size 1). This transformation logic is distinct from the core data structure management.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement\",\n      \"entity_type\": \"class\",\n      \"line_start\": 96,\n      \"line_end\": 434,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The abstract base class for all JSON elements includes a `toString()` method that performs JSON serialization.\",\n      \"reasoning\": \"The primary responsibility of `JsonElement` is to define the common interface and behavior for all JSON data types. Including serialization logic in the `toString()` method couples the data representation to a specific serialization implementation (`JsonWriter` and `Streams`). If the default serialization format or behavior changes, this base class needs to change, which is a separate concern from defining the element's structure or basic type checks. Serialization should ideally be handled by a separate component (e.g., `Gson` or a dedicated serializer).\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+      "entity_name": "GsonBuilder",
+      "entity_type": "class",
+      "line_start": 92,
+      "line_end": 1076,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class configures and builds a Gson instance, but also contains complex logic for assembling the entire chain of TypeAdapterFactories.",
+      "reasoning": "The primary responsibility of a builder is to manage configuration options and construct an object. However, the `createFactories` method and its helpers (`addUserDefinedAdapters`, `addDateTypeAdapters`) encapsulate significant logic for orchestrating and prioritizing the creation of the complete TypeAdapterFactory chain (including built-in, user-defined, and conditional ones). This assembly logic is a distinct responsibility from merely holding and applying configuration parameters, leading to a separate reason for this class to change."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+      "entity_name": "JsonWriter",
+      "entity_type": "class",
+      "line_start": 162,
+      "line_end": 836,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class is responsible for writing JSON, but also handles formatting, strictness validation, HTML escaping, and null serialization policy.",
+      "reasoning": "This class combines multiple distinct responsibilities: 1) Core JSON writing operations (managing document structure, writing values). 2) JSON formatting (indentation, newlines, spaces). 3) JSON strictness validation (e.g., handling NaN/Infinity, single top-level value). 4) HTML character escaping. 5) Policy for serializing null values. Each of these concerns represents a separate reason for the class to change; for example, a change in formatting rules should not require modifications to strictness validation logic."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+      "entity_name": "LinkedTreeMap",
+      "entity_type": "class",
+      "line_start": 44,
+      "line_end": 687,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class implements a map with ordered keys and insertion order, and also handles Java serialization.",
+      "reasoning": "This class combines at least three distinct responsibilities: 1) Implementing a balanced binary search tree for efficient ordered key access (`find`, `rebalance`, `rotateLeft`, `rotateRight`). 2) Maintaining insertion order using a doubly linked list (`header`, `Node.next`, `Node.prev`). 3) Handling Java serialization (`writeReplace`, `readObject`). Changes to the tree balancing algorithm, the linked list implementation, or the Java serialization strategy would all require modifying this single class, violating SRP."
+    },
+    {
+      "file_path": "gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java",
+      "entity_name": "ParseBenchmark",
+      "entity_type": "class",
+      "line_start": 58,
+      "line_end": 467,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class serves as a Caliper benchmark runner, but also defines all test data models and concrete parser implementations.",
+      "reasoning": "This class has multiple distinct reasons to change: 1) Changes to the benchmarking orchestration logic (e.g., how experiments are run, parameters are defined). 2) Changes to the test data models (e.g., `Tweet`, `User`, `Feed` structure). 3) Changes to the specific JSON parsing implementations for different libraries/APIs (e.g., `GsonStreamParser`, `JacksonBindParser`). These are separate concerns; data models and specific parser implementations should ideally be in their own files or classes, independent of the benchmark runner itself."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/util/ISO8601Utils.java",
+      "entity_name": "ISO8601Utils",
+      "entity_type": "class",
+      "line_start": 39,
+      "line_end": 386,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class provides utility methods for both formatting Date objects into ISO 8601 strings and parsing ISO 8601 strings into Date objects.",
+      "reasoning": "Date formatting and date parsing, while inverse operations, represent distinct responsibilities. A change in how dates are formatted (e.g., new precision, different timezone representation) would affect the `format` methods, while a change in how strings are parsed (e.g., new accepted input formats, different error handling) would affect the `parse` method. These are two separate reasons for the class to change."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray",
+      "entity_type": "class",
+      "line_start": 42,
+      "line_end": 436,
+      "principle": "SRP",
+      "severity": "low",
+      "description": "The class represents a JSON array and manages its elements, but also provides convenience methods to interpret the array as a single primitive value.",
+      "reasoning": "The primary responsibility of `JsonArray` is to manage a collection of `JsonElement`s. However, the `getAsXxx()` methods (e.g., `getAsNumber()`, `getAsString()`) introduce a secondary responsibility of interpreting the array's content as a single primitive value, with specific validation (must have size 1). This transformation logic is distinct from the core data structure management."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement",
+      "entity_type": "class",
+      "line_start": 96,
+      "line_end": 434,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The abstract base class for all JSON elements includes a `toString()` method that performs JSON serialization.",
+      "reasoning": "The primary responsibility of `JsonElement` is to define the common interface and behavior for all JSON data types. Including serialization logic in the `toString()` method couples the data representation to a specific serialization implementation (`JsonWriter` and `Streams`). If the default serialization format or behavior changes, this base class needs to change, which is a separate concern from defining the element's structure or basic type checks. Serialization should ideally be handled by a separate component (e.g., `Gson` or a dedicated serializer)."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 49326.884508132935,
+  "error": null
+}

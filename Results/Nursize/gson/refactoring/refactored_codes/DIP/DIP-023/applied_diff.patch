@@ -1,0 +1,44 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java
+index 7e39836..8f8207e 100644
+--- a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java
++++ b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java
+@@ -356,27 +356,22 @@ public final class ConstructorConstructor {
+     ObjectConstructor<? extends Map<?, Object>> create(Type type, Class<?> rawType);
+   }
+ 
+-  private static final List<MapCreator> MAP_CREATORS = List.of(
+-      (type, rawType) -> {
+-        if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {
+-          return () -> new LinkedTreeMap<>();
+-        }
+-        return null;
+-      },
+-      (type, rawType) -> {
+-        if (LinkedHashMap.class.isAssignableFrom(rawType)) return LinkedHashMap::new;
+-        if (TreeMap.class.isAssignableFrom(rawType)) return TreeMap::new;
+-        if (ConcurrentHashMap.class.isAssignableFrom(rawType)) return ConcurrentHashMap::new;
+-        if (ConcurrentSkipListMap.class.isAssignableFrom(rawType)) return ConcurrentSkipListMap::new;
+-        return null;
+-      }
++  private static final Map<Class<?>, java.util.function.Supplier<Map<Object, Object>>> MAP_CONSTRUCTORS = Map.of(
++      LinkedHashMap.class, LinkedHashMap::new,
++      TreeMap.class, TreeMap::new,
++      ConcurrentHashMap.class, ConcurrentHashMap::new,
++      ConcurrentSkipListMap.class, ConcurrentSkipListMap::new
+   );
+ 
+   private static ObjectConstructor<? extends Map<?, Object>> newMapConstructor(
+       Type type, Class<?> rawType) {
+-    for (MapCreator creator : MAP_CREATORS) {
+-      ObjectConstructor<? extends Map<?, Object>> constructor = creator.create(type, rawType);
+-      if (constructor != null) return constructor;
++    if (LinkedTreeMap.class.isAssignableFrom(rawType) && hasStringKeyType(type)) {
++      return LinkedTreeMap::new;
++    }
++    for (Map.Entry<Class<?>, java.util.function.Supplier<Map<Object, Object>>> entry : MAP_CONSTRUCTORS.entrySet()) {
++      if (entry.getKey().isAssignableFrom(rawType)) {
++        return entry.getValue()::get;
++      }
+     }
+     return null;
+   }

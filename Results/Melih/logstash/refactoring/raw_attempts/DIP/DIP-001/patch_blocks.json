@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "        this.pageCapacity = settings.getCapacity();\n        this.maxBytes = settings.getQueueMaxBytes();\n        this.checkpointIO = new FileCheckpointIO(dirPath, settings.getCheckpointRetry());\n        this.elementClass = settings.getElementClass();",
+    "replace_text": "        this.pageCapacity = settings.getCapacity();\n        this.maxBytes = settings.getQueueMaxBytes();\n        this.checkpointIO = settings.getCheckpointIO(this.queueManager.getDirPath().toString());\n        this.elementClass = settings.getElementClass();"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "    public Queue(Settings settings, Metric metric) {\n        this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n        try {\n            this.queueManager = new QueueManager(settings.getDirPath());\n        } catch (final IOException ex) {\n            throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n        }\n\n        this.pageCapacity = settings.getCapacity();",
+    "replace_text": "    public Queue(Settings settings, Metric metric) {\n        this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n        try {\n            this.queueManager = new QueueManager(settings.getDirPath());\n        } catch (final IOException ex) {\n            throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n        }\n\n        this.pageCapacity = settings.getCapacity();"
+  }
+]

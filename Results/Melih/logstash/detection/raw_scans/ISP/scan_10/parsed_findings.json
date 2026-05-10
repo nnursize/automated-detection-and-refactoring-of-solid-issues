@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The Queue class is a bloated, fat interface implementation that handles queue management, disk I/O, checkpointing, and batch reading.",
+    "reasoning": "The Queue class violates ISP by combining too many responsibilities (disk management, checkpointing, batching, and queue state). Clients needing only to read batches or check queue status are forced to depend on a class that also contains complex disk I/O and checkpointing logic, making it difficult to test and maintain."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "AbstractPipelineExt is a fat class that mixes pipeline configuration, metric collection, DLQ management, and worker management.",
+    "reasoning": "This class forces any subclass to depend on a massive API surface area. It handles metrics, DLQ, and pipeline configuration simultaneously. It should be segregated into smaller interfaces like PipelineConfig, MetricCollector, and DlqManager to allow clients to depend only on the specific functionality they require."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter",
+    "entity_type": "class",
+    "line_start": 109,
+    "line_end": 814,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "DeadLetterQueueWriter handles both writing entries and managing retention policies/file system watching.",
+    "reasoning": "The class is bloated with logic for file system watching, retention policy execution, and segment finalization. Clients that only need to write entries are forced to depend on the entire management and cleanup logic, violating ISP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event",
+    "entity_type": "class",
+    "line_start": 51,
+    "line_end": 583,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Event class implements too many interfaces and handles serialization, field manipulation, and tagging.",
+    "reasoning": "The Event class implements multiple interfaces (Cloneable, Queueable, co.elastic.logstash.api.Event) and contains a massive amount of methods for JSON parsing, field manipulation, and timestamp management. It forces any client using an Event to depend on all these disparate functionalities."
+  }
+]

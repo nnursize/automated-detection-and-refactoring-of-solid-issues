@@ -1,0 +1,1178 @@
+{
+  "repo_name": "gson",
+  "per_principle_quota": 12,
+  "total_selected": 60,
+  "total_quota": 60,
+  "short_of_quota": {},
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-004",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "entity_name": "TypeAdapters",
+        "entity_type": "class",
+        "line_start": 27,
+        "line_end": 579,
+        "description": "The TypeAdapters class acts as a monolithic registry and factory for a vast array of unrelated basic Java types.",
+        "reasoning": "This class bundles a multitude of distinct concerns: providing static `TypeAdapter` instances for various primitives, wrappers, standard library types (e.g., `BitSet`, `URL`, `Locale`, `Calendar`, atomic types), custom number parsing logic (`checkValidFloatingPoint`, `IntegerFieldsTypeAdapter`), and factory methods for creating generic type adapter factories. A change in the default adapter for any of these types, the logic for handling floating-point numbers, or the factory creation mechanism would all necessitate changes to this single class. This is a clear violation of SRP, indicating a 'God class' symptom.",
+        "first_detected_scan": "gson_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_03",
+          "gson_SRP_scan_04",
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_10",
+          "gson_SRP_scan_11",
+          "gson_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-001",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "entity_name": "JsonReader",
+        "entity_type": "class",
+        "line_start": 105,
+        "line_end": 1004,
+        "description": "The JsonReader class is responsible for parsing JSON tokens from a character stream, but also handles buffer management, character escaping, and error reporting.",
+        "reasoning": "The `JsonReader` class has multiple reasons to change. It's responsible for: \n1.  **JSON Tokenization**: Identifying and extracting JSON tokens (objects, arrays, primitives, names). (e.g., `doPeek()`, `peekKeyword()`, `peekNumber()`).\n2.  **Input Stream Management**: Reading characters from the underlying `Reader`, buffering them, and managing the buffer position (`fillBuffer()`, `pos`, `limit`).\n3.  **Lexical Analysis / Character Handling**: Skipping whitespace, comments, and handling escape sequences (`nextNonWhitespace()`, `readEscapeCharacter()`, `skipTo()`, `skipToEndOfLine()`).\n4.  **Error Reporting / Context**: Generating detailed error messages with line/column numbers and JSON path (`syntaxError()`, `unexpectedTokenError()`, `locationString()`, `getPath()`).\n\nThese responsibilities are distinct. For example, changes to how the input stream is buffered (e.g., a different buffering strategy) would require modifying `fillBuffer()`, while changes to JSON parsing rules (e.g., new lenient modes) would affect `doPeek()` and `peekKeyword()`. Changes to error message formatting would affect `locationString()` and `syntaxError()`. Separating these concerns into smaller, more focused classes would improve maintainability and testability.",
+        "first_detected_scan": "gson_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_01",
+          "gson_SRP_scan_02",
+          "gson_SRP_scan_04",
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-011",
+        "rank": 3,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/JsonArray.java",
+        "entity_name": "JsonArray",
+        "entity_type": "class",
+        "line_start": 29,
+        "line_end": 297,
+        "description": "The JsonArray class manages a collection of JsonElements and also provides a comprehensive API for converting a single element within itself to various primitive types.",
+        "reasoning": "This class exhibits a 'Divergent Change' smell. Its primary responsibility is to represent and manage an ordered list of `JsonElement`s (collection management via `add`, `remove`, `size`, `iterator`). However, it also provides a large number of `getAs...` methods (e.g., `getAsNumber`, `getAsString`, `getAsDouble`) specifically designed to convert the *single* element of the array into a primitive type. These methods throw an `IllegalStateException` if the array does not contain exactly one element, highlighting that this is a distinct 'single-element conversion' responsibility, separate from its role as a general collection.",
+        "first_detected_scan": "gson_SRP_scan_05",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_06",
+          "gson_SRP_scan_07",
+          "gson_SRP_scan_09",
+          "gson_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-006",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+        "entity_name": "LinkedTreeMap",
+        "entity_type": "class",
+        "line_start": 33,
+        "line_end": 462,
+        "description": "The LinkedTreeMap class tightly couples the Map interface implementation with the complex logic of two distinct underlying data structures: a balanced binary search tree and a doubly linked list.",
+        "reasoning": "This class exhibits the God Class smell. It is responsible for implementing the standard `Map` interface, maintaining a balanced binary search tree for efficient key-based operations (involving `root`, `left`, `right`, `parent`, `height`, `rebalance`, `rotateLeft`, `rotateRight`), and simultaneously managing a doubly linked list to preserve insertion order (`header`, `next`, `prev`). These are fundamentally distinct data structure concerns. Changes to the tree balancing algorithm, the iteration order mechanism, or the core map behavior would all require modifications to this single class, violating SRP.",
+        "first_detected_scan": "gson_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_04",
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_07",
+          "gson_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-008",
+        "rank": 5,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "entity_name": "JsonWriter",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 508,
+        "description": "The JsonWriter class is responsible for writing JSON tokens, managing JSON formatting (indentation, newlines, spaces), and handling HTML escaping.",
+        "reasoning": "This class exhibits a 'God Class' smell. It combines the core responsibility of writing syntactically correct JSON tokens to a character stream with distinct concerns such as: (1) applying formatting styles (indentation, newlines, spaces after separators, managed by `formattedColon`, `formattedComma`, `usesEmptyNewlineAndIndent` and `newline` method), and (2) performing HTML character escaping (`htmlSafe` flag and `string` method's logic). Changes to formatting rules or HTML escaping logic are separate reasons to change from ensuring valid JSON token output.",
+        "first_detected_scan": "gson_SRP_scan_05",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_06",
+          "gson_SRP_scan_07",
+          "gson_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-021",
+        "rank": 6,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java",
+        "entity_name": "ParseBenchmark",
+        "entity_type": "class",
+        "line_start": 58,
+        "line_end": 467,
+        "description": "The class serves as a Caliper benchmark runner, but also defines all test data models and concrete parser implementations.",
+        "reasoning": "This class has multiple distinct reasons to change: 1) Changes to the benchmarking orchestration logic (e.g., how experiments are run, parameters are defined). 2) Changes to the test data models (e.g., `Tweet`, `User`, `Feed` structure). 3) Changes to the specific JSON parsing implementations for different libraries/APIs (e.g., `GsonStreamParser`, `JacksonBindParser`). These are separate concerns; data models and specific parser implementations should ideally be in their own files or classes, independent of the benchmark runner itself.",
+        "first_detected_scan": "gson_SRP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_07",
+          "gson_SRP_scan_08",
+          "gson_SRP_scan_09",
+          "gson_SRP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "SRP-012",
+        "rank": 7,
+        "scan_count": 4,
+        "severity": "low",
+        "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "entity_name": "JsonElement",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 353,
+        "description": "The JsonElement abstract class imposes primitive value conversion responsibilities on all its subclasses, even when not applicable.",
+        "reasoning": "By including abstract `getAsBoolean()`, `getAsNumber()`, `getAsString()`, etc., methods, this class forces all its subclasses (e.g., `JsonObject`, `JsonNull`) to implement a 'primitive value conversion' responsibility, even though these subclasses do not inherently represent primitive values. This leads to implementations in `JsonObject` and `JsonNull` that simply throw `UnsupportedOperationException`, indicating that this responsibility does not naturally belong to them.",
+        "first_detected_scan": "gson_SRP_scan_05",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_06",
+          "gson_SRP_scan_07",
+          "gson_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-035",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+        "entity_name": "JavaTimeTypeAdapters",
+        "entity_type": "class",
+        "line_start": 44,
+        "line_end": 449,
+        "description": "Aggregates numerous distinct Java Time API TypeAdapter implementations.",
+        "reasoning": "Similar to `TypeAdapters`, this class bundles the serialization and deserialization logic for many different Java 8 Date and Time API types (e.g., `Duration`, `Instant`, `LocalDate`, `LocalDateTime`, `MonthDay`, `OffsetDateTime`, `OffsetTime`, `Period`, `Year`, `YearMonth`, `ZoneId`, `ZonedDateTime`). Each of these types has unique serialization/deserialization requirements, representing a separate reason for change. Consolidating them into a single class violates SRP by making it responsible for too many distinct concerns within the Java Time API domain.",
+        "first_detected_scan": "gson_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_10",
+          "gson_SRP_scan_11",
+          "gson_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-007",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "entity_name": "ReflectiveTypeAdapterFactory",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 457,
+        "description": "The ReflectiveTypeAdapterFactory orchestrates a complex process of class introspection, applying various configuration rules (exclusion, naming, access), and creating specialized adapters for different class structures.",
+        "reasoning": "This class exhibits the God Class smell. It is responsible for a multitude of concerns related to reflective type adaptation: delegating field exclusion to `excluder`, determining JSON field names based on `fieldNamingPolicy` and `@SerializedName` (`getFieldNames`), applying reflection access filters, handling different class types (regular classes vs. Java Records), creating object constructors via `constructorConstructor`, managing `@JsonAdapter` annotations, building `BoundField` representations, and traversing the class hierarchy (`getBoundFields`). This broad and intricate set of responsibilities means it has many independent reasons to change, such as updates to field naming conventions, new record features, or changes in reflection access rules, violating SRP.",
+        "first_detected_scan": "gson_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_04",
+          "gson_SRP_scan_05",
+          "gson_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-003",
+        "rank": 10,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "entity_name": "Gson",
+        "entity_type": "class",
+        "line_start": 48,
+        "line_end": 744,
+        "description": "The Gson class is responsible for object serialization/deserialization, managing a type adapter cache, and configuring JSON I/O streams.",
+        "reasoning": "The core responsibility of Gson is to coordinate object graph serialization and deserialization. However, it also directly holds and applies numerous configuration settings (e.g., `serializeNulls`, `htmlSafe`, `formattingStyle`, `strictness`) that dictate how the underlying `JsonReader` and `JsonWriter` instances are configured. This mixes the high-level object mapping responsibility with the more granular responsibility of configuring I/O stream behavior. A change in JSON formatting rules or parsing strictness requires modifying `Gson`, which is distinct from changes to its core object mapping logic.",
+        "first_detected_scan": "gson_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_03",
+          "gson_SRP_scan_04",
+          "gson_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-005",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder",
+        "entity_type": "class",
+        "line_start": 45,
+        "line_end": 485,
+        "description": "The GsonBuilder class manages an excessive number of diverse configuration options and complex factory creation logic for building a Gson instance.",
+        "reasoning": "This class exhibits the God Class smell. It aggregates an extensive set of configuration parameters, including exclusion strategies, field naming policies, instance creators, multiple lists of TypeAdapterFactories, null serialization, date formats, map key serialization, floating point handling, HTML escaping, non-executable JSON generation, strictness, JDK Unsafe usage, and reflection access filters. The `createFactories` method (lines 370-450) is particularly complex, orchestrating the assembly of numerous internal TypeAdapterFactory instances based on these diverse settings. This wide range of responsibilities means the class has many independent reasons to change, such as adding a new exclusion mechanism, modifying date format options, or introducing new number handling strategies, violating SRP.",
+        "first_detected_scan": "gson_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_04",
+          "gson_SRP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "SRP-002",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder.createFactories",
+        "entity_type": "method",
+        "line_start": 570,
+        "line_end": 639,
+        "description": "The createFactories method is a 'God method' that orchestrates the creation and ordering of a large number of TypeAdapterFactory instances.",
+        "reasoning": "This method is responsible for assembling the entire list of TypeAdapterFactory instances, including built-in adapters, user-defined adapters, custom date adapters, and reflective adapters. It contains extensive knowledge about the dependencies and specific ordering requirements of all these factories. If a new built-in adapter is added, or the order changes, this method needs modification. This combines the responsibilities of discovering, ordering, and instantiating all available factories, which could be decomposed into more focused helper methods or a dedicated factory assembler.",
+        "first_detected_scan": "gson_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_SRP_scan_02",
+          "gson_SRP_scan_07"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-025",
+        "rank": 1,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "entity_name": "ConstructorConstructor.get",
+        "entity_type": "method",
+        "line_start": 60,
+        "line_end": 109,
+        "description": "Long if-else if chain for object construction strategies violates OCP.",
+        "reasoning": "The `get()` method uses a long `if-else if` chain to determine the appropriate `ObjectConstructor` based on the type. Adding new strategies for object construction (e.g., for new special types, or new default implementations) would require modifying this central method, making it closed for extension.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_03",
+          "gson_OCP_scan_04",
+          "gson_OCP_scan_05",
+          "gson_OCP_scan_08",
+          "gson_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-026",
+        "rank": 2,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "entity_name": "ConstructorConstructor.newSpecialCollectionConstructor",
+        "entity_type": "method",
+        "line_start": 112,
+        "line_end": 147,
+        "description": "If-else if chain for special collection types violates OCP.",
+        "reasoning": "This method contains an `if-else if` chain specifically checking for `EnumSet.class` and `EnumMap.class`. If support for other special collection types (e.g., new JDK collection types) were needed, this method would require modification.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_03",
+          "gson_OCP_scan_06",
+          "gson_OCP_scan_10",
+          "gson_OCP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "OCP-041",
+        "rank": 3,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+        "entity_name": "JsonElementTypeAdapter.write",
+        "entity_type": "method",
+        "line_start": 90,
+        "line_end": 117,
+        "description": "Large if-else if chain for writing JsonElement types violates OCP.",
+        "reasoning": "The `write()` method contains a large `if-else if` chain that dispatches logic based on the concrete type of `JsonElement` (isJsonNull, isJsonPrimitive, isJsonArray, isJsonObject). If a new subclass of `JsonElement` were introduced, this method would require modification to handle it, violating OCP.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_04",
+          "gson_OCP_scan_05",
+          "gson_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-002",
+        "rank": 4,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "entity_name": "JsonReader.doPeek",
+        "entity_type": "method",
+        "line_start": 298,
+        "line_end": 401,
+        "description": "Extensive if-else if and switch statements for parsing logic violate OCP.",
+        "reasoning": "The `doPeek()` method contains multiple `if-else if` and `switch` statements that handle different `JsonScope` states and character parsing rules. Any addition of new JSON structures, parsing rules, or token types would necessitate modifying this method, making it closed for extension without modification.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_03",
+          "gson_OCP_scan_05",
+          "gson_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-019",
+        "rank": 5,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder.createFactories",
+        "entity_type": "method",
+        "line_start": 444,
+        "line_end": 506,
+        "description": "Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+        "reasoning": "The `createFactories()` method explicitly adds a long, ordered list of built-in `TypeAdapterFactory` instances. Any new fundamental type adapter or change in the default serialization behavior for core types would require modifying this method to add or reorder factories, making it closed for extension.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_06",
+          "gson_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-028",
+        "rank": 6,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "entity_name": "ConstructorConstructor.newCollectionConstructor",
+        "entity_type": "method",
+        "line_start": 220,
+        "line_end": 239,
+        "description": "If-else if chain for default collection implementations violates OCP.",
+        "reasoning": "This method contains an `if-else if` chain checking for specific `Collection` implementations (`ArrayList`, `LinkedHashSet`, `TreeSet`, `ArrayDeque`). Adding support for other default collection implementations would require modifying this method.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_03",
+          "gson_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-029",
+        "rank": 7,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "entity_name": "ConstructorConstructor.newMapConstructor",
+        "entity_type": "method",
+        "line_start": 249,
+        "line_end": 274,
+        "description": "If-else if chain for default map implementations violates OCP.",
+        "reasoning": "This method contains an `if-else if` chain checking for specific `Map` implementations (`LinkedTreeMap`, `LinkedHashMap`, `TreeMap`, `ConcurrentHashMap`, `ConcurrentSkipListMap`). Adding support for other default map implementations would require modifying this method.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_03",
+          "gson_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-023",
+        "rank": 8,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "entity_name": "ReflectiveTypeAdapterFactory.create",
+        "entity_type": "method",
+        "line_start": 69,
+        "line_end": 104,
+        "description": "Conditional logic for special class types (anonymous, local, record) violates OCP.",
+        "reasoning": "The `create()` method contains `if` checks for `ReflectionHelper.isAnonymousOrNonStaticLocal` and `ReflectionHelper.isRecord`. If new special class types requiring different reflection-based serialization/deserialization handling were introduced, this method would need modification to include new `if` branches, violating OCP.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_04",
+          "gson_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-092",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder.createFactories",
+        "entity_type": "method",
+        "line_start": 700,
+        "line_end": 766,
+        "description": "Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+        "reasoning": "The `createFactories` method explicitly adds a fixed list of `TypeAdapterFactory` instances for various types. If Gson needs to support a new built-in type or a new way of handling an existing type, this method must be modified to add the new factory. This makes the class closed for extension without modification.",
+        "first_detected_scan": "gson_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_07",
+          "gson_OCP_scan_08",
+          "gson_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-018",
+        "rank": 10,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+        "entity_name": "JavaTimeTypeAdapters.JAVA_TIME_FACTORY.create",
+        "entity_type": "method",
+        "line_start": 340,
+        "line_end": 376,
+        "description": "Large if-else if chain for specific java.time types violates OCP.",
+        "reasoning": "The `create` method in `JAVA_TIME_FACTORY` contains a long `if-else if` chain that explicitly checks for numerous `java.time` classes (Duration, Instant, LocalDate, etc.) to return their respective type adapters. Adding support for any new `java.time` type would require modifying this method, making it a clear violation of OCP.",
+        "first_detected_scan": "gson_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_01",
+          "gson_OCP_scan_09",
+          "gson_OCP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "OCP-070",
+        "rank": 11,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+        "entity_name": "JsonElementTypeAdapter.read",
+        "entity_type": "method",
+        "line_start": 44,
+        "line_end": 96,
+        "description": "If-else if chain and switch statements for reading different JSON element types, requiring modification for new types.",
+        "reasoning": "The `read` method, particularly through its calls to `tryBeginNesting` and `readTerminal`, contains `switch` statements that dispatch logic based on `JsonToken` (e.g., `BEGIN_ARRAY`, `BEGIN_OBJECT`, `STRING`, `NUMBER`, `BOOLEAN`, `NULL`). Additionally, there's an `if (in instanceof JsonTreeReader)` check for optimization. If new JSON token types or new `JsonReader` subclasses that offer specialized reading were introduced, these conditional structures would need to be modified. This is a clear OCP violation, as extending JSON parsing capabilities or reader types requires altering existing code.",
+        "first_detected_scan": "gson_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_10",
+          "gson_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-069",
+        "rank": 12,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+        "entity_name": "JsonTreeReader.peek",
+        "entity_type": "method",
+        "line_start": 133,
+        "line_end": 174,
+        "description": "Large if-else if chain on stack object types, requiring modification for new internal types or JsonElement types.",
+        "reasoning": "The `peek` method contains a long `if/else if` chain that inspects the type of the object on top of the internal stack (`o instanceof Iterator`, `o instanceof JsonObject`, `o instanceof JsonArray`, `o instanceof JsonPrimitive`, `o instanceof JsonNull`). Furthermore, the `JsonPrimitive` branch has nested `if/else if` checks. If a new internal stack object type or a new `JsonElement` subclass were introduced, this method would need to be modified to include new `else if` branches. This is a clear OCP violation, as extending the internal representation or JSON element types requires altering this core method.",
+        "first_detected_scan": "gson_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_OCP_scan_02",
+          "gson_OCP_scan_11",
+          "gson_OCP_scan_12"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-009",
+        "rank": 1,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+        "entity_name": "JsonTreeReader",
+        "entity_type": "class",
+        "line_start": 41,
+        "line_end": 223,
+        "description": "JsonTreeReader violates JsonReader's contract by using an unreadable internal Reader and changing close() behavior.",
+        "reasoning": "The `JsonTreeReader` extends `JsonReader`. Its constructor initializes the superclass with `UNREADABLE_READER`, an anonymous `Reader` implementation that throws `AssertionError` for `read` and `close` methods. This fundamentally breaks the contract of `JsonReader` (and `Closeable`). A client expecting a `JsonReader` to operate on an underlying `Reader` or to properly close resources will encounter an `AssertionError` when calling `close()` on a `JsonTreeReader` instance, instead of the expected `IOException` or a normal close. This makes `JsonTreeReader` not substitutable for `JsonReader` in scenarios where the underlying stream interaction or resource management is expected.",
+        "first_detected_scan": "gson_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_02",
+          "gson_LSP_scan_03",
+          "gson_LSP_scan_05",
+          "gson_LSP_scan_06",
+          "gson_LSP_scan_09",
+          "gson_LSP_scan_11",
+          "gson_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-028",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "entity_name": "ReflectiveTypeAdapterFactory.create",
+        "entity_type": "method",
+        "line_start": 98,
+        "line_end": 117,
+        "description": "Returns a TypeAdapter that ignores content for anonymous/local classes, changing reflective behavior.",
+        "reasoning": "For anonymous or non-static local classes, the `create` method returns a `TypeAdapter` that serializes to JSON `null` and deserializes by skipping the value and returning Java `null`. This deviates from the expected reflective serialization/deserialization behavior of a `ReflectiveTypeAdapterFactory`, which is to process the object's fields. This makes the generated adapter not fully substitutable for a truly reflective adapter for all class types.",
+        "first_detected_scan": "gson_LSP_scan_04",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_04",
+          "gson_LSP_scan_06",
+          "gson_LSP_scan_07",
+          "gson_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-019",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonArray.java",
+        "entity_name": "JsonArray.getAsNumber",
+        "entity_type": "method",
+        "line_start": 218,
+        "line_end": 220,
+        "description": "The 'getAsNumber' method (and similar getAs... methods) throws IllegalStateException if the array contains more than one element, narrowing preconditions.",
+        "reasoning": "The `JsonArray.getAsNumber()` method (and all other `getAs...()` methods like `getAsString()`, `getAsDouble()`, etc.) overrides an abstract method in `JsonElement`. In `JsonElement`, these methods throw `UnsupportedOperationException`. `JsonArray` introduces a new precondition: the array must contain exactly one element, enforced by `getAsSingleElement()` throwing `IllegalStateException` if `size() != 1`. This narrows the method's precondition considerably. A client treating a `JsonArray` polymorphically as a `JsonElement` would not expect an `IllegalStateException` due to the array's size, as the base contract only specifies `UnsupportedOperationException`. This breaks substitutability.",
+        "first_detected_scan": "gson_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_03",
+          "gson_LSP_scan_05",
+          "gson_LSP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "LSP-108",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+        "entity_name": "RecordNotSupportedHelper.getRecordComponentNames",
+        "entity_type": "method",
+        "line_start": 308,
+        "line_end": 309,
+        "description": "Concrete subclass implements abstract methods by throwing UnsupportedOperationException.",
+        "reasoning": "`RecordHelper` is an abstract class defining abstract methods like `getRecordComponentNames()`. `RecordNotSupportedHelper` is a concrete subclass that implements this (and other abstract methods) by throwing `UnsupportedOperationException`. This directly violates LSP because a client expecting a `RecordHelper` would not anticipate `UnsupportedOperationException` for a method that is declared abstract, implying it should be supported by all concrete implementations. This forces clients to handle a specific exception for this subtype, breaking substitutability.",
+        "first_detected_scan": "gson_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_10",
+          "gson_LSP_scan_11",
+          "gson_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-107",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/JsonPrimitive.java",
+        "entity_name": "JsonPrimitive.getAsNumber",
+        "entity_type": "method",
+        "line_start": 139,
+        "line_end": 145,
+        "description": "Subclass throws UnsupportedOperationException for a method defined in the base class contract.",
+        "reasoning": "`JsonElement` defines `getAsNumber()`. `JsonPrimitive.getAsNumber()` throws `UnsupportedOperationException` if the primitive is not a number or string (e.g., if it's a boolean primitive). This indicates that the operation is not supported for certain valid states of the `JsonPrimitive`, violating the contract implied by `JsonElement`. Instead, it should either return a default value (if contract allows) or throw a more appropriate exception like `IllegalStateException` or `JsonParseException`, consistent with other `getAsX` methods in the `JsonElement` hierarchy.",
+        "first_detected_scan": "gson_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_10",
+          "gson_LSP_scan_11",
+          "gson_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-013",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "entity_name": "TypeAdapters.BIT_SET.read",
+        "entity_type": "method",
+        "line_start": 71,
+        "line_end": 96,
+        "description": "The 'read' method for BitSet adapter accepts NUMBER or STRING tokens but throws JsonSyntaxException for values other than 0 or 1, narrowing accepted input.",
+        "reasoning": "The `BitSet` `TypeAdapter`'s `read` method uses `in.nextInt()` or `in.nextString()` to read JSON tokens that are of type `NUMBER` or `STRING`. It then imposes an additional constraint, requiring these numeric or string values to be either `0` or `1`. If any other numeric or string value is encountered, it throws a `JsonSyntaxException`. While a `TypeAdapter`'s role is to convert, this behavior narrows the acceptable range of values for what `JsonReader` reports as `NUMBER` or `STRING`. A generic `TypeAdapter<Collection<Boolean>>` (conceptually similar) would likely accept any valid number or string and convert it, whereas this specialized adapter rejects valid input for its underlying primitive types, violating substitutability for a broader `Number` or `String` type adapter.",
+        "first_detected_scan": "gson_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_03",
+          "gson_LSP_scan_07",
+          "gson_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-058",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "entity_name": "TypeAdapters.FloatAdapter.write",
+        "entity_type": "method",
+        "line_start": 464,
+        "line_end": 479,
+        "description": "Subtype introduces a new precondition by throwing IllegalArgumentException for NaN/Infinity values.",
+        "reasoning": "The TypeAdapter<Number>.write method does not explicitly state a precondition that floating-point numbers must be finite. By throwing an IllegalArgumentException for NaN or Infinity values when 'strict' is true, FloatAdapter introduces a new precondition that might not be expected by clients using TypeAdapter<Number> polymorphically. While IllegalArgumentException is a RuntimeException and thus doesn't break the method signature, it alters the expected behavior.",
+        "first_detected_scan": "gson_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_07",
+          "gson_LSP_scan_08",
+          "gson_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-059",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "entity_name": "TypeAdapters.DoubleAdapter.write",
+        "entity_type": "method",
+        "line_start": 497,
+        "line_end": 509,
+        "description": "Subtype introduces a new precondition by throwing IllegalArgumentException for NaN/Infinity values.",
+        "reasoning": "The TypeAdapter<Number>.write method does not explicitly state a precondition that floating-point numbers must be finite. By throwing an IllegalArgumentException for NaN or Infinity values when 'strict' is true, DoubleAdapter introduces a new precondition that might not be expected by clients using TypeAdapter<Number> polymorphically. While IllegalArgumentException is a RuntimeException and thus doesn't break the method signature, it alters the expected behavior.",
+        "first_detected_scan": "gson_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_07",
+          "gson_LSP_scan_08",
+          "gson_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-112",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+        "entity_name": "ProtoTypeAdapter.deserialize",
+        "entity_type": "method",
+        "line_start": 295,
+        "line_end": 295,
+        "description": "Subtype strengthens precondition by restricting input types not specified in the base interface.",
+        "reasoning": "`ProtoTypeAdapter` implements `JsonDeserializer<Message>`. Its `deserialize` method throws an `IllegalStateException` with the message 'only generated messages are supported'. The `JsonDeserializer` interface's `deserialize` method contract does not specify such a restriction on the `Message` type. By imposing this stronger precondition, `ProtoTypeAdapter` violates LSP, as it cannot be substituted for a general `JsonDeserializer<Message>` without potentially causing unexpected runtime errors for clients providing non-generated `Message` types.",
+        "first_detected_scan": "gson_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_10",
+          "gson_LSP_scan_11",
+          "gson_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-105",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "entity_name": "JsonElement.getAsJsonObject",
+        "entity_type": "method",
+        "line_start": 159,
+        "line_end": 163,
+        "description": "Base class contract for 'getAsX' methods is too broad, forcing subclasses to throw IllegalStateException.",
+        "reasoning": "The `JsonElement` abstract class defines numerous `getAsX()` methods (e.g., `getAsJsonObject()`, `getAsJsonArray()`, `getAsNumber()`, `getAsString()`). Its default implementations throw `IllegalStateException` if the element is not of the expected type. Subtypes like `JsonArray`, `JsonObject`, `JsonPrimitive`, and `JsonNull` cannot logically fulfill all these contracts. For example, a `JsonArray` cannot be converted to a `JsonObject` or a `Number`. This forces clients to perform type-checking (e.g., `isJsonArray()`) before calling `getAsJsonArray()`, which is a classic indicator of a 'fat interface' and an LSP violation. Subtypes are not substitutable for the base type without clients needing to know the concrete type to avoid runtime exceptions.",
+        "first_detected_scan": "gson_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_10",
+          "gson_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-085",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "entity_name": "ConstructorConstructor.ThrowingObjectConstructor.construct",
+        "entity_type": "method",
+        "line_start": 440,
+        "line_end": 447,
+        "description": "Subtype's construct method throws a checked exception (JsonIOException) not declared by the functional interface ObjectConstructor.",
+        "reasoning": "The `ObjectConstructor.construct()` method is part of a functional interface and declares no checked exceptions. The `ThrowingObjectConstructor.construct()` implementation explicitly throws `JsonIOException`, which is a checked exception (subclass of `IOException`). This directly violates the interface's contract, as a client using `ObjectConstructor` would not be required to catch `JsonIOException` by the compiler, leading to unexpected runtime failures.",
+        "first_detected_scan": "gson_LSP_scan_08",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_08",
+          "gson_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-020",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+        "entity_name": "NonNullElementWrapperList.add",
+        "entity_type": "method",
+        "line_start": 43,
+        "line_end": 45,
+        "description": "The 'add' and 'set' methods throw NullPointerException for null elements, strengthening preconditions compared to standard ArrayList.",
+        "reasoning": "The `NonNullElementWrapperList` wraps an `ArrayList`. Its `add(int, E)` and `set(int, E)` methods explicitly throw `NullPointerException` if the element to be added or set is `null`. A standard `ArrayList<E>` (for object types) typically permits `null` elements. By disallowing `null` elements and throwing a `NullPointerException`, this class strengthens the precondition for these methods. If a client expects a `List` that behaves like a standard `ArrayList` (allowing `null`s), substituting `NonNullElementWrapperList` would violate LSP by introducing a stricter contract.",
+        "first_detected_scan": "gson_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_LSP_scan_03",
+          "gson_LSP_scan_10"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-006",
+        "rank": 1,
+        "scan_count": 10,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "entity_name": "JsonElement",
+        "entity_type": "class",
+        "line_start": 60,
+        "line_end": 240,
+        "description": "JsonElement abstract class defines many getAs... methods that are not applicable to all its subclasses.",
+        "reasoning": "The `JsonElement` abstract class defines numerous `getAsBoolean()`, `getAsNumber()`, `getAsString()`, etc., methods. By default, these methods throw `UnsupportedOperationException`. Subclasses like `JsonObject`, `JsonArray`, and `JsonNull` are forced to inherit or implement these methods, even though they are only semantically valid for `JsonPrimitive` (or a `JsonArray` containing a single primitive). This forces clients of `JsonElement` to depend on methods that might not be applicable to the specific `JsonElement` subtype they are working with, leading to runtime exceptions. This indicates a fat interface that should be segregated, for example, into interfaces for primitive elements, array elements, and object elements.",
+        "first_detected_scan": "gson_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_01",
+          "gson_ISP_scan_02",
+          "gson_ISP_scan_03",
+          "gson_ISP_scan_04",
+          "gson_ISP_scan_06",
+          "gson_ISP_scan_07",
+          "gson_ISP_scan_08",
+          "gson_ISP_scan_09",
+          "gson_ISP_scan_10",
+          "gson_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-019",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonObject.java",
+        "entity_name": "JsonObject.getAsBoolean()",
+        "entity_type": "method",
+        "line_start": 60,
+        "line_end": 62,
+        "description": "JsonObject's getAsBoolean method throws UnsupportedOperationException.",
+        "reasoning": "The `JsonObject` class is forced to implement `getAsBoolean()` (and other `getAs...` methods) from `JsonElement`. A `JsonObject` itself is not a boolean. Its implementation throws an `UnsupportedOperationException`, indicating that this method is not applicable to `JsonObject` and violates ISP by forcing `JsonObject` to depend on a method it cannot directly fulfill.",
+        "first_detected_scan": "gson_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_01",
+          "gson_ISP_scan_03",
+          "gson_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-036",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "entity_name": "TypeAdapters.CLASS",
+        "entity_type": "class",
+        "line_start": 60,
+        "line_end": 77,
+        "description": "The TypeAdapter for java.lang.Class forces clients to implement read and write methods which are explicitly unsupported.",
+        "reasoning": "The anonymous TypeAdapter implementation for java.lang.Class throws UnsupportedOperationException for both its 'read' and 'write' methods. This indicates that the TypeAdapter interface is too broad for this specific client, forcing it to depend on and 'implement' methods it does not use or support, which is a direct violation of the Interface Segregation Principle. A more segregated interface might offer separate 'JsonReader' and 'JsonWriter' interfaces, or a 'SerializableTypeAdapter' and 'DeserializableTypeAdapter'.",
+        "first_detected_scan": "gson_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_07",
+          "gson_ISP_scan_08",
+          "gson_ISP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "ISP-001",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+        "entity_name": "TypeAdapters.CLASS",
+        "entity_type": "class",
+        "line_start": 33,
+        "line_end": 47,
+        "description": "TypeAdapter for Class throws UnsupportedOperationException for both read and write methods.",
+        "reasoning": "The `TypeAdapter` interface forces implementers to provide both `read` and `write` methods. For `java.lang.Class`, Gson explicitly does not support default serialization or deserialization, leading to `UnsupportedOperationException` for both methods. This indicates that the `TypeAdapter` interface is not segregated enough for types that might only be serializable, only deserializable, or neither.",
+        "first_detected_scan": "gson_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_01",
+          "gson_ISP_scan_02",
+          "gson_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-010",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonArray.java",
+        "entity_name": "JsonArray.getAsBigDecimal()",
+        "entity_type": "method",
+        "line_start": 234,
+        "line_end": 236,
+        "description": "JsonArray's getAsBigDecimal method delegates to a single element or throws IllegalStateException.",
+        "reasoning": "Similar to `getAsNumber()`, `JsonArray` is forced to implement `getAsBigDecimal()` from `JsonElement`. A `JsonArray` itself is not a BigDecimal. Its implementation delegates to `getAsSingleElement()`, which throws an `IllegalStateException` if the array does not contain exactly one element. This violates ISP by forcing `JsonArray` to depend on a method it cannot directly fulfill.",
+        "first_detected_scan": "gson_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_01",
+          "gson_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-022",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "entity_name": "JsonElement.getAsCharacter",
+        "entity_type": "method",
+        "line_start": 257,
+        "line_end": 259,
+        "description": "JsonElement's getAsCharacter method throws UnsupportedOperationException for non-character types.",
+        "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.",
+        "first_detected_scan": "gson_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_02",
+          "gson_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-028",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/JsonNull.java",
+        "entity_name": "JsonNull",
+        "entity_type": "class",
+        "line_start": 21,
+        "line_end": 48,
+        "description": "JsonNull inherits many 'getAs...' methods from JsonElement that are not applicable to a JSON null value, relying on UnsupportedOperationException.",
+        "reasoning": "`JsonNull` represents a single JSON null value. It inherits a large number of `getAs...` methods from the `JsonElement` abstract class (e.g., `getAsBoolean()`, `getAsNumber()`, `getAsString()`). `JsonNull` does not override these methods, effectively relying on the `UnsupportedOperationException` implementations from `JsonElement`. This forces `JsonNull` to conform to a contract that is vastly broader than its limited functionality, violating the Interface Segregation Principle by depending on many methods it does not use or support.",
+        "first_detected_scan": "gson_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_03",
+          "gson_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-041",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+        "entity_name": "DummyTypeAdapterFactory.create",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 40,
+        "description": "DummyTypeAdapterFactory.create() throws AssertionError, indicating it should not be used.",
+        "reasoning": "The DummyTypeAdapterFactory implements the TypeAdapterFactory interface but its create() method explicitly throws an AssertionError with the message 'Factory should not be used'. This clearly indicates that the class is forced to implement a method from an interface that it does not meaningfully support, serving merely as a placeholder or a 'dummy' implementation, which is a direct violation of ISP.",
+        "first_detected_scan": "gson_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_10",
+          "gson_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-039",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+        "entity_name": "RecordNotSupportedHelper",
+        "entity_type": "class",
+        "line_start": 300,
+        "line_end": 324,
+        "description": "RecordNotSupportedHelper implements RecordHelper but throws UnsupportedOperationException for several methods.",
+        "reasoning": "The RecordNotSupportedHelper class implements the RecordHelper abstract class, which defines methods like getRecordComponentNames(), getCanonicalRecordConstructor(), and getAccessor(). However, RecordNotSupportedHelper explicitly throws UnsupportedOperationException for these methods, indicating that it cannot meaningfully support them in environments where Java Records are not available. This forces the class to depend on methods it does not use, violating ISP.",
+        "first_detected_scan": "gson_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_10",
+          "gson_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-030",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/JsonStreamParser.java",
+        "entity_name": "JsonStreamParser.remove",
+        "entity_type": "method",
+        "line_start": 95,
+        "line_end": 97,
+        "description": "The JsonStreamParser class implements the Iterator interface but throws UnsupportedOperationException for the remove() method.",
+        "reasoning": "This is a clear violation of ISP. Clients of JsonStreamParser are forced to depend on the remove() method of the Iterator interface, even though JsonStreamParser does not support this operation. The Iterator interface is a 'fat interface' in this context because it combines traversal and modification responsibilities. Ideally, JsonStreamParser should implement a more specialized interface that only provides traversal, or Iterator should be split into Iterable and RemovableIterator.",
+        "first_detected_scan": "gson_ISP_scan_04",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_04",
+          "gson_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "entity_name": "ReflectiveTypeAdapterFactory.create(...).new TypeAdapter<T>() {...}",
+        "entity_type": "class",
+        "line_start": 78,
+        "line_end": 96,
+        "description": "Anonymous TypeAdapter for anonymous or non-static local classes provides no-op implementations for read and write.",
+        "reasoning": "The `TypeAdapter` interface forces this adapter to implement both `read` and `write` methods. However, for anonymous or non-static local classes, Gson's reflective adapter is designed to ignore them (serialize as null, skip value on deserialize). This results in no-op implementations (`in.skipValue()`, `out.nullValue()`), indicating that the interface is too broad for types that are meant to be excluded or ignored.",
+        "first_detected_scan": "gson_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_01",
+          "gson_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-026",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "test-shrinker/src/main/java/com/example/GenericClasses.java",
+        "entity_name": "GenericClasses.DummyClass.Adapter.write",
+        "entity_type": "method",
+        "line_start": 39,
+        "line_end": 41,
+        "description": "The TypeAdapter for DummyClass throws UnsupportedOperationException for write method.",
+        "reasoning": "The `TypeAdapter` interface requires both a 'read' and a 'write' method. This specific implementation for `DummyClass` explicitly throws an `UnsupportedOperationException` for the `write` method. This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle. While `TypeAdapter` itself is a relatively small interface, this specific implementation demonstrates a clear non-use of one of its core methods.",
+        "first_detected_scan": "gson_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_ISP_scan_02",
+          "gson_ISP_scan_10"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-001",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "entity_name": "Gson.Gson",
+        "entity_type": "method",
+        "line_start": 248,
+        "line_end": 255,
+        "description": "Gson directly instantiates internal implementation details.",
+        "reasoning": "The high-level Gson facade directly instantiates ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory using the 'new' keyword. This couples the high-level module to specific low-level implementation details rather than depending on abstractions or receiving these components via dependency injection.",
+        "first_detected_scan": "gson_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_01",
+          "gson_DIP_scan_02",
+          "gson_DIP_scan_04",
+          "gson_DIP_scan_10",
+          "gson_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-012",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/TypeAdapter.java",
+        "entity_name": "TypeAdapter.fromJsonTree",
+        "entity_type": "method",
+        "line_start": 183,
+        "line_end": 190,
+        "description": "Base abstraction depends on a concrete subclass implementation detail.",
+        "reasoning": "The abstract class 'TypeAdapter' directly instantiates 'JsonTreeReader', which is a concrete implementation of 'JsonReader' located in an internal package ('internal.bind'). Abstractions should not depend on details; here, the base class is coupled to a specific implementation of the reading logic, making it difficult to change the tree-reading implementation without modifying the base abstraction.",
+        "first_detected_scan": "gson_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_03",
+          "gson_DIP_scan_04",
+          "gson_DIP_scan_10",
+          "gson_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-005",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+        "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.getTypeAdapter",
+        "entity_type": "method",
+        "line_start": 102,
+        "line_end": 104,
+        "description": "Direct instantiation of TreeTypeAdapter.",
+        "reasoning": "The factory directly instantiates TreeTypeAdapter when handling @JsonAdapter annotations. This creates a hard dependency on the TreeTypeAdapter implementation detail rather than interacting with it through a more generic interface or injecting the adapter creation logic.",
+        "first_detected_scan": "gson_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_01",
+          "gson_DIP_scan_11",
+          "gson_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-016",
+        "rank": 4,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "entity_name": "Gson.Gson",
+        "entity_type": "method",
+        "line_start": 256,
+        "line_end": 261,
+        "description": "Gson directly instantiates internal implementation details instead of using injection.",
+        "reasoning": "Hard-coded dependency smell -> DIP violation because the high-level Gson class directly instantiates ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory. These are low-level implementation details. Gson should depend on abstractions for object construction and annotation handling, ideally provided through dependency injection or a factory pattern.",
+        "first_detected_scan": "gson_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_05",
+          "gson_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-006",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder.createFactories",
+        "entity_type": "method",
+        "line_start": 582,
+        "line_end": 645,
+        "description": "Direct instantiation of multiple concrete TypeAdapterFactory implementations.",
+        "reasoning": "The createFactories method contains a long list of direct 'new' calls to instantiate concrete factories such as CollectionTypeAdapterFactory, MapTypeAdapterFactory, and ReflectiveTypeAdapterFactory. This creates a hard-coded dependency on every specific adapter implementation in the library, violating the principle that modules should depend on abstractions (TypeAdapterFactory) rather than specific details.",
+        "first_detected_scan": "gson_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_02",
+          "gson_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-011",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder.createFactories",
+        "entity_type": "method",
+        "line_start": 657,
+        "line_end": 669,
+        "description": "Hard-coded instantiation of concrete TypeAdapterFactory implementations.",
+        "reasoning": "The createFactories method manually instantiates several concrete internal implementations like 'CollectionTypeAdapterFactory', 'MapTypeAdapterFactory', and 'ReflectiveTypeAdapterFactory'. This violates DIP as the high-level configuration builder depends on the existence and constructors of many low-level implementation details instead of interacting with them through a generic registration or injection mechanism.",
+        "first_detected_scan": "gson_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_03",
+          "gson_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-021",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder.createFactories",
+        "entity_type": "method",
+        "line_start": 905,
+        "line_end": 966,
+        "description": "Directly instantiates multiple concrete TypeAdapterFactory implementations.",
+        "reasoning": "The createFactories method in GsonBuilder directly instantiates numerous concrete low-level factories (e.g., ReflectiveTypeAdapterFactory, CollectionTypeAdapterFactory, MapTypeAdapterFactory). This couples the high-level configuration API to specific internal implementation details, violating the principle that high-level modules should depend on abstractions rather than concrete details.",
+        "first_detected_scan": "gson_DIP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_07",
+          "gson_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-014",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "entity_name": "JsonReader",
+        "entity_type": "class",
+        "line_start": 1600,
+        "line_end": 1625,
+        "description": "Base class JsonReader depends on its own subclass JsonTreeReader",
+        "reasoning": "Switch Statement on type smell -> DIP violation because the base class JsonReader (an abstraction) is explicitly coupled to its subclass JsonTreeReader (a detail) through a static initializer and instanceof checks. This creates a circular dependency where the abstraction depends on a specific implementation detail.",
+        "first_detected_scan": "gson_DIP_scan_04",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_04",
+          "gson_DIP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "DIP-015",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "entity_name": "JsonReader",
+        "entity_type": "class",
+        "line_start": 1640,
+        "line_end": 1662,
+        "description": "Base class depends on concrete subclass through instanceof check and casting.",
+        "reasoning": "Inappropriate Intimacy smell -> DIP violation because the base class JsonReader contains a static initializer that explicitly references JsonTreeReader (a subclass). Abstractions (JsonReader) should not depend on details (JsonTreeReader). This reverse dependency makes the base class fragile and tightly coupled to its specific implementations.",
+        "first_detected_scan": "gson_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_05",
+          "gson_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-002",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "entity_name": "GsonBuilder",
+        "entity_type": "class",
+        "line_start": 111,
+        "line_end": 117,
+        "description": "Static initialization of concrete internal components.",
+        "reasoning": "GsonBuilder hard-codes the creation of DEFAULT_CONSTRUCTOR_CONSTRUCTOR and DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY. This prevents the inversion of control and forces the library to always use these specific concrete implementations for its default state.",
+        "first_detected_scan": "gson_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_01",
+          "gson_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-023",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "entity_name": "ConstructorConstructor.newMapConstructor",
+        "entity_type": "method",
+        "line_start": 344,
+        "line_end": 365,
+        "description": "Hard-codes the instantiation of concrete Map implementations like LinkedTreeMap.",
+        "reasoning": "The method directly instantiates concrete classes like LinkedTreeMap instead of using an abstraction or a configurable provider. This couples the high-level instantiation logic to specific low-level data structures, making it difficult to change default implementations without modifying the internal factory.",
+        "first_detected_scan": "gson_DIP_scan_07",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_07",
+          "gson_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "entity_name": "ReflectiveTypeAdapterFactory.create",
+        "entity_type": "method",
+        "line_start": 121,
+        "line_end": 128,
+        "description": "Factory directly instantiates concrete adapter implementations.",
+        "reasoning": "The factory directly instantiates RecordAdapter and FieldReflectionAdapter. While factories are intended to create objects, DIP suggests that the logic should ideally depend on the TypeAdapter abstraction. Direct instantiation of these internal private classes couples the factory logic to specific implementation details of reflection-based adaptation.",
+        "first_detected_scan": "gson_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "gson_DIP_scan_01",
+          "gson_DIP_scan_12"
+        ]
+      }
+    ]
+  }
+}

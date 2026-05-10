@@ -1,0 +1,73 @@
+{
+  "scan_id": "requests_DIP_scan_03",
+  "repo_name": "requests",
+  "principle": "DIP",
+  "scan_number": 3,
+  "timestamp": "2026-05-03T02:21:04.656595",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Dependency Inversion Principle (DIP).\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.\n\n## What to Look For\n- Classes that directly instantiate their dependenc...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/api.py\",\n      \"entity_name\": \"request\",\n      \"entity_type\": \"function\",\n      \"line_start\": 21,\n      \"line_end\": 22,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level API function directly instantiates a concrete Session.\",\n      \"reasoning\": \"The `request` function, which is the primary public entry point for making HTTP requests, directly creates an instance of `requests.sessions.Session`. This couples the highest-level policy (how requests are made via the public API) to a concrete implementation (`Session` class). According to DIP, high-level modules should not depend on low-level modules; both should depend on abstractions. Here, the public API depends on a concrete session implementation, making it difficult to substitute alternative session management without modifying the core API.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Request.prepare\",\n      \"entity_type\": \"method\",\n      \"line_start\": 69,\n      \"line_end\": 69,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level Request object directly instantiates concrete PreparedRequest.\",\n      \"reasoning\": \"The `Request` class, representing the user's conceptual HTTP request (a high-level module), directly instantiates the `PreparedRequest` class (`p = PreparedRequest()`). `PreparedRequest` is a concrete detail of how the request is formatted for transmission (a low-level module). This violates DIP because the high-level `Request` depends on a concrete detail rather than an abstraction for preparing the request. This coupling limits flexibility if different preparation strategies or implementations of `PreparedRequest` were needed.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.__init__\",\n      \"entity_type\": \"method\",\n      \"line_start\": 128,\n      \"line_end\": 129,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level Session directly instantiates concrete HTTPAdapter.\",\n      \"reasoning\": \"The `Session` class, a high-level module responsible for managing and persisting settings across requests, directly instantiates `HTTPAdapter()` for 'http://' and 'https://' schemes. `HTTPAdapter` is a concrete implementation of a transport adapter (a low-level detail). This hardcodes the session's reliance on a specific transport mechanism, violating DIP. The `Session` should be configurable with an abstraction for adapters, allowing different transport implementations to be injected rather than created directly.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.prepare_request\",\n      \"entity_type\": \"method\",\n      \"line_start\": 169,\n      \"line_end\": 169,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"High-level Session directly instantiates concrete PreparedRequest.\",\n      \"reasoning\": \"Similar to `Request.prepare`, the `Session.prepare_request` method directly instantiates `PreparedRequest()` (`p = PreparedRequest()`). The `Session` is a high-level component orchestrating the request lifecycle, and it depends on the concrete `PreparedRequest` class. This reinforces the tight coupling between high-level session management and the low-level details of request preparation, hindering independent evolution or testing of these components.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.build_response\",\n      \"entity_type\": \"method\",\n      \"line_start\": 268,\n      \"line_end\": 268,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Low-level HTTPAdapter directly instantiates high-level Response object.\",\n      \"reasoning\": \"The `HTTPAdapter` is a low-level component responsible for interacting with `urllib3` and raw network responses. However, its `build_response` method directly instantiates `Response()` to create the high-level domain object representing the server's reply. This violates DIP because a low-level module (`HTTPAdapter`) has knowledge of and creates a high-level module (`Response`). Ideally, the adapter should return raw data or an intermediate representation, and a higher-level component (e.g., the Session) should be responsible for constructing the final `Response` object, possibly via a factory or injected builder.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/api.py",
+      "entity_name": "request",
+      "entity_type": "class",
+      "line_start": 21,
+      "line_end": 22,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level API function directly instantiates a concrete Session.",
+      "reasoning": "The `request` function, which is the primary public entry point for making HTTP requests, directly creates an instance of `requests.sessions.Session`. This couples the highest-level policy (how requests are made via the public API) to a concrete implementation (`Session` class). According to DIP, high-level modules should not depend on low-level modules; both should depend on abstractions. Here, the public API depends on a concrete session implementation, making it difficult to substitute alternative session management without modifying the core API."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Request.prepare",
+      "entity_type": "method",
+      "line_start": 69,
+      "line_end": 69,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level Request object directly instantiates concrete PreparedRequest.",
+      "reasoning": "The `Request` class, representing the user's conceptual HTTP request (a high-level module), directly instantiates the `PreparedRequest` class (`p = PreparedRequest()`). `PreparedRequest` is a concrete detail of how the request is formatted for transmission (a low-level module). This violates DIP because the high-level `Request` depends on a concrete detail rather than an abstraction for preparing the request. This coupling limits flexibility if different preparation strategies or implementations of `PreparedRequest` were needed."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.__init__",
+      "entity_type": "method",
+      "line_start": 128,
+      "line_end": 129,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level Session directly instantiates concrete HTTPAdapter.",
+      "reasoning": "The `Session` class, a high-level module responsible for managing and persisting settings across requests, directly instantiates `HTTPAdapter()` for 'http://' and 'https://' schemes. `HTTPAdapter` is a concrete implementation of a transport adapter (a low-level detail). This hardcodes the session's reliance on a specific transport mechanism, violating DIP. The `Session` should be configurable with an abstraction for adapters, allowing different transport implementations to be injected rather than created directly."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.prepare_request",
+      "entity_type": "method",
+      "line_start": 169,
+      "line_end": 169,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "High-level Session directly instantiates concrete PreparedRequest.",
+      "reasoning": "Similar to `Request.prepare`, the `Session.prepare_request` method directly instantiates `PreparedRequest()` (`p = PreparedRequest()`). The `Session` is a high-level component orchestrating the request lifecycle, and it depends on the concrete `PreparedRequest` class. This reinforces the tight coupling between high-level session management and the low-level details of request preparation, hindering independent evolution or testing of these components."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.build_response",
+      "entity_type": "method",
+      "line_start": 268,
+      "line_end": 268,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Low-level HTTPAdapter directly instantiates high-level Response object.",
+      "reasoning": "The `HTTPAdapter` is a low-level component responsible for interacting with `urllib3` and raw network responses. However, its `build_response` method directly instantiates `Response()` to create the high-level domain object representing the server's reply. This violates DIP because a low-level module (`HTTPAdapter`) has knowledge of and creates a high-level module (`Response`). Ideally, the adapter should return raw data or an intermediate representation, and a higher-level component (e.g., the Session) should be responsible for constructing the final `Response` object, possibly via a factory or injected builder."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 26458.442211151123,
+  "error": null
+}

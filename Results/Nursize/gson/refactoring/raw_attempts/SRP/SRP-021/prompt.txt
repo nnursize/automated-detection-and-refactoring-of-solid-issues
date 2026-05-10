@@ -1,0 +1,559 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-021
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java`
+- **Entity**: `ParseBenchmark` (current lines L58-L467 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 4 independent scans
+
+### Description
+The class serves as a Caliper benchmark runner, but also defines all test data models and concrete parser implementations.
+
+### Reasoning
+This class has multiple distinct reasons to change: 1) Changes to the benchmarking orchestration logic (e.g., how experiments are run, parameters are defined). 2) Changes to the test data models (e.g., `Tweet`, `User`, `Feed` structure). 3) Changes to the specific JSON parsing implementations for different libraries/APIs (e.g., `GsonStreamParser`, `JacksonBindParser`). These are separate concerns; data models and specific parser implementations should ideally be in their own files or classes, independent of the benchmark runner itself.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java`
+```java
+/*
+ * Copyright (C) 2011 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson.metrics;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.google.caliper.BeforeExperiment;
+import com.google.caliper.Param;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import java.io.CharArrayReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+/**
+ * Measure Gson and Jackson parsing and binding performance.
+ *
+ * <p>This benchmark requires that ParseBenchmarkData.zip is on the classpath. That file contains
+ * Twitter feed data, which is representative of what applications will be parsing.
+ */
+public final class ParseBenchmark {
+  @Param Document document;
+  @Param Api api;
+
+  private enum Document {
+    TWEETS(new TypeToken<List<Tweet>>() {}, new TypeReference<List<Tweet>>() {}),
+    READER_SHORT(new TypeToken<Feed>() {}, new TypeReference<Feed>() {}),
+    READER_LONG(new TypeToken<Feed>() {}, new TypeReference<Feed>() {});
+
+    @SuppressWarnings("ImmutableEnumChecker")
+    private final TypeToken<?> gsonType;
+
+    @SuppressWarnings("ImmutableEnumChecker")
+    private final TypeReference<?> jacksonType;
+
+    private Document(TypeToken<?> typeToken, TypeReference<?> typeReference) {
+      this.gsonType = typeToken;
+      this.jacksonType = typeReference;
+    }
+  }
+
+  private enum Api {
+    JACKSON_STREAM {
+      @Override
+      Parser newParser() {
+        return new JacksonStreamParser();
+      }
+    },
+    JACKSON_BIND {
+      @Override
+      Parser newParser() {
+        return new JacksonBindParser();
+      }
+    },
+    GSON_STREAM {
+      @Override
+      Parser newParser() {
+        return new GsonStreamParser();
+      }
+    },
+    GSON_SKIP {
+      @Override
+      Parser newParser() {
+        return new GsonSkipParser();
+      }
+    },
+    GSON_DOM {
+      @Override
+      Parser newParser() {
+        return new GsonDomParser();
+      }
+    },
+    GSON_BIND {
+      @Override
+      Parser newParser() {
+        return new GsonBindParser();
+      }
+    };
+
+    abstract Parser newParser();
+  }
+
+  private char[] text;
+  private Parser parser;
+
+  @BeforeExperiment
+  void setUp() throws Exception {
+    text = resourceToString(document.name() + ".json").toCharArray();
+    parser = api.newParser();
+  }
+
+  public void timeParse(int reps) throws Exception {
+    for (int i = 0; i < reps; i++) {
+      parser.parse(text, document);
+    }
+  }
+
+  private static File getResourceFile(String path) throws Exception {
+    URL url = ParseBenchmark.class.getResource(path);
+    if (url == null) {
+      throw new IllegalArgumentException("Resource " + path + " does not exist");
+    }
+    File file = new File(url.toURI());
+    if (!file.isFile()) {
+      throw new IllegalArgumentException("Resource " + path + " is not a file");
+    }
+    return file;
+  }
+
+  private static String resourceToString(String fileName) throws Exception {
+    try (ZipFile zipFile = new ZipFile(getResourceFile("/ParseBenchmarkData.zip"))) {
+      ZipEntry zipEntry = zipFile.getEntry(fileName);
+      Reader reader =
+          new InputStreamReader(zipFile.getInputStream(zipEntry), StandardCharsets.UTF_8);
+      char[] buffer = new char[8192];
+      StringWriter writer = new StringWriter();
+      int count;
+      while ((count = reader.read(buffer)) != -1) {
+        writer.write(buffer, 0, count);
+      }
+      reader.close();
+      return writer.toString();
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    NonUploadingCaliperRunner.run(ParseBenchmark.class, args);
+  }
+
+  interface Parser {
+    void parse(char[] data, Document document) throws Exception;
+  }
+
+  private static class GsonStreamParser implements Parser {
+    @Override
+    public void parse(char[] data, Document document) throws Exception {
+      JsonReader jsonReader = new JsonReader(new CharArrayReader(data));
+      readToken(jsonReader);
+      jsonReader.close();
+    }
+
+    private static void readToken(JsonReader reader) throws IOException {
+      while (true) {
+        switch (reader.peek()) {
+          case BEGIN_ARRAY:
+            reader.beginArray();
+            break;
+          case END_ARRAY:
+            reader.endArray();
+            break;
+          case BEGIN_OBJECT:
+            reader.beginObject();
+            break;
+          case END_OBJECT:
+            reader.endObject();
+            break;
+          case NAME:
+            String unusedName = reader.nextName();
+            break;
+          case BOOLEAN:
+            boolean unusedBoolean = reader.nextBoolean();
+            break;
+          case NULL:
+            reader.nextNull();
+            break;
+          case NUMBER:
+            long unusedLong = reader.nextLong();
+            break;
+          case STRING:
+            String unusedString = reader.nextString();
+            break;
+          case END_DOCUMENT:
+            return;
+        }
+      }
+    }
+  }
+
+  private static class GsonSkipParser implements Parser {
+    @Override
+    public void parse(char[] data, Document document) throws Exception {
+      JsonReader jsonReader = new JsonReader(new CharArrayReader(data));
+      jsonReader.skipValue();
+      jsonReader.close();
+    }
+  }
+
+  private static class JacksonStreamParser implements Parser {
+    @Override
+    public void parse(char[] data, Document document) throws Exception {
+      JsonFactory jsonFactory =
+          new JsonFactoryBuilder()
+              .configure(JsonFactory.Feature.CANONICALIZE_FIELD_NAMES, false)
+              .build();
+      com.fasterxml.jackson.core.JsonParser jp =
+          jsonFactory.createParser(new CharArrayReader(data));
+      int depth = 0;
+      do {
+        JsonToken token = jp.nextToken();
+        switch (token) {
+          case START_OBJECT:
+          case START_ARRAY:
+            depth++;
+            break;
+          case END_OBJECT:
+          case END_ARRAY:
+            depth--;
+            break;
+          case FIELD_NAME:
+            jp.currentName();
+            break;
+          case VALUE_STRING:
+            jp.getText();
+            break;
+          case VALUE_NUMBER_INT:
+          case VALUE_NUMBER_FLOAT:
+            jp.getLongValue();
+            break;
+          case VALUE_TRUE:
+          case VALUE_FALSE:
+            jp.getBooleanValue();
+            break;
+          case VALUE_NULL:
+            // Do nothing; nextToken() will advance in stream
+            break;
+          default:
+            throw new IllegalArgumentException("Unexpected token " + token);
+        }
+      } while (depth > 0);
+      jp.close();
+    }
+  }
+
+  private static class GsonDomParser implements Parser {
+    @Override
+    public void parse(char[] data, Document document) throws Exception {
+      JsonElement unused = JsonParser.parseReader(new CharArrayReader(data));
+    }
+  }
+
+  private static class GsonBindParser implements Parser {
+    private static final Gson gson =
+        new GsonBuilder().setDateFormat("EEE MMM dd HH:mm:ss Z yyyy").create();
+
+    @Override
+    public void parse(char[] data, Document document) throws Exception {
+      Object unused = gson.fromJson(new CharArrayReader(data), document.gsonType);
+    }
+  }
+
+  private static class JacksonBindParser implements Parser {
+    private static final ObjectMapper mapper;
+
+    static {
+      mapper =
+          JsonMapper.builder()
+              .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+              .configure(MapperFeature.AUTO_DETECT_FIELDS, true)
+              .build();
+      mapper.setDateFormat(new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy", Locale.ENGLISH));
+    }
+
+    @Override
+    public void parse(char[] data, Document document) throws Exception {
+      mapper.readValue(new CharArrayReader(data), document.jacksonType);
+    }
+  }
+
+  @SuppressWarnings("MemberName")
+  static class Tweet {
+    @JsonProperty String coordinates;
+    @JsonProperty boolean favorited;
+    @JsonProperty Date created_at;
+    @JsonProperty boolean truncated;
+    @JsonProperty Tweet retweeted_status;
+    @JsonProperty String id_str;
+    @JsonProperty String in_reply_to_id_str;
+    @JsonProperty String contributors;
+    @JsonProperty String text;
+    @JsonProperty long id;
+    @JsonProperty String retweet_count;
+    @JsonProperty String in_reply_to_status_id_str;
+    @JsonProperty Object geo;
+    @JsonProperty boolean retweeted;
+    @JsonProperty String in_reply_to_user_id;
+    @JsonProperty String in_reply_to_screen_name;
+    @JsonProperty Object place;
+    @JsonProperty User user;
+    @JsonProperty String source;
+    @JsonProperty String in_reply_to_user_id_str;
+  }
+
+  @SuppressWarnings("MemberName")
+  static class User {
+    @JsonProperty String name;
+    @JsonProperty String profile_sidebar_border_color;
+    @JsonProperty boolean profile_background_tile;
+    @JsonProperty String profile_sidebar_fill_color;
+    @JsonProperty Date created_at;
+    @JsonProperty String location;
+    @JsonProperty String profile_image_url;
+    @JsonProperty boolean follow_request_sent;
+    @JsonProperty String profile_link_color;
+    @JsonProperty boolean is_translator;
+    @JsonProperty String id_str;
+    @JsonProperty int favourites_count;
+    @JsonProperty boolean contributors_enabled;
+    @JsonProperty String url;
+    @JsonProperty boolean default_profile;
+    @JsonProperty long utc_offset;
+    @JsonProperty long id;
+    @JsonProperty boolean profile_use_background_image;
+    @JsonProperty int listed_count;
+    @JsonProperty String lang;
+
+    @JsonProperty("protected")
+    @SerializedName("protected")
+    boolean isProtected;
+
+    @JsonProperty int followers_count;
+    @JsonProperty String profile_text_color;
+    @JsonProperty String profile_background_color;
+    @JsonProperty String time_zone;
+    @JsonProperty String description;
+    @JsonProperty boolean notifications;
+    @JsonProperty boolean geo_enabled;
+    @JsonProperty boolean verified;
+    @JsonProperty String profile_background_image_url;
+    @JsonProperty boolean default_profile_image;
+    @JsonProperty int friends_count;
+    @JsonProperty int statuses_count;
+    @JsonProperty String screen_name;
+    @JsonProperty boolean following;
+    @JsonProperty boolean show_all_inline_media;
+  }
+
+  static class Feed {
+    @JsonProperty String id;
+    @JsonProperty String title;
+    @JsonProperty String description;
+
+    @JsonProperty("alternate")
+    @SerializedName("alternate")
+    List<Link> alternates;
+
+    @JsonProperty long updated;
+    @JsonProperty List<Item> items;
+
+    @Override
+    public String toString() {
+      StringBuilder result =
+          new StringBuilder()
+              .append(id)
+              .append('\n')
+              .append(title)
+              .append('\n')
+              .append(description)
+              .append('\n')
+              .append(alternates)
+              .append('\n')
+              .append(updated);
+      int i = 1;
+      for (Item item : items) {
+        result.append(i++).append(": ").append(item).append("\n\n");
+      }
+      return result.toString();
+    }
+  }
+
+  static class Link {
+    @JsonProperty String href;
+
+    @Override
+    public String toString() {
+      return href;
+    }
+  }
+
+  static class Item {
+    @JsonProperty List<String> categories;
+    @JsonProperty String title;
+    @JsonProperty long published;
+    @JsonProperty long updated;
+
+    @JsonProperty("alternate")
+    @SerializedName("alternate")
+    List<Link> alternates;
+
+    @JsonProperty Content content;
+    @JsonProperty String author;
+    @JsonProperty List<ReaderUser> likingUsers;
+
+    @Override
+    public String toString() {
+      return title
+          + "\nauthor: "
+          + author
+          + "\npublished: "
+          + published
+          + "\nupdated: "
+          + updated
+          + "\n"
+          + content
+          + "\nliking users: "
+          + likingUsers
+          + "\nalternates: "
+          + alternates
+          + "\ncategories: "
+          + categories;
+    }
+  }
+
+  static class Content {
+    @JsonProperty String content;
+
+    @Override
+    public String toString() {
+      return content;
+    }
+  }
+
+  static class ReaderUser {
+    @JsonProperty String userId;
+
+    @Override
+    public String toString() {
+      return userId;
+    }
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `metrics/src/main/java/com/google/gson/metrics/BagOfPrimitives.java`
+- `metrics/src/main/java/com/google/gson/metrics/BagOfPrimitivesDeserializationBenchmark.java`
+- `metrics/src/main/java/com/google/gson/metrics/CollectionsDeserializationBenchmark.java`
+- `metrics/src/main/java/com/google/gson/metrics/NonUploadingCaliperRunner.java`
+- `metrics/src/main/java/com/google/gson/metrics/SerializationBenchmark.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

@@ -1,0 +1,85 @@
+{
+  "issue_id": "SRP-001",
+  "principle": "SRP",
+  "title": "Refactor SRP-001 (SRP): The 'Benchmark' class combines benchmark definition, preparation, execution o...",
+  "branch": "refactor/SRP-001",
+  "base": "main",
+  "head_commit": "05ad0d759640976bb377d6b83b0ae9d1cece77e6",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4001,
+    "completion_tokens": 1576
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Benchmark::Benchmark",
+    "entity_type": "class",
+    "line_start": 1000,
+    "line_end": 1058,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "The 'Benchmark' class combines benchmark definition, preparation, execution orchestration, and error handling/reporting.",
+    "reasoning": "This class has multiple reasons to change: if the way benchmarks are defined changes, if the preparation logic (e.g., iteration calculation) changes, if the execution flow changes, or if the error reporting mechanism changes. It acts as a 'God object' for the entire benchmarking process, rather than delegating these distinct responsibilities to separate components."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Delegate benchmark execution to a dedicated Runner class to improve SRP",
+    "rationale": "The Benchmark class was acting as a God object. By extracting the execution logic into a 'BenchmarkRunner' struct, we separate the definition of the benchmark from the orchestration of its execution, error handling, and reporting.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "        struct Benchmark {\n            Benchmark(std::string&& benchmarkName)\n                : name(CATCH_MOVE(benchmarkName)) {}\n\n            template <class FUN>\n            Benchmark(std::string&& benchmarkName , FUN &&func)\n                : fun(CATCH_MOVE(func)), name(CATCH_MOVE(benchmarkName)) {}\n\n            template <typename Clock>\n            ExecutionPlan prepare(const IConfig &cfg, Environment env) {\n                auto min_time = env.clock_resolution.mean * Detail::minimum_ticks;\n                auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(cfg.benchmarkWarmupTime()));\n                auto&& test = Detail::run_for_at_least<Clock>(std::chrono::duration_cast<IDuration>(run_time), 1, fun);\n                int new_iters = static_cast<int>(std::ceil(min_time * test.iterations / test.elapsed));\n                return { new_iters, test.elapsed / test.iterations * new_iters * cfg.benchmarkSamples(), CATCH_MOVE(fun), std::chrono::duration_cast<FDuration>(cfg.benchmarkWarmupTime()), Detail::warmup_iterations };\n            }\n\n            template <typename Clock = default_clock>\n            void run() {\n                static_assert( Clock::is_steady,\n                               \"Benchmarking clock should be steady\" );\n                auto const* cfg = getCurrentContext().getConfig();\n\n                auto env = Detail::measure_environment<Clock>();\n\n                getResultCapture().benchmarkPreparing(name);\n                CATCH_TRY{\n                    auto plan = user_code([&] {\n                        return prepare<Clock>(*cfg, env);\n                    });\n\n                    BenchmarkInfo info {\n                        CATCH_MOVE(name),\n                        plan.estimated_duration.count(),\n                        plan.iterations_per_sample,\n                        cfg->benchmarkSamples(),\n                        cfg->benchmarkResamples(),\n                        env.clock_resolution.mean.count(),\n                        env.clock_cost.mean.count()\n                    };\n\n                    getResultCapture().benchmarkStarting(info);\n\n                    auto samples = user_code([&] {\n                        return plan.template run<Clock>(*cfg, env);\n                    });\n\n                    auto analysis = Detail::analyse(*cfg, samples.data(), samples.data() + samples.size());\n                    BenchmarkStats<> stats{ CATCH_MOVE(info), CATCH_MOVE(analysis.samples), analysis.mean, analysis.standard_deviation, analysis.outliers, analysis.outlier_variance };\n                    getResultCapture().benchmarkEnded(stats);\n                } CATCH_CATCH_ALL {\n                    getResultCapture().benchmarkFailed(translateActiveException());\n                    // We let the exception go further up so that the\n                    // test case is marked as failed.\n                    std::rethrow_exception(std::current_exception());\n                }\n            }\n\n            // sets lambda to be used in fun *and* executes benchmark!\n            template <typename Fun, std::enable_if_t<!Detail::is_related_v<Fun, Benchmark>, int> = 0>\n                Benchmark & operator=(Fun func) {\n                auto const* cfg = getCurrentContext().getConfig();\n                if (!cfg->skipBenchmarks()) {\n                    fun = Detail::BenchmarkFunction(func);\n                    run();\n                }\n                return *this;\n            }",
+        "replace_text": "        struct BenchmarkRunner {\n            template <typename Clock>\n            static void run(std::string&& name, Detail::BenchmarkFunction& fun) {\n                static_assert( Clock::is_steady, \"Benchmarking clock should be steady\" );\n                auto const* cfg = getCurrentContext().getConfig();\n                auto env = Detail::measure_environment<Clock>();\n\n                getResultCapture().benchmarkPreparing(name);\n                CATCH_TRY{\n                    auto plan = user_code([&] {\n                        auto min_time = env.clock_resolution.mean * Detail::minimum_ticks;\n                        auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(cfg->benchmarkWarmupTime()));\n                        auto&& test = Detail::run_for_at_least<Clock>(std::chrono::duration_cast<IDuration>(run_time), 1, fun);\n                        int new_iters = static_cast<int>(std::ceil(min_time * test.iterations / test.elapsed));\n                        return ExecutionPlan{ new_iters, test.elapsed / test.iterations * new_iters * cfg->benchmarkSamples(), fun, std::chrono::duration_cast<FDuration>(cfg->benchmarkWarmupTime()), Detail::warmup_iterations };\n                    });\n\n                    BenchmarkInfo info {\n                        name,\n                        plan.estimated_duration.count(),\n                        plan.iterations_per_sample,\n                        cfg->benchmarkSamples(),\n                        cfg->benchmarkResamples(),\n                        env.clock_resolution.mean.count(),\n                        env.clock_cost.mean.count()\n                    };\n\n                    getResultCapture().benchmarkStarting(info);\n                    auto samples = user_code([&] { return plan.template run<Clock>(*cfg, env); });\n                    auto analysis = Detail::analyse(*cfg, samples.data(), samples.data() + samples.size());\n                    BenchmarkStats<> stats{ CATCH_MOVE(info), CATCH_MOVE(analysis.samples), analysis.mean, analysis.standard_deviation, analysis.outliers, analysis.outlier_variance };\n                    getResultCapture().benchmarkEnded(stats);\n                } CATCH_CATCH_ALL {\n                    getResultCapture().benchmarkFailed(translateActiveException());\n                    std::rethrow_exception(std::current_exception());\n                }\n            }\n        };\n\n        struct Benchmark {\n            Benchmark(std::string&& benchmarkName)\n                : name(CATCH_MOVE(benchmarkName)) {}\n\n            template <class FUN>\n            Benchmark(std::string&& benchmarkName , FUN &&func)\n                : fun(CATCH_MOVE(func)), name(CATCH_MOVE(benchmarkName)) {}\n\n            template <typename Fun, std::enable_if_t<!Detail::is_related_v<Fun, Benchmark>, int> = 0>\n            Benchmark & operator=(Fun func) {\n                auto const* cfg = getCurrentContext().getConfig();\n                if (!cfg->skipBenchmarks()) {\n                    fun = Detail::BenchmarkFunction(func);\n                    BenchmarkRunner::run<default_clock>(std::string(name), fun);\n                }\n                return *this;\n            }",
+        "search_lines": 68,
+        "replace_lines": 56
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10500,
+        "blank_lines": 3090,
+        "comment_lines": 751,
+        "function_count": 3,
+        "avg_cc": 433.67,
+        "max_cc": 1299.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10495,
+        "blank_lines": 3086,
+        "comment_lines": 748,
+        "function_count": 3,
+        "avg_cc": 433.67,
+        "max_cc": 1299.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex 00fc3ee..a60fc71 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -2130,39 +2130,25 @@ namespace Catch {\n \n namespace Catch {\n     namespace Benchmark {\n-        struct Benchmark {\n-            Benchmark(std::string&& benchmarkName)\n-                : name(CATCH_MOVE(benchmarkName)) {}\n-\n-            template <class FUN>\n-            Benchmark(std::string&& benchmarkName , FUN &&func)\n-                : fun(CATCH_MOVE(func)), name(CATCH_MOVE(benchmarkName)) {}\n-\n+        struct BenchmarkRunner {\n             template <typename Clock>\n-            ExecutionPlan prepare(const IConfig &cfg, Environment env) {\n-                auto min_time = env.clock_resolution.mean * Detail::minimum_ticks;\n-                auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(cfg.benchmarkWarmupTime()));\n-                auto&& test = Detail::run_for_at_least<Clock>(std::chrono::duration_cast<IDuration>(run_time), 1, fun);\n-                int new_iters = static_cast<int>(std::ceil(min_time * test.iterations / test.elapsed));\n-                return { new_iters, test.elapsed / test.iterations * new_iters * cfg.benchmarkSamples(), CATCH_MOVE(fun), std::chrono::duration_cast<FDuration>(cfg.benchmarkWarmupTime()), Detail::warmup_iterations };\n-            }\n-\n-            template <typename Clock = default_clock>\n-            void run() {\n-                static_assert( Clock::is_steady,\n-                               \"Benchmarking clock should be steady\" );\n+            static void run(std::string&& name, Detail::BenchmarkFunction& fun) {\n+                static_assert( Clock::is_steady, \"Benchmarking clock should be steady\" );\n                 auto const* cfg = getCurrentContext().getConfig();\n-\n                 auto env = Detail::measure_environment<Clock>();\n \n                 getResultCapture().benchmarkPreparing(name);\n                 CATCH_TRY{\n                     auto plan = user_code([&] {\n-                        return prepare<Clock>(*cfg, env);\n+                        auto min_time = env.clock_resolution.mean * Detail::minimum_ticks;\n+                        auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(cfg->benchmarkWarmupTime()));\n+                        auto&& test = Detail::run_for_at_least<Clock>(std::chrono::duration_cast<IDuration>(run_time), 1, fun);\n+                        int new_iters = static_cast<int>(std::ceil(min_time * test.iterations / test.elapsed));\n+                        return ExecutionPlan{ new_iters, test.elapsed / test.iterations * new_iters * cfg->benchmarkSamples(), fun, std::chrono::duration_cast<FDuration>(cfg->benchmarkWarmupTime()), Detail::warmup_iterations };\n                     });\n \n                     BenchmarkInfo info {\n-                        CATCH_MOVE(name),\n+                        name,\n                         plan.estimated_duration.count(),\n                         plan.iterations_per_sample,\n                         cfg->benchmarkSamples(),\n@@ -2172,29 +2158,31 @@ namespace Catch {\n                     };\n \n                     getResultCapture().benchmarkStarting(info);\n-\n-                    auto samples = user_code([&] {\n-                        return plan.template run<Clock>(*cfg, env);\n-                    });\n-\n+                    auto samples = user_code([&] { return plan.template run<Clock>(*cfg, env); });\n                     auto analysis = Detail::analyse(*cfg, samples.data(), samples.data() + samples.size());\n                     BenchmarkStats<> stats{ CATCH_MOVE(info), CATCH_MOVE(analysis.samples), analysis.mean, analysis.standard_deviation, analysis.outliers, analysis.outlier_variance };\n                     getResultCapture().benchmarkEnded(stats);\n                 } CATCH_CATCH_ALL {\n                     getResultCapture().benchmarkFailed(translateActiveException());\n-                    // We let the exception go further up so that the\n-                    // test case is marked as failed.\n                     std::rethrow_exception(std::current_exception());\n                 }\n             }\n+        };\n+\n+        struct Benchmark {\n+            Benchmark(std::string&& benchmarkName)\n+                : name(CATCH_MOVE(benchmarkName)) {}\n+\n+            template <class FUN>\n+            Benchmark(std::string&& benchmarkName , FUN &&func)\n+                : fun(CATCH_MOVE(func)), name(CATCH_MOVE(benchmarkName)) {}\n \n-            // sets lambda to be used in fun *and* executes benchmark!\n             template <typename Fun, std::enable_if_t<!Detail::is_related_v<Fun, Benchmark>, int> = 0>\n-                Benchmark & operator=(Fun func) {\n+            Benchmark & operator=(Fun func) {\n                 auto const* cfg = getCurrentContext().getConfig();\n                 if (!cfg->skipBenchmarks()) {\n                     fun = Detail::BenchmarkFunction(func);\n-                    run();\n+                    BenchmarkRunner::run<default_clock>(std::string(name), fun);\n                 }\n                 return *this;\n             }\n",
+  "duration_ms": 6436.818361282349
+}

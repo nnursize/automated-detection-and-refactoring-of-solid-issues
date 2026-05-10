@@ -1,0 +1,61 @@
+{
+  "issue_id": "OCP-004",
+  "principle": "OCP",
+  "title": "Refactor OCP-004 (OCP): The IConfig interface is too large, requiring modification for new configurat...",
+  "branch": "refactor/OCP-004",
+  "base": "main",
+  "head_commit": "017928ca08b9fa5c327391e5c70d8798c14ddeb2",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3868,
+    "completion_tokens": 111
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IConfig",
+    "entity_type": "class",
+    "line_start": 485,
+    "line_end": 535,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The IConfig interface is too large, requiring modification for new configuration options.",
+    "reasoning": "The 'Fat Interface' smell is present in `IConfig`. It exposes a wide range of configuration settings. If a new configuration option is introduced in Catch2, a new pure virtual getter method would need to be added to `IConfig`. This would necessitate modifying all concrete implementations of `IConfig` (e.g., `Catch::Config`), violating the Open/Closed Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "No changes possible to resolve OCP violation in IConfig without breaking binary compatibility or public API.",
+    "rationale": "The IConfig interface in Catch2 is a core, stable public interface. Modifying it to use a generic property bag or visitor pattern would require changing every single implementation and consumer of the interface, which violates the requirement to preserve public API and existing behavior. Given the constraints, no safe refactor is possible.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10491,
+        "blank_lines": 3085,
+        "comment_lines": 748,
+        "function_count": 3,
+        "avg_cc": 433.0,
+        "max_cc": 1297.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3710.726737976074
+}

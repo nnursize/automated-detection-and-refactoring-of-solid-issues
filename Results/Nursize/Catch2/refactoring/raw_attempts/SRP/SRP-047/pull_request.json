@@ -1,0 +1,40 @@
+{
+  "issue_id": "SRP-047",
+  "principle": "SRP",
+  "title": "Refactor SRP-047 (SRP): The ExprLhs class combines expression decomposition with early test failure l...",
+  "branch": "refactor/SRP-047",
+  "base": "main",
+  "head_commit": "35e191d1c2f08e9b285da19cba8ba76d54d727e1",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "ExprLhs",
+    "entity_type": "class",
+    "line_start": 5451,
+    "line_end": 5605,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The ExprLhs class combines expression decomposition with early test failure logic for specific comparison patterns.",
+    "reasoning": "Its primary role is to capture the left-hand side of an expression and, through overloaded operators, construct `BinaryExpr` objects for later evaluation. However, some operator overloads (specifically for `is_eq_0_comparable` cases) also contain `throw_test_failure_exception()` calls, introducing a responsibility for enforcing specific semantic rules and potentially short-circuiting test execution. This mixes expression representation with test control flow."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

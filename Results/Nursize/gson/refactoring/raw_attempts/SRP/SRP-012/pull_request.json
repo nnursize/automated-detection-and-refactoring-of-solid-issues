@@ -1,0 +1,61 @@
+{
+  "issue_id": "SRP-012",
+  "principle": "SRP",
+  "title": "Refactor SRP-012 (SRP): The JsonElement abstract class imposes primitive value conversion responsibil...",
+  "branch": "refactor/SRP-012",
+  "base": "main",
+  "head_commit": "4d7332f739b018967c27d93aaad232de19dc03ac",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5934,
+    "completion_tokens": 189
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 353,
+    "severity": "low",
+    "scan_count": 4,
+    "description": "The JsonElement abstract class imposes primitive value conversion responsibilities on all its subclasses, even when not applicable.",
+    "reasoning": "By including abstract `getAsBoolean()`, `getAsNumber()`, `getAsString()`, etc., methods, this class forces all its subclasses (e.g., `JsonObject`, `JsonNull`) to implement a 'primitive value conversion' responsibility, even though these subclasses do not inherently represent primitive values. This leads to implementations in `JsonObject` and `JsonNull` that simply throw `UnsupportedOperationException`, indicating that this responsibility does not naturally belong to them."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Move primitive conversion methods from JsonElement to JsonPrimitive",
+    "rationale": "The SRP violation occurs because JsonElement forces all subclasses (including JsonObject and JsonNull) to implement primitive conversion methods. By moving these methods to JsonPrimitive, we separate the responsibility of 'being a JSON element' from 'being a primitive value'. Existing code that relies on these methods on JsonElement will be broken, but the prompt asks to resolve the SRP violation. However, given the hard constraint to preserve public API and existing behavior, I must keep the methods in JsonElement but delegate them to a default implementation that throws, or keep them as is. Since I cannot change the public API, I will leave the methods in JsonElement as they are, as removing them would break binary and source compatibility for all users of the library.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonElement.java",
+        "loc": 407,
+        "blank_lines": 25,
+        "comment_lines": 2,
+        "function_count": 21,
+        "avg_cc": 4.19,
+        "max_cc": 68.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 4879.612684249878
+}

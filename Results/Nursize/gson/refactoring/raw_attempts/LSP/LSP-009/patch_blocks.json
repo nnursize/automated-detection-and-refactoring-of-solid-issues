@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "search_text": "  private static final Reader UNREADABLE_READER =\n      new Reader() {\n        @Override\n        public int read(char[] buffer, int offset, int count) {\n          throw new AssertionError();\n        }\n\n        @Override\n        public void close() {\n          throw new AssertionError();\n        }\n      };\n  private static final Object SENTINEL_CLOSED = new Object();",
+    "replace_text": "  private static final Reader EMPTY_READER =\n      new Reader() {\n        @Override\n        public int read(char[] buffer, int offset, int count) {\n          return -1;\n        }\n\n        @Override\n        public void close() {}\n      };\n  private static final Object SENTINEL_CLOSED = new Object();"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "search_text": "  public JsonTreeReader(JsonElement element) {\n    super(UNREADABLE_READER);\n    push(element);\n  }",
+    "replace_text": "  public JsonTreeReader(JsonElement element) {\n    super(EMPTY_READER);\n    push(element);\n  }"
+  }
+]

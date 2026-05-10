@@ -1,0 +1,25 @@
+diff --git a/src/requests/utils.py b/src/requests/utils.py
+index 3938a2c..12c8f2e 100644
+--- a/src/requests/utils.py
++++ b/src/requests/utils.py
+@@ -168,18 +168,17 @@ _LENGTH_STRATEGIES = [
+ 
+ 
+ def super_len(o):
+-    total_length = None
+-    current_position = 0
+-
+     if not is_urllib3_1 and isinstance(o, str):
+         o = o.encode("utf-8")
+ 
++    total_length = None
+     for predicate, strategy in _LENGTH_STRATEGIES:
+         if predicate(o):
+             total_length = strategy(o)
+             if total_length is not None:
+                 break
+ 
++    current_position = 0
+     if hasattr(o, "tell"):
+         try:
+             current_position = o.tell()

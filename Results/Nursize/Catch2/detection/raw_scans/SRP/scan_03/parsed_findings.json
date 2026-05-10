@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IEventListener",
+    "entity_type": "class",
+    "line_start": 4108,
+    "line_end": 4162,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This interface defines too many unrelated event handling responsibilities.",
+    "reasoning": "The `IEventListener` interface bundles methods for handling various distinct event types: test run lifecycle, test case lifecycle, section lifecycle, assertion results, benchmark results, and different kinds of listing operations (reporters, listeners, tests, tags). Each of these event categories represents a different reason for this interface to change. For instance, changes in how benchmarks are reported or how test listings are formatted would necessitate changes to this single interface, violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Config",
+    "entity_type": "class",
+    "line_start": 1484,
+    "line_end": 1541,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Combines configuration management with environment variable processing and test specification parsing.",
+    "reasoning": "The `Config` class is responsible for storing and providing access to various configuration options (general test run, reporting, benchmarking). However, it also includes logic for reading Bazel environment variables (`readBazelEnvVars`) and processing reporter specifications (`m_processedReporterSpecs`), which involves parsing and transformation logic. These are distinct responsibilities from simply holding and serving configuration data, leading to multiple reasons for this class to change."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Session",
+    "entity_type": "class",
+    "line_start": 2225,
+    "line_end": 2259,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Acts as a 'God class' orchestrating the entire test framework session.",
+    "reasoning": "The `Session` class handles a multitude of high-level responsibilities: command-line argument parsing (`applyCommandLine`), overall configuration management (`useConfigData`, `configData`, `config`), orchestration of the test run (`run`, `runInternal`), and providing informational output like help text (`showHelp`) and library identification (`libIdentify`). Each of these areas represents a distinct concern, and changes in any of them would require modifying this class, making it a clear violation of SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::RunContext",
+    "entity_type": "class",
+    "line_start": 4851,
+    "line_end": 4966,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "A 'God class' managing nearly all aspects of a test case's execution and reporting.",
+    "reasoning": "The `RunContext` class is overburdened with responsibilities. It handles assertion processing, section lifecycle management, generator tracking, benchmark reporting, output redirection, fatal error conditions, overall test execution flow, caching of configuration options, and managing total counts. This class would need to change for a vast array of reasons, from how assertions are processed to how output is redirected or how benchmarks are run, making it a severe violation of SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::CumulativeReporterBase",
+    "entity_type": "class",
+    "line_start": 6942,
+    "line_end": 7004,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Combines event handling with complex internal data structure management for the test run hierarchy.",
+    "reasoning": "This class is designed to accumulate all test results before reporting. Its responsibilities include processing various test events (assertions, sections, test cases) AND building and managing a complex, in-memory tree data structure (`m_testRun`, `m_testCases`, `m_rootSection`, `m_deepestSection`, `m_sectionStack`) to represent the entire test run hierarchy. Changes to the event handling logic, the internal data model, or how the tree is constructed are all distinct reasons for this class to change, thus violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::TestCaseTracking::SectionTracker",
+    "entity_type": "class",
+    "line_start": 4768,
+    "line_end": 4825,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Tracks section execution state and also manages filtering logic for sections.",
+    "reasoning": "The `SectionTracker` class is primarily responsible for tracking the execution state and flow of a test section (e.g., `m_runState`, `open`, `close`, `fail`). However, it also incorporates logic for managing filters applied to the section (`m_filters`, `addInitialFilters`, `addNextFilters`). Tracking execution flow is a distinct responsibility from applying and managing filtering criteria, leading to a moderate SRP violation."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Matchers::MatcherUntypedBase",
+    "entity_type": "class",
+    "line_start": 5707,
+    "line_end": 5723,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Mixes the core responsibility of matching with the responsibility of self-description for reporting.",
+    "reasoning": "This base class for all matchers is implicitly responsible for defining the `match` behavior (implemented by derived classes) but explicitly provides methods for `toString()` and `describe()`. The logic for performing a comparison or validation (matching) is a distinct concern from generating a human-readable string representation of that matcher for reporting purposes. While often coupled in testing frameworks, separating these concerns into distinct interfaces or helper classes would adhere more strictly to SRP."
+  }
+]

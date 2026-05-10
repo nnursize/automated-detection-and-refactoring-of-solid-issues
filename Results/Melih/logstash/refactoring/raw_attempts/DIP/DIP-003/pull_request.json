@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-003",
+  "principle": "DIP",
+  "title": "Refactor DIP-003 (DIP): Direct instantiation of internal components",
+  "branch": "refactor/DIP-003",
+  "base": "main",
+  "head_commit": "6ab463252ad389786239b27ff8cb0b5fed663ad9",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6908,
+    "completion_tokens": 545
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+    "entity_name": "CompiledPipeline.CompiledPipeline",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 113,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Direct instantiation of internal components",
+    "reasoning": "The constructor directly instantiates ConfigVariableExpander and other internal components, making it difficult to swap these dependencies for testing or alternative configurations."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject ConfigVariableExpander into CompiledPipeline constructor",
+    "rationale": "The CompiledPipeline class was directly instantiating ConfigVariableExpander, which couples it to specific implementation details and makes testing difficult. By injecting the ConfigVariableExpander (or a factory/provider for it) into the constructor, we adhere to the Dependency Inversion Principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+        "search_text": "    public CompiledPipeline(\n            final PipelineIR pipelineIR,\n            final RubyIntegration.PluginFactory pluginFactory,\n            final SecretStore secretStore,\n            final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)\n    {\n        this.pipelineIR = pipelineIR;\n        this.pluginFactory = pluginFactory;\n        this.conditionalErrListener = conditionalErrListener;\n        try (ConfigVariableExpander cve = new ConfigVariableExpander(\n                secretStore,\n                EnvironmentVariableProvider.defaultProvider())) {\n            inputs = setupInputs(cve);\n            filters = setupFilters(cve);\n            outputs = setupOutputs(cve);\n        } catch (Exception e) {\n            throw new IllegalStateException(\"Unable to configure plugins: \" + e.getMessage(), e);\n        }\n    }",
+        "replace_text": "    public CompiledPipeline(\n            final PipelineIR pipelineIR,\n            final RubyIntegration.PluginFactory pluginFactory,\n            final SecretStore secretStore,\n            final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)\n    {\n        this(pipelineIR, pluginFactory, new ConfigVariableExpander(secretStore, EnvironmentVariableProvider.defaultProvider()), conditionalErrListener);\n    }\n\n    public CompiledPipeline(\n            final PipelineIR pipelineIR,\n            final RubyIntegration.PluginFactory pluginFactory,\n            final ConfigVariableExpander cve,\n            final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)\n    {\n        this.pipelineIR = pipelineIR;\n        this.pluginFactory = pluginFactory;\n        this.conditionalErrListener = conditionalErrListener;\n        try {\n            inputs = setupInputs(cve);\n            filters = setupFilters(cve);\n            outputs = setupOutputs(cve);\n        } catch (Exception e) {\n            throw new IllegalStateException(\"Unable to configure plugins: \" + e.getMessage(), e);\n        }\n    }",
+        "search_lines": 19,
+        "replace_lines": 26
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+        "loc": 502,
+        "blank_lines": 67,
+        "comment_lines": 11,
+        "function_count": 27,
+        "avg_cc": 2.52,
+        "max_cc": 42.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+        "loc": 508,
+        "blank_lines": 68,
+        "comment_lines": 11,
+        "function_count": 27,
+        "avg_cc": 2.52,
+        "max_cc": 42.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java b/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\nindex e851e0f..d150cc3 100644\n--- a/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\n+++ b/logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\n@@ -123,13 +123,20 @@ public final class CompiledPipeline {\n             final RubyIntegration.PluginFactory pluginFactory,\n             final SecretStore secretStore,\n             final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)\n+    {\n+        this(pipelineIR, pluginFactory, new ConfigVariableExpander(secretStore, EnvironmentVariableProvider.defaultProvider()), conditionalErrListener);\n+    }\n+\n+    public CompiledPipeline(\n+            final PipelineIR pipelineIR,\n+            final RubyIntegration.PluginFactory pluginFactory,\n+            final ConfigVariableExpander cve,\n+            final AbstractPipelineExt.ConditionalEvaluationListener conditionalErrListener)\n     {\n         this.pipelineIR = pipelineIR;\n         this.pluginFactory = pluginFactory;\n         this.conditionalErrListener = conditionalErrListener;\n-        try (ConfigVariableExpander cve = new ConfigVariableExpander(\n-                secretStore,\n-                EnvironmentVariableProvider.defaultProvider())) {\n+        try {\n             inputs = setupInputs(cve);\n             filters = setupFilters(cve);\n             outputs = setupOutputs(cve);\n",
+  "duration_ms": 13416.320323944092
+}

@@ -1,0 +1,84 @@
+{
+  "scan_id": "logstash_SRP_scan_11",
+  "repo_name": "logstash",
+  "principle": "SRP",
+  "scan_number": 11,
+  "timestamp": "2026-04-19T13:25:40.605930",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 980,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God class managing queue logic, physical persistence, and system resource monitoring.\",\n      \"reasoning\": \"The Queue class encapsulates too many unrelated responsibilities: it manages the high-level logical sequence of events (batches, sequences), low-level file system operations (locking, page management via PageIO), disk space availability calculations (ensureDiskAvailable), and metric reporting. These should be segregated into separate components for storage management, resource monitoring, and logical queueing.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 950,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Bloated class handling pipeline execution, metric aggregation, and external resource lifecycle.\",\n      \"reasoning\": \"This class acts as a 'God Object' for the pipeline. It handles pipeline initialization, complex metric registration and storage (Timer, Counter, Gauge, Flow metrics), Dead Letter Queue (DLQ) writer lifecycle management, and configuration parsing (parseToDuration). The metric management logic alone (L546-L780) is large enough to be its own responsibility/class.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event\",\n      \"entity_type\": \"class\",\n      \"line_start\": 51,\n      \"line_end\": 583,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Data container coupled with multiple serialization and utility responsibilities.\",\n      \"reasoning\": \"The Event class violates SRP by mixing its primary responsibility (representing a Logstash event and its fields) with serialization logic (toJson, fromJson, serialize, deserialize) and memory estimation (estimateMemory). Serialization should be handled by external mapper/codec classes to allow the Event structure to change independently of its external representations.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 109,\n      \"line_end\": 814,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Writer class mixing data persistence with retention policy enforcement and filesystem monitoring.\",\n      \"reasoning\": \"This class handles the core task of writing DLQ entries but also manages retention policies (age-based and size-based cleanup), segment sealing logic, and background filesystem watching (WatchService) to detect deleted files. The policy enforcement and filesystem monitoring should be moved to separate manager or background service classes.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/agent.rb\",\n      \"entity_name\": \"LogStash\",\n      \"entity_type\": \"class\",\n      \"line_start\": 47,\n      \"line_end\": 195,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Agent class managing pipeline orchestration, web server lifecycle, and global metrics.\",\n      \"reasoning\": \"The Agent (LogStash class and associated top-level functions in agent.rb) is responsible for converging the state of all pipelines, but it also manages the internal WebServer (start_webserver_if_enabled) and global metric collection/initialization. These are distinct architectural concerns that should be handled by a dedicated Orchestrator and a separate WebServer manager.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/runner.rb\",\n      \"entity_name\": \"LogStash\",\n      \"entity_type\": \"class\",\n      \"line_start\": 53,\n      \"line_end\": 584,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Runner class mixing CLI handling with application bootstrapping and signal management.\",\n      \"reasoning\": \"The runner class handles CLI argument parsing (via Clamp), version reporting, environment validation, signal trapping (SIGINT/SIGTERM), and agent instantiation. Mixing CLI interface concerns with core application bootstrapping logic violates SRP; the CLI parsing should be isolated from the execution runner.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 980,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God class managing queue logic, physical persistence, and system resource monitoring.",
+      "reasoning": "The Queue class encapsulates too many unrelated responsibilities: it manages the high-level logical sequence of events (batches, sequences), low-level file system operations (locking, page management via PageIO), disk space availability calculations (ensureDiskAvailable), and metric reporting. These should be segregated into separate components for storage management, resource monitoring, and logical queueing."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 950,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Bloated class handling pipeline execution, metric aggregation, and external resource lifecycle.",
+      "reasoning": "This class acts as a 'God Object' for the pipeline. It handles pipeline initialization, complex metric registration and storage (Timer, Counter, Gauge, Flow metrics), Dead Letter Queue (DLQ) writer lifecycle management, and configuration parsing (parseToDuration). The metric management logic alone (L546-L780) is large enough to be its own responsibility/class."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event",
+      "entity_type": "class",
+      "line_start": 51,
+      "line_end": 583,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Data container coupled with multiple serialization and utility responsibilities.",
+      "reasoning": "The Event class violates SRP by mixing its primary responsibility (representing a Logstash event and its fields) with serialization logic (toJson, fromJson, serialize, deserialize) and memory estimation (estimateMemory). Serialization should be handled by external mapper/codec classes to allow the Event structure to change independently of its external representations."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 109,
+      "line_end": 814,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Writer class mixing data persistence with retention policy enforcement and filesystem monitoring.",
+      "reasoning": "This class handles the core task of writing DLQ entries but also manages retention policies (age-based and size-based cleanup), segment sealing logic, and background filesystem watching (WatchService) to detect deleted files. The policy enforcement and filesystem monitoring should be moved to separate manager or background service classes."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/agent.rb",
+      "entity_name": "LogStash",
+      "entity_type": "class",
+      "line_start": 47,
+      "line_end": 195,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Agent class managing pipeline orchestration, web server lifecycle, and global metrics.",
+      "reasoning": "The Agent (LogStash class and associated top-level functions in agent.rb) is responsible for converging the state of all pipelines, but it also manages the internal WebServer (start_webserver_if_enabled) and global metric collection/initialization. These are distinct architectural concerns that should be handled by a dedicated Orchestrator and a separate WebServer manager."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/runner.rb",
+      "entity_name": "LogStash",
+      "entity_type": "class",
+      "line_start": 53,
+      "line_end": 584,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Runner class mixing CLI handling with application bootstrapping and signal management.",
+      "reasoning": "The runner class handles CLI argument parsing (via Clamp), version reporting, environment validation, signal trapping (SIGINT/SIGTERM), and agent instantiation. Mixing CLI interface concerns with core application bootstrapping logic violates SRP; the CLI parsing should be isolated from the execution runner."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 21169.086694717407,
+  "error": null
+}

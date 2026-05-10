@@ -1,0 +1,84 @@
+{
+  "scan_id": "logstash_SRP_scan_12",
+  "repo_name": "logstash",
+  "principle": "SRP",
+  "scan_number": 12,
+  "timestamp": "2026-04-19T13:26:57.739543",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 950,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Bloated class handling pipeline execution, metrics collection, and DLQ management.\",\n      \"reasoning\": \"This class encapsulates multiple unrelated responsibilities: pipeline lifecycle management, complex metrics initialization and storage (L546-L780), Dead Letter Queue (DLQ) writer lifecycle (L387-L458), and utility logic like time duration parsing (L420). Changes to the metrics system or DLQ implementation would force changes to this core pipeline class.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 55,\n      \"line_end\": 980,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"God class managing queue logic, disk I/O, and resource monitoring.\",\n      \"reasoning\": \"The Queue class handles high-level queue operations (read/write/ack), low-level page management (L185-L211), file locking/concurrency (L204, L823), serialization (L781), and physical disk space monitoring (L917). These represent separate concerns (logic, persistence, and resource management) that should be decoupled.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event\",\n      \"entity_type\": \"class\",\n      \"line_start\": 51,\n      \"line_end\": 583,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Data entity class mixed with serialization and formatting logic.\",\n      \"reasoning\": \"While primarily a data container, the class also assumes responsibility for JSON parsing/serialization (L284-L314), binary serialization (L541), memory estimation (L577), and complex string interpolation (L397). Serialization formats and data structure management are distinct reasons for change.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 109,\n      \"line_end\": 814,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Class mixing write operations with retention policy management and scheduling.\",\n      \"reasoning\": \"The class is responsible for writing entries to the DLQ, but also contains logic for age-based and size-based retention policies (L458, L489), segment cleanup, file locking, and managing its own background flusher via an internal scheduler service. Retention management is a separate administrative concern from the writer's primary task.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/agent.rb\",\n      \"entity_name\": \"LogStash\",\n      \"entity_type\": \"class\",\n      \"line_start\": 47,\n      \"line_end\": 195,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Ruby Agent class acting as a God Object for the entire system.\",\n      \"reasoning\": \"This class (and its associated top-level functions) manages pipeline lifecycles, webserver initialization (L481), metric collector configuration (L510), state convergence logic (L382), and geoip database metrics (L660). It ties together too many unrelated subsystems.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\",\n      \"entity_name\": \"DatasetCompiler\",\n      \"entity_type\": \"class\",\n      \"line_start\": 41,\n      \"line_end\": 574,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Compiler class mixed with runtime dataset implementations.\",\n      \"reasoning\": \"The class contains the logic to compile datasets but also defines internal runtime structures like 'Complement' (L486) and 'ComputeAndClear' (L547). The logic for generating/compiling execution code should be separated from the operational behavior of the resulting dataset objects.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 950,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Bloated class handling pipeline execution, metrics collection, and DLQ management.",
+      "reasoning": "This class encapsulates multiple unrelated responsibilities: pipeline lifecycle management, complex metrics initialization and storage (L546-L780), Dead Letter Queue (DLQ) writer lifecycle (L387-L458), and utility logic like time duration parsing (L420). Changes to the metrics system or DLQ implementation would force changes to this core pipeline class."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 55,
+      "line_end": 980,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "God class managing queue logic, disk I/O, and resource monitoring.",
+      "reasoning": "The Queue class handles high-level queue operations (read/write/ack), low-level page management (L185-L211), file locking/concurrency (L204, L823), serialization (L781), and physical disk space monitoring (L917). These represent separate concerns (logic, persistence, and resource management) that should be decoupled."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event",
+      "entity_type": "class",
+      "line_start": 51,
+      "line_end": 583,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Data entity class mixed with serialization and formatting logic.",
+      "reasoning": "While primarily a data container, the class also assumes responsibility for JSON parsing/serialization (L284-L314), binary serialization (L541), memory estimation (L577), and complex string interpolation (L397). Serialization formats and data structure management are distinct reasons for change."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 109,
+      "line_end": 814,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Class mixing write operations with retention policy management and scheduling.",
+      "reasoning": "The class is responsible for writing entries to the DLQ, but also contains logic for age-based and size-based retention policies (L458, L489), segment cleanup, file locking, and managing its own background flusher via an internal scheduler service. Retention management is a separate administrative concern from the writer's primary task."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/agent.rb",
+      "entity_name": "LogStash",
+      "entity_type": "class",
+      "line_start": 47,
+      "line_end": 195,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Ruby Agent class acting as a God Object for the entire system.",
+      "reasoning": "This class (and its associated top-level functions) manages pipeline lifecycles, webserver initialization (L481), metric collector configuration (L510), state convergence logic (L382), and geoip database metrics (L660). It ties together too many unrelated subsystems."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+      "entity_name": "DatasetCompiler",
+      "entity_type": "class",
+      "line_start": 41,
+      "line_end": 574,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Compiler class mixed with runtime dataset implementations.",
+      "reasoning": "The class contains the logic to compile datasets but also defines internal runtime structures like 'Complement' (L486) and 'ComputeAndClear' (L547). The logic for generating/compiling execution code should be separated from the operational behavior of the resulting dataset objects."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 17108.181476593018,
+  "error": null
+}

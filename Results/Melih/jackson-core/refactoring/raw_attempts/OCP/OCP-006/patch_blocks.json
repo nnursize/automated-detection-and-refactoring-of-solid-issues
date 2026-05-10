@@ -1,0 +1,74 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "import tools.jackson.core.json.JsonReadFeature;\nimport tools.jackson.core.json.JsonWriteContext;\nimport tools.jackson.core.json.ReaderBasedBase64StreamDecoder;\nimport tools.jackson.core.json.UTF8Base64Decoder;\nimport tools.jackson.core.json.UTF8DataInputBase64Decoder;\nimport tools.jackson.core.json.UTF8DataInputJsonParser;\nimport tools.jackson.core.json.UTF8JsonGenerator;\nimport tools.jackson.core.json.WriterBasedBase64Encoder;\nimport tools.jackson.core.json.WriterBasedJsonGenerator;",
+    "replace_text": "import java.util.ArrayList;\nimport java.util.List;\n\nimport tools.jackson.core.json.JsonReadFeature;\nimport tools.jackson.core.json.JsonWriteContext;\nimport tools.jackson.core.json.ReaderBasedBase64StreamDecoder;\nimport tools.jackson.core.json.UTF8Base64Decoder;\nimport tools.jackson.core.json.UTF8DataInputBase64Decoder;\nimport tools.jackson.core.json.UTF8DataInputJsonParser;\nimport tools.jackson.core.json.UTF8JsonGenerator;\nimport tools.jackson.core.json.WriterBasedBase64Encoder;\nimport tools.jackson.core.json.WriterBasedJsonGenerator;"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "    private final JsonToken _nextTokenNotInObject(int i) throws JacksonException\n    {\n        if (i == INT_QUOTE) {\n            _tokenIncomplete = true;\n            return _updateToken(JsonToken.VALUE_STRING);\n        }\n        switch (i) {\n        case '[':\n            createChildArrayContext(_tokenInputRow, _tokenInputCol);\n            return _updateToken(JsonToken.START_ARRAY);\n        case '{':\n            createChildObjectContext(_tokenInputRow, _tokenInputCol);\n            return _updateToken(JsonToken.START_OBJECT);\n        case 't':\n            _matchTrue();\n            return _updateToken(JsonToken.VALUE_TRUE);\n        case 'f':\n            _matchFalse();\n            return _updateToken(JsonToken.VALUE_FALSE);\n        case 'n':\n            _matchNull();\n            return _updateToken(JsonToken.VALUE_NULL);\n        case '-':\n            return _updateToken(_parseSignedNumber(true));\n        case '+':\n            if (!isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {\n                return _updateToken(_handleUnexpectedValue(i));\n            }\n            return _updateToken(_parseSignedNumber(false));\n        case '.': // [core#611]:\n            return _updateToken(_parseFloatThatStartsWithPeriod(false, false));\n        case '0':\n        case '1':\n        case '2':\n        case '3':\n        case '4':\n        case '5':\n        case '6':\n        case '7':\n        case '8':\n        case '9':\n            return _updateToken(_parseUnsignedNumber(i));\n        }\n        return _updateToken(_handleUnexpectedValue(i));\n    }",
+    "replace_text": "    private static final List<ValueTokenHandler> VALUE_TOKEN_HANDLERS;\n\n    static {\n        VALUE_TOKEN_HANDLERS = new ArrayList<>();\n        VALUE_TOKEN_HANDLERS.add(new ArrayStartValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new ObjectStartValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new TrueValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new FalseValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new NullValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new SignedNumberValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new PlusSignNumberValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new PeriodFloatValueHandler());\n        VALUE_TOKEN_HANDLERS.add(new UnsignedNumberValueHandler());\n    }\n\n    private final JsonToken _nextTokenNotInObject(int i) throws JacksonException\n    {\n        if (i == INT_QUOTE) {\n            _tokenIncomplete = true;\n            return _updateToken(JsonToken.VALUE_STRING);\n        }\n\n        for (ValueTokenHandler handler : VALUE_TOKEN_HANDLERS) {\n            if (handler.canHandle(i)) {\n                return _updateToken(handler.handle(this, i));\n            }\n        }\n        return _updateToken(_handleUnexpectedValue(i));\n    }"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/ValueTokenHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\n\n/**\n * Interface for handling the parsing of a JSON value based on its first character.\n * Implementations encapsulate the logic for a specific type of value.\n */\ninterface ValueTokenHandler {\n    /**\n     * Checks if this handler can process the given character as the start of a value.\n     * @param firstChar The first character of the potential value.\n     * @return True if this handler can process the character, false otherwise.\n     */\n    boolean canHandle(int firstChar);\n\n    /**\n     * Parses the value starting with the given character and returns the corresponding JsonToken.\n     * @param parser The parser instance to use for parsing operations.\n     * @param firstChar The first character of the value.\n     * @return The JsonToken representing the parsed value.\n     * @throws JacksonException If an error occurs during parsing.\n     */\n    JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException;\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/ArrayStartValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_LBRACKET;\n\nclass ArrayStartValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_LBRACKET;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        parser.createChildArrayContext(parser._tokenInputRow, parser._tokenInputCol);\n        return JsonToken.START_ARRAY;\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/ObjectStartValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_LCURLY;\n\nclass ObjectStartValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_LCURLY;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        parser.createChildObjectContext(parser._tokenInputRow, parser._tokenInputCol);\n        return JsonToken.START_OBJECT;\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/TrueValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_t;\n\nclass TrueValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_t;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        parser._matchTrue();\n        return JsonToken.VALUE_TRUE;\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/FalseValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_f;\n\nclass FalseValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_f;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        parser._matchFalse();\n        return JsonToken.VALUE_FALSE;\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/NullValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_n;\n\nclass NullValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_n;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        parser._matchNull();\n        return JsonToken.VALUE_NULL;\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/SignedNumberValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_MINUS;\n\nclass SignedNumberValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_MINUS;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        return parser._parseSignedNumber(true);\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/PlusSignNumberValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_PLUS;\n\nclass PlusSignNumberValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_PLUS;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        if (!parser.isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {\n            return parser._handleUnexpectedValue(firstChar);\n        }\n        return parser._parseSignedNumber(false);\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/PeriodFloatValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_PERIOD;\n\nclass PeriodFloatValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar == INT_PERIOD;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        return parser._parseFloatThatStartsWithPeriod(false, false);\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/json/UnsignedNumberValueHandler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.json;\n\nimport tools.jackson.core.JacksonException;\nimport tools.jackson.core.JsonToken;\nimport static tools.jackson.core.json.JsonParserBase.INT_0;\nimport static tools.jackson.core.json.JsonParserBase.INT_9;\n\nclass UnsignedNumberValueHandler implements ValueTokenHandler {\n    @Override\n    public boolean canHandle(int firstChar) {\n        return firstChar >= INT_0 && firstChar <= INT_9;\n    }\n\n    @Override\n    public JsonToken handle(UTF8StreamJsonParser parser, int firstChar) throws JacksonException {\n        return parser._parseUnsignedNumber(firstChar);\n    }\n}"
+  }
+]

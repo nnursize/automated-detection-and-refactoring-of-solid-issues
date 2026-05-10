@@ -1,0 +1,46 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index e2f758a..874fb89 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -565,6 +565,9 @@
+ namespace Catch {
+ 
+     class IResultCapture;
++    class ITestConfig;
++    class IReporterConfig;
++    class IRuntimeConfig;
+     class IConfig;
+ 
+     class Context {
+@@ -586,6 +589,31 @@ namespace Catch {
+         constexpr void setConfig( IConfig const* config ) { m_config = config; }
+     };
+ 
++    class ITestConfig {
++    public:
++        virtual ~ITestConfig() = default;
++        virtual bool allowThrows() const = 0;
++        virtual std::string name() const = 0;
++    };
++
++    class IReporterConfig {
++    public:
++        virtual ~IReporterConfig() = default;
++        virtual bool includeSuccessfulResults() const = 0;
++        virtual bool shouldDebugBreak() const = 0;
++    };
++
++    class IRuntimeConfig {
++    public:
++        virtual ~IRuntimeConfig() = default;
++        virtual bool warnAboutNoTests() const = 0;
++    };
++
++    class IConfig : public ITestConfig, public IReporterConfig, public IRuntimeConfig {
++    public:
++        ~IConfig() override = default;
++    };
++
+     Context& getCurrentMutableContext();
+ 
+     inline Context const& getCurrentContext() {

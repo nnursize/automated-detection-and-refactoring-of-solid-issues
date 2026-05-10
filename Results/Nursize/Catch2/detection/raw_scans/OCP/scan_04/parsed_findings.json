@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IResultCapture",
+    "entity_type": "class",
+    "line_start": 352,
+    "line_end": 400,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The IResultCapture interface is too large, requiring modification for new result capture events.",
+    "reasoning": "The 'Fat Interface' smell is present in `IResultCapture`. It defines numerous virtual methods for various test events (assertions, sections, benchmarks, exceptions). Adding a new type of result capture event or a new detail to an existing event would require adding a new pure virtual method to this interface. This would force all existing concrete implementations of `IResultCapture` to be modified, directly violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IConfig",
+    "entity_type": "class",
+    "line_start": 485,
+    "line_end": 535,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "The IConfig interface is too large, requiring modification for new configuration options.",
+    "reasoning": "The 'Fat Interface' smell is present in `IConfig`. It exposes a wide range of configuration settings. If a new configuration option is introduced in Catch2, a new pure virtual getter method would need to be added to `IConfig`. This would necessitate modifying all concrete implementations of `IConfig` (e.g., `Catch::Config`), violating the Open/Closed Principle."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::IEventListener",
+    "entity_type": "class",
+    "line_start": 2800,
+    "line_end": 2900,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "The IEventListener interface is too large, requiring modification for new event types.",
+    "reasoning": "The 'Fat Interface' smell is evident in `IEventListener`. This interface is extremely comprehensive, covering all possible events a reporter or listener might handle. Introducing any new event type (e.g., a new listing type, a new phase in test execution) would require adding a new pure virtual method to `IEventListener`. This would force all existing concrete implementations (all reporters and custom listeners) to be modified, which is a direct violation of the Open/Closed Principle."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::makeOutputRedirect",
+    "entity_type": "class",
+    "line_start": 3330,
+    "line_end": 3330,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Adding new output redirection kinds requires modifying the `makeOutputRedirect` function.",
+    "reasoning": "The `OutputRedirect::Kind` enum (lines 3300-3305) defines the types of output redirection. The `makeOutputRedirect` function is responsible for instantiating concrete `OutputRedirect` implementations based on this enum. If a new kind of output redirection is added, `makeOutputRedirect` would need to be modified (likely by adding a new `case` to a `switch` statement or an `else if` branch). This is a 'Switch Statement on Type' smell, directly violating the Open/Closed Principle as existing code must be changed to support new functionality."
+  }
+]

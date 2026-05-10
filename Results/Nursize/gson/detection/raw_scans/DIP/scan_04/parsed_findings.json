@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 1600,
+    "line_end": 1625,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Base class JsonReader depends on its own subclass JsonTreeReader",
+    "reasoning": "Switch Statement on type smell -> DIP violation because the base class JsonReader (an abstraction) is explicitly coupled to its subclass JsonTreeReader (a detail) through a static initializer and instanceof checks. This creates a circular dependency where the abstraction depends on a specific implementation detail."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson.Gson",
+    "entity_type": "method",
+    "line_start": 235,
+    "line_end": 275,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Gson directly instantiates low-level internal support classes",
+    "reasoning": "Inappropriate Intimacy smell -> DIP violation because the high-level Gson class directly instantiates concrete internal classes like ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory using the 'new' keyword. Instead of these components being injected as abstractions, Gson is tightly coupled to specific low-level implementation details."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/TypeAdapter.java",
+    "entity_name": "TypeAdapter",
+    "entity_type": "class",
+    "line_start": 160,
+    "line_end": 220,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "TypeAdapter abstraction instantiates concrete JsonReader and JsonWriter implementations",
+    "reasoning": "Inappropriate Intimacy smell -> DIP violation because the TypeAdapter abstraction directly instantiates concrete implementations JsonTreeReader and JsonTreeWriter within its fromJsonTree and toJsonTree methods. Abstractions should not depend on details; they should interact with them through interfaces or have them injected."
+  }
+]

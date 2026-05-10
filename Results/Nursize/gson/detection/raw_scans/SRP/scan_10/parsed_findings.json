@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters",
+    "entity_type": "class",
+    "line_start": 60,
+    "line_end": 1081,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "God class aggregating numerous unrelated TypeAdapter implementations.",
+    "reasoning": "The `TypeAdapters` class serves as a monolithic container for `TypeAdapter` implementations for a wide array of distinct Java types (e.g., `Class`, `BitSet`, `Boolean`, `Number`, `Character`, `String`, `BigDecimal`, `URL`, `URI`, `UUID`, `Currency`, `Calendar`, `Locale`, `JsonElement`). Each type's serialization and deserialization logic represents a separate reason for change. Bundling all these into a single class violates SRP by making it responsible for too many distinct concerns, leading to a bloated class that changes whenever any of these individual type handling logics need modification."
+  },
+  {
+    "file_path": "gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java",
+    "entity_name": "ParseBenchmark",
+    "entity_type": "class",
+    "line_start": 58,
+    "line_end": 467,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Mixes benchmark execution logic, data model definitions, and parser implementations.",
+    "reasoning": "The `ParseBenchmark` class has multiple responsibilities: orchestrating benchmark runs (`setUp`, `timeParse`), defining the data structures being parsed (`Tweet`, `User`, `Feed`, etc.), and implementing various parsing strategies (`GsonStreamParser`, `JacksonStreamParser`, etc.). These are distinct concerns. The data models should be separate entities, and the parser implementations should ideally be in their own dedicated classes or files, allowing the benchmark class to focus solely on measuring performance."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters",
+    "entity_type": "class",
+    "line_start": 44,
+    "line_end": 449,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Aggregates numerous distinct Java Time API TypeAdapter implementations.",
+    "reasoning": "Similar to `TypeAdapters`, this class bundles the serialization and deserialization logic for many different Java 8 Date and Time API types (e.g., `Duration`, `Instant`, `LocalDate`, `LocalDateTime`, `MonthDay`, `OffsetDateTime`, `OffsetTime`, `Period`, `Year`, `YearMonth`, `ZoneId`, `ZonedDateTime`). Each of these types has unique serialization/deserialization requirements, representing a separate reason for change. Consolidating them into a single class violates SRP by making it responsible for too many distinct concerns within the Java Time API domain."
+  },
+  {
+    "file_path": "gson/extras/src/main/java/com/google/gson/graph/GraphAdapterBuilder.java",
+    "entity_name": "GraphAdapterBuilder",
+    "entity_type": "class",
+    "line_start": 73,
+    "line_end": 360,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The nested `Factory` class implements multiple unrelated interfaces and the builder bundles complex graph serialization logic.",
+    "reasoning": "The `GraphAdapterBuilder`'s nested `Factory` class implements both `TypeAdapterFactory` (for creating type adapters) and `InstanceCreator<Object>` (for creating object instances). These are two distinct responsibilities. Furthermore, the `GraphAdapterBuilder` itself, along with its deeply nested `Graph` and `Element` classes, encapsulates the entire complex mechanism for handling object graph serialization and deserialization, including cycle detection and reference management. This goes beyond merely 'building' a Gson instance and instead bundles a complete, intricate subsystem, violating SRP."
+  },
+  {
+    "file_path": "gson/extras/src/main/java/com/google/gson/typeadapters/UtcDateTypeAdapter.java",
+    "entity_name": "UtcDateTypeAdapter",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 281,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "Duplicates date formatting and parsing logic instead of delegating to a dedicated utility.",
+    "reasoning": "The `UtcDateTypeAdapter` contains its own implementations of `format`, `parse`, `padInt`, `checkOffset`, and `parseInt` for ISO 8601 date handling. This logic is already available and encapsulated in `ISO8601Utils.java`. By reimplementing this functionality, `UtcDateTypeAdapter` takes on the responsibility of date utility, which is separate from its primary role of *adapting* `Date` objects using an *existing* utility. This violates SRP and introduces code duplication."
+  },
+  {
+    "file_path": "gson/metrics/src/main/java/com/google/gson/metrics/BagOfPrimitives.java",
+    "entity_name": "BagOfPrimitives",
+    "entity_type": "class",
+    "line_start": 25,
+    "line_end": 96,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Contains `getExpectedJson` method, mixing data representation with formatting/serialization concerns.",
+    "reasoning": "The `BagOfPrimitives` class is primarily a data holder. The `getExpectedJson()` method, however, is concerned with how the object should be represented in JSON format. This is a serialization or formatting concern, not an an intrinsic property or behavior of the data itself. This method introduces a reason to change (JSON formatting rules) that is separate from the data structure's core responsibility, thus violating SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+    "entity_name": "ReflectionHelper",
+    "entity_type": "class",
+    "line_start": 27,
+    "line_end": 325,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Bundles general reflection utilities with platform-specific record reflection implementations.",
+    "reasoning": "The `ReflectionHelper` class provides general utility methods for reflection. However, it also contains nested abstract `RecordHelper` and concrete `RecordSupportedHelper` and `RecordNotSupportedHelper` classes that deal specifically with Java record reflection, including platform-specific implementations. While related to reflection, record reflection is a specialized and potentially platform-dependent concern. Mixing these distinct levels of reflection utility (general vs. specific/platform-dependent) within a single class introduces multiple reasons for change, violating SRP."
+  }
+]

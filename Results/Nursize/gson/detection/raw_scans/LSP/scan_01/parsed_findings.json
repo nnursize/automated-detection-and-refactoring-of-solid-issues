@@ -1,0 +1,90 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.JsonReaderInternalAccess.promoteNameToValue",
+    "entity_type": "method",
+    "line_start": 897,
+    "line_end": 910,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Special handling for JsonTreeReader in internal access API violates expected token stream behavior.",
+    "reasoning": "The `JsonReaderInternalAccess.promoteNameToValue` method, when invoked on a `JsonReader` instance, is expected to change the internal state so that the *name string itself* becomes the next token to be read as a string, followed by its value. However, the implementation explicitly checks `if (reader instanceof JsonTreeReader)`. If true, it delegates to `JsonTreeReader.promoteNameToValue()`. The `JsonTreeReader` implementation (in `gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java`, lines 173-179) pushes *two* elements onto its internal stack: first the actual JSON value, then the name as a `JsonPrimitive`. This means subsequent `peek()` calls on a `JsonTreeReader` would return `STRING` (for the name) and then the actual value, effectively inserting an extra token compared to the base `JsonReader`'s behavior. This breaks the contract that `JsonTreeReader` should be substitutable for `JsonReader` without altering the correctness of the program's token stream processing."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.newTypeHierarchyFactory",
+    "entity_type": "method",
+    "line_start": 1040,
+    "line_end": 1051,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Introduces a new postcondition check and exception type in the `read` method of the created TypeAdapter.",
+    "reasoning": "The `read` method of the `TypeAdapter` created by `newTypeHierarchyFactory` adds a postcondition check: `if (result != null && !requestedType.isInstance(result))`. If this check fails, it throws a `JsonSyntaxException`. The base `TypeAdapter.read` method's contract (which declares `IOException`) does not specify this additional runtime type check or the `JsonSyntaxException`. Introducing new preconditions or postconditions, or changing the type of runtime exceptions, violates LSP because clients expecting the base contract might not be prepared for this new behavior or exception."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/reflect/TypeToken.java",
+    "entity_name": "TypeToken.isAssignableFrom",
+    "entity_type": "method",
+    "line_start": 109,
+    "line_end": 110,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Deprecated `isAssignableFrom` methods admit inconsistency with expected Java type assignability rules.",
+    "reasoning": "The `isAssignableFrom` methods are explicitly deprecated with the note: 'this implementation may be inconsistent with javac for types with wildcards.' This is a direct admission that the method's behavior might not align with the standard Java type system's assignability rules, which is a violation of the expected behavior aspect of LSP. A client substituting `TypeToken` and relying on `isAssignableFrom` would expect it to behave consistently with Java's rules, but this implementation explicitly states it might not."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+    "entity_name": "JsonArray.getAsBoolean",
+    "entity_type": "method",
+    "line_start": 340,
+    "line_end": 343,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Changes exception type from `UnsupportedOperationException` to `IllegalStateException` for `getAs...` methods.",
+    "reasoning": "The `JsonArray` class overrides `getAsBoolean()`, `getAsNumber()`, `getAsString()`, etc., from its base class `JsonElement`. The `JsonElement` base class declares these methods to throw `UnsupportedOperationException`. However, `JsonArray`'s implementation of these methods first calls `getAsSingleElement()`, which throws an `IllegalStateException` if the array does not contain exactly one element. This changes the exception type from `UnsupportedOperationException` (declared by the base class) to `IllegalStateException` under certain conditions. While both are `RuntimeException`s, changing the specific type of `RuntimeException` violates LSP because clients might have `catch` blocks for `UnsupportedOperationException` that would now miss `IllegalStateException`."
+  },
+  {
+    "file_path": "gson/extras/src/main/java/com/google/gson/graph/GraphAdapterBuilder.java",
+    "entity_name": "GraphAdapterBuilder.Factory.create.write",
+    "entity_type": "method",
+    "line_start": 160,
+    "line_end": 196,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "The `write` method of the created TypeAdapter changes behavior based on whether it's the first object in a graph, violating direct serialization contract.",
+    "reasoning": "The `write(JsonWriter out, T value)` method of the anonymous `TypeAdapter` created by `GraphAdapterBuilder.Factory` fundamentally alters its behavior. If it's the first object of a graph being serialized (`graph == null`), it writes the *entire graph* as a JSON object. For subsequent calls within the same graph, it writes only a string ID referencing the object. This violates the `TypeAdapter.write` contract, which expects to serialize the provided `value` directly and consistently. A client substituting this adapter would expect it to serialize the given object, not an entire graph or just an ID, leading to unexpected output and breaking program correctness."
+  },
+  {
+    "file_path": "gson/extras/src/main/java/com/google/gson/typeadapters/RuntimeTypeAdapterFactory.java",
+    "entity_name": "RuntimeTypeAdapterFactory.create.write",
+    "entity_type": "method",
+    "line_start": 219,
+    "line_end": 224,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Introduces a new precondition and exception type for serialization if the object already contains the type field name.",
+    "reasoning": "The `write(JsonWriter out, R value)` method of the anonymous `TypeAdapter` created by `RuntimeTypeAdapterFactory.create` throws a `JsonParseException` if the object to be serialized (`jsonObject`) already contains a field with the `typeFieldName`. This introduces a new precondition and a new runtime exception type (`JsonParseException`) that is not part of the `TypeAdapter.write` contract. Clients expecting the base `TypeAdapter` behavior would not anticipate this specific failure mode, thus violating LSP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java",
+    "entity_name": "ObjectTypeAdapter.write",
+    "entity_type": "method",
+    "line_start": 145,
+    "line_end": 149,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Special-cases serialization for its own type, writing an empty object instead of the actual value.",
+    "reasoning": "The `ObjectTypeAdapter.write` method contains a specific check: `if (typeAdapter instanceof ObjectTypeAdapter)`. If the runtime type adapter for the value being serialized is *itself* an `ObjectTypeAdapter`, it writes an empty JSON object (`{}`) regardless of the actual value. Otherwise, it delegates. This special-case behavior for its own type fundamentally breaks the `TypeAdapter.write` contract, which expects to serialize the provided `value` into its JSON representation. A client substituting `ObjectTypeAdapter` for `TypeAdapter<Object>` would expect consistent serialization behavior, but this implementation deviates for a specific subtype (itself), violating LSP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java",
+    "entity_name": "TypeAdapterRuntimeTypeWrapper.write",
+    "entity_type": "method",
+    "line_start": 50,
+    "line_end": 60,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Prioritizes a less specific, non-reflective base type adapter over a more specific, reflective runtime type adapter.",
+    "reasoning": "The `write` method's logic for selecting the `TypeAdapter` is complex. Specifically, the condition `else if (!isReflective(delegate))` means that if the adapter found for the runtime type (`runtimeTypeAdapter`) is a reflective one (Gson's default), but the `delegate` (the adapter for the declared type) is *not* reflective (i.e., a custom user-registered adapter), then the `delegate` is chosen. This means a custom adapter for a *base type* is preferred over a reflective adapter for a *more specific runtime type*. This violates the expectation of polymorphism where behavior should be determined by the most specific type. A client expecting the most specific serialization behavior for a subtype might instead get the behavior defined for a supertype, breaking correctness."
+  }
+]

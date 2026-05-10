@@ -1,0 +1,68 @@
+diff --git a/src/requests/auth.py b/src/requests/auth.py
+index c39b645..2664e45 100644
+--- a/src/requests/auth.py
++++ b/src/requests/auth.py
+@@ -135,44 +135,28 @@ class HTTPDigestAuth(AuthBase):
+         opaque = self._thread_local.chal.get("opaque")
+         hash_utf8 = None
+ 
+-        if algorithm is None:
+-            _algorithm = "MD5"
+-        else:
+-            _algorithm = algorithm.upper()
+-        # lambdas assume digest modules are imported at the top level
+-        if _algorithm == "MD5" or _algorithm == "MD5-SESS":
+-
+-            def md5_utf8(x):
+-                if isinstance(x, str):
+-                    x = x.encode("utf-8")
+-                return hashlib.md5(x).hexdigest()
++        def get_hash_function(algorithm):
++            if algorithm is None:
++                algorithm = "MD5"
++            else:
++                algorithm = algorithm.upper()
+ 
+-            hash_utf8 = md5_utf8
+-        elif _algorithm == "SHA":
+-
+-            def sha_utf8(x):
++            def hash_utf8(x):
+                 if isinstance(x, str):
+                     x = x.encode("utf-8")
+-                return hashlib.sha1(x).hexdigest()
+-
+-            hash_utf8 = sha_utf8
+-        elif _algorithm == "SHA-256":
+-
+-            def sha256_utf8(x):
+-                if isinstance(x, str):
+-                    x = x.encode("utf-8")
+-                return hashlib.sha256(x).hexdigest()
+-
+-            hash_utf8 = sha256_utf8
+-        elif _algorithm == "SHA-512":
+-
+-            def sha512_utf8(x):
+-                if isinstance(x, str):
+-                    x = x.encode("utf-8")
+-                return hashlib.sha512(x).hexdigest()
+-
+-            hash_utf8 = sha512_utf8
+-
++                if algorithm == "MD5" or algorithm == "MD5-SESS":
++                    return hashlib.md5(x).hexdigest()
++                elif algorithm == "SHA":
++                    return hashlib.sha1(x).hexdigest()
++                elif algorithm == "SHA-256":
++                    return hashlib.sha256(x).hexdigest()
++                elif algorithm == "SHA-512":
++                    return hashlib.sha512(x).hexdigest()
++                return None
++
++            return hash_utf8, algorithm
++
++        hash_utf8, _algorithm = get_hash_function(algorithm)
+         KD = lambda s, d: hash_utf8(f"{s}:{d}")  # noqa:E731
+ 
+         if hash_utf8 is None:

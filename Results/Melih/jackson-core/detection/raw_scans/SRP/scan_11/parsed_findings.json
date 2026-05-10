@@ -1,0 +1,112 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 4341,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This class combines low-level byte stream I/O, JSON token parsing, value extraction, name canonicalization, error reporting, and binary data decoding.",
+    "reasoning": "The `UTF8StreamJsonParser` class, with over 4000 lines, is a 'God class' that handles multiple unrelated responsibilities. It mixes concerns such as reading bytes from an `InputStream`, identifying JSON tokens, parsing various data types (strings, numbers, booleans, nulls), managing parsing context, canonicalizing property names, and decoding Base64 binary values. Each of these represents a distinct reason for the class to change, violating the Single Responsibility Principle."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser",
+    "entity_type": "class",
+    "line_start": 36,
+    "line_end": 605,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This class combines low-level DataInput I/O, JSON token parsing, value extraction, name canonicalization, error reporting, and binary data decoding.",
+    "reasoning": "Similar to `UTF8StreamJsonParser`, this class is responsible for reading from a `DataInput` source, parsing JSON tokens, extracting various data types, managing parsing context, canonicalizing property names, and handling Base64 decoding. These are too many distinct responsibilities for a single class, leading to a high coupling and multiple reasons to change."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 711,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This class combines low-level character stream I/O, JSON token parsing, value extraction, name canonicalization, error reporting, and binary data decoding.",
+    "reasoning": "This class is responsible for reading from a `Reader` source, parsing JSON tokens, extracting various data types, managing parsing context, canonicalizing property names, and handling Base64 decoding. The combination of low-level character I/O with high-level JSON parsing and data conversion responsibilities violates SRP."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/ParserBase.java",
+    "entity_name": "ParserBase",
+    "entity_type": "class",
+    "line_start": 23,
+    "line_end": 1172,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This base class bundles extensive number conversion and Base64 decoding logic with core JSON token parsing.",
+    "reasoning": "The `ParserBase` class includes a significant amount of logic for converting parsed numeric values into various Java number types (`convertNumberToInt`, `convertNumberToLong`, `convertNumberToBigInteger`, etc.) and for decoding Base64 binary data (`_decodeBase64`). While these are operations performed during parsing, the detailed conversion and decoding logic could be delegated to separate utility classes. This separation would make `ParserBase` solely responsible for managing the token stream and its state, and less prone to changes related to specific data type conversions or encoding schemes."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/util/TextBuffer.java",
+    "entity_name": "TextBuffer",
+    "entity_type": "class",
+    "line_start": 28,
+    "line_end": 1246,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "This class, intended for character buffer management, also performs complex numerical parsing and conversion of its contents.",
+    "reasoning": "The `TextBuffer` class's primary responsibility should be efficient character buffer management (appending, resetting, providing raw access). However, it includes methods like `contentsAsDouble()`, `contentsAsFloat()`, `contentsAsDecimal()`, `contentsAsInt()`, and `contentsAsLong()`. These methods go beyond buffer management by interpreting and converting the buffer's character data into various numeric types. This numerical parsing/coercion is a distinct responsibility that should reside in a dedicated parser or number utility, not directly within a buffer management class. This clearly violates SRP."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator",
+    "entity_type": "class",
+    "line_start": 12,
+    "line_end": 2364,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "This class combines low-level byte stream I/O, JSON token writing, value formatting, name writing, error reporting, and binary data encoding.",
+    "reasoning": "The `UTF8JsonGenerator` class, with over 2000 lines, is responsible for writing JSON to an `OutputStream`. It handles a wide array of tasks including managing the output buffer, encoding various data types (strings, numbers, booleans, nulls) into UTF-8 bytes, writing property names, managing generator context, and encoding Base64 binary data. This broad set of responsibilities means the class has multiple reasons to change, such as changes to UTF-8 encoding, JSON formatting rules, or binary encoding logic, which violates SRP."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator",
+    "entity_type": "class",
+    "line_start": 17,
+    "line_end": 2190,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "This class combines low-level character stream I/O, JSON token writing, value formatting, name writing, error reporting, and binary data encoding.",
+    "reasoning": "Similar to `UTF8JsonGenerator`, this class is responsible for writing JSON to a `Writer`. It manages the output buffer, encodes various data types into characters, writes property names, manages generator context, and handles Base64 binary encoding. The extensive functionality indicates multiple responsibilities, making it prone to changes from various concerns and thus violating SRP."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 2483,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The JsonGenerator interface is quite broad, defining methods for basic token writing, array/object writing, raw content, binary data, and type/object IDs.",
+    "reasoning": "While an interface defines a contract, a very broad interface can implicitly encourage SRP violations in its implementers. `JsonGenerator` defines methods for writing basic JSON tokens (strings, numbers, booleans, nulls), structural tokens (start/end array/object), property names, raw content, and more specialized concerns like binary data and type/object identifiers. This wide range of responsibilities could be segregated into more role-specific interfaces (e.g., `JsonTokenWriter`, `JsonBinaryWriter`, `JsonRawWriter`) to promote better separation of concerns for implementers."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+    "entity_name": "JsonParser",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 723,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "The JsonParser interface is quite broad, defining methods for basic token parsing, value retrieval, name matching, and binary data.",
+    "reasoning": "Similar to `JsonGenerator`, the `JsonParser` interface defines a very broad contract. It includes methods for navigating the token stream (`nextToken`, `skipChildren`), retrieving various value types (`getString`, `getIntValue`, `getBinaryValue`), managing names (`currentName`, `nextNameMatch`), and handling contexts. This wide array of responsibilities could be split into more focused interfaces (e.g., `JsonTokenReader`, `JsonValueReader`, `JsonNameMatcher`) to encourage more granular and SRP-compliant implementations."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "entity_name": "TokenStreamFactory",
+    "entity_type": "class",
+    "line_start": 46,
+    "line_end": 1441,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "This factory class handles not only creation of parsers/generators but also low-level I/O stream management, buffer recycling, and range checking utilities.",
+    "reasoning": "While `TokenStreamFactory`'s primary role is to create `JsonParser` and `JsonGenerator` instances, it also directly manages buffer recycling (`_getBufferRecycler`), creates I/O contexts (`_createContext`), and includes numerous utility methods for handling file/path I/O (`_fileInputStream`, `_pathOutputStream`) and argument validation (`_checkRangeBoundsForByteArray`). These responsibilities, particularly the direct I/O stream management and buffer pool interaction, could be delegated to more specialized helper classes or services, allowing the factory to focus purely on the construction of stream processors."
+  }
+]

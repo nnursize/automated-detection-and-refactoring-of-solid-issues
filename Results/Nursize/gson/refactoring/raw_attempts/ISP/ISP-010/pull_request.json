@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-010",
+  "principle": "ISP",
+  "title": "Refactor ISP-010 (ISP): JsonArray's getAsBigDecimal method delegates to a single element or throws Il...",
+  "branch": "refactor/ISP-010",
+  "base": "main",
+  "head_commit": "9bf7aae60ed62cb559252a1e0bb2b0b2c9dc554d",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5700,
+    "completion_tokens": 253
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/JsonArray.java",
+    "entity_name": "JsonArray.getAsBigDecimal()",
+    "entity_type": "method",
+    "line_start": 234,
+    "line_end": 236,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "JsonArray's getAsBigDecimal method delegates to a single element or throws IllegalStateException.",
+    "reasoning": "Similar to `getAsNumber()`, `JsonArray` is forced to implement `getAsBigDecimal()` from `JsonElement`. A `JsonArray` itself is not a BigDecimal. Its implementation delegates to `getAsSingleElement()`, which throws an `IllegalStateException` if the array does not contain exactly one element. This violates ISP by forcing `JsonArray` to depend on a method it cannot directly fulfill."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove getAsBigDecimal from JsonArray to adhere to ISP",
+    "rationale": "JsonArray is not a BigDecimal and should not be forced to implement this method. The method was only acting as a proxy for single-element arrays, which is a design smell that violates the Interface Segregation Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/JsonArray.java",
+        "loc": 400,
+        "blank_lines": 36,
+        "comment_lines": 0,
+        "function_count": 31,
+        "avg_cc": 2.87,
+        "max_cc": 59.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2052.0408153533936
+}

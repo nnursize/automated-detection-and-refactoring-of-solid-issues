@@ -1,0 +1,62 @@
+{
+  "scan_id": "requests_OCP_scan_05",
+  "repo_name": "requests",
+  "principle": "OCP",
+  "scan_number": 5,
+  "timestamp": "2026-05-03T01:07:24.227742",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following python source code for violations of the Open/Closed Principle (OCP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these internally....",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"super_len\",\n      \"entity_type\": \"function\",\n      \"line_start\": 135,\n      \"line_end\": 207,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Uses type-checking and attribute inspection to determine length instead of polymorphism.\",\n      \"reasoning\": \"The function uses a 'Switch Statement on type' smell, employing multiple hasattr and isinstance checks to determine how to calculate an object's length. Adding a new type of stream or object that requires a different length calculation logic necessitates modifying this function, violating the principle that the entity should be closed for modification.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"SessionRedirectMixin.rebuild_method\",\n      \"entity_type\": \"method\",\n      \"line_start\": 312,\n      \"line_end\": 332,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded status code checks to determine HTTP method changes during redirects.\",\n      \"reasoning\": \"This method contains hardcoded logic (elif-style checks) for specific HTTP status codes (301, 302, 303) to decide when to switch a request method to GET. Supporting new redirect behaviors or additional status codes requires modifying the existing method logic rather than extending it through a strategy or registry.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.proxy_manager_for\",\n      \"entity_type\": \"method\",\n      \"line_start\": 183,\n      \"line_end\": 214,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Uses hardcoded scheme checks to select the appropriate proxy manager.\",\n      \"reasoning\": \"The method uses hardcoded string matching (startswith('socks')) to determine which ProxyManager class to instantiate. To support a new proxy protocol (e.g., SSH, FTP), a developer must modify this method to add new conditional branches, which violates OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_body\",\n      \"entity_type\": \"method\",\n      \"line_start\": 500,\n      \"line_end\": 561,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Uses complex conditional logic to handle different request body types.\",\n      \"reasoning\": \"The method relies on internal type-checking and conditional logic to dispatch processing for 'json', 'files', 'data', and 'streams'. Adding a new body serialization format or a custom data handler requires modifying this central method, indicating a lack of a pluggable strategy for body preparation.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "super_len",
+      "entity_type": "class",
+      "line_start": 135,
+      "line_end": 207,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Uses type-checking and attribute inspection to determine length instead of polymorphism.",
+      "reasoning": "The function uses a 'Switch Statement on type' smell, employing multiple hasattr and isinstance checks to determine how to calculate an object's length. Adding a new type of stream or object that requires a different length calculation logic necessitates modifying this function, violating the principle that the entity should be closed for modification."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "SessionRedirectMixin.rebuild_method",
+      "entity_type": "method",
+      "line_start": 312,
+      "line_end": 332,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded status code checks to determine HTTP method changes during redirects.",
+      "reasoning": "This method contains hardcoded logic (elif-style checks) for specific HTTP status codes (301, 302, 303) to decide when to switch a request method to GET. Supporting new redirect behaviors or additional status codes requires modifying the existing method logic rather than extending it through a strategy or registry."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.proxy_manager_for",
+      "entity_type": "method",
+      "line_start": 183,
+      "line_end": 214,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Uses hardcoded scheme checks to select the appropriate proxy manager.",
+      "reasoning": "The method uses hardcoded string matching (startswith('socks')) to determine which ProxyManager class to instantiate. To support a new proxy protocol (e.g., SSH, FTP), a developer must modify this method to add new conditional branches, which violates OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_body",
+      "entity_type": "method",
+      "line_start": 500,
+      "line_end": 561,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Uses complex conditional logic to handle different request body types.",
+      "reasoning": "The method relies on internal type-checking and conditional logic to dispatch processing for 'json', 'files', 'data', and 'streams'. Adding a new body serialization format or a custom data handler requires modifying this central method, indicating a lack of a pluggable strategy for body preparation."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27518.046140670776,
+  "error": null
+}

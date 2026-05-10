@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.Queue",
+    "entity_type": "class",
+    "line_start": 89,
+    "line_end": 120,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of dependencies in constructor",
+    "reasoning": "The Queue constructor directly instantiates FileCheckpointIO and uses hardcoded logic to create dependencies, preventing the injection of mock implementations for testing and violating the Dependency Inversion Principle."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.newCheckpointedHeadpage",
+    "entity_type": "method",
+    "line_start": 321,
+    "line_end": 328,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of MmapPageIOV2",
+    "reasoning": "The method directly instantiates the concrete class MmapPageIOV2 instead of depending on an abstraction (e.g., PageIO factory), creating tight coupling to a specific IO implementation."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+    "entity_name": "CompiledPipeline.CompiledPipeline",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 113,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of internal components",
+    "reasoning": "The constructor directly instantiates ConfigVariableExpander and other internal components, making it difficult to swap these dependencies for testing or alternative configurations."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt.plugin",
+    "entity_type": "method",
+    "line_start": 165,
+    "line_end": 222,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete plugin delegators",
+    "reasoning": "The method directly instantiates OutputDelegatorExt and other concrete classes based on plugin type, violating DIP by coupling the factory to specific implementation classes rather than relying on an abstract factory or registry pattern."
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-005",
+  "principle": "ISP",
+  "title": "Refactor ISP-005 (ISP): The RubyIntegration.PluginFactory interface combines methods for building dif...",
+  "branch": "refactor/ISP-005",
+  "base": "main",
+  "head_commit": "22b093a1453fbe4f3f30563aa4cab10cf4907391",
+  "status": "obsolete",
+  "obsolete_reason": "entity `RubyIntegration.PluginFactory` not found in current source of `logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "RubyIntegration.PluginFactory",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 100,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The RubyIntegration.PluginFactory interface combines methods for building different types of plugins.",
+    "reasoning": "The `RubyIntegration.PluginFactory` interface defines methods for building various types of plugins (`buildInput`, `buildOutput`, `buildFilter`, `buildCodec`) as well as specific codec-related methods (`buildDefaultCodec`, `buildRubyCodecWrapper`). A client that only needs to build, for instance, input plugins, is forced to depend on the methods for building output, filter, and codec plugins, which it does not use. This makes the interface less focused and increases the surface area of dependency for clients. The interface could be segregated into more specific factory interfaces, such as `InputPluginFactory`, `OutputPluginFactory`, `FilterPluginFactory`, and `CodecFactory`."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 223.3116626739502
+}

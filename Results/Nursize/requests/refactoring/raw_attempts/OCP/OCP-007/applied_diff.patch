@@ -1,0 +1,38 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 1264d02..7aac429 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -114,11 +114,7 @@ class RequestEncodingMixin:
+         if parameters are supplied as a dict.
+         """
+ 
+-        if isinstance(data, (str, bytes)):
+-            return data
+-        elif hasattr(data, "read"):
+-            return data
+-        elif hasattr(data, "__iter__"):
++        def _encode_iterable(data):
+             result = []
+             for k, vs in to_key_val_list(data):
+                 if isinstance(vs, basestring) or not hasattr(vs, "__iter__"):
+@@ -132,8 +128,18 @@ class RequestEncodingMixin:
+                             )
+                         )
+             return urlencode(result, doseq=True)
+-        else:
+-            return data
++
++        dispatch = {
++            lambda d: isinstance(d, (str, bytes)): lambda d: d,
++            lambda d: hasattr(d, "read"): lambda d: d,
++            lambda d: hasattr(d, "__iter__"): _encode_iterable,
++        }
++
++        for condition, action in dispatch.items():
++            if condition(data):
++                return action(data)
++
++        return data
+ 
+     @staticmethod
+     def _encode_files(files, data):

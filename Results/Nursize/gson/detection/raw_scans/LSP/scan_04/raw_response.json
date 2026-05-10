@@ -1,0 +1,150 @@
+{
+  "scan_id": "gson_LSP_scan_04",
+  "repo_name": "gson",
+  "principle": "LSP",
+  "scan_number": 4,
+  "timestamp": "2026-05-02T15:23:20.225713",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "smell-two-step",
+  "prompt_text": "Analyze the following java source code for violations of the Liskov Substitution Principle (LSP).\n\nUse a TWO-STAGE reasoning process:\n\n## Stage 1 \u2014 List design smells (silent, for your own reasoning)\nIdentify relevant low-level design smells you observe in the code:\n- God Class, Feature Envy, Shotgun Surgery, Divergent Change\n- Long Method, Large Class, Long Parameter List\n- Refused Bequest, Inappropriate Intimacy, Message Chains\n- Switch Statements on type, Data Clumps\nThink through these inter...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonReader.java\",\n      \"entity_name\": \"JsonReader.static {}\",\n      \"entity_type\": \"class\",\n      \"line_start\": 598,\n      \"line_end\": 613,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking 'reader instanceof JsonTreeReader' to call a specific internal method, violating substitutability.\",\n      \"reasoning\": \"The static initializer for `JsonReaderInternalAccess.INSTANCE` performs an `instanceof` check for `JsonTreeReader`. This indicates that `JsonTreeReader` is not fully substitutable for `JsonReader` in the context of `promoteNameToValue` without special handling, as its internal state management differs significantly from the base `JsonReader`. The `JsonReaderInternalAccess` explicitly chooses to call `JsonTreeReader`'s specific `promoteNameToValue` method, implying the base `JsonReader`'s internal logic is not suitable for `JsonTreeReader`.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/Gson.java\",\n      \"entity_name\": \"Gson.fromJson(JsonReader, TypeToken)\",\n      \"entity_type\": \"method\",\n      \"line_start\": 709,\n      \"line_end\": 740,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Postcondition violation: Throws ClassCastException if TypeAdapter.read returns an object of an incompatible type.\",\n      \"reasoning\": \"The `fromJson` method explicitly checks if the object returned by `typeAdapter.read(reader)` is an instance of the expected type (`!expectedTypeWrapped.isInstance(object)`). If not, it throws a `ClassCastException`. This implies that `TypeAdapter` implementations might violate their contract of returning an object of type `T`, making them not fully substitutable for their expected behavior. The `Gson` class is enforcing a postcondition that a `TypeAdapter` should guarantee.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.CLASS.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 42,\n      \"line_end\": 49,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Overrides 'write' to throw UnsupportedOperationException, changing expected behavior.\",\n      \"reasoning\": \"The `TypeAdapter` for `Class` objects overrides the `write` method to throw an `UnsupportedOperationException`. The contract of `TypeAdapter.write` is to serialize a value. Throwing an exception for a valid type fundamentally changes the expected behavior and makes `TypeAdapter<Class>` not substitutable for a general `TypeAdapter<T>` in contexts where serialization is expected to succeed.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.CLASS.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 51,\n      \"line_end\": 58,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Overrides 'read' to throw UnsupportedOperationException, changing expected behavior.\",\n      \"reasoning\": \"The `TypeAdapter` for `Class` objects overrides the `read` method to throw an `UnsupportedOperationException`. The contract of `TypeAdapter.read` is to deserialize a value. Throwing an exception for a valid type fundamentally changes the expected behavior and makes `TypeAdapter<Class>` not substitutable for a general `TypeAdapter<T>` in contexts where deserialization is expected to succeed.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.newTypeHierarchyFactory.create\",\n      \"entity_type\": \"method\",\n      \"line_start\": 988,\n      \"line_end\": 1018,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Postcondition violation: The created TypeAdapter checks for incompatible return types from its delegate.\",\n      \"reasoning\": \"The `newTypeHierarchyFactory` creates a `TypeAdapter` that wraps another adapter. Its `read` method includes a check `!requestedType.isInstance(result)` and throws `JsonSyntaxException` if the delegate returns an compatible type. This implies that the delegate `TypeAdapter` might violate its contract of returning an object of the expected type, making it not fully substitutable. This factory is detecting and enforcing a postcondition that a `TypeAdapter` should guarantee.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\",\n      \"entity_name\": \"ReflectiveTypeAdapterFactory.create\",\n      \"entity_type\": \"method\",\n      \"line_start\": 98,\n      \"line_end\": 117,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Returns a TypeAdapter that ignores content for anonymous/local classes, changing reflective behavior.\",\n      \"reasoning\": \"For anonymous or non-static local classes, the `create` method returns a `TypeAdapter` that serializes to JSON `null` and deserializes by skipping the value and returning Java `null`. This deviates from the expected reflective serialization/deserialization behavior of a `ReflectiveTypeAdapterFactory`, which is to process the object's fields. This makes the generated adapter not fully substitutable for a truly reflective adapter for all class types.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\",\n      \"entity_name\": \"ReflectiveTypeAdapterFactory.BoundField.readIntoField\",\n      \"entity_type\": \"method\",\n      \"line_start\": 207,\n      \"line_end\": 215,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Adds a stricter precondition by throwing JsonIOException for setting 'static final' fields.\",\n      \"reasoning\": \"The `readIntoField` method for `BoundField` explicitly checks for `static final` fields and throws a `JsonIOException`, preventing the setting of such fields. While `Field.set` would eventually throw an `IllegalAccessException`, this introduces an earlier, different exception type and a stricter precondition for a method that is supposed to reflectively set field values. This changes the expected exception contract for clients.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonTreeReader.java\",\n      \"entity_name\": \"JsonTreeReader.close\",\n      \"entity_type\": \"method\",\n      \"line_start\": 70,\n      \"line_end\": 73,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Violates Closeable contract by not closing the underlying reader.\",\n      \"reasoning\": \"`JsonTreeReader` extends `JsonReader` and implements `Closeable`. Its `close` method sets internal state but does not actually close the underlying `UNREADABLE_READER` (which throws `AssertionError` if its `close` method is called). This breaks the fundamental contract of the `Closeable` interface, as clients expect the underlying resource to be closed when `close()` is invoked on a `JsonReader`.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.getAsNumber\",\n      \"entity_type\": \"method\",\n      \"line_start\": 289,\n      \"line_end\": 291,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsNumber'.\",\n      \"reasoning\": \"`JsonArray` overrides `JsonElement.getAsNumber()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.getAsString\",\n      \"entity_type\": \"method\",\n      \"line_start\": 300,\n      \"line_end\": 302,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsString'.\",\n      \"reasoning\": \"`JsonArray` overrides `JsonElement.getAsString()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.getAsDouble\",\n      \"entity_type\": \"method\",\n      \"line_start\": 311,\n      \"line_end\": 313,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsDouble'.\",\n      \"reasoning\": \"`JsonArray` overrides `JsonElement.getAsDouble()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonArray.java\",\n      \"entity_name\": \"JsonArray.getAsBigDecimal\",\n      \"entity_type\": \"method\",\n      \"line_start\": 322,\n      \"line_end\": 324,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsBigDecimal'.\",\n      \"reasoning\": \"`JsonArray` overrides `JsonElement.getAsBigDecimal()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays.\"\n    },\n",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "entity_name": "JsonReader.static {}",
+      "entity_type": "class",
+      "line_start": 598,
+      "line_end": 613,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Type-checking 'reader instanceof JsonTreeReader' to call a specific internal method, violating substitutability.",
+      "reasoning": "The static initializer for `JsonReaderInternalAccess.INSTANCE` performs an `instanceof` check for `JsonTreeReader`. This indicates that `JsonTreeReader` is not fully substitutable for `JsonReader` in the context of `promoteNameToValue` without special handling, as its internal state management differs significantly from the base `JsonReader`. The `JsonReaderInternalAccess` explicitly chooses to call `JsonTreeReader`'s specific `promoteNameToValue` method, implying the base `JsonReader`'s internal logic is not suitable for `JsonTreeReader`."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+      "entity_name": "Gson.fromJson(JsonReader, TypeToken)",
+      "entity_type": "method",
+      "line_start": 709,
+      "line_end": 740,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Postcondition violation: Throws ClassCastException if TypeAdapter.read returns an object of an incompatible type.",
+      "reasoning": "The `fromJson` method explicitly checks if the object returned by `typeAdapter.read(reader)` is an instance of the expected type (`!expectedTypeWrapped.isInstance(object)`). If not, it throws a `ClassCastException`. This implies that `TypeAdapter` implementations might violate their contract of returning an object of type `T`, making them not fully substitutable for their expected behavior. The `Gson` class is enforcing a postcondition that a `TypeAdapter` should guarantee."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.CLASS.write",
+      "entity_type": "method",
+      "line_start": 42,
+      "line_end": 49,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Overrides 'write' to throw UnsupportedOperationException, changing expected behavior.",
+      "reasoning": "The `TypeAdapter` for `Class` objects overrides the `write` method to throw an `UnsupportedOperationException`. The contract of `TypeAdapter.write` is to serialize a value. Throwing an exception for a valid type fundamentally changes the expected behavior and makes `TypeAdapter<Class>` not substitutable for a general `TypeAdapter<T>` in contexts where serialization is expected to succeed."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.CLASS.read",
+      "entity_type": "method",
+      "line_start": 51,
+      "line_end": 58,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Overrides 'read' to throw UnsupportedOperationException, changing expected behavior.",
+      "reasoning": "The `TypeAdapter` for `Class` objects overrides the `read` method to throw an `UnsupportedOperationException`. The contract of `TypeAdapter.read` is to deserialize a value. Throwing an exception for a valid type fundamentally changes the expected behavior and makes `TypeAdapter<Class>` not substitutable for a general `TypeAdapter<T>` in contexts where deserialization is expected to succeed."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.newTypeHierarchyFactory.create",
+      "entity_type": "method",
+      "line_start": 988,
+      "line_end": 1018,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Postcondition violation: The created TypeAdapter checks for incompatible return types from its delegate.",
+      "reasoning": "The `newTypeHierarchyFactory` creates a `TypeAdapter` that wraps another adapter. Its `read` method includes a check `!requestedType.isInstance(result)` and throws `JsonSyntaxException` if the delegate returns an compatible type. This implies that the delegate `TypeAdapter` might violate its contract of returning an object of the expected type, making it not fully substitutable. This factory is detecting and enforcing a postcondition that a `TypeAdapter` should guarantee."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+      "entity_name": "ReflectiveTypeAdapterFactory.create",
+      "entity_type": "method",
+      "line_start": 98,
+      "line_end": 117,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Returns a TypeAdapter that ignores content for anonymous/local classes, changing reflective behavior.",
+      "reasoning": "For anonymous or non-static local classes, the `create` method returns a `TypeAdapter` that serializes to JSON `null` and deserializes by skipping the value and returning Java `null`. This deviates from the expected reflective serialization/deserialization behavior of a `ReflectiveTypeAdapterFactory`, which is to process the object's fields. This makes the generated adapter not fully substitutable for a truly reflective adapter for all class types."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+      "entity_name": "ReflectiveTypeAdapterFactory.BoundField.readIntoField",
+      "entity_type": "method",
+      "line_start": 207,
+      "line_end": 215,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Adds a stricter precondition by throwing JsonIOException for setting 'static final' fields.",
+      "reasoning": "The `readIntoField` method for `BoundField` explicitly checks for `static final` fields and throws a `JsonIOException`, preventing the setting of such fields. While `Field.set` would eventually throw an `IllegalAccessException`, this introduces an earlier, different exception type and a stricter precondition for a method that is supposed to reflectively set field values. This changes the expected exception contract for clients."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonTreeReader.java",
+      "entity_name": "JsonTreeReader.close",
+      "entity_type": "method",
+      "line_start": 70,
+      "line_end": 73,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Violates Closeable contract by not closing the underlying reader.",
+      "reasoning": "`JsonTreeReader` extends `JsonReader` and implements `Closeable`. Its `close` method sets internal state but does not actually close the underlying `UNREADABLE_READER` (which throws `AssertionError` if its `close` method is called). This breaks the fundamental contract of the `Closeable` interface, as clients expect the underlying resource to be closed when `close()` is invoked on a `JsonReader`."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.getAsNumber",
+      "entity_type": "method",
+      "line_start": 289,
+      "line_end": 291,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsNumber'.",
+      "reasoning": "`JsonArray` overrides `JsonElement.getAsNumber()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.getAsString",
+      "entity_type": "method",
+      "line_start": 300,
+      "line_end": 302,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsString'.",
+      "reasoning": "`JsonArray` overrides `JsonElement.getAsString()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.getAsDouble",
+      "entity_type": "method",
+      "line_start": 311,
+      "line_end": 313,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsDouble'.",
+      "reasoning": "`JsonArray` overrides `JsonElement.getAsDouble()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+      "entity_name": "JsonArray.getAsBigDecimal",
+      "entity_type": "method",
+      "line_start": 322,
+      "line_end": 324,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Changes exception type from UnsupportedOperationException to IllegalStateException for 'getAsBigDecimal'.",
+      "reasoning": "`JsonArray` overrides `JsonElement.getAsBigDecimal()`. While `JsonElement` throws `UnsupportedOperationException`, `JsonArray` throws `IllegalStateException` if the array does not contain exactly one element. This changes the exception contract, potentially breaking client code that expects a specific exception type or behavior for non-single-element arrays."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 60507.5409412384,
+  "error": null
+}

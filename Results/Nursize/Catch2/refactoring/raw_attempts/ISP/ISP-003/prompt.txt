@@ -1,0 +1,339 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: ISP-003
+- **Principle**: Interface Segregation Principle (ISP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `IEventListener` (current lines L9057-L9066 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 3 independent scans
+
+### Description
+IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.
+
+### Reasoning
+The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces.
+
+## Principle reference
+**Interface Segregation Principle** — Clients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.
+
+What typically signals a violation:
+- Abstract base classes or interfaces with too many methods
+- Classes that implement an interface but leave methods as pass or raise NotImplementedError
+- Fat interfaces that could be split into smaller, more focused ones
+- Classes forced to depend on methods they never call
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 8936 earlier lines elided ...
+        ColourMode m_colourMode;
+        std::map<std::string, std::string> m_customOptions;
+    };
+
+    struct AssertionStats {
+        AssertionStats( AssertionResult const& _assertionResult,
+                        std::vector<MessageInfo> const& _infoMessages,
+                        Totals const& _totals );
+
+        AssertionStats( AssertionStats const& )              = default;
+        AssertionStats( AssertionStats && )                  = default;
+        AssertionStats& operator = ( AssertionStats const& ) = delete;
+        AssertionStats& operator = ( AssertionStats && )     = delete;
+
+        AssertionResult assertionResult;
+        std::vector<MessageInfo> infoMessages;
+        Totals totals;
+    };
+
+    struct SectionStats {
+        SectionStats(   SectionInfo&& _sectionInfo,
+                        Counts const& _assertions,
+                        double _durationInSeconds,
+                        bool _missingAssertions );
+
+        SectionInfo sectionInfo;
+        Counts assertions;
+        double durationInSeconds;
+        bool missingAssertions;
+    };
+
+    struct TestCaseStats {
+        TestCaseStats(  TestCaseInfo const& _testInfo,
+                        Totals const& _totals,
+                        std::string&& _stdOut,
+                        std::string&& _stdErr,
+                        bool _aborting );
+
+        TestCaseInfo const * testInfo;
+        Totals totals;
+        std::string stdOut;
+        std::string stdErr;
+        bool aborting;
+    };
+
+    struct TestRunStats {
+        TestRunStats(   TestRunInfo const& _runInfo,
+                        Totals const& _totals,
+                        bool _aborting );
+
+        TestRunInfo runInfo;
+        Totals totals;
+        bool aborting;
+    };
+
+    //! By setting up its preferences, a reporter can modify Catch2's behaviour
+    //! in some regards, e.g. it can request Catch2 to capture writes to
+    //! stdout/stderr during test execution, and pass them to the reporter.
+    struct ReporterPreferences {
+        //! Catch2 should redirect writes to stdout and pass them to the
+        //! reporter
+        bool shouldRedirectStdOut = false;
+        //! Catch2 should call `Reporter::assertionEnded` even for passing
+        //! assertions
+        bool shouldReportAllAssertions = false;
+        //! Catch2 should call `Reporter::assertionStarting` for all assertions
+        // Defaults to true for backwards compatibility, but none of our current
+        // reporters actually want this, and it enables a fast path in assertion
+        // handling.
+        bool shouldReportAllAssertionStarts = true;
+    };
+
+    /**
+     * The common base for all reporters and event listeners
+     *
+     * Implementing classes must also implement:
+     *
+     *     //! User-friendly description of the reporter/listener type
+     *     static std::string getDescription()
+     *
+     * Generally shouldn't be derived from by users of Catch2 directly,
+     * instead they should derive from one of the utility bases that
+     * derive from this class.
+     */
+    class ITestEventListener {
+    public:
+        virtual ~ITestEventListener();
+        virtual void noMatchingTestCases( StringRef ) {}
+        virtual void reportInvalidTestSpec( StringRef ) {}
+        virtual void testRunStarting( TestRunInfo const& ) {}
+        virtual void testCaseStarting( TestCaseInfo const& ) {}
+        virtual void testCasePartialStarting( TestCaseInfo const&, uint64_t ) {}
+        virtual void sectionStarting( SectionInfo const& ) {}
+        virtual void assertionStarting( AssertionInfo const& ) {}
+        virtual void assertionEnded( AssertionStats const& ) {}
+        virtual void sectionEnded( SectionStats const& ) {}
+        virtual void testCasePartialEnded(TestCaseStats const&, uint64_t ) {}
+        virtual void testCaseEnded( TestCaseStats const& ) {}
+        virtual void testRunEnded( TestRunStats const& ) {}
+        virtual void skipTest( TestCaseInfo const& ) {}
+        virtual void fatalErrorEncountered( StringRef ) {}
+    };
+
+    class IBenchmarkEventListener {
+    public:
+        virtual ~IBenchmarkEventListener();
+        virtual void benchmarkPreparing( StringRef ) {}
+        virtual void benchmarkStarting( BenchmarkInfo const& ) {}
+        virtual void benchmarkEnded( BenchmarkStats<> const& ) {}
+        virtual void benchmarkFailed( StringRef ) {}
+    };
+
+    class IReporterListingListener {
+    public:
+        virtual ~IReporterListingListener();
+        virtual void listReporters(std::vector<ReporterDescription> const&) {}
+        virtual void listListeners(std::vector<ListenerDescription> const&) {}
+        virtual void listTests(std::vector<TestCaseHandle> const&) {}
+        virtual void listTags(std::vector<TagInfo> const&) {}
+    };
+
+    class IEventListener : public ITestEventListener, public IBenchmarkEventListener, public IReporterListingListener {
+    protected:
+        ReporterPreferences m_preferences;
+        IConfig const* m_config;
+    public:
+        IEventListener( IConfig const* config ): m_config( config ) {}
+        virtual ~IEventListener();
+        ReporterPreferences const& getPreferences() const { return m_preferences; }
+    };
+    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+
+} // end namespace Catch
+
+#endif // CATCH_INTERFACES_REPORTER_HPP_INCLUDED
+
+
+#ifndef CATCH_INTERFACES_REPORTER_FACTORY_HPP_INCLUDED
+#define CATCH_INTERFACES_REPORTER_FACTORY_HPP_INCLUDED
+
+
+#include <string>
+
+namespace Catch {
+
+    struct ReporterConfig;
+    class IConfig;
+    class IEventListener;
+    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+
+
+    class IReporterFactory {
+    public:
+        virtual ~IReporterFactory(); // = default
+
+        virtual IEventListenerPtr
+        create( ReporterConfig&& config ) const = 0;
+        virtual std::string getDescription() const = 0;
+    };
+    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
+
+    class EventListenerFactory {
+    public:
+        virtual ~EventListenerFactory(); // = default
+        virtual IEventListenerPtr create( IConfig const* config ) const = 0;
+        //! Return a meaningful name for the listener, e.g. its type name
+        virtual StringRef getName() const = 0;
+        //! Return listener's description if available
+        virtual std::string getDescription() const = 0;
+    };
+} // namespace Catch
+
+#endif // CATCH_INTERFACES_REPORTER_FACTORY_HPP_INCLUDED
+
+
+#ifndef CATCH_INTERFACES_TAG_ALIAS_REGISTRY_HPP_INCLUDED
+#define CATCH_INTERFACES_TAG_ALIAS_REGISTRY_HPP_INCLUDED
+
+#include <string>
+
+namespace Catch {
+
+    struct TagAlias;
+
+    class ITagAliasRegistry {
+    public:
+        virtual ~ITagAliasRegistry(); // = default
+        // Nullptr if not present
+        virtual TagAlias const* find( std::string const& alias ) const = 0;
+        virtual std::string expandAliases( std::string const& unexpandedTestSpec ) const = 0;
+
+        static ITagAliasRegistry const& get();
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_INTERFACES_TAG_ALIAS_REGISTRY_HPP_INCLUDED
+
+
+#ifndef CATCH_INTERFACES_TESTCASE_HPP_INCLUDED
+#define CATCH_INTERFACES_TESTCASE_HPP_INCLUDED
+
+#include <vector>
+
+namespace Catch {
+
+    struct TestCaseInfo;
+    class TestCaseHandle;
+    class IConfig;
+
+    class ITestCaseRegistry {
+    public:
+        virtual ~ITestCaseRegistry(); // = default
+        // TODO: this exists only for adding filenames to test cases -- let's expose this in a saner way later
+        virtual std::vector<TestCaseInfo* > const& getAllInfos() const = 0;
+        virtual std::vector<TestCaseHandle> const& getAllTests() const = 0;
+        virtual std::vector<TestCaseHandle> const& getAllTestsSorted( IConfig const& config ) const = 0;
+    };
+
+}
+
+#endif // CATCH_INTERFACES_TESTCASE_HPP_INCLUDED
+
+#endif // CATCH_INTERFACES_ALL_HPP_INCLUDED
+
+
+#ifndef CATCH_CASE_INSENSITIVE_COMPARISONS_HPP_INCLUDED
+#define CATCH_CASE_INSENSITIVE_COMPARISONS_HPP_INCLUDED
+
+
+namespace Catch {
+    namespace Detail {
+        //! Provides case-insensitive `op<` semantics when called
+        struct CaseInsensitiveLess {
+            bool operator()( StringRef lhs,
+                             StringRef rhs ) const;
+        };
+
+        //! Provides case-insensitive `op==` semantics when called
+        struct CaseInsensitiveEqualTo {
+            bool operator()( StringRef lhs,
+                             StringRef rhs ) const;
+        };
+
+    } // namespace Detail
+} // namespace Catch
+
+#endif // CATCH_CASE_INSENSITIVE_COMPARISONS_HPP_INCLUDED
+
+
+# ... 5099 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

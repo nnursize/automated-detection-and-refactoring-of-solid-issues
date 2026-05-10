@@ -1,0 +1,51 @@
+{
+  "scan_id": "jackson-core_DIP_scan_02",
+  "repo_name": "jackson-core",
+  "principle": "DIP",
+  "scan_number": 2,
+  "timestamp": "2026-05-02T16:10:58.772918",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Dependency Inversion Principle (DIP).\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.\n\n## What to Look For\n- Classes that directly instantiate their dependencie...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.streamWriteConstraints\",\n      \"entity_type\": \"method\",\n      \"line_start\": 57,\n      \"line_end\": 59,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Abstraction depends on a concrete implementation of constraints.\",\n      \"reasoning\": \"The JsonGenerator abstract class (an abstraction) depends on the concrete StreamWriteConstraints class. DIP states that abstractions should not depend on details; both should depend on abstractions. By returning a concrete class and hard-coding a call to StreamWriteConstraints.defaults(), the base API is coupled to a specific implementation of constraint logic.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.writeBinary\",\n      \"entity_type\": \"method\",\n      \"line_start\": 717,\n      \"line_end\": 719,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"High-level abstraction depends on concrete Base64Variants utility.\",\n      \"reasoning\": \"The JsonGenerator abstraction depends on the concrete Base64Variants class to obtain a default encoding variant. This creates a hard-coded dependency between the high-level generator API and a specific set of low-level implementation details (Base64 variants), making it difficult to swap or mock the default encoding behavior.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 111,\n      \"line_end\": 125,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Parser implementation depends on concrete IOContext for buffer management.\",\n      \"reasoning\": \"The parser constructor receives and depends on a concrete IOContext class. This dependency is passed up to the JsonParserBase abstraction. IOContext is a low-level module responsible for buffer allocation and lifecycle management. According to DIP, high-level logic should depend on a buffer management abstraction (interface) rather than a concrete implementation detail.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator.writeNumber\",\n      \"entity_type\": \"method\",\n      \"line_start\": 815,\n      \"line_end\": 815,\n      \"",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.streamWriteConstraints",
+      "entity_type": "method",
+      "line_start": 57,
+      "line_end": 59,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Abstraction depends on a concrete implementation of constraints.",
+      "reasoning": "The JsonGenerator abstract class (an abstraction) depends on the concrete StreamWriteConstraints class. DIP states that abstractions should not depend on details; both should depend on abstractions. By returning a concrete class and hard-coding a call to StreamWriteConstraints.defaults(), the base API is coupled to a specific implementation of constraint logic."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.writeBinary",
+      "entity_type": "method",
+      "line_start": 717,
+      "line_end": 719,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "High-level abstraction depends on concrete Base64Variants utility.",
+      "reasoning": "The JsonGenerator abstraction depends on the concrete Base64Variants class to obtain a default encoding variant. This creates a hard-coded dependency between the high-level generator API and a specific set of low-level implementation details (Base64 variants), making it difficult to swap or mock the default encoding behavior."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 111,
+      "line_end": 125,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Parser implementation depends on concrete IOContext for buffer management.",
+      "reasoning": "The parser constructor receives and depends on a concrete IOContext class. This dependency is passed up to the JsonParserBase abstraction. IOContext is a low-level module responsible for buffer allocation and lifecycle management. According to DIP, high-level logic should depend on a buffer management abstraction (interface) rather than a concrete implementation detail."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 270639.76788520813,
+  "error": null
+}

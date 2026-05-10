@@ -1,0 +1,40 @@
+{
+  "issue_id": "DIP-007",
+  "principle": "DIP",
+  "title": "Refactor DIP-007 (DIP): Utility module directly depends on a concrete function for CA bundle path.",
+  "branch": "refactor/DIP-007",
+  "base": "main",
+  "head_commit": "50680975f2e17f7195f470273598150ace470740",
+  "status": "obsolete",
+  "obsolete_reason": "entity `DEFAULT_CA_BUNDLE_PATH` not found in current source of `src/requests/utils.py` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/utils.py",
+    "entity_name": "DEFAULT_CA_BUNDLE_PATH",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 30,
+    "severity": "low",
+    "scan_count": 3,
+    "description": "Utility module directly depends on a concrete function for CA bundle path.",
+    "reasoning": "The `DEFAULT_CA_BUNDLE_PATH` in `requests.utils` directly calls `certs.where()`. While `certs.where()` is a simple function returning a path (effectively a configuration value), it's a direct dependency on a concrete implementation. In a strict interpretation of DIP, even configuration lookups could be abstracted. However, given that `certs.where()` is a stable, low-level utility function providing a path, the impact of this direct dependency is minimal, and it's more akin to a constant lookup than a service dependency."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 46.40841484069824
+}

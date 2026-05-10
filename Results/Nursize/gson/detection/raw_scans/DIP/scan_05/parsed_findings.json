@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 1640,
+    "line_end": 1662,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Base class depends on concrete subclass through instanceof check and casting.",
+    "reasoning": "Inappropriate Intimacy smell -> DIP violation because the base class JsonReader contains a static initializer that explicitly references JsonTreeReader (a subclass). Abstractions (JsonReader) should not depend on details (JsonTreeReader). This reverse dependency makes the base class fragile and tightly coupled to its specific implementations."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson.Gson",
+    "entity_type": "method",
+    "line_start": 256,
+    "line_end": 261,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Gson directly instantiates internal implementation details instead of using injection.",
+    "reasoning": "Hard-coded dependency smell -> DIP violation because the high-level Gson class directly instantiates ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory. These are low-level implementation details. Gson should depend on abstractions for object construction and annotation handling, ideally provided through dependency injection or a factory pattern."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 620,
+    "line_end": 681,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "High-level builder depends on a large number of concrete low-level adapter factories.",
+    "reasoning": "Tight Coupling smell -> DIP violation because createFactories manually instantiates numerous concrete classes like ReflectiveTypeAdapterFactory, CollectionTypeAdapterFactory, and MapTypeAdapterFactory. This forces the configuration module to depend on every specific implementation detail of the library's serialization logic."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/Streams.java",
+    "entity_name": "Streams.parse",
+    "entity_type": "method",
+    "line_start": 44,
+    "line_end": 44,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Utility class depends on a concrete TypeAdapter implementation.",
+    "reasoning": "Hard-coded dependency smell -> DIP violation because the Streams utility class is hard-coded to use JsonElementTypeAdapter.ADAPTER. It depends on a specific implementation detail for parsing rather than an abstraction, making it difficult to swap or mock the element parsing logic."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 125,
+    "line_end": 131,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Factory directly instantiates concrete adapter implementations.",
+    "reasoning": "Tight Coupling smell -> DIP violation because the factory directly instantiates RecordAdapter and FieldReflectionAdapter using the 'new' keyword. This couples the factory to specific implementation details of how reflection is performed, rather than depending on an abstraction for different reflection strategies."
+  }
+]

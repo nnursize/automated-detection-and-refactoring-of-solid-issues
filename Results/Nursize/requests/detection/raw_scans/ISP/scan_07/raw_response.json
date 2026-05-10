@@ -1,0 +1,51 @@
+{
+  "scan_id": "requests_ISP_scan_07",
+  "repo_name": "requests",
+  "principle": "ISP",
+  "scan_number": 7,
+  "timestamp": "2026-05-03T12:18:10.881778",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interfac...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.add_headers\",\n      \"entity_type\": \"class\",\n      \"line_start\": 579,\n      \"line_end\": 591,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The `add_headers` method in `HTTPAdapter` has an empty `pass` implementation, indicating it's not universally needed by subclasses.\",\n      \"reasoning\": \"The Interface Segregation Principle states that clients should not be forced to depend on interfaces they do not use. By providing a `pass` implementation for `add_headers`, `HTTPAdapter` implies this method is part of its interface for subclasses, but it's not universally needed. Subclasses that do not need to add custom headers are still forced to inherit this method, even if they do nothing with it. This method could be extracted into a more specific mixin or interface for adapters that *do* need to add custom headers.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 145,\n      \"line_end\": 698,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"`HTTPAdapter` exposes numerous specialized methods explicitly for subclassing, suggesting a fat interface that forces subclasses to depend on methods they may not use.\",\n      \"reasoning\": \"While `HTTPAdapter` is a concrete class, its documentation indicates it serves as an extensible base for custom adapters. The presence of many specialized methods (e.g., `init_poolmanager`, `cert_verify`, `proxy_manager_for`, `build_response`, `get_connection_with_tls_context`) that are 'only exposed for use when subclassing' means that `HTTPAdapter` acts as a de facto interface for its inheritors. It's highly probable that a custom adapter might only need to override a subset of these functionalities. By bundling all these concerns into a single class that subclasses are expected to extend, `HTTPAdapter` forces its clients (subclasses) to depend on and potentially be aware of methods they do not need to interact with or override, violating ISP. These specialized functionalities could be better served by smaller, more focused mixins.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest.add_header\",\n      \"entity_type\": \"class\",\n      \"line_start\": 23,\n      \"line_end\": 100,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The `MockRequest.add_header` method raises `NotImplementedError`, indicating that the `urllib2.Request` interface it mimics is too broad for its specific purpose.\",\n      \"reasoning\": \"`MockRequest` is designed to provide a specific interface compatible with `http.cookiejar.CookieJar`. The `add_header` method is part of the `urllib2.Request` interface, but `MockRequest` explicitly states that cookie headers should be added via `add_unredirected_header()`. By raising `NotImplementedError` for `add_header`, `MockRequest` demonstrates that it is forced to depend on a method from the `urllib2.Request` interface that it does not use or support in its intended context, which is a direct violation of the Interface Segregation Principle. The `http.cookiejar.CookieJar` client is forced to depend on an interface (`urllib2.Request`) that is not fully relevant to `MockRequest`'s specific needs.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.add_headers",
+      "entity_type": "class",
+      "line_start": 579,
+      "line_end": 591,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The `add_headers` method in `HTTPAdapter` has an empty `pass` implementation, indicating it's not universally needed by subclasses.",
+      "reasoning": "The Interface Segregation Principle states that clients should not be forced to depend on interfaces they do not use. By providing a `pass` implementation for `add_headers`, `HTTPAdapter` implies this method is part of its interface for subclasses, but it's not universally needed. Subclasses that do not need to add custom headers are still forced to inherit this method, even if they do nothing with it. This method could be extracted into a more specific mixin or interface for adapters that *do* need to add custom headers."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter",
+      "entity_type": "class",
+      "line_start": 145,
+      "line_end": 698,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "`HTTPAdapter` exposes numerous specialized methods explicitly for subclassing, suggesting a fat interface that forces subclasses to depend on methods they may not use.",
+      "reasoning": "While `HTTPAdapter` is a concrete class, its documentation indicates it serves as an extensible base for custom adapters. The presence of many specialized methods (e.g., `init_poolmanager`, `cert_verify`, `proxy_manager_for`, `build_response`, `get_connection_with_tls_context`) that are 'only exposed for use when subclassing' means that `HTTPAdapter` acts as a de facto interface for its inheritors. It's highly probable that a custom adapter might only need to override a subset of these functionalities. By bundling all these concerns into a single class that subclasses are expected to extend, `HTTPAdapter` forces its clients (subclasses) to depend on and potentially be aware of methods they do not need to interact with or override, violating ISP. These specialized functionalities could be better served by smaller, more focused mixins."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest.add_header",
+      "entity_type": "class",
+      "line_start": 23,
+      "line_end": 100,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The `MockRequest.add_header` method raises `NotImplementedError`, indicating that the `urllib2.Request` interface it mimics is too broad for its specific purpose.",
+      "reasoning": "`MockRequest` is designed to provide a specific interface compatible with `http.cookiejar.CookieJar`. The `add_header` method is part of the `urllib2.Request` interface, but `MockRequest` explicitly states that cookie headers should be added via `add_unredirected_header()`. By raising `NotImplementedError` for `add_header`, `MockRequest` demonstrates that it is forced to depend on a method from the `urllib2.Request` interface that it does not use or support in its intended context, which is a direct violation of the Interface Segregation Principle. The `http.cookiejar.CookieJar` client is forced to depend on an interface (`urllib2.Request`) that is not fully relevant to `MockRequest`'s specific needs."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27566.499948501587,
+  "error": null
+}

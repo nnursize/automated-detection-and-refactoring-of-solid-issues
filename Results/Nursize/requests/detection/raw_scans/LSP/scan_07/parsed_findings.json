@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "class",
+    "line_start": 307,
+    "line_end": 314,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "__getitem__ raises CookieConflictError instead of returning a value or raising KeyError.",
+    "reasoning": "The Mapping interface contract specifies that __getitem__ should return the value for a key or raise a KeyError. Raising a custom RuntimeError (CookieConflictError) when multiple values exist for a key breaks the substitutability of the class where a standard mapping is expected, as client code typically only handles KeyError."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__setitem__",
+    "entity_type": "class",
+    "line_start": 316,
+    "line_end": 320,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "__setitem__ deletes the cookie if the value is None.",
+    "reasoning": "In the MutableMapping interface, __setitem__ is expected to associate a value with a key. Deleting the key when the value is None violates the expected behavior of a mapping, where None is a valid value and deletion should be performed via __delitem__. This side effect can lead to unexpected data loss."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "class",
+    "line_start": 72,
+    "line_end": 76,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "add_header raises NotImplementedError, breaking the interface it mimics.",
+    "reasoning": "MockRequest is explicitly designed to mimic the urllib2.Request interface. By raising NotImplementedError for a standard method of that interface, it fails to be a valid substitute for the type it is intended to replace, violating LSP."
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-021",
+  "principle": "LSP",
+  "title": "Refactor LSP-021 (LSP): Subtype catches a specific RuntimeException and alters propagation behavior.",
+  "branch": "refactor/LSP-021",
+  "base": "main",
+  "head_commit": "f94c16851eaf546ac12fb395e0d57ebf2d1a6901",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7466,
+    "completion_tokens": 204
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+    "entity_name": "DatasetCompiler.Complement.compute",
+    "entity_type": "method",
+    "line_start": 506,
+    "line_end": 515,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Subtype catches a specific RuntimeException and alters propagation behavior.",
+    "reasoning": "The `DatasetCompiler.Complement#compute` method catches `ConditionalEvaluationError` (a `RuntimeException`). If the `Dataset` interface's contract for `compute` implies that all `RuntimeException`s should propagate, then catching this specific exception and returning `data` (a behavioral change) violates LSP. A client might expect certain exceptions to propagate, but `Complement` handles it differently."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove catch block for ConditionalEvaluationError in DatasetCompiler.Complement to preserve exception propagation",
+    "rationale": "The catch block in DatasetCompiler.Complement#compute was suppressing ConditionalEvaluationError, which violates the Liskov Substitution Principle by altering the expected exception propagation behavior of the Dataset interface. Removing the catch block ensures that the exception propagates as expected by the contract.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "search_text": "            try {\n                parent.compute(batch, flush, shutdown);\n                done = true;\n                return data;\n            } catch (ConditionalEvaluationError ex) {\n                return data;\n            }",
+        "replace_text": "            parent.compute(batch, flush, shutdown);\n            done = true;\n            return data;",
+        "search_lines": 7,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "loc": 508,
+        "blank_lines": 60,
+        "comment_lines": 6,
+        "function_count": 27,
+        "avg_cc": 2.37,
+        "max_cc": 38.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "loc": 504,
+        "blank_lines": 60,
+        "comment_lines": 6,
+        "function_count": 27,
+        "avg_cc": 2.33,
+        "max_cc": 37.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java b/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\nindex 956bbe1..cd21019 100644\n--- a/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\n+++ b/logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java\n@@ -522,13 +522,9 @@ public final class DatasetCompiler {\n             if (done) {\n                 return data;\n             }\n-            try {\n-                parent.compute(batch, flush, shutdown);\n-                done = true;\n-                return data;\n-            } catch (ConditionalEvaluationError ex) {\n-                return data;\n-            }\n+            parent.compute(batch, flush, shutdown);\n+            done = true;\n+            return data;\n         }\n \n         @Override\n",
+  "duration_ms": 16576.28846168518
+}

@@ -1,0 +1,121 @@
+diff --git a/src/main/java/tools/jackson/core/TokenStreamFactory.java b/src/main/java/tools/jackson/core/TokenStreamFactory.java
+index 2f33b7d..db6e706 100644
+--- a/src/main/java/tools/jackson/core/TokenStreamFactory.java
++++ b/src/main/java/tools/jackson/core/TokenStreamFactory.java
+@@ -8,6 +8,7 @@ import java.io.*;
+ import java.net.URL;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
++import tools.jackson.core.io.FileStreamUtil;
+ import java.util.List;
+ import java.util.Locale;
+ import java.util.Objects;
+@@ -1303,7 +1304,7 @@ public abstract class TokenStreamFactory
+     protected InputStream _fileInputStream(File f) throws JacksonException
+     {
+         try {
+-            return new FileInputStream(f);
++            return FileStreamUtil.fileInputStream(f);
+         } catch (IOException e) {
+             throw _wrapIOFailure(e);
+         }
+@@ -1312,7 +1313,7 @@ public abstract class TokenStreamFactory
+     protected InputStream _pathInputStream(Path p) throws JacksonException
+     {
+         try {
+-            return Files.newInputStream(p);
++            return FileStreamUtil.pathInputStream(p);
+         } catch (IOException e) {
+             throw _wrapIOFailure(e);
+         }
+@@ -1331,7 +1332,7 @@ public abstract class TokenStreamFactory
+     protected OutputStream _fileOutputStream(File f) throws JacksonException
+     {
+         try {
+-            return new FileOutputStream(f);
++            return FileStreamUtil.fileOutputStream(f);
+         } catch (IOException e) {
+             throw _wrapIOFailure(e);
+         }
+@@ -1340,7 +1341,7 @@ public abstract class TokenStreamFactory
+     protected OutputStream _pathOutputStream(Path p) throws JacksonException
+     {
+         try {
+-            return Files.newOutputStream(p);
++            return FileStreamUtil.pathOutputStream(p);
+         } catch (IOException e) {
+             throw _wrapIOFailure(e);
+         }
+diff --git a/src/main/java/tools/jackson/core/io/FileStreamUtil.java b/src/main/java/tools/jackson/core/io/FileStreamUtil.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/io/FileStreamUtil.java
+@@ -0,0 +1,66 @@
++package tools.jackson.core.io;
++
++import java.io.File;
++import java.io.FileInputStream;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.OutputStream;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++/**
++ * Utility class for creating I/O streams from {@link File} and {@link Path} objects.
++ * This class encapsulates the direct I/O resource opening logic, separating it
++ * from factory classes like {@code TokenStreamFactory}.
++ *
++ * @since 3.0
++ */
++public final class FileStreamUtil {
++
++    private FileStreamUtil() { }
++
++    /**
++     * Creates a new {@link FileInputStream} for the given {@link File}.
++     *
++     * @param f File to open stream for
++     * @return {@link InputStream} constructed
++     * @throws IOException If there is a problem opening the stream
++     */
++    public static InputStream fileInputStream(File f) throws IOException {
++        return new FileInputStream(f);
++    }
++
++    /**
++     * Creates a new {@link InputStream} for the given {@link Path}.
++     *
++     * @param p Path to open stream for
++     * @return {@link InputStream} constructed
++     * @throws IOException If there is a problem opening the stream
++     */
++    public static InputStream pathInputStream(Path p) throws IOException {
++        return Files.newInputStream(p);
++    }
++
++    /**
++     * Creates a new {@link FileOutputStream} for the given {@link File}.
++     *
++     * @param f File to open stream for
++     * @return {@link OutputStream} constructed
++     * @throws IOException If there is a problem opening the stream
++     */
++    public static OutputStream fileOutputStream(File f) throws IOException {
++        return new FileOutputStream(f);
++    }
++
++    /**
++     * Creates a new {@link OutputStream} for the given {@link Path}.
++     *
++     * @param p Path to open stream for
++     * @return {@link OutputStream} constructed
++     * @throws IOException If there is a problem opening the stream
++     */
++    public static OutputStream pathOutputStream(Path p) throws IOException {
++        return Files.newOutputStream(p);
++    }
++}
+\ No newline at end of file

@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 14,
+    "line_end": 59,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level API function directly instantiates a concrete Session object.",
+    "reasoning": "The top-level request function (and its wrappers like get, post, etc.) imports and instantiates the concrete 'Session' class from requests.sessions. This creates a direct dependency on a low-level implementation detail rather than an abstraction, making it impossible to swap session implementations without modifying the core API."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session",
+    "entity_type": "class",
+    "line_start": 357,
+    "line_end": 817,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Session class is tightly coupled to concrete HTTPAdapter and RequestsCookieJar implementations.",
+    "reasoning": "The Session class directly imports and references concrete classes like HTTPAdapter and RequestsCookieJar. While it provides a 'mount' method for injection, the constructor typically instantiates default concrete adapters, violating the principle that high-level modules should depend on abstractions (like a BaseAdapter interface) rather than concrete implementations."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.init_poolmanager",
+    "entity_type": "method",
+    "line_start": 218,
+    "line_end": 242,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "HTTPAdapter directly instantiates urllib3.poolmanager.PoolManager.",
+    "reasoning": "Instead of receiving a PoolManager instance or factory through its constructor (Dependency Injection), the HTTPAdapter creates a concrete instance of PoolManager from the urllib3 library. This tightly couples the requests adapter to a specific third-party implementation detail."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Request.prepare",
+    "entity_type": "method",
+    "line_start": 297,
+    "line_end": 312,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Request class directly instantiates the concrete PreparedRequest class.",
+    "reasoning": "The Request.prepare method is responsible for returning a PreparedRequest. By hard-coding the instantiation of PreparedRequest, the Request class becomes tightly coupled to a specific subclass, preventing the use of alternative preparation logic or mock objects without inheritance overrides."
+  }
+]

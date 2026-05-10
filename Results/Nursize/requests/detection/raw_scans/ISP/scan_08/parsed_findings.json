@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "class",
+    "line_start": 62,
+    "line_end": 64,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The MockRequest class mimics an interface (like urllib2.Request) but raises NotImplementedError for its add_header method.",
+    "reasoning": "This violates ISP because clients expecting a urllib2.Request-like object are forced to depend on the `add_header` method, even though MockRequest explicitly does not support it, leading to a runtime error if called. The class is forced to implement a method from a broader interface that is not relevant to its specific purpose of interacting with `http.cookiejar.CookieJar`."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.add_headers",
+    "entity_type": "class",
+    "line_start": 579,
+    "line_end": 589,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The HTTPAdapter class provides an add_headers method with a 'pass' implementation, intended for subclasses to override.",
+    "reasoning": "This indicates that HTTPAdapter acts as a somewhat 'fat interface' for its own subclasses. Subclasses that do not need to add custom headers are still forced to inherit or be aware of this method, even though its default implementation is a no-op. While not as severe as raising NotImplementedError, it means the interface presented by HTTPAdapter to its inheritors is broader than necessary for all potential specialized adapter implementations."
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::TestCaseTracking::ITracker",
+    "entity_type": "class",
+    "line_start": 4725,
+    "line_end": 4790,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Base class defines type-query methods for specific subtypes",
+    "reasoning": "The ITracker class contains virtual methods 'isSectionTracker()' and 'isGeneratorTracker()' which default to returning false. This 'Type Query' smell indicates a violation of LSP because the base class abstraction is polluted with knowledge of its specific subtypes. It forces the hierarchy to be closed to new types (violating OCP) and signals to consumers that they should downcast or switch behavior based on the specific leaf node type rather than treating all ITracker objects uniformly."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::CumulativeReporterBase",
+    "entity_type": "class",
+    "line_start": 5078,
+    "line_end": 5128,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass-driven state changes lead to Undefined Behavior in base class contract",
+    "reasoning": "The class documentation explicitly states that subclasses can set 'm_shouldStoreSuccesfulAssertions' or 'm_shouldStoreFailedAssertions' to false, but that 'Accessing the assertion expansions if it wasn't stored is UB.' This is a postcondition weakening smell. A consumer using a pointer to the base class CumulativeReporterBase expects a valid contract where assertion data is available. If a subclass weakens this postcondition by disabling storage, it breaks the program's correctness for any component relying on the base class's standard behavior, fulfilling the definition of an LSP violation."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::StreamingReporterBase",
+    "entity_type": "class",
+    "line_start": 5013,
+    "line_end": 5055,
+    "principle": "LSP",
+    "severity": "low",
+    "description": "Refused Bequest through empty default implementations of mandatory interface events",
+    "reasoning": "StreamingReporterBase provides empty overrides for several methods of the IEventListener interface (e.g., benchmarkPreparing, benchmarkStarting, skipTest). While this acts as an 'Adapter', it constitutes a Refused Bequest smell. If the logic driving the IEventListener expects that calling these methods results in a specific outcome or state update (the 'contract'), then any subtype that nullifies these calls violates the expectation that it is a fully functional substitutable listener."
+  }
+]

@@ -1,0 +1,161 @@
+{
+  "scan_id": "gson_OCP_scan_10",
+  "repo_name": "gson",
+  "principle": "OCP",
+  "scan_number": 10,
+  "timestamp": "2026-05-02T12:47:44.065487",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that sh...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonReader.java\",\n      \"entity_name\": \"JsonReader.peek\",\n      \"entity_type\": \"method\",\n      \"line_start\": 542,\n      \"line_end\": 577,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonReader's internal token parsing logic is likely closed for modification, requiring changes for new JSON token types.\",\n      \"reasoning\": \"The `peek()` method returns a `JsonToken`, and the numerous `next...()` methods imply an internal `switch` or `if/else if` chain (likely in `doPeek()`) to handle different `JsonToken` types. If a new JSON token type (e.g., a comment token that needs to be exposed) were introduced, the `JsonReader` class would need to be modified to recognize and process it, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java\",\n      \"entity_name\": \"JsonWriter.value\",\n      \"entity_type\": \"method\",\n      \"line_start\": 527,\n      \"line_end\": 655,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonWriter's internal value writing logic is likely closed for modification, requiring changes for new primitive types.\",\n      \"reasoning\": \"The `JsonWriter` class provides multiple `value()` overloads for different primitive types (`String`, `boolean`, `float`, `double`, `long`, `Number`). If a new primitive type or a new way to represent an existing primitive type in JSON were introduced, new `value()` methods or modifications to existing internal dispatch logic would be required, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement\",\n      \"entity_type\": \"class\",\n      \"line_start\": 96,\n      \"line_end\": 434,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The JsonElement hierarchy forces client-side type-checking and casting, violating OCP when new JsonElement subtypes are added.\",\n      \"reasoning\": \"JsonElement provides `isJsonArray()`, `isJsonObject()`, `isJsonPrimitive()`, `isJsonNull()` methods, along with corresponding `getAsJsonX()` methods that throw `IllegalStateException` on type mismatch. This design encourages client code to use `if/else if` chains or `instanceof` checks to determine the concrete type of a `JsonElement`. Adding a new `JsonElement` subtype (e.g., `JsonComment`) would require adding new `isJsonY()` and `getAsJsonY()` methods to `JsonElement` and modifying all existing client code that performs type-checking, violating OCP. A Visitor pattern or pushing more behavior into subclasses would be more OCP-compliant.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java\",\n      \"entity_name\": \"JsonElementTypeAdapter.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 77,\n      \"line_end\": 89,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElementTypeAdapter's read method contains hardcoded logic for all JsonToken types, requiring modification for new token types.\",\n      \"reasoning\": \"The `read(JsonReader in)` method likely contains a large `switch` statement on `JsonToken` to parse different JSON structures into `JsonElement` subtypes. If a new `JsonToken` type were introduced, this method would need to be modified, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java\",\n      \"entity_name\": \"JsonElementTypeAdapter.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 139,\n      \"line_end\": 155,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElementTypeAdapter's write method contains hardcoded logic for all JsonElement subtypes, requiring modification for new types.\",\n      \"reasoning\": \"The `write(JsonWriter out, JsonElement value)` method likely uses `if/else if` or `switch` statements on the concrete type of `JsonElement` to dispatch writing. If a new `JsonElement` subtype were introduced, this method would need to be modified, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\",\n      \"entity_name\": \"ConstructorConstructor.get\",\n      \"entity_type\": \"method\",\n      \"line_start\": 92,\n      \"line_end\": 170,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"ConstructorConstructor contains hardcoded logic for object instantiation strategies, requiring modification for new strategies.\",\n      \"reasoning\": \"The `get(TypeToken<T> typeToken)` method explicitly checks for various construction strategies (instance creators, unsafe allocator, default constructor, special collections). Adding a new object construction strategy would require modifying this method, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\",\n      \"entity_name\": \"ConstructorConstructor.newSpecialCollectionConstructor\",\n      \"entity_type\": \"method\",\n      \"line_start\": 177,\n      \"line_end\": 209,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"ConstructorConstructor contains hardcoded logic for special collection types, requiring modification for new collection types.\",\n      \"reasoning\": \"The `newSpecialCollectionConstructor` method specifically handles `EnumSet` and `EnumMap`. Adding support for a new special collection type would require modifying this method, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/Excluder.java\",\n      \"entity_name\": \"Excluder.excludeField\",\n      \"entity_type\": \"method\",\n      \"line_start\": 157,\n      \"line_end\": 197,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Excluder's internal field exclusion logic is hardcoded, requiring modification for new built-in exclusion criteria.\",\n      \"reasoning\": \"The `excludeField()` method likely contains `if/else if` chains that check for various hardcoded exclusion criteria (e.g., modifiers, `@Expose`, `@Since`, `@Until` annotations). While `ExclusionStrategy` provides an external extension point, adding a new *built-in* exclusion rule would necessitate modifying this method, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/Excluder.java\",\n      \"entity_name\": \"Excluder.excludeClass\",\n      \"entity_type\": \"method\",\n      \"line_start\": 197,\n      \"line_end\": 233,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Excluder's internal class exclusion logic is hardcoded, requiring modification for new built-in exclusion criteria.\",\n      \"reasoning\": \"The `excludeClass()` method likely contains `if/else if` chains that check for various hardcoded exclusion criteria (e.g., inner classes). While `ExclusionStrategy` provides an external extension point, adding a new *built-in* exclusion rule would necessitate modifying this method, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java\",\n      \"entity_name\": \"JsonAdapterAnnotationTypeAdapterFactory.createAdapter\",\n      \"entity_type\": \"method\",\n      \"line_start\": 88,\n      \"line_end\": 98,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"createAdapter method contains hardcoded logic to instantiate different types of adapters based on their interface.\",\n      \"reasoning\": \"The `createAdapter()` method explicitly checks if the adapter class implements `TypeAdapter`, `TypeAdapterFactory`, `JsonSerializer`, or `JsonDeserializer`. If a new interface for a custom adapter type were introduced, this method would need to be modified to support it, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\",\n      \"entity_name\": \"ProtoTypeAdapter.serialize\",\n      \"entity_type\": \"method\",\n      \"line_start\": 255,\n      \"line_end\": 287,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"ProtoTypeAdapter's serialization method likely contains extensive hardcoded logic for different Protobuf field types.\",\n      \"reasoning\": \"The `serialize()` method for Protobuf messages would typically involve `if/else if` or `switch` statements to handle various Protobuf field types (e.g., scalar types, nested messages, enums, repeated fields). If new Protobuf field types or serialization options were introduced, this method would need to be modified to support them, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java\",\n      \"entity_name\": \"ProtoTypeAdapter.deserialize\",\n      \"entity_type\": \"method\",\n      \"line_start\": 287,\n      \"line_end\": 355,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"ProtoTypeAdapter's deserialization method likely contains extensive hardcoded logic for different Protobuf field types.\",\n      \"reasoning\": \"The `deserialize()` method for Protobuf messages would typically involve `if/else if` or `switch` statements to handle various Protobuf field types (e.g., scalar types, nested messages, enums, repeated fields). If new Protobuf field types or deserialization options were introduced, this method would need to be modified to support them, violating OCP.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java\",\n      \"entity_name\": \"DefaultDateTypeAdapter.deserializeToDate\",\n      \"entity_type\": \"method\",\n      \"line_start\": 164,\n      \"line_end\": 172,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"deserializeToDate likely contains hardcoded logic to try different date formats, requiring modification for new default formats.\",\n      \"reasoning\": \"The `deserializeToDate()` method likely attempts to parse date strings using a predefined list of `DateFormat` instances. If a new default date format needs to be supported, this method would require modification to add the new format to its parsing attempts, violating OCP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "entity_name": "JsonReader.peek",
+      "entity_type": "method",
+      "line_start": 542,
+      "line_end": 577,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "JsonReader's internal token parsing logic is likely closed for modification, requiring changes for new JSON token types.",
+      "reasoning": "The `peek()` method returns a `JsonToken`, and the numerous `next...()` methods imply an internal `switch` or `if/else if` chain (likely in `doPeek()`) to handle different `JsonToken` types. If a new JSON token type (e.g., a comment token that needs to be exposed) were introduced, the `JsonReader` class would need to be modified to recognize and process it, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+      "entity_name": "JsonWriter.value",
+      "entity_type": "method",
+      "line_start": 527,
+      "line_end": 655,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "JsonWriter's internal value writing logic is likely closed for modification, requiring changes for new primitive types.",
+      "reasoning": "The `JsonWriter` class provides multiple `value()` overloads for different primitive types (`String`, `boolean`, `float`, `double`, `long`, `Number`). If a new primitive type or a new way to represent an existing primitive type in JSON were introduced, new `value()` methods or modifications to existing internal dispatch logic would be required, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement",
+      "entity_type": "class",
+      "line_start": 96,
+      "line_end": 434,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The JsonElement hierarchy forces client-side type-checking and casting, violating OCP when new JsonElement subtypes are added.",
+      "reasoning": "JsonElement provides `isJsonArray()`, `isJsonObject()`, `isJsonPrimitive()`, `isJsonNull()` methods, along with corresponding `getAsJsonX()` methods that throw `IllegalStateException` on type mismatch. This design encourages client code to use `if/else if` chains or `instanceof` checks to determine the concrete type of a `JsonElement`. Adding a new `JsonElement` subtype (e.g., `JsonComment`) would require adding new `isJsonY()` and `getAsJsonY()` methods to `JsonElement` and modifying all existing client code that performs type-checking, violating OCP. A Visitor pattern or pushing more behavior into subclasses would be more OCP-compliant."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+      "entity_name": "JsonElementTypeAdapter.read",
+      "entity_type": "method",
+      "line_start": 77,
+      "line_end": 89,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "JsonElementTypeAdapter's read method contains hardcoded logic for all JsonToken types, requiring modification for new token types.",
+      "reasoning": "The `read(JsonReader in)` method likely contains a large `switch` statement on `JsonToken` to parse different JSON structures into `JsonElement` subtypes. If a new `JsonToken` type were introduced, this method would need to be modified, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+      "entity_name": "JsonElementTypeAdapter.write",
+      "entity_type": "method",
+      "line_start": 139,
+      "line_end": 155,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "JsonElementTypeAdapter's write method contains hardcoded logic for all JsonElement subtypes, requiring modification for new types.",
+      "reasoning": "The `write(JsonWriter out, JsonElement value)` method likely uses `if/else if` or `switch` statements on the concrete type of `JsonElement` to dispatch writing. If a new `JsonElement` subtype were introduced, this method would need to be modified, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+      "entity_name": "ConstructorConstructor.get",
+      "entity_type": "method",
+      "line_start": 92,
+      "line_end": 170,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "ConstructorConstructor contains hardcoded logic for object instantiation strategies, requiring modification for new strategies.",
+      "reasoning": "The `get(TypeToken<T> typeToken)` method explicitly checks for various construction strategies (instance creators, unsafe allocator, default constructor, special collections). Adding a new object construction strategy would require modifying this method, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+      "entity_name": "ConstructorConstructor.newSpecialCollectionConstructor",
+      "entity_type": "method",
+      "line_start": 177,
+      "line_end": 209,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "ConstructorConstructor contains hardcoded logic for special collection types, requiring modification for new collection types.",
+      "reasoning": "The `newSpecialCollectionConstructor` method specifically handles `EnumSet` and `EnumMap`. Adding support for a new special collection type would require modifying this method, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/Excluder.java",
+      "entity_name": "Excluder.excludeField",
+      "entity_type": "method",
+      "line_start": 157,
+      "line_end": 197,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Excluder's internal field exclusion logic is hardcoded, requiring modification for new built-in exclusion criteria.",
+      "reasoning": "The `excludeField()` method likely contains `if/else if` chains that check for various hardcoded exclusion criteria (e.g., modifiers, `@Expose`, `@Since`, `@Until` annotations). While `ExclusionStrategy` provides an external extension point, adding a new *built-in* exclusion rule would necessitate modifying this method, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/Excluder.java",
+      "entity_name": "Excluder.excludeClass",
+      "entity_type": "method",
+      "line_start": 197,
+      "line_end": 233,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Excluder's internal class exclusion logic is hardcoded, requiring modification for new built-in exclusion criteria.",
+      "reasoning": "The `excludeClass()` method likely contains `if/else if` chains that check for various hardcoded exclusion criteria (e.g., inner classes). While `ExclusionStrategy` provides an external extension point, adding a new *built-in* exclusion rule would necessitate modifying this method, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+      "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.createAdapter",
+      "entity_type": "method",
+      "line_start": 88,
+      "line_end": 98,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "createAdapter method contains hardcoded logic to instantiate different types of adapters based on their interface.",
+      "reasoning": "The `createAdapter()` method explicitly checks if the adapter class implements `TypeAdapter`, `TypeAdapterFactory`, `JsonSerializer`, or `JsonDeserializer`. If a new interface for a custom adapter type were introduced, this method would need to be modified to support it, violating OCP."
+    },
+    {
+      "file_path": "gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+      "entity_name": "ProtoTypeAdapter.serialize",
+      "entity_type": "method",
+      "line_start": 255,
+      "line_end": 287,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "ProtoTypeAdapter's serialization method likely contains extensive hardcoded logic for different Protobuf field types.",
+      "reasoning": "The `serialize()` method for Protobuf messages would typically involve `if/else if` or `switch` statements to handle various Protobuf field types (e.g., scalar types, nested messages, enums, repeated fields). If new Protobuf field types or serialization options were introduced, this method would need to be modified to support them, violating OCP."
+    },
+    {
+      "file_path": "gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+      "entity_name": "ProtoTypeAdapter.deserialize",
+      "entity_type": "method",
+      "line_start": 287,
+      "line_end": 355,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "ProtoTypeAdapter's deserialization method likely contains extensive hardcoded logic for different Protobuf field types.",
+      "reasoning": "The `deserialize()` method for Protobuf messages would typically involve `if/else if` or `switch` statements to handle various Protobuf field types (e.g., scalar types, nested messages, enums, repeated fields). If new Protobuf field types or deserialization options were introduced, this method would need to be modified to support them, violating OCP."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java",
+      "entity_name": "DefaultDateTypeAdapter.deserializeToDate",
+      "entity_type": "method",
+      "line_start": 164,
+      "line_end": 172,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "deserializeToDate likely contains hardcoded logic to try different date formats, requiring modification for new default formats.",
+      "reasoning": "The `deserializeToDate()` method likely attempts to parse date strings using a predefined list of `DateFormat` instances. If a new default date format needs to be supported, this method would require modification to add the new format to its parsing attempts, violating OCP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 49061.060667037964,
+  "error": null
+}

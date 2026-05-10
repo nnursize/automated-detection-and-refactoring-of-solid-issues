@@ -1,0 +1,51 @@
+{
+  "scan_id": "Catch2_SRP_scan_11",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 11,
+  "timestamp": "2026-05-02T11:11:45.856437",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a c++ repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IConfig.analyse\",\n      \"entity_type\": \"class\",\n      \"line_start\": 2114,\n      \"line_end\": 2120,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The IConfig interface defines a method for performing analysis, which is not a responsibility of a configuration interface.\",\n      \"reasoning\": \"A configuration interface should primarily provide configuration data and settings. Performing 'SampleAnalysis' based on configuration is an active processing responsibility that violates the principle of a configuration object merely holding data.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"TestSpec.serializeTo\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3428,\n      \"line_end\": 3512,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The TestSpec class mixes test specification/filtering logic with serialization concerns.\",\n      \"reasoning\": \"The primary responsibility of TestSpec should be to define and match test specifications. The 'serializeTo' method introduces a persistence/output formatting responsibility, which is a separate concern and could be moved to a dedicated serializer.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"NamePattern.serializeTo\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3448,\n      \"line_end\": 3457,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The NamePattern class mixes pattern matching logic with serialization concerns.\",\n      \"reasoning\": \"Similar to TestSpec, a pattern class should focus on defining and matching patterns. Adding a 'serializeTo' method introduces a persistence/output formatting responsibility that is distinct from its core pattern logic.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"TagPattern.serializeTo\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3458,\n      \"line_end\": 3467,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The TagPattern class mixes pattern matching logic with serialization concerns.\",\n      \"reasoning\": \"Similar to NamePattern, a tag pattern class should focus on defining and matching tags. Adding a 'serializeTo' method introduces a persistence/output formatting responsibility that is distinct from its core pattern logic.\"\n",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "IConfig.analyse",
+      "entity_type": "class",
+      "line_start": 2114,
+      "line_end": 2120,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The IConfig interface defines a method for performing analysis, which is not a responsibility of a configuration interface.",
+      "reasoning": "A configuration interface should primarily provide configuration data and settings. Performing 'SampleAnalysis' based on configuration is an active processing responsibility that violates the principle of a configuration object merely holding data."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "TestSpec.serializeTo",
+      "entity_type": "class",
+      "line_start": 3428,
+      "line_end": 3512,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The TestSpec class mixes test specification/filtering logic with serialization concerns.",
+      "reasoning": "The primary responsibility of TestSpec should be to define and match test specifications. The 'serializeTo' method introduces a persistence/output formatting responsibility, which is a separate concern and could be moved to a dedicated serializer."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "NamePattern.serializeTo",
+      "entity_type": "class",
+      "line_start": 3448,
+      "line_end": 3457,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The NamePattern class mixes pattern matching logic with serialization concerns.",
+      "reasoning": "Similar to TestSpec, a pattern class should focus on defining and matching patterns. Adding a 'serializeTo' method introduces a persistence/output formatting responsibility that is distinct from its core pattern logic."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 59631.54697418213,
+  "error": null
+}

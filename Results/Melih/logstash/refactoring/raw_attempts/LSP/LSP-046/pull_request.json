@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-046",
+  "principle": "LSP",
+  "title": "Refactor LSP-046 (LSP): Method uses instanceof check to conditionally skip core functionality.",
+  "branch": "refactor/LSP-046",
+  "base": "main",
+  "head_commit": "7f6b8ce5dbbac4b7b1d079fac8b36aec0fcd7434",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 6925,
+    "completion_tokens": 437
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.append",
+    "entity_type": "method",
+    "line_start": 306,
+    "line_end": 311,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Method uses instanceof check to conditionally skip core functionality.",
+    "reasoning": "The `append` method checks if the input `e` is an instance of `Event`. If `e` is not an `Event` (but is a `co.elastic.logstash.api.Event` subtype), the method simply returns `this` without performing any append operation. This violates LSP because a subtype of `co.elastic.logstash.api.Event` that is not `Event` cannot be substituted for `Event` without altering the correctness of the program, as the expected behavior of appending the event's data is skipped."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove type-checking in overwrite and append methods to satisfy LSP",
+    "rationale": "The `overwrite` and `append` methods were using `instanceof` to conditionally skip logic for non-`Event` implementations of `co.elastic.logstash.api.Event`. By using the public `getData()` and `getTimestamp()` methods defined in the interface, we can perform the operations on any valid `co.elastic.logstash.api.Event` implementation, ensuring substitutability.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/Event.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/Event.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+        "search_text": "    @Override\n    public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n        if (e instanceof Event) {\n            return overwrite((Event)e);\n        }\n        return e;\n    }\n\n    @Override\n    public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n        if (e instanceof Event) {\n            return append((Event)e);\n        }\n        return e;\n    }",
+        "replace_text": "    @Override\n    public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n        this.data = ConvertedMap.newFromMap(e.toMap());\n        this.cancelled = e.isCancelled();\n        Instant t = e.getEventTimestamp();\n        setTimestamp(t == null ? new Timestamp() : new Timestamp(t.toEpochMilli()));\n        return this;\n    }\n\n    @Override\n    public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n        Util.mapMerge(this.data, e.toMap());\n        return this;\n    }",
+        "search_lines": 15,
+        "replace_lines": 14
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/Event.java",
+        "loc": 499,
+        "blank_lines": 72,
+        "comment_lines": 12,
+        "function_count": 45,
+        "avg_cc": 2.38,
+        "max_cc": 63.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/Event.java",
+        "loc": 498,
+        "blank_lines": 72,
+        "comment_lines": 12,
+        "function_count": 45,
+        "avg_cc": 2.33,
+        "max_cc": 61.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/Event.java b/logstash-core/src/main/java/org/logstash/Event.java\nindex 2a9f79a..7ad7e3a 100644\n--- a/logstash-core/src/main/java/org/logstash/Event.java\n+++ b/logstash-core/src/main/java/org/logstash/Event.java\n@@ -346,18 +346,17 @@ public final class Event implements Cloneable, Queueable, co.elastic.logstash.ap\n \n     @Override\n     public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n-        if (e instanceof Event) {\n-            return overwrite((Event)e);\n-        }\n-        return e;\n+        this.data = ConvertedMap.newFromMap(e.toMap());\n+        this.cancelled = e.isCancelled();\n+        Instant t = e.getEventTimestamp();\n+        setTimestamp(t == null ? new Timestamp() : new Timestamp(t.toEpochMilli()));\n+        return this;\n     }\n \n     @Override\n     public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n-        if (e instanceof Event) {\n-            return append((Event)e);\n-        }\n-        return e;\n+        Util.mapMerge(this.data, e.toMap());\n+        return this;\n     }\n \n     public Event overwrite(Event e) {\n",
+  "duration_ms": 5088.846683502197
+}

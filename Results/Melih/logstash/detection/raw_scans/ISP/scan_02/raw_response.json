@@ -1,0 +1,40 @@
+{
+  "scan_id": "logstash_ISP_scan_02",
+  "repo_name": "logstash",
+  "principle": "ISP",
+  "scan_number": 2,
+  "timestamp": "2026-04-19T15:40:27.746604",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Interface Segregation Principle (ISP).\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.\n\n## What to Look For\n- Abstract base classes or interfaces with too many methods\n- Classe...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/lib/logstash/compiler/lscl.rb\",\n      \"entity_name\": \"LogStashCompilerLSCLGrammar::LogStash::Compiler::LSCL::AST::MethodCall.expr\",\n      \"entity_type\": \"method\",\n      \"line_start\": 305,\n      \"line_end\": 305,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"MethodCall module is forced to implement 'expr' method which is explicitly marked as unused.\",\n      \"reasoning\": \"The comment 'Not implemented because no one uses this' for the `expr` method within the `MethodCall` module indicates that `MethodCall` is part of a larger conceptual interface (likely inherited or implicitly expected by the AST structure) that requires an `expr` method. However, `MethodCall` itself does not need or use this functionality, forcing it to implement a method it doesn't utilize. This is a clear violation of the Interface Segregation Principle, as clients (in this case, `MethodCall`) should not be forced to depend on interfaces they do not use.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java\",\n      \"entity_name\": \"org.logstash.ackedqueue.io.MmapPageIOV1\",\n      \"entity_type\": \"class\",\n      \"line_start\": 29,\n      \"line_end\": 222,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.\",\n      \"reasoning\": \"The `MmapPageIOV1` class implements the `PageIO` interface but throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, and `write()`. This is a textbook violation of the Interface Segregation Principle. It indicates that the `PageIO` interface is 'fat' and groups together responsibilities (reading, writing, lifecycle management, recovery) that are not universally applicable to all its implementations. `MmapPageIOV1` only supports reading, but is forced to provide implementations for writing, creating, and other operations it does not support. The `PageIO` interface should be segregated into smaller, more focused interfaces (e.g., `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `LifecyclePageIO`) so that clients are only forced to depend on methods relevant to their specific needs.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "logstash-core/lib/logstash/compiler/lscl.rb",
+      "entity_name": "LogStashCompilerLSCLGrammar::LogStash::Compiler::LSCL::AST::MethodCall.expr",
+      "entity_type": "method",
+      "line_start": 305,
+      "line_end": 305,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "MethodCall module is forced to implement 'expr' method which is explicitly marked as unused.",
+      "reasoning": "The comment 'Not implemented because no one uses this' for the `expr` method within the `MethodCall` module indicates that `MethodCall` is part of a larger conceptual interface (likely inherited or implicitly expected by the AST structure) that requires an `expr` method. However, `MethodCall` itself does not need or use this functionality, forcing it to implement a method it doesn't utilize. This is a clear violation of the Interface Segregation Principle, as clients (in this case, `MethodCall`) should not be forced to depend on interfaces they do not use."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+      "entity_name": "org.logstash.ackedqueue.io.MmapPageIOV1",
+      "entity_type": "class",
+      "line_start": 29,
+      "line_end": 222,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+      "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface but throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, and `write()`. This is a textbook violation of the Interface Segregation Principle. It indicates that the `PageIO` interface is 'fat' and groups together responsibilities (reading, writing, lifecycle management, recovery) that are not universally applicable to all its implementations. `MmapPageIOV1` only supports reading, but is forced to provide implementations for writing, creating, and other operations it does not support. The `PageIO` interface should be segregated into smaller, more focused interfaces (e.g., `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `LifecyclePageIO`) so that clients are only forced to depend on methods relevant to their specific needs."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 26671.05770111084,
+  "error": null
+}

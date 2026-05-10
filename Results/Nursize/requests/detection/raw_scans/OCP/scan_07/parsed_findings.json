@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "class",
+    "line_start": 225,
+    "line_end": 253,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded protocol checking for proxy managers",
+    "reasoning": "The method uses an if/elif/else block to check if a proxy URL starts with 'socks' to decide whether to instantiate a SOCKSProxyManager or a standard ProxyManager. Adding support for new proxy protocols (e.g., 'ftp', 'ssh') would require modifying this method's source code rather than extending the class through a registry or strategy pattern."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "class",
+    "line_start": 334,
+    "line_end": 354,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded HTTP status code logic for method redirection",
+    "reasoning": "The method contains explicit checks for status codes (301, 302, 303) to determine if a request method should be changed to 'GET'. This logic is closed to extension; adding new redirection behaviors for different status codes or custom standards requires modifying the existing method."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_body",
+    "entity_type": "class",
+    "line_start": 468,
+    "line_end": 532,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Type-checking logic for request body preparation",
+    "reasoning": "The method uses multiple 'isinstance' and 'hasattr' checks to branch logic for JSON, streams, multi-part files, and form-encoded data. Adding a new serialization format (e.g., Protobuf or XML) or a new type of data stream would require modifying this central method, violating the principle that the class should be closed for modification."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "class",
+    "line_start": 670,
+    "line_end": 696,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Chain of isinstance checks for exception mapping",
+    "reasoning": "The exception handling block in the 'send' method uses a long chain of 'isinstance' checks to map internal urllib3 exceptions to Requests-specific exceptions. Adding support for new exception types from the underlying library or changing the mapping logic requires modifying the 'send' method directly."
+  }
+]

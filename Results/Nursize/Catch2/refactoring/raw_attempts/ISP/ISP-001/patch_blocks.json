@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "    class IResultCapture;\n    class IConfig;\n\n    class Context {\n        IConfig const* m_config = nullptr;",
+    "replace_text": "    class IResultCapture;\n    class ITestConfig;\n    class IReporterConfig;\n    class IRuntimeConfig;\n    class IConfig;\n\n    class Context {\n        IConfig const* m_config = nullptr;"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        constexpr IConfig const* getConfig() const { return m_config; }\n        constexpr void setResultCapture( IResultCapture* resultCapture ) {\n            m_resultCapture = resultCapture;\n        }\n        constexpr void setConfig( IConfig const* config ) { m_config = config; }\n    };",
+    "replace_text": "        constexpr IConfig const* getConfig() const { return m_config; }\n        constexpr void setResultCapture( IResultCapture* resultCapture ) {\n            m_resultCapture = resultCapture;\n        }\n        constexpr void setConfig( IConfig const* config ) { m_config = config; }\n    };\n\n    class ITestConfig {\n    public:\n        virtual ~ITestConfig() = default;\n        virtual bool allowThrows() const = 0;\n        virtual std::string name() const = 0;\n    };\n\n    class IReporterConfig {\n    public:\n        virtual ~IReporterConfig() = default;\n        virtual bool includeSuccessfulResults() const = 0;\n        virtual bool shouldDebugBreak() const = 0;\n    };\n\n    class IRuntimeConfig {\n    public:\n        virtual ~IRuntimeConfig() = default;\n        virtual bool warnAboutNoTests() const = 0;\n    };\n\n    class IConfig : public ITestConfig, public IReporterConfig, public IRuntimeConfig {\n    public:\n        ~IConfig() override = default;\n    };"
+  }
+]

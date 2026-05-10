@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "requests/src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 29,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level API function directly instantiates a concrete Session object.",
+    "reasoning": "The `request` function, which serves as the public API entry point, directly creates an instance of `requests.sessions.Session`. This couples the high-level API to a concrete implementation of the session, making it difficult to substitute or mock the session for testing or alternative behaviors (e.g., using a different HTTP client backend) without modifying the core API."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session.__init__",
+    "entity_type": "method",
+    "line_start": 139,
+    "line_end": 184,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Session class directly instantiates concrete dependencies for adapters, headers, cookies, and hooks.",
+    "reasoning": "The `Session` class, a central orchestrator of HTTP requests, directly initializes its `headers` with `default_headers()` (which creates `CaseInsensitiveDict`), `hooks` with `default_hooks()`, `cookies` with `cookiejar_from_dict()` (which creates `RequestsCookieJar`), and registers `HTTPAdapter()` instances. This violates DIP because the high-level `Session` depends on concrete implementations of these components rather than abstractions, limiting flexibility and extensibility (e.g., swapping out HTTPAdapter for another transport, or using a different cookie management system)."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.resolve_redirects",
+    "entity_type": "method",
+    "line_start": 62,
+    "line_end": 136,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level redirect handling logic directly depends on numerous concrete utility functions and the session's send method.",
+    "reasoning": "The `resolve_redirects` method, which encapsulates complex redirect logic, directly calls several concrete utility functions like `urlparse`, `urljoin`, `requote_uri`, `extract_cookies_to_jar`, `merge_cookies`, `rewind_body`, and crucially, `self.send`. This tight coupling to specific implementations of URL manipulation, cookie management, request body handling, and the concrete request sending mechanism makes the redirect logic rigid and hard to modify or test in isolation."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.init_poolmanager",
+    "entity_type": "method",
+    "line_start": 105,
+    "line_end": 119,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "HTTPAdapter directly instantiates urllib3's PoolManager.",
+    "reasoning": "The `HTTPAdapter` class, a concrete implementation of a transport adapter, directly creates an instance of `urllib3.poolmanager.PoolManager`. This means the adapter is tightly coupled to the concrete `urllib3` connection pooling implementation. To support a different connection pooling mechanism, the `HTTPAdapter` itself would need modification, violating the principle that high-level modules (or concrete implementations of an abstraction) should depend on abstractions."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "method",
+    "line_start": 121,
+    "line_end": 150,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "HTTPAdapter directly instantiates urllib3's SOCKSProxyManager or ProxyManager.",
+    "reasoning": "The `proxy_manager_for` method within `HTTPAdapter` directly creates instances of `urllib3.contrib.socks.SOCKSProxyManager` or `urllib3.poolmanager.proxy_from_url` (which returns a `ProxyManager`). This couples the adapter to specific `urllib3` proxy management implementations, hindering the ability to swap out proxy handling without modifying the adapter."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "method",
+    "line_start": 296,
+    "line_end": 358,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "HTTPAdapter directly depends on urllib3.util.Timeout and calls conn.urlopen for network communication.",
+    "reasoning": "The `HTTPAdapter.send` method, which is the core logic for sending HTTP requests, directly instantiates `urllib3.util.Timeout` and makes a direct call to `conn.urlopen`. This demonstrates a strong dependency on concrete `urllib3` implementation details for timeout management and the actual network request execution. An abstraction for network communication and timeout handling would allow for greater flexibility."
+  }
+]

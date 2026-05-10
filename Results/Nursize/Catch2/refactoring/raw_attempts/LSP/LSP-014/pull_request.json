@@ -1,0 +1,40 @@
+{
+  "issue_id": "LSP-014",
+  "principle": "LSP",
+  "title": "Refactor LSP-014 (LSP): Class Column is used as a base class for Spacer but lacks a virtual destructor.",
+  "branch": "refactor/LSP-014",
+  "base": "main",
+  "head_commit": "3649d6b45268af01f256aa903a2d14a1b3c3de44",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "third_party/clara.hpp",
+    "entity_name": "Column",
+    "entity_type": "class",
+    "line_start": 71,
+    "line_end": 241,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Class Column is used as a base class for Spacer but lacks a virtual destructor.",
+    "reasoning": "The Liskov Substitution Principle requires that subtypes be substitutable for their base types. In C++, if a subclass (like Spacer) is deleted through a pointer to a base class (Column) that lacks a virtual destructor, the resulting behavior is undefined. This prevents safe polymorphic substitution in any context involving dynamic memory management and base-class pointers."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

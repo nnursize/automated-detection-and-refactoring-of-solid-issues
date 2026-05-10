@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar.__getitem__",
+    "entity_type": "class",
+    "line_start": 314,
+    "line_end": 322,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Raises CookieConflictError instead of KeyError when multiple cookies match a name, violating the Mapping contract.",
+    "reasoning": "As a subclass of MutableMapping, __getitem__ is expected to return a value for a given key or raise a KeyError if the key is missing. By raising a custom CookieConflictError (which is a subclass of RuntimeError, not KeyError) when multiple cookies share the same name but differ in domain or path, the class violates the behavioral contract of a standard mapping where the key provided to the interface is expected to be the unique identifier."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "class",
+    "line_start": 78,
+    "line_end": 82,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Explicitly raises NotImplementedError for a method required by the interface it is designed to mimic.",
+    "reasoning": "MockRequest is explicitly designed to mimic the interface of urllib.request.Request for compatibility with the CookieJar system. By raising NotImplementedError for the add_header method, it fails to be a full substitute for the original class. This violates LSP because any consumer expecting the standard Request interface will encounter a runtime crash if this method is invoked."
+  }
+]

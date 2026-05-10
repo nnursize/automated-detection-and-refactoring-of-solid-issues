@@ -1,0 +1,29 @@
+{
+  "scan_id": "Catch2_OCP_scan_02",
+  "repo_name": "Catch2",
+  "principle": "OCP",
+  "scan_number": 2,
+  "timestamp": "2026-05-02T11:16:26.154515",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following c++ source code repository for violations of the Open/Closed Principle (OCP).\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.\n\n## What to Look For\n- Long if/elif/else or switch chains that would need modification to add new types\n- Functions with type-checking logic (isinstance checks) to h...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Platform and Compiler Detection Macros\",\n      \"entity_type\": \"macro_block\",\n      \"line_start\": 53,\n      \"line_end\": 370,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Extensive use of #if/#elif chains for platform and compiler detection.\",\n      \"reasoning\": \"The detection logic for various platforms (e.g., CATCH_PLATFORM_MAC, CATCH_PLATFORM_LINUX, CATCH_PLATFORM_WINDOWS) and compiler capabilities (e.g., __GNUC__, __clang__, _MSC_VER, __NVCOMPILER) relies on long and nested #if/#elif preprocessor directives. To introduce support for a new operating system, compiler, or a specific compiler version's feature, new #elif branches or modifications to existing ones would be required within these blocks. This directly violates the 'closed for modification' aspect of the Open/Closed Principle, as extending the system's compatibility necessitates altering existing source code rather than merely adding new, independent code modules. While this pattern is common and often a pragmatic necessity in low-level cross-platform libraries, it is a literal violation of OCP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Platform and Compiler Detection Macros",
+      "entity_type": "class",
+      "line_start": 53,
+      "line_end": 370,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Extensive use of #if/#elif chains for platform and compiler detection.",
+      "reasoning": "The detection logic for various platforms (e.g., CATCH_PLATFORM_MAC, CATCH_PLATFORM_LINUX, CATCH_PLATFORM_WINDOWS) and compiler capabilities (e.g., __GNUC__, __clang__, _MSC_VER, __NVCOMPILER) relies on long and nested #if/#elif preprocessor directives. To introduce support for a new operating system, compiler, or a specific compiler version's feature, new #elif branches or modifications to existing ones would be required within these blocks. This directly violates the 'closed for modification' aspect of the Open/Closed Principle, as extending the system's compatibility necessitates altering existing source code rather than merely adding new, independent code modules. While this pattern is common and often a pragmatic necessity in low-level cross-platform libraries, it is a literal violation of OCP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 14891.660690307617,
+  "error": null
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 96,
+    "line_end": 434,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The JsonElement abstract class declares many 'getAs...' methods that are only relevant to JsonPrimitive, forcing other subclasses to implement unused methods or throw UnsupportedOperationException.",
+    "reasoning": "The JsonElement abstract class includes numerous `getAsBoolean()`, `getAsNumber()`, `getAsString()`, `getAsDouble()`, `getAsFloat()`, `getAsLong()`, `getAsInt()`, `getAsByte()`, `getAsCharacter()`, `getAsBigDecimal()`, `getAsBigInteger()`, and `getAsShort()` methods. These methods are primarily meaningful for `JsonPrimitive` instances. Subclasses like `JsonNull` and `JsonObject` are forced to implement these methods by throwing `UnsupportedOperationException`. `JsonArray` implements them by checking for a single element and delegating, which still implies that the `JsonArray` itself doesn't inherently represent a single primitive value. This design forces clients (the concrete `JsonElement` subclasses) to depend on and implement methods that are not applicable to their specific type, making the `JsonElement` interface 'fat' and violating ISP. A more segregated approach would involve specialized interfaces for primitive access."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS",
+    "entity_type": "class",
+    "line_start": 60,
+    "line_end": 1081,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "The TypeAdapter for java.lang.Class throws UnsupportedOperationException for both read and write methods, indicating it is forced to implement methods it does not support.",
+    "reasoning": "The anonymous `TypeAdapter<Class>` implementation within `TypeAdapters` explicitly throws `UnsupportedOperationException` for both its `write` and `read` methods. While this is a deliberate design choice to prevent default serialization/deserialization of `java.lang.Class` and guide users to register custom adapters, it technically means this specific client of the `TypeAdapter` interface is forced to implement methods it cannot meaningfully perform. The `TypeAdapter` interface itself is small (two methods), so this is more an implementation-specific issue rather than a 'fat interface' problem, hence the lower severity."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.ThrowingObjectConstructor",
+    "entity_type": "class",
+    "line_start": 434,
+    "line_end": 449,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "The ThrowingObjectConstructor's construct() method always throws JsonIOException, indicating it is forced to implement a method it does not support.",
+    "reasoning": "The `ThrowingObjectConstructor` implements the `ObjectConstructor` functional interface but its `construct()` method consistently throws a `JsonIOException`. This pattern signals that, under certain conditions, object construction is not supported. While it's a functional interface with only one method, the implementation explicitly states it cannot fulfill the contract of that method. Similar to `TypeAdapters.CLASS`, it's an intentional design to signal an unsupported operation for specific types or configurations, rather than a flaw in the interface's granularity, thus warranting a lower severity."
+  }
+]

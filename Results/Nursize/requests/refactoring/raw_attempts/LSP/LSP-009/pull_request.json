@@ -1,0 +1,91 @@
+{
+  "issue_id": "LSP-009",
+  "principle": "LSP",
+  "title": "Refactor LSP-009 (LSP): LookupDict inherits from dict but breaks the contract of __getitem__ and uses...",
+  "branch": "refactor/LSP-009",
+  "base": "main",
+  "head_commit": "d7c31619d0f4344c4f802c51dcde02ae3f039a75",
+  "status": "applied_failed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 2095,
+    "completion_tokens": 391
+  },
+  "detected_issue": {
+    "file_path": "src/requests/structures.py",
+    "entity_name": "LookupDict",
+    "entity_type": "class",
+    "line_start": 73,
+    "line_end": 88,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "LookupDict inherits from dict but breaks the contract of __getitem__ and uses a different storage mechanism.",
+    "reasoning": "LookupDict inherits from the built-in 'dict' but overrides '__getitem__' to return None instead of raising a KeyError when a key is missing. Furthermore, it retrieves values from the instance's '__dict__' instead of the dictionary's actual internal storage. This breaks the fundamental contract of the dict type, as code expecting a dictionary and using standard error handling (try-except KeyError) will fail to detect missing keys, potentially leading to TypeErrors or incorrect logic downstream."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor LookupDict to inherit from collections.abc.Mapping instead of dict to avoid LSP violation.",
+    "rationale": "LookupDict does not behave like a standard dict (it returns None for missing keys instead of raising KeyError). By inheriting from Mapping instead of dict, it correctly signals that it is a read-only mapping-like object without implying the full contract of a mutable dictionary, thus resolving the LSP violation.",
+    "files_touched": [
+      "src/requests/structures.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/structures.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/structures.py",
+        "search_text": "class LookupDict(dict):\n    \"\"\"Dictionary lookup object.\"\"\"\n\n    def __init__(self, name=None):\n        self.name = name\n        super().__init__()\n\n    def __repr__(self):\n        return f\"<lookup '{self.name}'>\"\n\n    def __getitem__(self, key):\n        # We allow fall-through here, so values default to None\n\n        return self.__dict__.get(key, None)\n\n    def get(self, key, default=None):\n        return self.__dict__.get(key, default)",
+        "replace_text": "class LookupDict(Mapping):\n    \"\"\"Dictionary lookup object.\"\"\"\n\n    def __init__(self, name=None):\n        self.name = name\n        self._items = {}\n\n    def __getitem__(self, key):\n        return self._items.get(key)\n\n    def __iter__(self):\n        return iter(self._items)\n\n    def __len__(self):\n        return len(self._items)\n\n    def __repr__(self):\n        return f\"<lookup '{self.name}'>\"\n\n    def get(self, key, default=None):\n        return self._items.get(key, default)",
+        "search_lines": 17,
+        "replace_lines": 21
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": false,
+    "total": 355,
+    "passed_count": 352,
+    "failed_count": 1,
+    "skipped_count": 1,
+    "error_count": 0,
+    "duration_ms": 117093.09792518616,
+    "timed_out": false,
+    "new_failures_count": 1,
+    "pre_existing_failures_count": 0,
+    "new_failures": [
+      "tests/test_requests.py::TestPreparingURLs::test_status_code_425"
+    ],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n..................................................................F\n================================== FAILURES ===================================\n___________________ TestPreparingURLs.test_status_code_425 ____________________\ntests\\test_requests.py:2866: in test_status_code_425\n    assert r1 == 425\nE   assert None == 425\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_requests.py::TestPreparingURLs::test_status_code_425 - asse...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 352 passed, 1 skipped, 1 deselected, 1 xfailed, 8 warnings in 116.27s (0:01:56)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 13:58:49] \"GET /get HTTP/1.1\" 200 170\n127.0.0.1 - - [04/May/2026 13:59:14] \"GET / HTTP/1.1\" 200 9509\n127.0.0.1 - - [04/May/2026 13:59:14] \"GET /html HTTP/1.1\" 200 3741\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/structures.py",
+        "loc": 67,
+        "blank_lines": 27,
+        "comment_lines": 5,
+        "function_count": 14,
+        "avg_cc": 1.38,
+        "max_cc": 2.0,
+        "mi": 81.77
+      }
+    ],
+    "after": null
+  },
+  "diff": "diff --git a/src/requests/structures.py b/src/requests/structures.py\nindex 188e13e..1621a61 100644\n--- a/src/requests/structures.py\n+++ b/src/requests/structures.py\n@@ -80,20 +80,24 @@ class CaseInsensitiveDict(MutableMapping):\n         return str(dict(self.items()))\n \n \n-class LookupDict(dict):\n+class LookupDict(Mapping):\n     \"\"\"Dictionary lookup object.\"\"\"\n \n     def __init__(self, name=None):\n         self.name = name\n-        super().__init__()\n-\n-    def __repr__(self):\n-        return f\"<lookup '{self.name}'>\"\n+        self._items = {}\n \n     def __getitem__(self, key):\n-        # We allow fall-through here, so values default to None\n+        return self._items.get(key)\n+\n+    def __iter__(self):\n+        return iter(self._items)\n \n-        return self.__dict__.get(key, None)\n+    def __len__(self):\n+        return len(self._items)\n+\n+    def __repr__(self):\n+        return f\"<lookup '{self.name}'>\"\n \n     def get(self, key, default=None):\n-        return self.__dict__.get(key, default)\n+        return self._items.get(key, default)\n",
+  "duration_ms": 119136.83319091797
+}

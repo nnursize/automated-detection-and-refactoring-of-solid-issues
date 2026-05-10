@@ -1,0 +1,39 @@
+diff --git a/logstash-core/src/main/java/org/logstash/RubyUtil.java b/logstash-core/src/main/java/org/logstash/RubyUtil.java
+index 50ee6d4..df4b737 100644
+--- a/logstash-core/src/main/java/org/logstash/RubyUtil.java
++++ b/logstash-core/src/main/java/org/logstash/RubyUtil.java
+@@ -582,6 +582,7 @@ public final class RubyUtil {
+         HOOKS_REGISTRY_CLASS =
+             PLUGINS_MODULE.defineClassUnder("HooksRegistry", RUBY.getObject(), HooksRegistryExt::new);
+         HOOKS_REGISTRY_CLASS.defineAnnotatedMethods(HooksRegistryExt.class);
++        JRubyExtensionRegistry.apply(RUBY);
+         RUBY.getGlobalVariables().set("$LS_JARS_LOADED", RUBY.newString("true"));
+         RubyJavaIntegration.setupRubyJavaIntegration(RUBY);
+     }
+diff --git a/logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java b/logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/logstash-core/src/main/java/org/logstash/JRubyExtensionRegistry.java
+@@ -0,0 +1,20 @@
++package org.logstash;
++
++import org.jruby.Ruby;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.function.Consumer;
++
++public final class JRubyExtensionRegistry {
++    private static final List<Consumer<Ruby>> REGISTRATIONS = new ArrayList<>();
++
++    public static void register(Consumer<Ruby> registration) {
++        REGISTRATIONS.add(registration);
++    }
++
++    public static void apply(Ruby runtime) {
++        for (Consumer<Ruby> registration : REGISTRATIONS) {
++            registration.accept(runtime);
++        }
++    }
++}
+\ No newline at end of file

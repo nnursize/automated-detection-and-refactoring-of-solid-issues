@@ -1,0 +1,48 @@
+diff --git a/src/requests/adapters.py b/src/requests/adapters.py
+index d049183..2f45e3c 100644
+--- a/src/requests/adapters.py
++++ b/src/requests/adapters.py
+@@ -571,14 +571,11 @@ class HTTPAdapter(BaseAdapter):
+ 
+         return url
+ 
+-    def add_headers(self, request, **kwargs):
+-        """Add any headers needed by the connection. As of v2.0 this does
+-        nothing by default, but is left for overriding by users that subclass
+-        the :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.
++class HeaderAdapter:
++    """Mixin for adapters that need to add headers to requests."""
+ 
+-        This should not be called from user code, and is only exposed for use
+-        when subclassing the
+-        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.
++    def add_headers(self, request, **kwargs):
++        """Add any headers needed by the connection.
+ 
+         :param request: The :class:`PreparedRequest <PreparedRequest>` to add headers to.
+         :param kwargs: The keyword arguments from the call to send().
+@@ -663,14 +660,16 @@ class HTTPAdapter(BaseAdapter):
+ 
+         self.cert_verify(conn, request.url, verify, cert)
+         url = self.request_url(request, proxies)
+-        self.add_headers(
+-            request,
+-            stream=stream,
+-            timeout=timeout,
+-            verify=verify,
+-            cert=cert,
+-            proxies=proxies,
+-        )
++
++        if hasattr(self, "add_headers"):
++            self.add_headers(
++                request,
++                stream=stream,
++                timeout=timeout,
++                verify=verify,
++                cert=cert,
++                proxies=proxies,
++            )
+ 
+         chunked = not (request.body is None or "Content-Length" in request.headers)
+ 

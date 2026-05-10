@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-002",
+  "principle": "ISP",
+  "title": "Refactor ISP-002 (ISP): The co.elastic.logstash.api.Event interface is a 'fat' interface combining ma...",
+  "branch": "refactor/ISP-002",
+  "base": "main",
+  "head_commit": "b901e8c7034cc8594c1b9d2728a6cd0cb12300f5",
+  "status": "obsolete",
+  "obsolete_reason": "entity `co.elastic.logstash.api.Event` not found in current source of `logstash-core/src/main/java/org/logstash/Event.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "co.elastic.logstash.api.Event",
+    "entity_type": "class",
+    "line_start": 39,
+    "line_end": 400,
+    "severity": "high",
+    "scan_count": 4,
+    "description": "The co.elastic.logstash.api.Event interface is a 'fat' interface combining many responsibilities.",
+    "reasoning": "The `co.elastic.logstash.api.Event` interface defines a large number of methods covering various aspects of an event (reading, writing, cancelling, tagging, cloning, serialization, etc.). Clients that only need a subset of these functionalities (e.g., a component that only reads event fields, or one that only tags events) are forced to depend on the entire interface, including methods they do not use. This increases coupling and makes it harder to create specialized event processors. The interface could be segregated into smaller, more focused interfaces such as `ReadableEvent`, `WritableEvent`, `CancellableEvent`, `TaggingEvent`, etc."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 63.58671188354492
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "search_text": "public final class Queue implements Closeable {",
+    "replace_text": "public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAdmin {"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueWriter.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.ackedqueue;\n\nimport java.io.IOException;\n\npublic interface QueueWriter {\n    long write(Queueable element) throws IOException;\n    boolean isFull();\n    boolean isClosed();\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueReader.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.ackedqueue;\n\nimport java.io.IOException;\n\npublic interface QueueReader {\n    Batch nonBlockReadBatch(int limit) throws IOException;\n    Batch readBatch(int limit, long timeout) throws IOException;\n    void ack(long firstAckSeqNum, int ackCount) throws IOException;\n    Queueable deserialize(byte[] bytes);\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueAdmin.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.ackedqueue;\n\nimport java.io.Closeable;\nimport java.io.IOException;\n\npublic interface QueueAdmin extends Closeable {\n    void open() throws IOException;\n    String getDirPath();\n    long getMaxBytes();\n    long getMaxUnread();\n    long getPersistedByteSize();\n    int getPageCapacity();\n    long getUnreadCount();\n    boolean isEmpty();\n    boolean isFullyAcked();\n    void ensurePersistedUpto(long seqNum) throws IOException;\n    int firstUnackedPageNum();\n    long getAckedCount();\n    long getUnackedCount();\n    boolean isClosed();\n}"
+  }
+]

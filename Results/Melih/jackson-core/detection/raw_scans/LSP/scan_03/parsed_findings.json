@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser.nextToken",
+    "entity_type": "method",
+    "line_start": 361,
+    "line_end": 375,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Method violates the contract of JsonParser.nextToken() by throwing IOException instead of only JacksonException.",
+    "reasoning": "The base class JsonParser defines nextToken() to throw JacksonException (a runtime exception). The implementation in UTF8DataInputJsonParser wraps this in a try-catch block for IOException and throws it, which forces callers to handle checked exceptions not specified in the base class contract, breaking substitution."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser.nextName",
+    "entity_type": "method",
+    "line_start": 579,
+    "line_end": 585,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Method violates the contract of JsonParser.nextName() by throwing IOException instead of only JacksonException.",
+    "reasoning": "Similar to nextToken(), nextName() is defined in the base class to throw only JacksonException. By wrapping the logic in a try-catch for IOException and rethrowing, the subclass forces callers to catch checked exceptions, which is incompatible with the expected behavior of the base class."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser._decodeEscaped",
+    "entity_type": "method",
+    "line_start": 1056,
+    "line_end": 1062,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Method signature in subclass forces checked exception handling not present in base class.",
+    "reasoning": "While the method is protected, the pattern of catching IOException and wrapping it into a JacksonException is inconsistent across parser implementations. In this specific case, the implementation relies on the base class behavior but forces a wrapper that alters the signature expectations of internal components."
+  }
+]

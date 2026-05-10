@@ -1,0 +1,29 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index a60fc71..256091f 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -2173,15 +2173,11 @@ namespace Catch {
+             Benchmark(std::string&& benchmarkName)
+                 : name(CATCH_MOVE(benchmarkName)) {}
+ 
+-            template <class FUN>
+-            Benchmark(std::string&& benchmarkName , FUN &&func)
+-                : fun(CATCH_MOVE(func)), name(CATCH_MOVE(benchmarkName)) {}
+-
+             template <typename Fun, std::enable_if_t<!Detail::is_related_v<Fun, Benchmark>, int> = 0>
+             Benchmark & operator=(Fun func) {
+                 auto const* cfg = getCurrentContext().getConfig();
+                 if (!cfg->skipBenchmarks()) {
+-                    fun = Detail::BenchmarkFunction(func);
++                    Detail::BenchmarkFunction fun(func);
+                     BenchmarkRunner::run<default_clock>(std::string(name), fun);
+                 }
+                 return *this;
+@@ -2192,7 +2188,6 @@ namespace Catch {
+             }
+ 
+         private:
+-            Detail::BenchmarkFunction fun;
+             std::string name;
+         };
+     }

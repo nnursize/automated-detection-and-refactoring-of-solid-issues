@@ -1,0 +1,104 @@
+{
+  "issue_id": "SRP-007",
+  "principle": "SRP",
+  "title": "Refactor SRP-007 (SRP): The ReflectiveTypeAdapterFactory orchestrates a complex process of class intr...",
+  "branch": "refactor/SRP-007",
+  "base": "main",
+  "head_commit": "c369ce2a5b0db349a63447adb4b21d9030414e5c",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7768,
+    "completion_tokens": 999
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 457,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "The ReflectiveTypeAdapterFactory orchestrates a complex process of class introspection, applying various configuration rules (exclusion, naming, access), and creating specialized adapters for different class structures.",
+    "reasoning": "This class exhibits the God Class smell. It is responsible for a multitude of concerns related to reflective type adaptation: delegating field exclusion to `excluder`, determining JSON field names based on `fieldNamingPolicy` and `@SerializedName` (`getFieldNames`), applying reflection access filters, handling different class types (regular classes vs. Java Records), creating object constructors via `constructorConstructor`, managing `@JsonAdapter` annotations, building `BoundField` representations, and traversing the class hierarchy (`getBoundFields`). This broad and intricate set of responsibilities means it has many independent reasons to change, such as updates to field naming conventions, new record features, or changes in reflection access rules, violating SRP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract field naming logic into a dedicated helper class",
+    "rationale": "The ReflectiveTypeAdapterFactory was handling field naming policy logic directly, which is a distinct responsibility. Moving this to a helper class reduces the size and complexity of the factory, adhering better to SRP.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+      "gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java"
+    ],
+    "files_created": [
+      "gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java"
+    ],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "search_text": "  /** first element holds the default name */\n  @SuppressWarnings(\"MixedMutabilityReturnType\")\n  private List<String> getFieldNames(Field f) {\n\n    String fieldName;\n    List<String> alternates;\n    SerializedName annotation = f.getAnnotation(SerializedName.class);\n    if (annotation == null) {\n      fieldName = fieldNamingPolicy.translateName(f);\n      alternates = fieldNamingPolicy.alternateNames(f);\n    } else {\n      fieldName = annotation.value();\n      alternates = Arrays.asList(annotation.alternate());\n    }\n\n    if (alternates.isEmpty()) {\n      return Collections.singletonList(fieldName);\n    }\n\n    List<String> fieldNames = new ArrayList<>(alternates.size() + 1);\n    fieldNames.add(fieldName);\n    fieldNames.addAll(alternates);\n    return fieldNames;\n  }",
+        "replace_text": ">>>>>>> REPLACE\n\n<<<<<<< SEARCH gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n        Type fieldType = GsonTypes.resolve(type.getType(), raw, field.getGenericType());\n        List<String> fieldNames = getFieldNames(field);\n        String serializedName = fieldNames.get(0);\n        BoundField boundField =\n=======\n        Type fieldType = GsonTypes.resolve(type.getType(), raw, field.getGenericType());\n        List<String> fieldNames = FieldNamingHelper.getFieldNames(fieldNamingPolicy, field);\n        String serializedName = fieldNames.get(0);\n        BoundField boundField =",
+        "search_lines": 24,
+        "replace_lines": 12
+      },
+      {
+        "kind": "create",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java",
+        "new_content": "/*\n * Copyright (C) 2024 Google Inc.\n *\n * Licensed under the Apache License, Version 2.0 (the \"License\");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *      http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an \"AS IS\" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n\npackage com.google.gson.internal.bind;\n\nimport com.google.gson.FieldNamingStrategy;\nimport com.google.gson.annotations.SerializedName;\nimport java.lang.reflect.Field;\nimport java.util.ArrayList;\nimport java.util.Arrays;\nimport java.util.Collections;\nimport java.util.List;\n\nfinal class FieldNamingHelper {\n  private FieldNamingHelper() {}\n\n  static List<String> getFieldNames(FieldNamingStrategy fieldNamingPolicy, Field f) {\n    String fieldName;\n    List<String> alternates;\n    SerializedName annotation = f.getAnnotation(SerializedName.class);\n    if (annotation == null) {\n      fieldName = fieldNamingPolicy.translateName(f);\n      alternates = fieldNamingPolicy.alternateNames(f);\n    } else {\n      fieldName = annotation.value();\n      alternates = Arrays.asList(annotation.alternate());\n    }\n\n    if (alternates.isEmpty()) {\n      return Collections.singletonList(fieldName);\n    }\n\n    List<String> fieldNames = new ArrayList<>(alternates.size() + 1);\n    fieldNames.add(fieldName);\n    fieldNames.addAll(alternates);\n    return fieldNames;\n  }\n}",
+        "new_content_lines": 51
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 548,
+        "blank_lines": 74,
+        "comment_lines": 48,
+        "function_count": 12,
+        "avg_cc": 8.58,
+        "max_cc": 92.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 538,
+        "blank_lines": 72,
+        "comment_lines": 48,
+        "function_count": 11,
+        "avg_cc": 9.09,
+        "max_cc": 90.0,
+        "mi": 0.0
+      },
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java",
+        "loc": 45,
+        "blank_lines": 6,
+        "comment_lines": 0,
+        "function_count": 1,
+        "avg_cc": 4.0,
+        "max_cc": 4.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\nindex ef46468..3010bef 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n@@ -81,30 +81,18 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n     return !excluder.excludeField(f, serialize);\n   }\n \n-  /** first element holds the default name */\n-  @SuppressWarnings(\"MixedMutabilityReturnType\")\n-  private List<String> getFieldNames(Field f) {\n-\n-    String fieldName;\n-    List<String> alternates;\n-    SerializedName annotation = f.getAnnotation(SerializedName.class);\n-    if (annotation == null) {\n-      fieldName = fieldNamingPolicy.translateName(f);\n-      alternates = fieldNamingPolicy.alternateNames(f);\n-    } else {\n-      fieldName = annotation.value();\n-      alternates = Arrays.asList(annotation.alternate());\n-    }\n-\n-    if (alternates.isEmpty()) {\n-      return Collections.singletonList(fieldName);\n-    }\n+>>>>>>> REPLACE\n \n-    List<String> fieldNames = new ArrayList<>(alternates.size() + 1);\n-    fieldNames.add(fieldName);\n-    fieldNames.addAll(alternates);\n-    return fieldNames;\n-  }\n+<<<<<<< SEARCH gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n+        Type fieldType = GsonTypes.resolve(type.getType(), raw, field.getGenericType());\n+        List<String> fieldNames = getFieldNames(field);\n+        String serializedName = fieldNames.get(0);\n+        BoundField boundField =\n+=======\n+        Type fieldType = GsonTypes.resolve(type.getType(), raw, field.getGenericType());\n+        List<String> fieldNames = FieldNamingHelper.getFieldNames(fieldNamingPolicy, field);\n+        String serializedName = fieldNames.get(0);\n+        BoundField boundField =\n \n   @Override\n   public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {\ndiff --git a/gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java b/gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/gson/src/main/java/com/google/gson/internal/bind/FieldNamingHelper.java\n@@ -0,0 +1,51 @@\n+/*\n+ * Copyright (C) 2024 Google Inc.\n+ *\n+ * Licensed under the Apache License, Version 2.0 (the \"License\");\n+ * you may not use this file except in compliance with the License.\n+ * You may obtain a copy of the License at\n+ *\n+ *      http://www.apache.org/licenses/LICENSE-2.0\n+ *\n+ * Unless required by applicable law or agreed to in writing, software\n+ * distributed under the License is distributed on an \"AS IS\" BASIS,\n+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+ * See the License for the specific language governing permissions and\n+ * limitations under the License.\n+ */\n+\n+package com.google.gson.internal.bind;\n+\n+import com.google.gson.FieldNamingStrategy;\n+import com.google.gson.annotations.SerializedName;\n+import java.lang.reflect.Field;\n+import java.util.ArrayList;\n+import java.util.Arrays;\n+import java.util.Collections;\n+import java.util.List;\n+\n+final class FieldNamingHelper {\n+  private FieldNamingHelper() {}\n+\n+  static List<String> getFieldNames(FieldNamingStrategy fieldNamingPolicy, Field f) {\n+    String fieldName;\n+    List<String> alternates;\n+    SerializedName annotation = f.getAnnotation(SerializedName.class);\n+    if (annotation == null) {\n+      fieldName = fieldNamingPolicy.translateName(f);\n+      alternates = fieldNamingPolicy.alternateNames(f);\n+    } else {\n+      fieldName = annotation.value();\n+      alternates = Arrays.asList(annotation.alternate());\n+    }\n+\n+    if (alternates.isEmpty()) {\n+      return Collections.singletonList(fieldName);\n+    }\n+\n+    List<String> fieldNames = new ArrayList<>(alternates.size() + 1);\n+    fieldNames.add(fieldName);\n+    fieldNames.addAll(alternates);\n+    return fieldNames;\n+  }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 12521.38614654541
+}

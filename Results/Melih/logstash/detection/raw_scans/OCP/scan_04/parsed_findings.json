@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "EventCondition.Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 98,
+    "line_end": 130,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Instanceof chain for expression compilation logic",
+    "reasoning": "Switch Statement on type smell -> OCP violation because the buildCondition method uses an explicit instanceof chain to determine how to compile different BooleanExpression subtypes. Adding a new expression type requires modifying this central compiler class, violating the principle that the class should be closed for modification."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/config/mixin.rb",
+    "entity_name": "LogStash::Config::Mixin::DSL.validate_value",
+    "entity_type": "method",
+    "line_start": 356,
+    "line_end": 490,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded case statement for configuration validators",
+    "reasoning": "Switch Statement on type smell -> OCP violation because the validate_value method contains a large, hardcoded case statement that handles all configuration validation logic. Adding a new validator type requires modifying this core mixin. This should be refactored to use a registry of validator objects that can be extended without modifying existing code."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/agent.rb",
+    "entity_name": "LogStash::Agent.dispatch_events",
+    "entity_type": "method",
+    "line_start": 435,
+    "line_end": 445,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Case statement checking specific PipelineAction classes",
+    "reasoning": "Switch Statement on type smell -> OCP violation because dispatch_events uses a case statement to check for specific PipelineAction subclasses like Create, Reload, and Stop. Adding a new action type requires modifying the agent's event dispatching logic."
+  }
+]

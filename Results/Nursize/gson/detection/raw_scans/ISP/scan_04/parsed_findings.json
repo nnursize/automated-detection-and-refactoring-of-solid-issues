@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 39,
+    "line_end": 253,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The JsonElement abstract class defines numerous 'getAs...' methods that are not applicable to all its subclasses.",
+    "reasoning": "This is a 'Fat Abstract Class' smell leading to an ISP violation. Subclasses like JsonObject and JsonNull are forced to implement these methods, but their implementations simply throw UnsupportedOperationException. JsonArray's 'getAs...' methods throw IllegalStateException if the array does not contain exactly one element. This indicates that clients (subclasses) are forced to depend on methods they do not use or cannot meaningfully implement, violating the Interface Segregation Principle. The JsonElement interface should be segregated into smaller, more focused interfaces that its subclasses can implement only if applicable."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonStreamParser.java",
+    "entity_name": "JsonStreamParser.remove",
+    "entity_type": "method",
+    "line_start": 95,
+    "line_end": 97,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The JsonStreamParser class implements the Iterator interface but throws UnsupportedOperationException for the remove() method.",
+    "reasoning": "This is a clear violation of ISP. Clients of JsonStreamParser are forced to depend on the remove() method of the Iterator interface, even though JsonStreamParser does not support this operation. The Iterator interface is a 'fat interface' in this context because it combines traversal and modification responsibilities. Ideally, JsonStreamParser should implement a more specialized interface that only provides traversal, or Iterator should be split into Iterable and RemovableIterator."
+  }
+]

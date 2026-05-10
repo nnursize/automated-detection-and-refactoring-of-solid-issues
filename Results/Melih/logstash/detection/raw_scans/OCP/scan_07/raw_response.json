@@ -1,0 +1,84 @@
+{
+  "scan_id": "logstash_OCP_scan_07",
+  "repo_name": "logstash",
+  "principle": "OCP",
+  "scan_number": 7,
+  "timestamp": "2026-04-19T13:37:41.441212",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyi...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\",\n      \"entity_name\": \"Compiler.buildCondition\",\n      \"entity_type\": \"method\",\n      \"line_start\": 115,\n      \"line_end\": 143,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"The buildCondition method uses a long instanceof chain to dispatch compilation logic based on expression types.\",\n      \"reasoning\": \"Adding a new type of BooleanExpression requires modifying this central compiler method to add a new branch. This violates OCP as the class is not closed for modification when extending the language's expression set. A better approach would be a visitor pattern or polymorphic dispatch on the expression objects themselves.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.getPipelineSourceDetails\",\n      \"entity_type\": \"method\",\n      \"line_start\": 868,\n      \"line_end\": 887,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"The method uses a switch statement on hardcoded protocol strings to determine source details.\",\n      \"reasoning\": \"Adding a new configuration source protocol (e.g., 'http' or 's3') requires modifying this method to add a new case to the switch statement. This logic should be encapsulated within the SourceWithMetadata implementations or a registry of detail providers.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event.parseTimestamp\",\n      \"entity_type\": \"method\",\n      \"line_start\": 465,\n      \"line_end\": 486,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"The method uses an instanceof chain to handle conversion from various date/time types to Logstash Timestamps.\",\n      \"reasoning\": \"Supporting a new date-like object type (e.g., a new Joda-Time variant or a specific Ruby date type) requires modifying this method. This makes the Event class fragile and dependent on every possible input type rather than using a polymorphic conversion interface.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue.openPages\",\n      \"entity_type\": \"method\",\n      \"line_start\": 165,\n      \"line_end\": 260,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"The Queue class is tightly coupled to the concrete MmapPageIOV2 implementation.\",\n      \"reasoning\": \"The method openPages (and others like newCheckpointedHeadpage) explicitly instantiates MmapPageIOV2. If a new storage format or a V3 version of the page IO is introduced, the core Queue class must be modified. This should be abstracted behind a PageIO factory or injected via settings.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.collectStats\",\n      \"entity_type\": \"method\",\n      \"line_start\": 579,\n      \"line_end\": 604,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"The method uses an instanceof check to collect specific metrics for Acked Queues.\",\n      \"reasoning\": \"The statistics collection logic is aware of specific queue implementations (JRubyWrappedAckedQueueExt). Adding a new queue type with different metrics requires modifying the pipeline's core stats collection logic instead of the queue providing its own metrics via a standard interface.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/graph/Graph.java\",\n      \"entity_name\": \"Graph.uniqueHash\",\n      \"entity_type\": \"method\",\n      \"line_start\": 433,\n      \"line_end\": 440,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"The uniqueHash method explicitly filters out specific vertex types by class name.\",\n      \"reasoning\": \"The method contains hardcoded logic to ignore QueueVertex and SeparatorVertex. If new internal vertex types are added that should not contribute to the hash, this method must be modified. This logic should be a property of the Vertex itself (e.g., a boolean isHashable() method).\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+      "entity_name": "Compiler.buildCondition",
+      "entity_type": "method",
+      "line_start": 115,
+      "line_end": 143,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "The buildCondition method uses a long instanceof chain to dispatch compilation logic based on expression types.",
+      "reasoning": "Adding a new type of BooleanExpression requires modifying this central compiler method to add a new branch. This violates OCP as the class is not closed for modification when extending the language's expression set. A better approach would be a visitor pattern or polymorphic dispatch on the expression objects themselves."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+      "entity_type": "method",
+      "line_start": 868,
+      "line_end": 887,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "The method uses a switch statement on hardcoded protocol strings to determine source details.",
+      "reasoning": "Adding a new configuration source protocol (e.g., 'http' or 's3') requires modifying this method to add a new case to the switch statement. This logic should be encapsulated within the SourceWithMetadata implementations or a registry of detail providers."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event.parseTimestamp",
+      "entity_type": "method",
+      "line_start": 465,
+      "line_end": 486,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "The method uses an instanceof chain to handle conversion from various date/time types to Logstash Timestamps.",
+      "reasoning": "Supporting a new date-like object type (e.g., a new Joda-Time variant or a specific Ruby date type) requires modifying this method. This makes the Event class fragile and dependent on every possible input type rather than using a polymorphic conversion interface."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue.openPages",
+      "entity_type": "method",
+      "line_start": 165,
+      "line_end": 260,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "The Queue class is tightly coupled to the concrete MmapPageIOV2 implementation.",
+      "reasoning": "The method openPages (and others like newCheckpointedHeadpage) explicitly instantiates MmapPageIOV2. If a new storage format or a V3 version of the page IO is introduced, the core Queue class must be modified. This should be abstracted behind a PageIO factory or injected via settings."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.collectStats",
+      "entity_type": "method",
+      "line_start": 579,
+      "line_end": 604,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "The method uses an instanceof check to collect specific metrics for Acked Queues.",
+      "reasoning": "The statistics collection logic is aware of specific queue implementations (JRubyWrappedAckedQueueExt). Adding a new queue type with different metrics requires modifying the pipeline's core stats collection logic instead of the queue providing its own metrics via a standard interface."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/graph/Graph.java",
+      "entity_name": "Graph.uniqueHash",
+      "entity_type": "method",
+      "line_start": 433,
+      "line_end": 440,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "The uniqueHash method explicitly filters out specific vertex types by class name.",
+      "reasoning": "The method contains hardcoded logic to ignore QueueVertex and SeparatorVertex. If new internal vertex types are added that should not contribute to the hash, this method must be modified. This logic should be a property of the Vertex itself (e.g., a boolean isHashable() method)."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 20589.35523033142,
+  "error": null
+}

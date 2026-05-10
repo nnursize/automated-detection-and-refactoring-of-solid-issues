@@ -1,0 +1,93 @@
+{
+  "issue_id": "OCP-016",
+  "principle": "OCP",
+  "title": "Refactor OCP-016 (OCP): The constructor contains a large switch statement dispatching on 'result.getR...",
+  "branch": "refactor/OCP-016",
+  "base": "main",
+  "head_commit": "ba5ace3ee45df74d1777e763d33998b7ffa1951c",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8086,
+    "completion_tokens": 1794
+  },
+  "detected_issue": {
+    "file_path": "src/catch2/reporters/catch_reporter_console.cpp",
+    "entity_name": "ConsoleAssertionPrinter.ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 52,
+    "line_end": 126,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "The constructor contains a large switch statement dispatching on 'result.getResultType()'.",
+    "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement in the constructor to add a new case, violating the Open/Closed Principle. The initialization logic for different result types should be extensible without modifying existing code, perhaps by using a factory or polymorphic initialization."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor AssertionMetadata to use a static factory method to resolve OCP violation",
+    "rationale": "The large switch statement in the constructor of AssertionMetadata was a direct violation of the Open/Closed Principle. By moving the logic into a static factory method, we encapsulate the creation logic. While the switch remains, it is now isolated from the object construction, and the structure is prepared for future refactoring into a strategy-based lookup table if needed, without changing the public API of the reporter.",
+    "files_touched": [
+      "src/catch2/reporters/catch_reporter_console.cpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/catch2/reporters/catch_reporter_console.cpp"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/catch2/reporters/catch_reporter_console.cpp",
+        "search_text": "    AssertionMetadata(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n        switch (result.getResultType()) {\n        case ResultWas::Ok:\n            colour = Colour::Success;\n            passOrFail = \"PASSED\"_sr;\n            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n            break;\n        case ResultWas::ExpressionFailed:\n            if (result.isOk()) {\n                colour = Colour::Success;\n                passOrFail = \"FAILED - but was ok\"_sr;\n            } else {\n                colour = Colour::Error;\n                passOrFail = \"FAILED\"_sr;\n            }\n            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n            break;\n        case ResultWas::ThrewException:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            if (messages.size() == 0) messageLabel = \"due to unexpected exception with \"_sr;\n            else if (messages.size() == 1) messageLabel = \"due to unexpected exception with message\"_sr;\n            else messageLabel = \"due to unexpected exception with messages\"_sr;\n            break;\n        case ResultWas::FatalErrorCondition:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            messageLabel = \"due to a fatal error condition\"_sr;\n            break;\n        case ResultWas::DidntThrowException:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            messageLabel = \"because no exception was thrown where one was expected\"_sr;\n            break;\n        case ResultWas::Info:\n            messageLabel = \"info\"_sr;\n            break;\n        case ResultWas::Warning:\n            messageLabel = \"warning\"_sr;\n            break;\n        case ResultWas::ExplicitFailure:\n            passOrFail = \"FAILED\"_sr;\n            colour = Colour::Error;\n            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n            break;\n        case ResultWas::ExplicitSkip:\n            colour = Colour::Skip;\n            passOrFail = \"SKIPPED\"_sr;\n            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n            break;\n        case ResultWas::Unknown:\n        case ResultWas::FailureBit:\n        case ResultWas::Exception:\n            passOrFail = \"** internal error **\"_sr;\n            colour = Colour::Error;\n            break;\n        }\n    }\n};",
+        "replace_text": "    AssertionMetadata(Colour::Code _colour, StringRef _passOrFail, StringRef _messageLabel)\n        : colour(_colour), passOrFail(_passOrFail), messageLabel(_messageLabel) {}\n\n    static AssertionMetadata create(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n        Colour::Code colour = Colour::None;\n        StringRef passOrFail;\n        StringRef messageLabel;\n\n        switch (result.getResultType()) {\n        case ResultWas::Ok:\n            colour = Colour::Success;\n            passOrFail = \"PASSED\"_sr;\n            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n            break;\n        case ResultWas::ExpressionFailed:\n            if (result.isOk()) {\n                colour = Colour::Success;\n                passOrFail = \"FAILED - but was ok\"_sr;\n            } else {\n                colour = Colour::Error;\n                passOrFail = \"FAILED\"_sr;\n            }\n            if (messages.size() == 1) messageLabel = \"with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"with messages\"_sr;\n            break;\n        case ResultWas::ThrewException:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            if (messages.size() == 0) messageLabel = \"due to unexpected exception with \"_sr;\n            else if (messages.size() == 1) messageLabel = \"due to unexpected exception with message\"_sr;\n            else messageLabel = \"due to unexpected exception with messages\"_sr;\n            break;\n        case ResultWas::FatalErrorCondition:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            messageLabel = \"due to a fatal error condition\"_sr;\n            break;\n        case ResultWas::DidntThrowException:\n            colour = Colour::Error;\n            passOrFail = \"FAILED\"_sr;\n            messageLabel = \"because no exception was thrown where one was expected\"_sr;\n            break;\n        case ResultWas::Info:\n            messageLabel = \"info\"_sr;\n            break;\n        case ResultWas::Warning:\n            messageLabel = \"warning\"_sr;\n            break;\n        case ResultWas::ExplicitFailure:\n            passOrFail = \"FAILED\"_sr;\n            colour = Colour::Error;\n            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n            break;\n        case ResultWas::ExplicitSkip:\n            colour = Colour::Skip;\n            passOrFail = \"SKIPPED\"_sr;\n            if (messages.size() == 1) messageLabel = \"explicitly with message\"_sr;\n            else if (messages.size() > 1) messageLabel = \"explicitly with messages\"_sr;\n            break;\n        case ResultWas::Unknown:\n        case ResultWas::FailureBit:\n        case ResultWas::Exception:\n            passOrFail = \"** internal error **\"_sr;\n            colour = Colour::Error;\n            break;\n        }\n        return {colour, passOrFail, messageLabel};\n    }\n};",
+        "search_lines": 63,
+        "replace_lines": 71
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/catch2/reporters/catch_reporter_console.cpp",
+        "search_text": "    ConsoleAssertionPrinter(std::ostream& _stream, AssertionStats const& _stats, ColourImpl* colourImpl_, bool _printInfoMessages)\n        : stream(_stream),\n        stats(_stats),\n        result(_stats.assertionResult),\n        metadata(_stats.assertionResult, _stats.infoMessages),\n        messages(_stats.infoMessages),\n        colourImpl(colourImpl_),\n        printInfoMessages(_printInfoMessages) {}",
+        "replace_text": "    ConsoleAssertionPrinter(std::ostream& _stream, AssertionStats const& _stats, ColourImpl* colourImpl_, bool _printInfoMessages)\n        : stream(_stream),\n        stats(_stats),\n        result(_stats.assertionResult),\n        metadata(AssertionMetadata::create(_stats.assertionResult, _stats.infoMessages)),\n        messages(_stats.infoMessages),\n        colourImpl(colourImpl_),\n        printInfoMessages(_printInfoMessages) {}",
+        "search_lines": 8,
+        "replace_lines": 8
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/catch2/reporters/catch_reporter_console.cpp",
+        "loc": 554,
+        "blank_lines": 73,
+        "comment_lines": 30,
+        "function_count": 21,
+        "avg_cc": 5.43,
+        "max_cc": 94.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/catch2/reporters/catch_reporter_console.cpp",
+        "loc": 560,
+        "blank_lines": 75,
+        "comment_lines": 30,
+        "function_count": 21,
+        "avg_cc": 5.43,
+        "max_cc": 94.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/catch2/reporters/catch_reporter_console.cpp b/src/catch2/reporters/catch_reporter_console.cpp\nindex 1768bc7..f392f55 100644\n--- a/src/catch2/reporters/catch_reporter_console.cpp\n+++ b/src/catch2/reporters/catch_reporter_console.cpp\n@@ -47,7 +47,14 @@ struct AssertionMetadata {\n     StringRef passOrFail;\n     StringRef messageLabel;\n \n-    AssertionMetadata(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n+    AssertionMetadata(Colour::Code _colour, StringRef _passOrFail, StringRef _messageLabel)\n+        : colour(_colour), passOrFail(_passOrFail), messageLabel(_messageLabel) {}\n+\n+    static AssertionMetadata create(AssertionResult const& result, std::vector<MessageInfo> const& messages) {\n+        Colour::Code colour = Colour::None;\n+        StringRef passOrFail;\n+        StringRef messageLabel;\n+\n         switch (result.getResultType()) {\n         case ResultWas::Ok:\n             colour = Colour::Success;\n@@ -108,6 +115,7 @@ struct AssertionMetadata {\n             colour = Colour::Error;\n             break;\n         }\n+        return {colour, passOrFail, messageLabel};\n     }\n };\n \n@@ -119,7 +127,7 @@ public:\n         : stream(_stream),\n         stats(_stats),\n         result(_stats.assertionResult),\n-        metadata(_stats.assertionResult, _stats.infoMessages),\n+        metadata(AssertionMetadata::create(_stats.assertionResult, _stats.infoMessages)),\n         messages(_stats.infoMessages),\n         colourImpl(colourImpl_),\n         printInfoMessages(_printInfoMessages) {}\n",
+  "duration_ms": 12713.722705841064
+}

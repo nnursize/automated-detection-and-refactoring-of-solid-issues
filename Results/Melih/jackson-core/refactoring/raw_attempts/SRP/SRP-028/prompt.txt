@@ -1,0 +1,357 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-028
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `src/main/java/tools/jackson/core/JsonGenerator.java`
+- **Entity**: `JsonGenerator.copyCurrentEvent` (current lines L1952-L1952 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+The generator consumes input from a JsonParser to copy events, mixing output generation with input consumption.
+
+### Reasoning
+A JsonGenerator's primary responsibility is to produce JSON output. Methods like `copyCurrentEvent` require a `JsonParser` as an argument and read tokens from it to write corresponding tokens. This introduces a responsibility for consuming and transforming input, which is a separate concern from simply generating output. A dedicated 'JsonTransformer' or 'JsonCopier' class would be more appropriate for this functionality.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/JsonGenerator.java`
+```java
+# ... 1831 earlier lines elided ...
+     * Convenience method for outputting an Object property
+     * (that will contain a JSON Array value), and the START_ARRAY marker.
+     * Equivalent to:
+     *<pre>
+     *  writeName(propertyName);
+     *  writeStartArray();
+     *</pre>
+     *<p>
+     * Note: caller still has to take care to close the array
+     * (by calling {#link #writeEndArray}) after writing all values
+     * of the value Array.
+     *
+     * @param propertyName Name of the Array property to write
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public final JsonGenerator writeArrayPropertyStart(String propertyName) throws JacksonException {
+        writeName(propertyName);
+        return writeStartArray();
+    }
+
+    /**
+     * Convenience method for outputting an Object property
+     * (that will contain an Object value), and the START_OBJECT marker.
+     * Equivalent to:
+     *<pre>
+     *  writeName(propertyName);
+     *  writeStartObject();
+     *</pre>
+     *<p>
+     * Note: caller still has to take care to close the Object
+     * (by calling {#link #writeEndObject}) after writing all
+     * entries of the value Object.
+     *
+     * @param propertyName Name of the Object property to write
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public final JsonGenerator writeObjectPropertyStart(String propertyName) throws JacksonException {
+        writeName(propertyName);
+        return writeStartObject();
+    }
+
+    /**
+     * Convenience method for outputting am Object property
+     * that has contents of specific Java object (POJO) as its value.
+     * Equivalent to:
+     *<pre>
+     *  writeName(propertyName);
+     *  writeObject(pojo);
+     *</pre>
+     *<p>
+     * NOTE: see {@link #writePOJO(Object)} for details on how POJO value actually
+     * gets written (uses delegation).
+     *
+     * @param propertyName Name of the property to write
+     * @param pojo POJO value of the property to write
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public final JsonGenerator writePOJOProperty(String propertyName, Object pojo) throws JacksonException {
+        writeName(propertyName);
+        return writePOJO(pojo);
+    }
+
+    // // // But this method does need to be delegate so...
+
+    /**
+     * Method called to indicate that a property in this position was
+     * skipped. It is usually only called for generators that return
+     * <code>false</code> from {@link #canOmitProperties()}.
+     *<p>
+     * Default implementation does nothing; method is overriden by some format
+     * backends.
+     *
+     * @param propertyName Name of the property that is being omitted
+     *
+     * @return This generator, to allow call chaining
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public JsonGenerator writeOmittedProperty(String propertyName) throws JacksonException {
+        return this;
+    }
+
+    /*
+    /**********************************************************************
+    /* Public API, copy-through methods
+    /*
+    /* NOTE: need to remain here for `JsonGeneratorDelegate` to call
+    /* (or refactor to have "JsonGeneratorMinimalBase" or such)
+    /**********************************************************************
+     */
+
+    /**
+     * Method for copying contents of the current event that
+     * the given parser instance points to.
+     * Note that the method <b>will not</b> copy any other events,
+     * such as events contained within JSON Array or Object structures.
+     *<p>
+     * Calling this method will not advance the given
+     * parser, although it may cause parser to internally process
+     * more data (if it lazy loads contents of value events, for example)
+     *
+     * @param p Parser that points to the event to copy
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem (reading or writing)
+     * @throws StreamReadException for problems with decoding of token stream
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public void copyCurrentEvent(JsonParser p) throws JacksonException
+    {
+        JsonToken t = p.currentToken();
+        final int token = (t == null) ? ID_NOT_AVAILABLE : t.id();
+        switch (token) {
+        case ID_NOT_AVAILABLE:
+            _reportError("No current event to copy");
+            break; // never gets here
+        case ID_START_OBJECT:
+            writeStartObject();
+            break;
+        case ID_END_OBJECT:
+            writeEndObject();
+            break;
+        case ID_START_ARRAY:
+            writeStartArray();
+            break;
+        case ID_END_ARRAY:
+            writeEndArray();
+            break;
+        case ID_PROPERTY_NAME:
+            writeName(p.currentName());
+            break;
+        case ID_STRING:
+            _copyCurrentStringValue(p);
+            break;
+        case ID_NUMBER_INT:
+            _copyCurrentIntValue(p);
+            break;
+        case ID_NUMBER_FLOAT:
+            // Different from "copyCurrentEventExact"!
+            _copyCurrentFloatValue(p);
+            break;
+        case ID_TRUE:
+            writeBoolean(true);
+            break;
+        case ID_FALSE:
+            writeBoolean(false);
+            break;
+        case ID_NULL:
+            writeNull();
+            break;
+        case ID_EMBEDDED_OBJECT:
+            writePOJO(p.getEmbeddedObject());
+            break;
+        default:
+            throw new IllegalStateException("Internal error: unknown current token, "+t);
+        }
+    }
+
+    /**
+     * Same as {@link #copyCurrentEvent} with the exception that copying of numeric
+     * values tries to avoid any conversion losses; in particular for floating-point
+     * numbers. This usually matters when transcoding from textual format like JSON
+     * to a binary format.
+     * See {@link #_copyCurrentFloatValueExact} for details.
+     *
+     * @param p Parser that points to the event to copy
+     *
+     * @throws JacksonIOException if there is an underlying I/O problem (reading or writing)
+     * @throws StreamReadException for problems with decoding of token stream
+     * @throws StreamWriteException for problems in encoding token stream
+     */
+    public void copyCurrentEventExact(JsonParser p) throws JacksonException
+    {
+        JsonToken t = p.currentToken();
+        final int token = (t == null) ? ID_NOT_AVAILABLE : t.id();
+        switch (token) {
+        case ID_NOT_AVAILABLE:
+            _reportError("No current event to copy");
+            break; // never gets here
+        case ID_START_OBJECT:
+            writeStartObject();
+            break;
+        case ID_END_OBJECT:
+            writeEndObject();
+            break;
+        case ID_START_ARRAY:
+            writeStartArray();
+            break;
+        case ID_END_ARRAY:
+            writeEndArray();
+            break;
+        case ID_PROPERTY_NAME:
+            writeName(p.currentName());
+            break;
+        case ID_STRING:
+            _copyCurrentStringValue(p);
+            break;
+        case ID_NUMBER_INT:
+            _copyCurrentIntValue(p);
+            break;
+        case ID_NUMBER_FLOAT:
+            // Different from "copyCurrentEvent"!
+            _copyCurrentFloatValueExact(p);
+            break;
+        case ID_TRUE:
+            writeBoolean(true);
+            break;
+        case ID_FALSE:
+            writeBoolean(false);
+            break;
+        case ID_NULL:
+            writeNull();
+            break;
+        case ID_EMBEDDED_OBJECT:
+            writePOJO(p.getEmbeddedObject());
+            break;
+        default:
+            throw new IllegalStateException("Internal error: unknown current token, "+t);
+        }
+    }
+
+    /**
+     * Method for copying contents of the current event
+     * <b>and following events that it encloses</b>
+     * the given parser instance points to.
+     *<p>
+     * So what constitutes enclosing? Here is the list of
+     * events that have associated enclosed events that will
+     * get copied:
+# ... 428 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/Base64Variant.java`
+- `src/main/java/tools/jackson/core/Base64Variants.java`
+- `src/main/java/tools/jackson/core/ErrorReportConfiguration.java`
+- `src/main/java/tools/jackson/core/FormatFeature.java`
+- `src/main/java/tools/jackson/core/FormatSchema.java`
+- `src/main/java/tools/jackson/core/JacksonException.java`
+- `src/main/java/tools/jackson/core/JsonEncoding.java`
+- `src/main/java/tools/jackson/core/JsonParser.java`
+- `src/main/java/tools/jackson/core/JsonPointer.java`
+- `src/main/java/tools/jackson/core/JsonToken.java`
+- `src/main/java/tools/jackson/core/JsonTokenId.java`
+- `src/main/java/tools/jackson/core/ObjectReadContext.java`
+- `src/main/java/tools/jackson/core/ObjectWriteContext.java`
+- `src/main/java/tools/jackson/core/package-info.java`
+- `src/main/java/tools/jackson/core/PrettyPrinter.java`
+- `src/main/java/tools/jackson/core/SerializableString.java`
+- `src/main/java/tools/jackson/core/StreamReadCapability.java`
+- `src/main/java/tools/jackson/core/StreamReadConstraints.java`
+- `src/main/java/tools/jackson/core/StreamReadFeature.java`
+- `src/main/java/tools/jackson/core/StreamWriteCapability.java`
+- `src/main/java/tools/jackson/core/StreamWriteConstraints.java`
+- `src/main/java/tools/jackson/core/StreamWriteFeature.java`
+- `src/main/java/tools/jackson/core/TokenStreamContext.java`
+- `src/main/java/tools/jackson/core/TokenStreamFactory.java`
+- `src/main/java/tools/jackson/core/TokenStreamLocation.java`
+- `src/main/java/tools/jackson/core/TreeCodec.java`
+- `src/main/java/tools/jackson/core/TreeNode.java`
+- `src/main/java/tools/jackson/core/TSFBuilder.java`
+- `src/main/java/tools/jackson/core/Version.java`
+- `src/main/java/tools/jackson/core/Versioned.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

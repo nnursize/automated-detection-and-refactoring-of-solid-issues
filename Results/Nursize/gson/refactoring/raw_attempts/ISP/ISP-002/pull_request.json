@@ -1,0 +1,85 @@
+{
+  "issue_id": "ISP-002",
+  "principle": "ISP",
+  "title": "Refactor ISP-002 (ISP): Anonymous TypeAdapter for anonymous or non-static local classes provides no-o...",
+  "branch": "refactor/ISP-002",
+  "base": "main",
+  "head_commit": "50fe3c8e3b1ffb442722bde40c3ba4ee868b5d77",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7498,
+    "completion_tokens": 462
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create(...).new TypeAdapter<T>() {...}",
+    "entity_type": "class",
+    "line_start": 78,
+    "line_end": 96,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "Anonymous TypeAdapter for anonymous or non-static local classes provides no-op implementations for read and write.",
+    "reasoning": "The `TypeAdapter` interface forces this adapter to implement both `read` and `write` methods. However, for anonymous or non-static local classes, Gson's reflective adapter is designed to ignore them (serialize as null, skip value on deserialize). This results in no-op implementations (`in.skipValue()`, `out.nullValue()`), indicating that the interface is too broad for types that are meant to be excluded or ignored."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor ReflectiveTypeAdapterFactory to avoid anonymous TypeAdapter implementation for ignored types",
+    "rationale": "The previous implementation of ReflectiveTypeAdapterFactory.create() returned an anonymous TypeAdapter that implemented no-op read/write methods for types that should be ignored. By returning null instead of an anonymous class, we adhere to the Interface Segregation Principle, as the factory now correctly signals that it cannot provide an adapter for these types, rather than providing a 'fat' adapter that violates the contract of the TypeAdapter interface.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "search_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return (TypeAdapter<T>) new RecordAdapter<>(\n          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n  }",
+        "replace_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return (TypeAdapter<T>) new RecordAdapter<>(\n          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n    // We return null to let other factories handle it or to let Gson skip it.\n    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n      return null;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n  }",
+        "search_lines": 9,
+        "replace_lines": 15
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 518,
+        "blank_lines": 69,
+        "comment_lines": 41,
+        "function_count": 8,
+        "avg_cc": 11.62,
+        "max_cc": 86.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 521,
+        "blank_lines": 70,
+        "comment_lines": 43,
+        "function_count": 8,
+        "avg_cc": 11.88,
+        "max_cc": 88.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\nindex bb26de5..5979b7b 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n@@ -117,6 +117,12 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n           raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n     }\n \n+    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n+    // We return null to let other factories handle it or to let Gson skip it.\n+    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n+      return null;\n+    }\n+\n     ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n     return new FieldReflectionAdapter<>(\n         constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n",
+  "duration_ms": 22014.252185821533
+}

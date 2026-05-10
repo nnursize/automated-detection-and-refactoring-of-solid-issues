@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "search_text": "    @Override\n    public void close() {\n        if (open.compareAndSet(true, false)) {\n            try {\n                finalizeSegment(FinalizeWhen.ALWAYS, SealReason.DLQ_CLOSE);\n            } catch (Exception e) {\n                logger.warn(\"Unable to close dlq writer, ignoring\", e);\n            }\n            try {\n                releaseFileLock();\n            } catch (Exception e) {\n                logger.warn(\"Unable to release fileLock, ignoring\", e);\n            }\n\n            flusherService.shutdown();\n            closeConsumedSegmentsNotification();\n        }\n    }",
+    "replace_text": "    @Override\n    public void close() throws IOException {\n        if (open.compareAndSet(true, false)) {\n            try {\n                finalizeSegment(FinalizeWhen.ALWAYS, SealReason.DLQ_CLOSE);\n            } finally {\n                try {\n                    releaseFileLock();\n                } finally {\n                    flusherService.shutdown();\n                    closeConsumedSegmentsNotification();\n                }\n            }\n        }\n    }"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "search_text": "    private void releaseFileLock() {\n        try {\n            FileLockFactory.releaseLock(fileLock);\n        } catch (IOException e) {\n            logger.debug(\"Unable to release fileLock\", e);\n        }\n        try {\n            Files.deleteIfExists(queuePath.resolve(LOCK_FILE));\n        } catch (IOException e){\n            logger.debug(\"Unable to delete fileLock file\", e);\n        }\n    }",
+    "replace_text": "    private void releaseFileLock() throws IOException {\n        try {\n            FileLockFactory.releaseLock(fileLock);\n        } finally {\n            Files.deleteIfExists(queuePath.resolve(LOCK_FILE));\n        }\n    }"
+  }
+]

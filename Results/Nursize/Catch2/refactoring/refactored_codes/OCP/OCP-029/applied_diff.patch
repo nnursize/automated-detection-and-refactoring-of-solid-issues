@@ -1,0 +1,122 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 4f6d4ad..b9ba53d 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -8996,92 +8996,52 @@ namespace Catch {
+      * instead they should derive from one of the utility bases that
+      * derive from this class.
+      */
+-    class IEventListener {
+-    protected:
+-        //! Derived classes can set up their preferences here
+-        ReporterPreferences m_preferences;
+-        //! The test run's config as filled in from CLI and defaults
+-        IConfig const* m_config;
+-
++    class ITestEventListener {
+     public:
+-        IEventListener( IConfig const* config ): m_config( config ) {}
+-
+-        virtual ~IEventListener(); // = default;
+-
+-        // Implementing class must also provide the following static methods:
+-        // static std::string getDescription();
+-
+-        ReporterPreferences const& getPreferences() const {
+-            return m_preferences;
+-        }
+-
+-        //! Called when no test cases match provided test spec
++        virtual ~ITestEventListener();
+         virtual void noMatchingTestCases( StringRef ) {}
+-        //! Called for all invalid test specs from the cli
+         virtual void reportInvalidTestSpec( StringRef ) {}
+-
+-        /**
+-         * Called once in a testing run before tests are started
+-         *
+-         * Not called if tests won't be run (e.g. only listing will happen)
+-         */
+         virtual void testRunStarting( TestRunInfo const& ) {}
+-
+-        //! Called _once_ for each TEST_CASE, no matter how many times it is entered
+         virtual void testCaseStarting( TestCaseInfo const& ) {}
+-        //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)
+         virtual void testCasePartialStarting( TestCaseInfo const&, uint64_t ) {}
+-        //! Called when a `SECTION` is being entered. Not called for skipped sections
+         virtual void sectionStarting( SectionInfo const& ) {}
+-
+-        //! Called when user-code is being probed before the actual benchmark runs
+-        virtual void benchmarkPreparing( StringRef ) {}
+-        //! Called after probe but before the user-code is being benchmarked
+-        virtual void benchmarkStarting( BenchmarkInfo const& ) {}
+-        //! Called with the benchmark results if benchmark successfully finishes
+-        virtual void benchmarkEnded( BenchmarkStats<> const& ) {}
+-        //! Called if running the benchmarks fails for any reason
+-        virtual void benchmarkFailed( StringRef ) {}
+-
+-        //! Called before assertion success/failure is evaluated
+         virtual void assertionStarting( AssertionInfo const& ) {}
+-
+-        //! Called after assertion was fully evaluated
+         virtual void assertionEnded( AssertionStats const& ) {}
+-
+-        //! Called after a `SECTION` has finished running
+         virtual void sectionEnded( SectionStats const& ) {}
+-        //! Called _every time_ a TEST_CASE is entered, including repeats (due to sections)
+         virtual void testCasePartialEnded(TestCaseStats const&, uint64_t ) {}
+-        //! Called _once_ for each TEST_CASE, no matter how many times it is entered
+         virtual void testCaseEnded( TestCaseStats const& ) {}
+-        /**
+-         * Called once after all tests in a testing run are finished
+-         *
+-         * Not called if tests weren't run (e.g. only listings happened)
+-         */
+         virtual void testRunEnded( TestRunStats const& ) {}
+-
+-        /**
+-         * Called with test cases that are skipped due to the test run aborting.
+-         * NOT called for test cases that are explicitly skipped using the `SKIP` macro.
+-         *
+-         * Deprecated - will be removed in the next major release.
+-         */
+         virtual void skipTest( TestCaseInfo const& ) {}
+-
+-        //! Called if a fatal error (signal/structured exception) occurred
+         virtual void fatalErrorEncountered( StringRef ) {}
++    };
+ 
+-        //! Writes out information about provided reporters using reporter-specific format
++    class IBenchmarkEventListener {
++    public:
++        virtual ~IBenchmarkEventListener();
++        virtual void benchmarkPreparing( StringRef ) {}
++        virtual void benchmarkStarting( BenchmarkInfo const& ) {}
++        virtual void benchmarkEnded( BenchmarkStats<> const& ) {}
++        virtual void benchmarkFailed( StringRef ) {}
++    };
++
++    class IReporterListingListener {
++    public:
++        virtual ~IReporterListingListener();
+         virtual void listReporters(std::vector<ReporterDescription> const&) {}
+-        //! Writes out the provided listeners descriptions using reporter-specific format
+         virtual void listListeners(std::vector<ListenerDescription> const&) {}
+-        //! Writes out information about provided tests using reporter-specific format
+         virtual void listTests(std::vector<TestCaseHandle> const&) {}
+-        //! Writes out information about the provided tags using reporter-specific format
+         virtual void listTags(std::vector<TagInfo> const&) {}
+     };
++
++    class IEventListener : public ITestEventListener, public IBenchmarkEventListener, public IReporterListingListener {
++    protected:
++        ReporterPreferences m_preferences;
++        IConfig const* m_config;
++    public:
++        IEventListener( IConfig const* config ): m_config( config ) {}
++        virtual ~IEventListener();
++        ReporterPreferences const& getPreferences() const { return m_preferences; }
++    };
+     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+ 
+ } // end namespace Catch

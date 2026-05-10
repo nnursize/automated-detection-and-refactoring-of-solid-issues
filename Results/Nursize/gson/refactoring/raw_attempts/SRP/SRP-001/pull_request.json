@@ -1,0 +1,112 @@
+{
+  "issue_id": "SRP-001",
+  "principle": "SRP",
+  "title": "Refactor SRP-001 (SRP): The JsonReader class is responsible for parsing JSON tokens from a character...",
+  "branch": "refactor/SRP-001",
+  "base": "main",
+  "head_commit": "c2bbd3bd54efd9770303fde6d241738326997470",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5995,
+    "completion_tokens": 662
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 1004,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "The JsonReader class is responsible for parsing JSON tokens from a character stream, but also handles buffer management, character escaping, and error reporting.",
+    "reasoning": "The `JsonReader` class has multiple reasons to change. It's responsible for: \n1.  **JSON Tokenization**: Identifying and extracting JSON tokens (objects, arrays, primitives, names). (e.g., `doPeek()`, `peekKeyword()`, `peekNumber()`).\n2.  **Input Stream Management**: Reading characters from the underlying `Reader`, buffering them, and managing the buffer position (`fillBuffer()`, `pos`, `limit`).\n3.  **Lexical Analysis / Character Handling**: Skipping whitespace, comments, and handling escape sequences (`nextNonWhitespace()`, `readEscapeCharacter()`, `skipTo()`, `skipToEndOfLine()`).\n4.  **Error Reporting / Context**: Generating detailed error messages with line/column numbers and JSON path (`syntaxError()`, `unexpectedTokenError()`, `locationString()`, `getPath()`).\n\nThese responsibilities are distinct. For example, changes to how the input stream is buffered (e.g., a different buffering strategy) would require modifying `fillBuffer()`, while changes to JSON parsing rules (e.g., new lenient modes) would affect `doPeek()` and `peekKeyword()`. Changes to error message formatting would affect `locationString()` and `syntaxError()`. Separating these concerns into smaller, more focused classes would improve maintainability and testability."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor JsonReader to delegate error reporting and location tracking to a new JsonLocationTracker class.",
+    "rationale": "The JsonReader class is a 'God class' handling both parsing logic and error/location management. By extracting the location tracking and error message generation into a dedicated JsonLocationTracker, we reduce the responsibility of JsonReader, making it cleaner and more maintainable.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java"
+    ],
+    "files_created": [
+      "gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java"
+    ],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/stream/JsonReader.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "search_text": "  private int pos = 0;\n  private int limit = 0;\n\n  private int lineNumber = 0;\n  private int lineStart = 0;\n\n  int peeked = PEEKED_NONE;",
+        "replace_text": "  private int pos = 0;\n  private int limit = 0;\n\n  private final JsonLocationTracker locationTracker = new JsonLocationTracker();\n\n  int peeked = PEEKED_NONE;",
+        "search_lines": 7,
+        "replace_lines": 6
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "search_text": "  /** Creates a new instance that reads a JSON-encoded stream from {@code in}. */\n  public JsonReader(Reader in) {\n    this.in = Objects.requireNonNull(in, \"in == null\");\n  }",
+        "replace_text": "  /** Creates a new instance that reads a JSON-encoded stream from {@code in}. */\n  public JsonReader(Reader in) {\n    this.in = Objects.requireNonNull(in, \"in == null\");\n  }\n\n  private IOException syntaxError(String message) throws IOException {\n    throw new MalformedJsonException(locationTracker.getMessage(message, pos));\n  }",
+        "search_lines": 4,
+        "replace_lines": 8
+      },
+      {
+        "kind": "create",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java",
+        "new_content": "package com.google.gson.stream;\n\n/**\n * Tracks the current location (line and column) in a JSON stream for error reporting.\n */\nfinal class JsonLocationTracker {\n  private int lineNumber = 0;\n  private int lineStart = 0;\n\n  public void incrementLine() {\n    lineNumber++;\n  }\n\n  public void setLineStart(int pos) {\n    lineStart = pos;\n  }\n\n  public int getLineNumber() {\n    return lineNumber + 1;\n  }\n\n  public int getColumnNumber(int pos) {\n    return pos - lineStart + 1;\n  }\n\n  public String getMessage(String message, int pos) {\n    return message + \" at line \" + getLineNumber() + \" column \" + getColumnNumber(pos) + \" path \" + \"\";\n  }\n}",
+        "new_content_lines": 29
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "loc": 1706,
+        "blank_lines": 126,
+        "comment_lines": 49,
+        "function_count": 43,
+        "avg_cc": 10.86,
+        "max_cc": 425.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "loc": 1708,
+        "blank_lines": 127,
+        "comment_lines": 49,
+        "function_count": 44,
+        "avg_cc": 10.64,
+        "max_cc": 425.0,
+        "mi": 0.0
+      },
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java",
+        "loc": 23,
+        "blank_lines": 6,
+        "comment_lines": 0,
+        "function_count": 5,
+        "avg_cc": 1.2,
+        "max_cc": 2.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/stream/JsonReader.java b/gson/src/main/java/com/google/gson/stream/JsonReader.java\nindex 0e7dd30..509ed0e 100644\n--- a/gson/src/main/java/com/google/gson/stream/JsonReader.java\n+++ b/gson/src/main/java/com/google/gson/stream/JsonReader.java\n@@ -267,8 +267,7 @@ public class JsonReader implements Closeable {\n   private int pos = 0;\n   private int limit = 0;\n \n-  private int lineNumber = 0;\n-  private int lineStart = 0;\n+  private final JsonLocationTracker locationTracker = new JsonLocationTracker();\n \n   int peeked = PEEKED_NONE;\n \n@@ -315,6 +314,10 @@ public class JsonReader implements Closeable {\n     this.in = Objects.requireNonNull(in, \"in == null\");\n   }\n \n+  private IOException syntaxError(String message) throws IOException {\n+    throw new MalformedJsonException(locationTracker.getMessage(message, pos));\n+  }\n+\n   /**\n    * Sets the strictness of this reader.\n    *\ndiff --git a/gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java b/gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java\n@@ -0,0 +1,29 @@\n+package com.google.gson.stream;\n+\n+/**\n+ * Tracks the current location (line and column) in a JSON stream for error reporting.\n+ */\n+final class JsonLocationTracker {\n+  private int lineNumber = 0;\n+  private int lineStart = 0;\n+\n+  public void incrementLine() {\n+    lineNumber++;\n+  }\n+\n+  public void setLineStart(int pos) {\n+    lineStart = pos;\n+  }\n+\n+  public int getLineNumber() {\n+    return lineNumber + 1;\n+  }\n+\n+  public int getColumnNumber(int pos) {\n+    return pos - lineStart + 1;\n+  }\n+\n+  public String getMessage(String message, int pos) {\n+    return message + \" at line \" + getLineNumber() + \" column \" + getColumnNumber(pos) + \" path \" + \"\";\n+  }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 4583.920955657959
+}

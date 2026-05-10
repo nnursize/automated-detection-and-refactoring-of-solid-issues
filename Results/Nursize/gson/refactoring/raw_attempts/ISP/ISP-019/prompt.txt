@@ -1,0 +1,376 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: ISP-019
+- **Principle**: Interface Segregation Principle (ISP)
+- **File**: `gson/src/main/java/com/google/gson/JsonObject.java`
+- **Entity**: `JsonObject.getAsBoolean()` (current lines L40-L259 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+JsonObject's getAsBoolean method throws UnsupportedOperationException.
+
+### Reasoning
+The `JsonObject` class is forced to implement `getAsBoolean()` (and other `getAs...` methods) from `JsonElement`. A `JsonObject` itself is not a boolean. Its implementation throws an `UnsupportedOperationException`, indicating that this method is not applicable to `JsonObject` and violates ISP by forcing `JsonObject` to depend on a method it cannot directly fulfill.
+
+## Principle reference
+**Interface Segregation Principle** — Clients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.
+
+What typically signals a violation:
+- Abstract base classes or interfaces with too many methods
+- Classes that implement an interface but leave methods as pass or raise NotImplementedError
+- Fat interfaces that could be split into smaller, more focused ones
+- Classes forced to depend on methods they never call
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `gson/src/main/java/com/google/gson/JsonObject.java`
+```java
+/*
+ * Copyright (C) 2008 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.gson;
+
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.gson.internal.LinkedTreeMap;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * A class representing an object type in JSON. An object consists of name-value pairs where names
+ * are strings, and values are any other type of {@link JsonElement}. This allows for a creating a
+ * tree of JsonElements. The member elements of this object are maintained in order they were added.
+ * This class does not support {@code null} values. If {@code null} is provided as value argument to
+ * any of the methods, it is converted to a {@link JsonNull}.
+ *
+ * <p>{@code JsonObject} does not implement the {@link Map} interface, but a {@code Map} view of it
+ * can be obtained with {@link #asMap()}.
+ *
+ * <p>See the {@link JsonElement} documentation for details on how to convert {@code JsonObject} and
+ * generally any {@code JsonElement} from and to JSON.
+ *
+ * @author Inderjeet Singh
+ * @author Joel Leitch
+ */
+public final class JsonObject extends JsonElement {
+  private final LinkedTreeMap<String, JsonElement> members = new LinkedTreeMap<>(false);
+
+  /** Creates an empty JsonObject. */
+  @SuppressWarnings("deprecation") // superclass constructor
+  public JsonObject() {}
+
+  /**
+   * Creates a deep copy of this element and all its children.
+   *
+   * @since 2.8.2
+   */
+  @Override
+  public JsonObject deepCopy() {
+    JsonObject result = new JsonObject();
+    for (Map.Entry<String, JsonElement> entry : members.entrySet()) {
+      result.add(entry.getKey(), entry.getValue().deepCopy());
+    }
+    return result;
+  }
+
+  /**
+   * Adds a member, which is a name-value pair, to self. The name must be a String, but the value
+   * can be an arbitrary {@link JsonElement}, thereby allowing you to build a full tree of
+   * JsonElements rooted at this node.
+   *
+   * @param property name of the member.
+   * @param value the member object.
+   */
+  public void add(String property, JsonElement value) {
+    members.put(property, value == null ? JsonNull.INSTANCE : value);
+  }
+
+  /**
+   * Removes the {@code property} from this object.
+   *
+   * @param property name of the member that should be removed.
+   * @return the {@link JsonElement} object that is being removed, or {@code null} if no member with
+   *     this name exists.
+   * @since 1.3
+   */
+  @CanIgnoreReturnValue
+  public JsonElement remove(String property) {
+    return members.remove(property);
+  }
+
+  /**
+   * Convenience method to add a string member. The specified value is converted to a {@link
+   * JsonPrimitive} of String.
+   *
+   * @param property name of the member.
+   * @param value the string value associated with the member.
+   */
+  public void addProperty(String property, String value) {
+    add(property, value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+  }
+
+  /**
+   * Convenience method to add a number member. The specified value is converted to a {@link
+   * JsonPrimitive} of Number.
+   *
+   * @param property name of the member.
+   * @param value the number value associated with the member.
+   */
+  public void addProperty(String property, Number value) {
+    add(property, value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+  }
+
+  /**
+   * Convenience method to add a boolean member. The specified value is converted to a {@link
+   * JsonPrimitive} of Boolean.
+   *
+   * @param property name of the member.
+   * @param value the boolean value associated with the member.
+   */
+  public void addProperty(String property, Boolean value) {
+    add(property, value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+  }
+
+  /**
+   * Convenience method to add a char member. The specified value is converted to a {@link
+   * JsonPrimitive} of Character.
+   *
+   * @param property name of the member.
+   * @param value the char value associated with the member.
+   */
+  public void addProperty(String property, Character value) {
+    add(property, value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+  }
+
+  /**
+   * Returns a set of members of this object. The set is ordered, and the order is in which the
+   * elements were added.
+   *
+   * @return a set of members of this object.
+   */
+  public Set<Map.Entry<String, JsonElement>> entrySet() {
+    return members.entrySet();
+  }
+
+  /**
+   * Returns a set of members key values.
+   *
+   * @return a set of member keys as Strings
+   * @since 2.8.1
+   */
+  public Set<String> keySet() {
+    return members.keySet();
+  }
+
+  /**
+   * Returns the number of key/value pairs in the object.
+   *
+   * @return the number of key/value pairs in the object.
+   * @since 2.7
+   */
+  public int size() {
+    return members.size();
+  }
+
+  /**
+   * Returns true if the number of key/value pairs in the object is zero.
+   *
+   * @return true if the number of key/value pairs in the object is zero.
+   * @since 2.10.1
+   */
+  public boolean isEmpty() {
+    return members.isEmpty();
+  }
+
+  /**
+   * Convenience method to check if a member with the specified name is present in this object.
+   *
+   * @param memberName name of the member that is being checked for presence.
+   * @return true if there is a member with the specified name, false otherwise.
+   */
+  public boolean has(String memberName) {
+    return members.containsKey(memberName);
+  }
+
+  /**
+   * Returns the member with the specified name.
+   *
+   * @param memberName name of the member that is being requested.
+   * @return the member matching the name, or {@code null} if no such member exists.
+   */
+  public JsonElement get(String memberName) {
+    return members.get(memberName);
+  }
+
+  /**
+   * Convenience method to get the specified member as a {@link JsonPrimitive}.
+   *
+   * @param memberName name of the member being requested.
+   * @return the {@code JsonPrimitive} corresponding to the specified member, or {@code null} if no
+   *     member with this name exists.
+   * @throws ClassCastException if the member is not of type {@code JsonPrimitive}.
+   */
+  public JsonPrimitive getAsJsonPrimitive(String memberName) {
+    return (JsonPrimitive) members.get(memberName);
+  }
+
+  /**
+   * Convenience method to get the specified member as a {@link JsonArray}.
+   *
+   * @param memberName name of the member being requested.
+   * @return the {@code JsonArray} corresponding to the specified member, or {@code null} if no
+   *     member with this name exists.
+   * @throws ClassCastException if the member is not of type {@code JsonArray}.
+   */
+  public JsonArray getAsJsonArray(String memberName) {
+    return (JsonArray) members.get(memberName);
+  }
+
+  /**
+   * Convenience method to get the specified member as a {@link JsonObject}.
+   *
+   * @param memberName name of the member being requested.
+   * @return the {@code JsonObject} corresponding to the specified member, or {@code null} if no
+   *     member with this name exists.
+   * @throws ClassCastException if the member is not of type {@code JsonObject}.
+   */
+  public JsonObject getAsJsonObject(String memberName) {
+    return (JsonObject) members.get(memberName);
+  }
+
+  /**
+   * Returns a mutable {@link Map} view of this {@code JsonObject}. Changes to the {@code Map} are
+   * visible in this {@code JsonObject} and the other way around.
+   *
+   * <p>The {@code Map} does not permit {@code null} keys or values. Unlike {@code JsonObject}'s
+   * {@code null} handling, a {@link NullPointerException} is thrown when trying to add {@code
+   * null}. Use {@link JsonNull} for JSON null values.
+   *
+   * @return mutable {@code Map} view
+   * @since 2.10
+   */
+  public Map<String, JsonElement> asMap() {
+    // It is safe to expose the underlying map because it disallows null keys and values
+    return members;
+  }
+
+  /**
+   * Returns whether the other object is equal to this. This method only considers the other object
+   * to be equal if it is an instance of {@code JsonObject} and has equal members, ignoring order.
+   */
+  @Override
+  public boolean equals(Object o) {
+    return (o == this) || (o instanceof JsonObject && ((JsonObject) o).members.equals(members));
+  }
+
+  /**
+   * Returns the hash code of this object. This method calculates the hash code based on the members
+   * of this object, ignoring order.
+   */
+  @Override
+  public int hashCode() {
+    return members.hashCode();
+  }
+}
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `gson/src/main/java/com/google/gson/ExclusionStrategy.java`
+- `gson/src/main/java/com/google/gson/FieldAttributes.java`
+- `gson/src/main/java/com/google/gson/FieldNamingPolicy.java`
+- `gson/src/main/java/com/google/gson/FieldNamingStrategy.java`
+- `gson/src/main/java/com/google/gson/FormattingStyle.java`
+- `gson/src/main/java/com/google/gson/Gson.java`
+- `gson/src/main/java/com/google/gson/GsonBuilder.java`
+- `gson/src/main/java/com/google/gson/InstanceCreator.java`
+- `gson/src/main/java/com/google/gson/JsonArray.java`
+- `gson/src/main/java/com/google/gson/JsonDeserializationContext.java`
+- `gson/src/main/java/com/google/gson/JsonDeserializer.java`
+- `gson/src/main/java/com/google/gson/JsonElement.java`
+- `gson/src/main/java/com/google/gson/JsonIOException.java`
+- `gson/src/main/java/com/google/gson/JsonNull.java`
+- `gson/src/main/java/com/google/gson/JsonParseException.java`
+- `gson/src/main/java/com/google/gson/JsonParser.java`
+- `gson/src/main/java/com/google/gson/JsonPrimitive.java`
+- `gson/src/main/java/com/google/gson/JsonPrimitiveValue.java`
+- `gson/src/main/java/com/google/gson/JsonSerializationContext.java`
+- `gson/src/main/java/com/google/gson/JsonSerializer.java`
+- `gson/src/main/java/com/google/gson/JsonStreamParser.java`
+- `gson/src/main/java/com/google/gson/JsonSyntaxException.java`
+- `gson/src/main/java/com/google/gson/JsonWriterSettings.java`
+- `gson/src/main/java/com/google/gson/LongSerializationPolicy.java`
+- `gson/src/main/java/com/google/gson/package-info.java`
+- `gson/src/main/java/com/google/gson/ReflectionAccessFilter.java`
+- `gson/src/main/java/com/google/gson/Strictness.java`
+- `gson/src/main/java/com/google/gson/ToNumberPolicy.java`
+- `gson/src/main/java/com/google/gson/ToNumberStrategy.java`
+- `gson/src/main/java/com/google/gson/TypeAdapter.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

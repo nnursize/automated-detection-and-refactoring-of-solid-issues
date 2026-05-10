@@ -1,0 +1,371 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: DIP-110
+- **Principle**: Dependency Inversion Principle (DIP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `Session` (current lines L5004-L5044 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 3 independent scans
+
+### Description
+High-level Session class depends on a concrete third-party parser.
+
+### Reasoning
+The Session class directly references and exposes Clara::Parser in its public API (L4980, L4982). This couples the library's primary high-level entry point to a specific concrete implementation of a command-line parser, violating the principle that high-level modules should depend on abstractions.
+
+## Principle reference
+**Dependency Inversion Principle** — High-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.
+
+What typically signals a violation:
+- Classes that directly instantiate their dependencies (using new/constructor calls)
+- High-level business logic that imports and depends on low-level implementation details
+- Missing dependency injection or inversion of control
+- Hard-coded dependencies that make testing difficult
+- Tight coupling between modules through concrete class references
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 4883 earlier lines elided ...
+        public:
+
+            auto operator|=(ExeName const& exeName) -> Parser& {
+                m_exeName = exeName;
+                return *this;
+            }
+
+            auto operator|=(Arg const& arg) -> Parser& {
+                m_args.push_back(arg);
+                return *this;
+            }
+
+            friend Parser& operator|=( Parser& p, Opt const& opt ) {
+                p.m_options.push_back( opt );
+                return p;
+            }
+            friend Parser& operator|=( Parser& p, Opt&& opt ) {
+                p.m_options.push_back( CATCH_MOVE(opt) );
+                return p;
+            }
+
+            Parser& operator|=(Parser const& other);
+
+            template <typename T>
+            friend Parser operator|( Parser const& p, T&& rhs ) {
+                Parser temp( p );
+                temp |= rhs;
+                return temp;
+            }
+
+            template <typename T>
+            friend Parser operator|( Parser&& p, T&& rhs ) {
+                p |= CATCH_FORWARD(rhs);
+                return CATCH_MOVE(p);
+            }
+
+            std::vector<Detail::HelpColumns> getHelpColumns() const;
+
+            void writeToStream(std::ostream& os) const;
+
+            friend auto operator<<(std::ostream& os, Parser const& parser)
+                -> std::ostream& {
+                parser.writeToStream(os);
+                return os;
+            }
+
+            Detail::Result validate() const override;
+
+            using ParserBase::parse;
+            Detail::InternalParseResult
+                parse(std::string const& exeName,
+                      Detail::TokenStream tokens) const override;
+        };
+
+        /**
+         * Wrapper over argc + argv, assumes that the inputs outlive it
+         */
+        class Args {
+            friend Detail::TokenStream;
+            StringRef m_exeName;
+            std::vector<StringRef> m_args;
+
+        public:
+            Args(int argc, char const* const* argv);
+            // Helper constructor for testing
+            Args(std::initializer_list<StringRef> args);
+
+            StringRef exeName() const { return m_exeName; }
+        };
+
+
+        // Convenience wrapper for option parser that specifies the help option
+        struct Help : Opt {
+            Help(bool& showHelpFlag);
+        };
+
+        // Result type for parser operation
+        using Detail::ParserResult;
+
+        namespace Detail {
+            template <typename DerivedT>
+            template <typename T>
+            Parser
+                ComposableParserImpl<DerivedT>::operator|(T const& other) const {
+                return Parser() | static_cast<DerivedT const&>(*this) | other;
+            }
+        }
+
+    } // namespace Clara
+} // namespace Catch
+
+#if defined( __clang__ )
+#    pragma clang diagnostic pop
+#endif
+
+#if defined( __GNUC__ )
+#    pragma GCC diagnostic pop
+#endif
+
+#endif // CATCH_CLARA_HPP_INCLUDED
+
+namespace Catch {
+
+    struct ConfigData;
+
+    Clara::Parser makeCommandLineParser( ConfigData& config );
+
+} // end namespace Catch
+
+#endif // CATCH_COMMANDLINE_HPP_INCLUDED
+
+namespace Catch {
+
+    // TODO: Use C++17 `inline` variables
+    constexpr int UnspecifiedErrorExitCode = 1;
+    constexpr int NoTestsRunExitCode = 2;
+    constexpr int UnmatchedTestSpecExitCode = 3;
+    constexpr int AllTestsSkippedExitCode = 4;
+    constexpr int InvalidTestSpecExitCode = 5;
+    constexpr int TestFailureExitCode = 42;
+
+    class Session : Detail::NonCopyable {
+    public:
+
+        Session();
+        ~Session();
+
+        void showHelp() const;
+        void libIdentify();
+
+        int applyCommandLine( int argc, char const * const * argv );
+    #if defined(CATCH_CONFIG_WCHAR) && defined(_WIN32) && defined(UNICODE)
+        int applyCommandLine( int argc, wchar_t const * const * argv );
+    #endif
+
+        void useConfigData( ConfigData const& configData );
+
+        template<typename CharT>
+        int run(int argc, CharT const * const argv[]) {
+            if (m_startupExceptions)
+                return 1;
+            int returnCode = applyCommandLine(argc, argv);
+            if (returnCode == 0)
+                returnCode = run();
+            return returnCode;
+        }
+
+        int run();
+
+        Clara::Parser const& cli() const;
+        void cli( Clara::Parser const& newParser );
+        ConfigData& configData();
+        Config& config();
+    private:
+        int runInternal();
+
+        Clara::Parser m_cli;
+        ConfigData m_configData;
+        Detail::unique_ptr<Config> m_config;
+        bool m_startupExceptions = false;
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_SESSION_HPP_INCLUDED
+
+
+#ifndef CATCH_TAG_ALIAS_HPP_INCLUDED
+#define CATCH_TAG_ALIAS_HPP_INCLUDED
+
+
+#include <string>
+
+namespace Catch {
+
+    struct TagAlias {
+        TagAlias(std::string const& _tag, SourceLineInfo _lineInfo):
+            tag(_tag),
+            lineInfo(_lineInfo)
+        {}
+
+        std::string tag;
+        SourceLineInfo lineInfo;
+    };
+
+} // end namespace Catch
+
+#endif // CATCH_TAG_ALIAS_HPP_INCLUDED
+
+
+#ifndef CATCH_TAG_ALIAS_AUTOREGISTRAR_HPP_INCLUDED
+#define CATCH_TAG_ALIAS_AUTOREGISTRAR_HPP_INCLUDED
+
+
+namespace Catch {
+
+    struct RegistrarForTagAliases {
+        RegistrarForTagAliases( char const* alias, char const* tag, SourceLineInfo const& lineInfo );
+    };
+
+} // end namespace Catch
+
+#define CATCH_REGISTER_TAG_ALIAS( alias, spec ) \
+    CATCH_INTERNAL_START_WARNINGS_SUPPRESSION \
+    CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS \
+    namespace{ const Catch::RegistrarForTagAliases INTERNAL_CATCH_UNIQUE_NAME( AutoRegisterTagAlias )( alias, spec, CATCH_INTERNAL_LINEINFO ); } \
+    CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION
+
+#endif // CATCH_TAG_ALIAS_AUTOREGISTRAR_HPP_INCLUDED
+
+
+#ifndef CATCH_TEMPLATE_TEST_MACROS_HPP_INCLUDED
+#define CATCH_TEMPLATE_TEST_MACROS_HPP_INCLUDED
+
+// We need this suppression to leak, because it took until GCC 10
+// for the front end to handle local suppression via _Pragma properly
+// inside templates (so `TEMPLATE_TEST_CASE` and co).
+// **THIS IS DIFFERENT FOR STANDARD TESTS, WHERE GCC 9 IS SUFFICIENT**
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__ICC) && __GNUC__ < 10
+#pragma GCC diagnostic ignored "-Wparentheses"
+#endif
+
+
+
+
+#ifndef CATCH_TEST_MACROS_HPP_INCLUDED
+#define CATCH_TEST_MACROS_HPP_INCLUDED
+
+
+
+#ifndef CATCH_TEST_MACRO_IMPL_HPP_INCLUDED
+#define CATCH_TEST_MACRO_IMPL_HPP_INCLUDED
+
+
+
+#ifndef CATCH_ASSERTION_HANDLER_HPP_INCLUDED
+#define CATCH_ASSERTION_HANDLER_HPP_INCLUDED
+
+
+
+#ifndef CATCH_DECOMPOSER_HPP_INCLUDED
+#define CATCH_DECOMPOSER_HPP_INCLUDED
+
+
+
+#ifndef CATCH_COMPARE_TRAITS_HPP_INCLUDED
+#define CATCH_COMPARE_TRAITS_HPP_INCLUDED
+
+
+#include <type_traits>
+
+namespace Catch {
+    namespace Detail {
+
+#if defined( __GNUC__ ) && !defined( __clang__ )
+#    pragma GCC diagnostic push
+    // GCC likes to complain about comparing bool with 0, in the decltype()
+    // that defines the comparable traits below.
+#    pragma GCC diagnostic ignored "-Wbool-compare"
+    // "ordered comparison of pointer with integer zero" same as above,
+    // but it does not have a separate warning flag to suppress
+#    pragma GCC diagnostic ignored "-Wextra"
+    // Did you know that comparing floats with `0` directly
+    // is super-duper dangerous in unevaluated context?
+#    pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
+#if defined( __clang__ )
+#    pragma clang diagnostic push
+    // Did you know that comparing floats with `0` directly
+    // is super-duper dangerous in unevaluated context?
+#    pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
+
+#define CATCH_DEFINE_COMPARABLE_TRAIT( id, op )                               \
+    template <typename, typename, typename = void>                            \
+    struct is_##id##_comparable : std::false_type {};                         \
+    template <typename T, typename U>                                         \
+    struct is_##id##_comparable<                                              \
+        T,                                                                    \
+        U,                                                                    \
+# ... 9173 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

@@ -1,0 +1,19 @@
+diff --git a/src/requests/cookies.py b/src/requests/cookies.py
+index f69d0cd..90ed5ba 100644
+--- a/src/requests/cookies.py
++++ b/src/requests/cookies.py
+@@ -76,10 +76,10 @@ class MockRequest:
+         return self._r.headers.get(name, self._new_headers.get(name, default))
+ 
+     def add_header(self, key, val):
+-        """cookiejar has no legitimate use for this method; add it back if you find one."""
+-        raise NotImplementedError(
+-            "Cookie headers should be added with add_unredirected_header()"
+-        )
++        """
++        This method is required by the urllib2.Request interface.
++        """
++        self.add_unredirected_header(key, val)
+ 
+     def add_unredirected_header(self, name, value):
+         self._new_headers[name] = value

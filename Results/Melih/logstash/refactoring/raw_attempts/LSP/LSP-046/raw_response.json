@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 4779.861688613892,
+  "prompt_tokens": 6925,
+  "completion_tokens": 437,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove type-checking in overwrite and append methods to satisfy LSP\",\n  \"rationale\": \"The `overwrite` and `append` methods were using `instanceof` to conditionally skip logic for non-`Event` implementations of `co.elastic.logstash.api.Event`. By using the public `getData()` and `getTimestamp()` methods defined in the interface, we can perform the operations on any valid `co.elastic.logstash.api.Event` implementation, ensuring substitutability.\",\n  \"files_touched\": [\"logstash-core/src/main/java/org/logstash/Event.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    @Override\n    public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n        if (e instanceof Event) {\n            return overwrite((Event)e);\n        }\n        return e;\n    }\n\n    @Override\n    public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n        if (e instanceof Event) {\n            return append((Event)e);\n        }\n        return e;\n    }\n=======\n    @Override\n    public co.elastic.logstash.api.Event overwrite(co.elastic.logstash.api.Event e) {\n        this.data = ConvertedMap.newFromMap(e.toMap());\n        this.cancelled = e.isCancelled();\n        Instant t = e.getEventTimestamp();\n        setTimestamp(t == null ? new Timestamp() : new Timestamp(t.toEpochMilli()));\n        return this;\n    }\n\n    @Override\n    public co.elastic.logstash.api.Event append(co.elastic.logstash.api.Event e) {\n        Util.mapMerge(this.data, e.toMap());\n        return this;\n    }\n>>>>>>> REPLACE"
+}

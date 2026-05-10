@@ -1,0 +1,108 @@
+{
+  "issue_id": "DIP-015",
+  "principle": "DIP",
+  "title": "Refactor DIP-015 (DIP): High-level API function directly instantiates a concrete Session.",
+  "branch": "refactor/DIP-015",
+  "base": "main",
+  "head_commit": "605d581ad1c9a45c9376d841286040efdce291c6",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3121,
+    "completion_tokens": 357
+  },
+  "detected_issue": {
+    "file_path": "src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 21,
+    "line_end": 22,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "High-level API function directly instantiates a concrete Session.",
+    "reasoning": "The `request` function, which is the primary public entry point for making HTTP requests, directly creates an instance of `requests.sessions.Session`. This couples the highest-level policy (how requests are made via the public API) to a concrete implementation (`Session` class). According to DIP, high-level modules should not depend on low-level modules; both should depend on abstractions. Here, the public API depends on a concrete session implementation, making it difficult to substitute alternative session management without modifying the core API."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Decouple request() from concrete Session class by using a module-level session factory.",
+    "rationale": "The request function was hardcoded to use sessions.Session. By defining a module-level variable for the session factory, we allow the implementation to be swapped or configured without modifying the high-level API function, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "src/requests/api.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/api.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/api.py",
+        "search_text": "from . import sessions\n\n\ndef request(method, url, **kwargs):",
+        "replace_text": "from . import sessions\n\n# Default session factory\nsession_factory = sessions.Session\n\n\ndef request(method, url, **kwargs):",
+        "search_lines": 4,
+        "replace_lines": 7
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/api.py",
+        "search_text": "    session_factory = kwargs.pop(\"session_factory\", sessions.Session)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with session_factory() as session:\n        return session.request(method=method, url=url, **kwargs)",
+        "replace_text": "    factory = kwargs.pop(\"session_factory\", session_factory)\n\n    # By using the 'with' statement we are sure the session is closed, thus we\n    # avoid leaving sockets open which can trigger a ResourceWarning in some\n    # cases, and look like a memory leak in others.\n    with factory() as session:\n        return session.request(method=method, url=url, **kwargs)",
+        "search_lines": 7,
+        "replace_lines": 7
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165300.79913139343,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.45s (0:02:44)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/api.py",
+        "loc": 119,
+        "blank_lines": 38,
+        "comment_lines": 3,
+        "function_count": 8,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 100.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/api.py",
+        "loc": 120,
+        "blank_lines": 39,
+        "comment_lines": 4,
+        "function_count": 8,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 100.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/api.py b/src/requests/api.py\nindex de8f75d..55d060f 100644\n--- a/src/requests/api.py\n+++ b/src/requests/api.py\n@@ -10,6 +10,9 @@ This module implements the Requests API.\n \n from . import sessions\n \n+# Default session factory\n+session_factory = sessions.Session\n+\n \n def request(method, url, **kwargs):\n     \"\"\"Constructs and sends a :class:`Request <Request>`.\n@@ -53,12 +56,12 @@ def request(method, url, **kwargs):\n       <Response [200]>\n     \"\"\"\n \n-    session_factory = kwargs.pop(\"session_factory\", sessions.Session)\n+    factory = kwargs.pop(\"session_factory\", session_factory)\n \n     # By using the 'with' statement we are sure the session is closed, thus we\n     # avoid leaving sockets open which can trigger a ResourceWarning in some\n     # cases, and look like a memory leak in others.\n-    with session_factory() as session:\n+    with factory() as session:\n         return session.request(method=method, url=url, **kwargs)\n \n \n",
+  "duration_ms": 167318.92943382263
+}

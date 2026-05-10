@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-001",
+  "principle": "LSP",
+  "title": "Refactor LSP-001 (LSP): Subclass implementation of _closeInput() changes behavior by conditionally cl...",
+  "branch": "refactor/LSP-001",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3665,
+    "completion_tokens": 416
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._closeInput",
+    "entity_type": "method",
+    "line_start": 182,
+    "line_end": 195,
+    "severity": "high",
+    "scan_count": 4,
+    "description": "Subclass implementation of _closeInput() changes behavior by conditionally closing the underlying InputStream.",
+    "reasoning": "The base class JsonParserBase defines _closeInput() as a protected method intended to handle resource cleanup. The implementation in UTF8StreamJsonParser introduces conditional logic based on 'isResourceManaged()' or 'AUTO_CLOSE_SOURCE' features. While this is common in Jackson, it effectively changes the contract of the method from 'close the input' to 'conditionally close the input based on internal state', which can lead to unexpected resource leaks or premature closures if a caller expects the base class contract to be strictly followed."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor _closeInput to delegate resource management to the IOContext",
+    "rationale": "The LSP violation occurred because the subclass was making decisions about resource ownership that should be abstracted. By moving the logic into the IOContext (or ensuring the base class contract is respected), we decouple the parser from the specific resource management policy. Since I cannot modify the base class or IOContext without potentially breaking other parsers, I am refactoring the method to use a cleaner, more explicit delegation pattern that aligns with the intended contract of resource cleanup.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3558,
+        "blank_lines": 278,
+        "comment_lines": 284,
+        "function_count": 114,
+        "avg_cc": 9.62,
+        "max_cc": 984.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3810.357093811035
+}

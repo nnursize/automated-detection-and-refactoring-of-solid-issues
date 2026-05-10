@@ -1,0 +1,99 @@
+{
+  "issue_id": "ISP-004",
+  "principle": "ISP",
+  "title": "Refactor ISP-004 (ISP): The `HTTPAdapter.add_headers` method is implemented as a no-op, indicating it...",
+  "branch": "refactor/ISP-004",
+  "base": "main",
+  "head_commit": "2de64a995585a0d6c740cb951d8eee572aa200f6",
+  "status": "applied_failed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8042,
+    "completion_tokens": 573
+  },
+  "detected_issue": {
+    "file_path": "src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.add_headers",
+    "entity_type": "method",
+    "line_start": 346,
+    "line_end": 360,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The `HTTPAdapter.add_headers` method is implemented as a no-op, indicating it's not essential for the base adapter's core functionality.",
+    "reasoning": "The `HTTPAdapter` class's `send` method calls `self.add_headers()`. However, the default implementation of `add_headers` is an empty `pass` statement, with a comment explicitly stating it 'does nothing by default' and is 'left for overriding by users that subclass.' This means `HTTPAdapter` is forced to provide an implementation for a method that is not part of its core responsibility in its base form. This violates ISP because the `HTTPAdapter` (as a client of its own internal interface) is forced to depend on and implement a method it does not use meaningfully, pushing the responsibility of a potentially unused method onto the base class. A more segregated design would introduce this method via a specific mixin or a different pattern only for adapters that genuinely need to add headers."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract add_headers into a HeaderAdapter mixin to satisfy ISP",
+    "rationale": "The add_headers method was a no-op in the base HTTPAdapter, violating the Interface Segregation Principle. By moving it to a mixin, only subclasses that actually require header manipulation need to inherit from it, removing the forced dependency from the base class.",
+    "files_touched": [
+      "src/requests/adapters.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/adapters.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "    def add_headers(self, request, **kwargs):\n        \"\"\"Add any headers needed by the connection. As of v2.0 this does\n        nothing by default, but is left for overriding by users that subclass\n        the :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        This should not be called from user code, and is only exposed for use\n        when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n\n        :param request: The :class:`PreparedRequest <PreparedRequest>` to add headers to.\n        :param kwargs: The keyword arguments from the call to send().\n        \"\"\"\n        pass",
+        "replace_text": "class HeaderAdapter:\n    \"\"\"Mixin for adapters that need to add headers to requests.\"\"\"\n\n    def add_headers(self, request, **kwargs):\n        \"\"\"Add any headers needed by the connection.\n\n        :param request: The :class:`PreparedRequest <PreparedRequest>` to add headers to.\n        :param kwargs: The keyword arguments from the call to send().\n        \"\"\"\n        pass",
+        "search_lines": 13,
+        "replace_lines": 10
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "        self.cert_verify(conn, request.url, verify, cert)\n        url = self.request_url(request, proxies)\n        self.add_headers(\n            request,\n            stream=stream,\n            timeout=timeout,\n            verify=verify,\n            cert=cert,\n            proxies=proxies,\n        )\n\n        chunked = not (request.body is None or \"Content-Length\" in request.headers)",
+        "replace_text": "        self.cert_verify(conn, request.url, verify, cert)\n        url = self.request_url(request, proxies)\n\n        if hasattr(self, \"add_headers\"):\n            self.add_headers(\n                request,\n                stream=stream,\n                timeout=timeout,\n                verify=verify,\n                cert=cert,\n                proxies=proxies,\n            )\n\n        chunked = not (request.body is None or \"Content-Length\" in request.headers)",
+        "search_lines": 12,
+        "replace_lines": 14
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": false,
+    "total": 8,
+    "passed_count": 7,
+    "failed_count": 1,
+    "skipped_count": 0,
+    "error_count": 0,
+    "duration_ms": 1062.9785060882568,
+    "timed_out": false,
+    "new_failures_count": 1,
+    "pre_existing_failures_count": 0,
+    "new_failures": [
+      "tests/test_lowlevel.py::test_chunked_upload"
+    ],
+    "pre_existing_failures": [],
+    "output_tail": ".......F\n================================== FAILURES ===================================\n_____________________________ test_chunked_upload _____________________________\ntests\\test_lowlevel.py:32: in test_chunked_upload\n    r = requests.post(url, data=data, stream=True)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc\\requests\\api.py:115: in post\n    return request(\"post\", url, data=data, json=json, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc\\requests\\api.py:59: in request\n    return session.request(method=method, url=url, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc\\requests\\sessions.py:587: in request\n    resp = self.send(prep, **send_kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc\\requests\\sessions.py:701: in send\n    r = adapter.send(request, **kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc\\requests\\adapters.py:138: in send\n    raise NotImplementedError\nE   NotImplementedError\n=========================== short test summary info ===========================\nFAILED tests/test_lowlevel.py::test_chunked_upload - NotImplementedError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 7 passed, 1 deselected in 0.25s\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 588,
+        "blank_lines": 108,
+        "comment_lines": 13,
+        "function_count": 24,
+        "avg_cc": 3.29,
+        "max_cc": 14.0,
+        "mi": 47.37
+      }
+    ],
+    "after": null
+  },
+  "diff": "diff --git a/src/requests/adapters.py b/src/requests/adapters.py\nindex d049183..2f45e3c 100644\n--- a/src/requests/adapters.py\n+++ b/src/requests/adapters.py\n@@ -571,14 +571,11 @@ class HTTPAdapter(BaseAdapter):\n \n         return url\n \n-    def add_headers(self, request, **kwargs):\n-        \"\"\"Add any headers needed by the connection. As of v2.0 this does\n-        nothing by default, but is left for overriding by users that subclass\n-        the :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n+class HeaderAdapter:\n+    \"\"\"Mixin for adapters that need to add headers to requests.\"\"\"\n \n-        This should not be called from user code, and is only exposed for use\n-        when subclassing the\n-        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.\n+    def add_headers(self, request, **kwargs):\n+        \"\"\"Add any headers needed by the connection.\n \n         :param request: The :class:`PreparedRequest <PreparedRequest>` to add headers to.\n         :param kwargs: The keyword arguments from the call to send().\n@@ -663,14 +660,16 @@ class HTTPAdapter(BaseAdapter):\n \n         self.cert_verify(conn, request.url, verify, cert)\n         url = self.request_url(request, proxies)\n-        self.add_headers(\n-            request,\n-            stream=stream,\n-            timeout=timeout,\n-            verify=verify,\n-            cert=cert,\n-            proxies=proxies,\n-        )\n+\n+        if hasattr(self, \"add_headers\"):\n+            self.add_headers(\n+                request,\n+                stream=stream,\n+                timeout=timeout,\n+                verify=verify,\n+                cert=cert,\n+                proxies=proxies,\n+            )\n \n         chunked = not (request.body is None or \"Content-Length\" in request.headers)\n \n",
+  "duration_ms": 6859.227895736694
+}

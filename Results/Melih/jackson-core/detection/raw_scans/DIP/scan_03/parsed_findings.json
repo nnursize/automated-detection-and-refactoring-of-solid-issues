@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator.writeNumber",
+    "entity_type": "method",
+    "line_start": 699,
+    "line_end": 755,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Hard-coded static dependency on NumberOutput utility class",
+    "reasoning": "The generator depends directly on the concrete static implementation of 'NumberOutput' for converting numbers to bytes. This violates DIP because the high-level logic of JSON generation is coupled to the specific low-level details of numeric formatting. This prevents the inversion of control where different numeric formatting strategies (e.g., for performance or locale-specific requirements) could be injected."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator._allocateEntityBuffer",
+    "entity_type": "method",
+    "line_start": 1241,
+    "line_end": 1253,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of internal buffer bypasses the IOContext abstraction",
+    "reasoning": "The class directly instantiates a 'char[]' buffer using the 'new' keyword. In this architecture, resource allocation (buffers) is handled by the 'IOContext' abstraction (as seen in the constructor). By manually creating the array, the class violates DIP by depending on a specific memory allocation detail rather than the provided resource management abstraction, hindering consistent buffer recycling."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.currentTokenLocation",
+    "entity_type": "method",
+    "line_start": 1558,
+    "line_end": 1564,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Direct instantiation of TokenStreamLocation couples the parser to a concrete metadata detail",
+    "reasoning": "The parser directly instantiates 'TokenStreamLocation' using 'new'. While this is a value object, the hard-coded instantiation means the parser logic is coupled to a specific implementation of location tracking. If the library intended to support different location formats or extended metadata, it would require modifying every concrete parser implementation instead of using a factory or provider abstraction."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 49,
+    "line_end": 49,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Dependency on concrete ByteQuadsCanonicalizer instead of a symbol table abstraction",
+    "reasoning": "The parser depends on 'ByteQuadsCanonicalizer', which is a concrete, low-level implementation of a symbol table. According to DIP, high-level modules (parsers) and details (symbol tables) should both depend on abstractions. Using a concrete class here makes it impossible to substitute the symbol management logic (e.g., for different concurrency models) without changing the parser code."
+  }
+]

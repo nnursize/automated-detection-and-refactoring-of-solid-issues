@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson",
+    "entity_type": "class",
+    "line_start": 135,
+    "line_end": 1256,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level class Gson directly instantiates low-level internal components.",
+    "reasoning": "The Gson class, which serves as the high-level entry point for the library, directly instantiates low-level internal components such as ConstructorConstructor (L253) and is tightly coupled to concrete implementations in the internal.bind package. This violates DIP, which states that high-level modules should depend on abstractions rather than low-level details, and that dependencies should ideally be injected."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/TypeAdapter.java",
+    "entity_name": "TypeAdapter",
+    "entity_type": "class",
+    "line_start": 121,
+    "line_end": 322,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstract class TypeAdapter depends on concrete implementations JsonTreeReader and JsonTreeWriter.",
+    "reasoning": "The abstract TypeAdapter class imports and utilizes concrete implementations JsonTreeReader and JsonTreeWriter (e.g., in methods like toJsonTree at L178 and fromJsonTree at L241). This violates DIP as the base abstraction is coupled to specific low-level implementation details, making the abstraction depend on details rather than the other way around."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 211,
+    "line_end": 1860,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Base class JsonReader depends on its subclass JsonTreeReader.",
+    "reasoning": "The JsonReader class imports com.google.gson.internal.bind.JsonTreeReader, which is a concrete subclass of JsonReader. This violates DIP because the abstraction (base class) should not have knowledge of or depend on its specific implementation details (subclasses), which also creates a circular dependency between the stream and internal.bind packages."
+  }
+]

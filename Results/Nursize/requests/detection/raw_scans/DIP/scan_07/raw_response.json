@@ -1,0 +1,117 @@
+{
+  "scan_id": "requests_DIP_scan_07",
+  "repo_name": "requests",
+  "principle": "DIP",
+  "scan_number": 7,
+  "timestamp": "2026-05-03T02:28:23.428967",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstraction...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 40,\n      \"line_end\": 40,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPAdapter directly instantiates a concrete Retry object for retry logic.\",\n      \"reasoning\": \"The HTTPAdapter is a high-level component responsible for transport. It directly instantiates `urllib3.util.retry.Retry`, a concrete low-level detail for retry policy. This couples the adapter to a specific retry implementation, making it difficult to substitute with a different retry mechanism without modifying the adapter's core logic. Ideally, the retry strategy should be an abstraction, and a concrete implementation should be injected or provided via a factory.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.init_poolmanager\",\n      \"entity_type\": \"class\",\n      \"line_start\": 85,\n      \"line_end\": 85,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPAdapter directly instantiates urllib3.poolmanager.PoolManager for connection pooling.\",\n      \"reasoning\": \"The HTTPAdapter, a high-level module, directly creates an instance of `urllib3.poolmanager.PoolManager`, a concrete low-level detail for managing HTTP connections. This creates a tight coupling between the adapter and the `urllib3` connection pooling implementation. To adhere to DIP, `HTTPAdapter` should depend on an abstraction for connection management, and the concrete `PoolManager` (or any other connection manager) should be injected.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.proxy_manager_for\",\n      \"entity_type\": \"class\",\n      \"line_start\": 116,\n      \"line_end\": 126,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPAdapter directly instantiates concrete SOCKSProxyManager or uses proxy_from_url for proxy management.\",\n      \"reasoning\": \"The `HTTPAdapter` directly instantiates `SOCKSProxyManager` and relies on `proxy_from_url` (which returns a `ProxyManager`), both concrete implementations for handling proxies. This couples the high-level adapter to specific proxy management details from `urllib3`. An abstraction for proxy management should be used, with concrete implementations injected.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter.build_response\",\n      \"entity_type\": \"class\",\n      \"line_start\": 200,\n      \"line_end\": 200,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPAdapter directly instantiates requests.Response.\",\n      \"reasoning\": \"The `HTTPAdapter`, a high-level component responsible for processing HTTP responses, directly instantiates `requests.Response`, a concrete low-level data structure. This means the adapter is tightly coupled to the specific implementation of the `Response` object. Ideally, `HTTPAdapter` should depend on an abstraction for creating responses, or a response factory should be injected, allowing for different `Response` implementations to be used without modifying the adapter.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 409,\n      \"line_end\": 410,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Session directly instantiates concrete HTTPAdapter for default transport adapters.\",\n      \"reasoning\": \"The `Session` class, a high-level orchestrator of HTTP requests, directly instantiates `HTTPAdapter` (a concrete implementation of `BaseAdapter`) in its constructor to set up default transport adapters. This violates DIP because the high-level `Session` module depends on a concrete low-level adapter implementation. While the `mount` method allows adding other adapters, the default setup is hardcoded, making it difficult to change the default transport mechanism without modifying the `Session` class itself. The default adapters should ideally be injected or provided via an abstract factory.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 405,\n      \"line_end\": 405,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Session directly creates RequestsCookieJar via cookiejar_from_dict.\",\n      \"reasoning\": \"The `Session` class directly creates a `RequestsCookieJar` (a concrete cookie jar implementation) through `cookiejar_from_dict`. This couples the high-level `Session` module to a specific cookie management implementation. To adhere to DIP, `Session` should depend on an abstraction for cookie management, and the concrete `RequestsCookieJar` (or any other `CookieJar` compatible object) should be injected or provided via a factory.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.prepare_request\",\n      \"entity_type\": \"class\",\n      \"line_start\": 440,\n      \"line_end\": 440,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Session directly instantiates requests.models.PreparedRequest.\",\n      \"reasoning\": \"The `Session` class, a high-level module, directly instantiates `requests.models.PreparedRequest`, a concrete low-level detail representing a request ready for transmission. This creates a direct dependency of the high-level `Session` on a concrete detail. Ideally, `Session` should depend on an abstraction for preparing requests, or a factory for `PreparedRequest` objects should be injected.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.request\",\n      \"entity_type\": \"class\",\n      \"line_start\": 504,\n      \"line_end\": 504,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Session directly instantiates requests.models.Request.\",\n      \"reasoning\": \"The `Session` class, a high-level module, directly instantiates `requests.models.Request`, a concrete low-level detail representing a user's request. This creates a direct dependency of the high-level `Session` on a concrete detail. Ideally, `Session` should depend on an abstraction for creating requests, or a factory for `Request` objects should be injected.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Request.prepare\",\n      \"entity_type\": \"class\",\n      \"line_start\": 300,\n      \"line_end\": 300,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Request directly instantiates requests.models.PreparedRequest.\",\n      \"reasoning\": \"The `Request` class, which represents a high-level user-defined request, directly instantiates `requests.models.PreparedRequest`, a concrete low-level detail representing the request in its final, sendable form. This violates DIP as the high-level `Request` depends on a concrete low-level implementation. An abstraction for request preparation should be used, or `PreparedRequest` should be injected or created via a factory.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.__init__",
+      "entity_type": "class",
+      "line_start": 40,
+      "line_end": 40,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "HTTPAdapter directly instantiates a concrete Retry object for retry logic.",
+      "reasoning": "The HTTPAdapter is a high-level component responsible for transport. It directly instantiates `urllib3.util.retry.Retry`, a concrete low-level detail for retry policy. This couples the adapter to a specific retry implementation, making it difficult to substitute with a different retry mechanism without modifying the adapter's core logic. Ideally, the retry strategy should be an abstraction, and a concrete implementation should be injected or provided via a factory."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.init_poolmanager",
+      "entity_type": "class",
+      "line_start": 85,
+      "line_end": 85,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "HTTPAdapter directly instantiates urllib3.poolmanager.PoolManager for connection pooling.",
+      "reasoning": "The HTTPAdapter, a high-level module, directly creates an instance of `urllib3.poolmanager.PoolManager`, a concrete low-level detail for managing HTTP connections. This creates a tight coupling between the adapter and the `urllib3` connection pooling implementation. To adhere to DIP, `HTTPAdapter` should depend on an abstraction for connection management, and the concrete `PoolManager` (or any other connection manager) should be injected."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.proxy_manager_for",
+      "entity_type": "class",
+      "line_start": 116,
+      "line_end": 126,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "HTTPAdapter directly instantiates concrete SOCKSProxyManager or uses proxy_from_url for proxy management.",
+      "reasoning": "The `HTTPAdapter` directly instantiates `SOCKSProxyManager` and relies on `proxy_from_url` (which returns a `ProxyManager`), both concrete implementations for handling proxies. This couples the high-level adapter to specific proxy management details from `urllib3`. An abstraction for proxy management should be used, with concrete implementations injected."
+    },
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter.build_response",
+      "entity_type": "class",
+      "line_start": 200,
+      "line_end": 200,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "HTTPAdapter directly instantiates requests.Response.",
+      "reasoning": "The `HTTPAdapter`, a high-level component responsible for processing HTTP responses, directly instantiates `requests.Response`, a concrete low-level data structure. This means the adapter is tightly coupled to the specific implementation of the `Response` object. Ideally, `HTTPAdapter` should depend on an abstraction for creating responses, or a response factory should be injected, allowing for different `Response` implementations to be used without modifying the adapter."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.__init__",
+      "entity_type": "class",
+      "line_start": 409,
+      "line_end": 410,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Session directly instantiates concrete HTTPAdapter for default transport adapters.",
+      "reasoning": "The `Session` class, a high-level orchestrator of HTTP requests, directly instantiates `HTTPAdapter` (a concrete implementation of `BaseAdapter`) in its constructor to set up default transport adapters. This violates DIP because the high-level `Session` module depends on a concrete low-level adapter implementation. While the `mount` method allows adding other adapters, the default setup is hardcoded, making it difficult to change the default transport mechanism without modifying the `Session` class itself. The default adapters should ideally be injected or provided via an abstract factory."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.__init__",
+      "entity_type": "class",
+      "line_start": 405,
+      "line_end": 405,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Session directly creates RequestsCookieJar via cookiejar_from_dict.",
+      "reasoning": "The `Session` class directly creates a `RequestsCookieJar` (a concrete cookie jar implementation) through `cookiejar_from_dict`. This couples the high-level `Session` module to a specific cookie management implementation. To adhere to DIP, `Session` should depend on an abstraction for cookie management, and the concrete `RequestsCookieJar` (or any other `CookieJar` compatible object) should be injected or provided via a factory."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.prepare_request",
+      "entity_type": "class",
+      "line_start": 440,
+      "line_end": 440,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Session directly instantiates requests.models.PreparedRequest.",
+      "reasoning": "The `Session` class, a high-level module, directly instantiates `requests.models.PreparedRequest`, a concrete low-level detail representing a request ready for transmission. This creates a direct dependency of the high-level `Session` on a concrete detail. Ideally, `Session` should depend on an abstraction for preparing requests, or a factory for `PreparedRequest` objects should be injected."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.request",
+      "entity_type": "class",
+      "line_start": 504,
+      "line_end": 504,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Session directly instantiates requests.models.Request.",
+      "reasoning": "The `Session` class, a high-level module, directly instantiates `requests.models.Request`, a concrete low-level detail representing a user's request. This creates a direct dependency of the high-level `Session` on a concrete detail. Ideally, `Session` should depend on an abstraction for creating requests, or a factory for `Request` objects should be injected."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Request.prepare",
+      "entity_type": "class",
+      "line_start": 300,
+      "line_end": 300,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Request directly instantiates requests.models.PreparedRequest.",
+      "reasoning": "The `Request` class, which represents a high-level user-defined request, directly instantiates `requests.models.PreparedRequest`, a concrete low-level detail representing the request in its final, sendable form. This violates DIP as the high-level `Request` depends on a concrete low-level implementation. An abstraction for request preparation should be used, or `PreparedRequest` should be injected or created via a factory."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27190.428018569946,
+  "error": null
+}

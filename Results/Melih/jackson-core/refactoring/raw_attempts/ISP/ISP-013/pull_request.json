@@ -1,0 +1,61 @@
+{
+  "issue_id": "ISP-013",
+  "principle": "ISP",
+  "title": "Refactor ISP-013 (ISP): The GeneratorBase class is forced to implement writeBinary from an InputStrea...",
+  "branch": "refactor/ISP-013",
+  "base": "main",
+  "head_commit": "d5e5fd92e8534a70406271f72c8d497a33ebeeba",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5361,
+    "completion_tokens": 203
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+    "entity_name": "GeneratorBase.writeBinary(Base64Variant b64variant, InputStream data, int dataLength)",
+    "entity_type": "method",
+    "line_start": 264,
+    "line_end": 266,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The GeneratorBase class is forced to implement writeBinary from an InputStream but explicitly reports it as an unsupported operation.",
+    "reasoning": "The 'JsonGenerator' interface mandates a method for writing binary content from an 'InputStream'. 'GeneratorBase' explicitly calls '_reportUnsupportedOperation()' for 'writeBinary(Base64Variant, InputStream, int)'. This suggests that this method is not supported by all generator types (e.g., character-based generators), indicating the 'JsonGenerator' interface is too broad and violates ISP by forcing implementations to support irrelevant functionalities."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove unsupported writeBinary(InputStream) from GeneratorBase",
+    "rationale": "GeneratorBase is a base class for various generators, including textual ones that do not support binary streaming. Forcing this method into the base class violates ISP. By removing it from the base class, we allow only specific implementations that support binary streaming to define it, while others remain unaffected.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "loc": 387,
+        "blank_lines": 74,
+        "comment_lines": 33,
+        "function_count": 23,
+        "avg_cc": 2.87,
+        "max_cc": 44.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 1452.305793762207
+}

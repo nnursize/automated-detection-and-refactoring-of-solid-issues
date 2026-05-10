@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.proxy_manager_for",
+    "entity_type": "class",
+    "line_start": 231,
+    "line_end": 264,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Hardcoded proxy scheme dispatching logic prevents extension for new proxy types.",
+    "reasoning": "The method uses an if/elif/else structure to check if a proxy URL starts with 'socks' to instantiate a SOCKSProxyManager. Adding support for a new type of proxy (e.g., 'ssh' or 'ftp') would require modifying this existing method rather than extending the class, violating the principle that entities should be closed for modification."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "SessionRedirectMixin.rebuild_method",
+    "entity_type": "class",
+    "line_start": 336,
+    "line_end": 354,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Hardcoded HTTP status code checks for redirect method transformation.",
+    "reasoning": "The method contains multiple 'if' statements checking for specific status codes (see_other, found, moved) to decide if the request method should be switched to GET. Adding new redirection behaviors or handling new status codes requires modifying this function's core logic."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.send",
+    "entity_type": "class",
+    "line_start": 655,
+    "line_end": 698,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Large exception-mapping block using isinstance checks violates OCP.",
+    "reasoning": "The 'send' method contains a long chain of 'isinstance' checks (e.g., checking e.reason against ConnectTimeoutError, ResponseError, etc.) to map urllib3 exceptions to requests exceptions. This pattern requires modifying the 'send' method every time a new exception type needs to be handled or remapped."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.request_url",
+    "entity_type": "class",
+    "line_start": 535,
+    "line_end": 565,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Hardcoded scheme checks determine URL formatting logic.",
+    "reasoning": "The method explicitly checks for 'https' and 'socks' schemes to determine if the full URL or just the path should be used. Supporting new schemes with different proxying requirements would require modifying this logic."
+  }
+]

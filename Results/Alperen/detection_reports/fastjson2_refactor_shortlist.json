@@ -1,0 +1,1142 @@
+{
+  "repo_name": "fastjson2",
+  "per_principle_quota": 12,
+  "total_selected": 56,
+  "total_quota": 60,
+  "short_of_quota": {
+    "ISP": {
+      "have": 8,
+      "need": 12
+    }
+  },
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-001",
+        "rank": 1,
+        "scan_count": 10,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils",
+        "entity_type": "class",
+        "line_start": 47,
+        "line_end": 2130,
+        "description": "DateUtils acts as a God Class for all date-related operations, mixing high-level logic with low-level infrastructure concerns.",
+        "reasoning": "The class encapsulates at least four distinct responsibilities: 1) High-level date parsing and formatting logic for multiple standards (ISO, RFC, etc.), 2) Low-level memory management and performance optimization using 'Unsafe' to read raw bytes/shorts/longs (e.g., methods like 'hms' and 'localDateYMD'), 3) Timezone database management, including hardcoded historical offset tables for specific regions like Shanghai, and 4) Internal caching mechanisms for formatted strings (CacheDate8/10). A change in performance requirements, timezone laws, or supported date formats would all require modifying this single class.",
+        "first_detected_scan": "fastjson2_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_01",
+          "fastjson2_SRP_scan_02",
+          "fastjson2_SRP_scan_03",
+          "fastjson2_SRP_scan_04",
+          "fastjson2_SRP_scan_05",
+          "fastjson2_SRP_scan_07",
+          "fastjson2_SRP_scan_08",
+          "fastjson2_SRP_scan_09",
+          "fastjson2_SRP_scan_11",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-010",
+        "rank": 2,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReader.java",
+        "entity_name": "JSONReader",
+        "entity_type": "class",
+        "line_start": 54,
+        "line_end": 6887,
+        "description": "The class acts as a 'God Class' by combining multiple distinct responsibilities: low-level JSON tokenization, high-level JSON structure navigation, type-specific deserialization, complex numeric parsing/coercion, polymorphic deserialization, reference resolution, configuration management, and factory creation.",
+        "reasoning": "The `JSONReader` class is responsible for too many unrelated concerns. It handles the fundamental task of reading JSON tokens (lexer/parser), but also includes extensive logic for converting these tokens into various Java types (deserializer), managing complex numeric representations (arbitrary-precision number handler), resolving object references, and dynamically loading classes for polymorphic types (auto-type handler). Each of these areas represents a distinct reason for the class to change. For instance, a change in JSON tokenization rules, a new date format, an update to numeric precision handling, or a modification to auto-type security would all necessitate changes to this single class, indicating a severe violation of SRP.",
+        "first_detected_scan": "fastjson2_SRP_scan_07",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_07",
+          "fastjson2_SRP_scan_08",
+          "fastjson2_SRP_scan_09",
+          "fastjson2_SRP_scan_10",
+          "fastjson2_SRP_scan_11",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-002",
+        "rank": 3,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF8.java",
+        "entity_name": "JSONReaderUTF8",
+        "entity_type": "class",
+        "line_start": 21,
+        "line_end": 2100,
+        "description": "Mixes JSON structural tokenization with specific business type parsing logic.",
+        "reasoning": "The class is responsible for structural JSON parsing (handling braces, brackets, commas) but also contains specialized logic for parsing complex types like UUID (readUUID), BigDecimal (readBigDecimal), and various Date types. According to SRP, the reader should focus on JSON grammar, while the logic for interpreting specific data types should be delegated to separate TypeReaders or ValueConsumers. This mixing makes the class extremely large and difficult to maintain.",
+        "first_detected_scan": "fastjson2_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_01",
+          "fastjson2_SRP_scan_02",
+          "fastjson2_SRP_scan_03",
+          "fastjson2_SRP_scan_04",
+          "fastjson2_SRP_scan_05",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-006",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF16.java",
+        "entity_name": "JSONReaderUTF16",
+        "entity_type": "class",
+        "line_start": 20,
+        "line_end": 2070,
+        "description": "The class mixes JSON lexical analysis, syntactic parsing, and direct Java type conversion for numerous data types, mirroring JSONReaderUTF8.",
+        "reasoning": "This class exhibits the same SRP violations as `JSONReaderUTF8`, but for UTF-16 character input. It is responsible for: (1) tokenizing JSON input (lexical analysis), (2) parsing JSON structure (syntactic analysis), (3) handling character-level escape sequences, (4) performing Java type conversion from JSON tokens (e.g., `readInt32Value()`, `readDoubleValue()`, `readLocalDate()`, `readUUID()`, `readBigDecimal()`), and (5) managing caching and resource management. This conflates multiple responsibilities, making it a 'God class'. Changes in JSON format, character encoding, or Java type conversion logic would all require modifications to this single class.",
+        "first_detected_scan": "fastjson2_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_03",
+          "fastjson2_SRP_scan_04",
+          "fastjson2_SRP_scan_05",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-011",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONWriter.java",
+        "entity_name": "JSONWriter",
+        "entity_type": "class",
+        "line_start": 68,
+        "line_end": 5055,
+        "description": "Fat interface defining excessive abstract methods for all JSON writing operations and data types.",
+        "reasoning": "Similar to `JSONReader`, the `JSONWriter` abstract class defines a huge number of abstract methods for token writing, raw value writing, and type-specific serialization (primitives, wrappers, dates, times, UUIDs, BigDecimals, arrays, etc.). This forces concrete implementations to be 'god writers' and leads to `UnsupportedOperationException` for methods not applicable to a specific format (e.g., JSONB). This violates SRP by having too many reasons to change and forcing clients to implement methods they don't need.",
+        "first_detected_scan": "fastjson2_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_10",
+          "fastjson2_SRP_scan_11",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-012",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/TypeUtils.java",
+        "entity_name": "TypeUtils",
+        "entity_type": "class",
+        "line_start": 29,
+        "line_end": 3878,
+        "description": "God class combining unrelated utility functions for type conversion, reflection, number parsing, and validation.",
+        "reasoning": "The `TypeUtils` class is a classic 'God Object' that aggregates a wide array of disparate responsibilities. It handles proxy creation, string/byte array conversions, type interning, number parsing (double, float, int, long, BigDecimal), type casting, type mapping/resolution, type comparison, reflection utilities (generic types, annotations), and various validation methods (isInteger, isNumber, isUUID, validateIPv4/IPv6). This class has numerous reasons to change, violating SRP. It should be decomposed into several smaller, more focused utility classes.",
+        "first_detected_scan": "fastjson2_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_10",
+          "fastjson2_SRP_scan_11",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-016",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/reader/ObjectReaderCreatorASM.java",
+        "entity_name": "ObjectReaderCreatorASM",
+        "entity_type": "class",
+        "line_start": 31,
+        "line_end": 4626,
+        "description": "God class responsible for generating bytecode for all ObjectReader deserialization logic.",
+        "reasoning": "Similar to `ObjectWriterCreatorASM`, this class is a 'god generator' for `ObjectReader` bytecode. It handles the generation of deserialization logic for various constructors, builder patterns, field types, JSON/JSONB formats, auto-type mechanisms, field name matching, value parsing, error handling, and more. This class has too many distinct responsibilities, making it highly susceptible to changes and difficult to maintain, which is a clear violation of SRP.",
+        "first_detected_scan": "fastjson2_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_10",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-013",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/IOUtils.java",
+        "entity_name": "IOUtils",
+        "entity_type": "class",
+        "line_start": 32,
+        "line_end": 3110,
+        "description": "God class combining low-level I/O, number formatting, encoding, and byte/char array manipulation.",
+        "reasoning": "The `IOUtils` class is another severe 'God Object' violation. It mixes responsibilities for digit/number formatting (e.g., `writeDigitPair`, `getChars`, `writeDecimal`, `writeIntX`), UTF-8 encoding/decoding, basic file/stream operations (`close`, `lines`), date/time formatting into buffers (`writeLocalDate`, `writeLocalTime`, `writeNano`), and extensive low-level byte/char array manipulation (put/get primitives, unaligned operations, searching, validation). This class has many unrelated reasons to change and should be broken down into more cohesive utility classes.",
+        "first_detected_scan": "fastjson2_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_10",
+          "fastjson2_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-015",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/writer/ObjectWriterCreatorASM.java",
+        "entity_name": "ObjectWriterCreatorASM",
+        "entity_type": "class",
+        "line_start": 29,
+        "line_end": 5305,
+        "description": "God class responsible for generating bytecode for all ObjectWriter serialization logic.",
+        "reasoning": "This class is a 'god generator' for `ObjectWriter` bytecode. It contains an immense amount of logic for generating serialization code for virtually every possible Java type and serialization strategy (JSON, JSONB, array mapping, direct field access, null handling, date/time, collections, objects, enums, primitives, numbers, type info, references, filters, field names, field values, different field lengths/types). This single class has too many reasons to change, as any change in serialization logic for any type or format would require modification here, violating SRP.",
+        "first_detected_scan": "fastjson2_SRP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_10",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-019",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONB.java",
+        "entity_name": "JSONB",
+        "entity_type": "class",
+        "line_start": 128,
+        "line_end": 3209,
+        "description": "The JSONB utility class mixes high-level JSONB parsing/serialization with very low-level binary encoding/decoding primitives.",
+        "reasoning": "This class provides high-level API entry points for JSONB serialization and deserialization (parse, toBytes, writeTo). However, it also exposes and implements numerous extremely low-level binary encoding and decoding primitives (e.g., toBytes(boolean), toBytes(int), writeEnum, writeBoolean, writeFloat, writeDouble, writeInt8, writeInt16, writeInt32, writeSymbol, writeUUID, writeInstant, writeLocalDate, stringCapacity, putStringSizeSmall/Large). These low-level details should be encapsulated within the specific JSONReaderJSONB and JSONWriterJSONB implementations or dedicated internal binary codec utilities, not exposed directly in a top-level facade, violating separation of concerns.",
+        "first_detected_scan": "fastjson2_SRP_scan_11",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_11",
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-020",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderJSONB.java",
+        "entity_name": "JSONReaderJSONB",
+        "entity_type": "class",
+        "line_start": 25,
+        "line_end": 6303,
+        "description": "Class handles reading and parsing of JSONB data, involving low-level byte processing and high-level type conversions.",
+        "reasoning": "The `JSONReaderJSONB` class is responsible for parsing the JSONB binary format. This includes reading from `InputStream` and `byte[]`, handling various JSONB data types and structures (e.g., `readLength`, `readTimestampWithTimeZone`, `readLocalTime`, `readLocalDateTime`, `readZonedDateTime`, `readUUID`, `readBigInteger`, `readBigDecimal`), and managing internal state like `offset` and `type`. The extensive range of parsing methods for different data types and formats, combined with the low-level byte processing specific to JSONB, indicates a violation of SRP.",
+        "first_detected_scan": "fastjson2_SRP_scan_12",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-017",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/introspect/PropertyAccessorFactory.java",
+        "entity_name": "PropertyAccessorFactory",
+        "entity_type": "class",
+        "line_start": 35,
+        "line_end": 5114,
+        "description": "The PropertyAccessorFactory class acts as a factory but also contains numerous concrete implementations for various property accessors.",
+        "reasoning": "While its primary role is to create PropertyAccessor instances, this class directly houses dozens of concrete PropertyAccessor implementations (e.g., FieldAccessorReflectBooleanValue, MethodAccessorCharValue, FunctionAccessorByteValue, PropertyAccessorWrapperBooleanValue) for different data types and access patterns (fields, methods, functional interfaces, wrappers). It also includes factories for constructor functions and accessor decorators. This violates SRP by combining the factory responsibility with the responsibility of *implementing* the products it creates, leading to a massive and highly coupled class with many reasons to change.",
+        "first_detected_scan": "fastjson2_SRP_scan_11",
+        "duplicate_scan_ids": [
+          "fastjson2_SRP_scan_11"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-001",
+        "rank": 1,
+        "scan_count": 9,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseDate",
+        "entity_type": "method",
+        "line_start": 109,
+        "line_end": 155,
+        "description": "The parseDate method uses a large switch statement to handle different date formats.",
+        "reasoning": "The `parseDate` method in `DateUtils.java` contains a large `switch` statement based on the `format` string. To add support for a new date format, this `switch` statement would need to be modified by adding a new `case`. This violates the Open/Closed Principle because the existing code is being modified to extend its functionality. A better approach would be to use a strategy pattern or a registry of formatters that can be extended without modifying the core `parseDate` method.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_09",
+          "fastjson2_OCP_scan_10",
+          "fastjson2_OCP_scan_11",
+          "fastjson2_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-004",
+        "rank": 2,
+        "scan_count": 8,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDate",
+        "entity_type": "method",
+        "line_start": 801,
+        "line_end": 834,
+        "description": "The parseLocalDate method uses a switch statement based on the length of the input.",
+        "reasoning": "The `parseLocalDate` method, which takes a `String` as input, internally calls `parseLocalDate` with `char[]`. The `char[]` overload of `parseLocalDate` (lines 849-901) uses a `switch` statement on the length of the input. This switch statement needs to be modified to support new date formats or lengths, violating the OCP. The principle suggests that software entities should be open for extension but closed for modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-010",
+        "rank": 3,
+        "scan_count": 8,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTimeX",
+        "entity_type": "method",
+        "line_start": 1429,
+        "line_end": 1566,
+        "description": "The parseLocalDateTimeX method (byte array overload) uses a large switch statement based on the length of the input and complex conditional logic.",
+        "reasoning": "The `parseLocalDateTimeX` method, overloaded for byte arrays, also relies on a `switch` statement based on input length and extensive conditional logic. This design violates the Open/Closed Principle because extending the functionality to support new formats would require modifying the existing code. The principle promotes extensibility without modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-013",
+        "rank": 4,
+        "scan_count": 8,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis19",
+        "entity_type": "method",
+        "line_start": 1647,
+        "line_end": 1877,
+        "description": "The parseMillis19 method uses a large switch statement based on the DateTimeFormatPattern.",
+        "reasoning": "The `parseMillis19` method uses a `switch` statement on the `DateTimeFormatPattern` enum to parse date-time strings. Adding a new format pattern would require modifying this `switch` statement, which violates the Open/Closed Principle. The principle suggests that software entities should be open for extension but closed for modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-014",
+        "rank": 5,
+        "scan_count": 8,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis19",
+        "entity_type": "method",
+        "line_start": 1892,
+        "line_end": 2122,
+        "description": "The parseMillis19 method (byte array overload) uses a large switch statement based on the DateTimeFormatPattern.",
+        "reasoning": "Similar to the char array overload, the `parseMillis19` method that handles byte arrays also uses a `switch` statement based on `DateTimeFormatPattern`. This design violates the Open/Closed Principle because new date formats would require modifying the existing method. The principle promotes extending functionality without altering current code.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-020",
+        "rank": 6,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime",
+        "entity_type": "method",
+        "line_start": 709,
+        "line_end": 766,
+        "description": "The `parseLocalDateTime` method (overload for byte array) uses a switch statement based on the length of the input.",
+        "reasoning": "This method uses a switch statement on the length of the input byte array to parse LocalDateTime. Adding new date/time formats that have different lengths would require modifying this switch statement, which violates the Open/Closed Principle. A more extensible design is needed.",
+        "first_detected_scan": "fastjson2_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-005",
+        "rank": 7,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDate",
+        "entity_type": "method",
+        "line_start": 916,
+        "line_end": 971,
+        "description": "The parseLocalDate method (byte array overload) uses a switch statement based on the length of the input.",
+        "reasoning": "The `parseLocalDate` method that accepts a `byte[]` also relies on a `switch` statement based on the length of the input array. This design pattern requires modifying the existing method to add support for new date formats corresponding to different lengths, which is a violation of the Open/Closed Principle. New functionality should ideally be added through extension rather than modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-015",
+        "rank": 8,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis10",
+        "entity_type": "method",
+        "line_start": 500,
+        "line_end": 545,
+        "description": "The parseMillis10 method uses a switch statement based on the DateTimeFormatPattern.",
+        "reasoning": "The `parseMillis10` method uses a `switch` statement on `DateTimeFormatPattern` to parse date strings. Adding support for a new date format would require modifying this `switch` statement, which violates the Open/Closed Principle. The principle states that software entities should be open for extension but closed for modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-007",
+        "rank": 9,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis",
+        "entity_type": "method",
+        "line_start": 568,
+        "line_end": 631,
+        "description": "The parseMillis method (byte array overload) uses multiple conditional checks and a switch statement for parsing different date formats.",
+        "reasoning": "The `parseMillis` method, which handles byte arrays, contains a series of `if-else if` statements and a `switch` statement based on the length of the input. This complex conditional logic is used to parse various date formats. Adding support for a new format would require modifying this method, violating the Open/Closed Principle. The principle suggests that new functionality should be added through extension, not modification of existing code.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_08",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-003",
+        "rank": 10,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime",
+        "entity_type": "method",
+        "line_start": 670,
+        "line_end": 736,
+        "description": "The parseLocalDateTime method (byte array overload) uses a large switch statement based on the length of the input.",
+        "reasoning": "Similar to the `char[]` overload, the `byte[]` version of `parseLocalDateTime` also uses a `switch` statement on the length of the input. This design forces modifications to the method whenever a new format length needs to be supported, violating the Open/Closed Principle. The principle advocates for extending functionality without altering existing code.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-006",
+        "rank": 11,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDate",
+        "entity_type": "method",
+        "line_start": 986,
+        "line_end": 1041,
+        "description": "The parseLocalDate method (char array overload) uses a switch statement based on the length of the input.",
+        "reasoning": "The `parseLocalDate` method that takes a `char[]` utilizes a `switch` statement based on the length of the input. This approach makes it difficult to add new date formats without altering the existing code, directly contradicting the Open/Closed Principle. The principle encourages designing classes that are open for extension but closed for modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_02",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-011",
+        "rank": 12,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseZonedDateTime",
+        "entity_type": "method",
+        "line_start": 1077,
+        "line_end": 1118,
+        "description": "The parseZonedDateTime method uses a switch statement based on the length of the input.",
+        "reasoning": "The `parseZonedDateTime` method, which handles string input, delegates to an overload that uses a `switch` statement based on the length of the input. This `switch` statement contains logic for various date formats. Adding support for new formats would necessitate modifying this `switch` statement, violating the Open/Closed Principle. The principle states that software entities should be open for extension but closed for modification.",
+        "first_detected_scan": "fastjson2_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_OCP_scan_01",
+          "fastjson2_OCP_scan_03",
+          "fastjson2_OCP_scan_04",
+          "fastjson2_OCP_scan_05",
+          "fastjson2_OCP_scan_06",
+          "fastjson2_OCP_scan_09"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-002",
+        "rank": 1,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseDate",
+        "entity_type": "method",
+        "line_start": 170,
+        "line_end": 238,
+        "description": "The parseDate method has multiple overloaded versions and a complex switch statement that handles various date formats, potentially leading to inconsistent behavior or unexpected exceptions for unsupported formats.",
+        "reasoning": "The `parseDate` method has several overloaded versions and a large switch statement that attempts to parse dates in various formats. This complexity can lead to LSP violations if a subclass were to override this method and not handle all the formats or if the parsing logic for a specific format is subtly different from what a caller might expect based on the base class contract. The default case that falls through to `DateTimeFormatter.ofPattern(format)` and then `LocalDateTime.parse` might also introduce unexpected behavior or exceptions if the `format` string is not a valid pattern or if the `str` is not compatible with `LocalDateTime` parsing, which could break the substitutability contract.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-006",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis",
+        "entity_type": "method",
+        "line_start": 282,
+        "line_end": 290,
+        "description": "The parseMillis method returns milliseconds since epoch, which is a primitive long. While primitive types are immutable, the interpretation of '0' as a null or invalid date might be inconsistent with other parsing methods.",
+        "reasoning": "Similar to the other `parseMillis` overload, returning `0` for null input can be problematic. `0` milliseconds since epoch is a valid date. If the intention is to signal an invalid or null date, returning `null` or throwing an exception would be more aligned with LSP, as it avoids ambiguity and potential misinterpretation by the caller.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-009",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime",
+        "entity_type": "method",
+        "line_start": 408,
+        "line_end": 434,
+        "description": "The parseLocalDateTime method has a large switch statement based on the length of the input, which can lead to unexpected behavior or exceptions if a length is not handled correctly.",
+        "reasoning": "The `parseLocalDateTime` method uses a large switch statement based on the length of the input character array. If a length is not explicitly handled or falls into the `default` case, it might lead to incorrect parsing or exceptions. This violates LSP because a subclass overriding this method might not handle all lengths or might have a different interpretation of the default case, breaking the substitutability contract. The `default` case also throws a `DateTimeParseException` which might not be expected by all callers.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-017",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDate9",
+        "entity_type": "method",
+        "line_start": 1375,
+        "line_end": 1429,
+        "description": "The parseLocalDate9 method handles multiple date formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "This method, like `parseLocalDate8`, handles a variety of date formats (`yyyy-MM-d`, `yyyy-M-dd`, `dd-MMM-yy`, etc.) using extensive conditional logic. The complexity increases the likelihood of errors or inconsistent parsing behavior, especially if subclasses do not perfectly replicate the parsing logic for all supported formats. The reliance on `DateUtils.month` also adds another layer of potential inconsistency.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-018",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDate10",
+        "entity_type": "method",
+        "line_start": 1445,
+        "line_end": 1478,
+        "description": "The parseLocalDate10 method handles multiple date formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "This method parses several date formats (`yyyy-MM-dd`, `yyyy/MM/dd`, `MM/dd/yyyy`, `dd.MM.yyyy`, etc.) using a complex series of `if-else if` statements. This intricate logic can be a source of LSP violations if subclasses do not maintain the same parsing behavior or if the base implementation has subtle bugs. The handling of different separators and date component orders makes it prone to errors.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-019",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDate10",
+        "entity_type": "method",
+        "line_start": 1480,
+        "line_end": 1513,
+        "description": "The parseLocalDate10 method handles multiple date formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "Similar to the `byte[]` overload, this `char[]` version of `parseLocalDate10` handles multiple date formats with complex conditional logic. The variety of formats and the reliance on character checks can lead to LSP violations if subclasses do not implement the parsing logic identically or if the base implementation has subtle errors.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-022",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime12",
+        "entity_type": "method",
+        "line_start": 1613,
+        "line_end": 1639,
+        "description": "The parseLocalDateTime12 method parses a specific format ('yyyyMMddHHmm') and has complex validation logic that could lead to unexpected behavior.",
+        "reasoning": "This method parses a fixed format ('yyyyMMddHHmm') but includes checks for year, month, day, hour, and minute values. The validation logic (`(year | month | dom | hour | minute) < 0`) and the special handling for `year == 0 && month == 0 && dom == 0 && hour == 0 && minute == 0` returning `null` might not be universally expected behavior for date parsing, potentially violating LSP if subclasses handle these edge cases differently.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-023",
+        "rank": 8,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime12",
+        "entity_type": "method",
+        "line_start": 1655,
+        "line_end": 1681,
+        "description": "The parseLocalDateTime12 method parses a specific format ('yyyyMMddHHmm') and has complex validation logic that could lead to unexpected behavior.",
+        "reasoning": "This `byte[]` overload of `parseLocalDateTime12` also parses a fixed format ('yyyyMMddHHmm') with complex validation. The checks for negative values and the special handling for all-zero values returning `null` might not be consistent with LSP if subclasses handle these cases differently or if the expected behavior for invalid inputs is not clearly defined.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-026",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime16",
+        "entity_type": "method",
+        "line_start": 1767,
+        "line_end": 1819,
+        "description": "The parseLocalDateTime16 method handles multiple date/time formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "This method handles several date/time formats (`yyyy-MM-ddTHH:mm`, `yyyy-MM-dd HH:mm`, `yyyyMMddTHHmmssZ`, etc.) using a complex series of `if-else if` statements. The variety of formats and the intricate character checks make it prone to LSP violations if subclasses do not implement the parsing logic identically or if the base implementation has subtle bugs. The handling of different separators and the specific checks for 'T' or ' ' as date/time separators, along with 'Z' for UTC, add to the complexity.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-027",
+        "rank": 10,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime16",
+        "entity_type": "method",
+        "line_start": 1821,
+        "line_end": 1884,
+        "description": "The parseLocalDateTime16 method handles multiple date/time formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "This `byte[]` overload of `parseLocalDateTime16` also handles multiple date/time formats with complex conditional logic. The extensive checks for character positions, separators, and specific byte sequences for different formats can lead to LSP violations if subclasses do not replicate this logic precisely or if the base implementation contains errors. The handling of Chinese and Korean characters for month/day names adds further complexity.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-029",
+        "rank": 11,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime17",
+        "entity_type": "method",
+        "line_start": 1965,
+        "line_end": 2038,
+        "description": "The parseLocalDateTime17 method handles multiple date/time formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "This `byte[]` overload of `parseLocalDateTime17` handles multiple date/time formats with complex conditional logic. The extensive checks for character positions, separators, and specific byte sequences for different formats can lead to LSP violations if subclasses do not replicate this logic precisely or if the base implementation contains errors. The handling of different date/time separators and the specific checks for 'Z' for UTC can lead to unexpected behavior.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-030",
+        "rank": 12,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseLocalDateTime18",
+        "entity_type": "method",
+        "line_start": 2054,
+        "line_end": 2117,
+        "description": "The parseLocalDateTime18 method handles multiple date/time formats with complex conditional logic, increasing the risk of inconsistent parsing or errors.",
+        "reasoning": "This method parses several date/time formats (`yyyy-M-ddTHH:mm:ss`, `yyyy-M-dd HH:mm:ss`, etc.) using a complex series of `if-else if` statements. The variety of formats and the intricate character checks make it prone to LSP violations if subclasses do not implement the parsing logic identically or if the base implementation has subtle bugs. The handling of single vs. double digit months/days and different separators contributes to this complexity.",
+        "first_detected_scan": "fastjson2_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_LSP_scan_01",
+          "fastjson2_LSP_scan_02",
+          "fastjson2_LSP_scan_03"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-006",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReader.java",
+        "entity_name": "JSONReader",
+        "entity_type": "class",
+        "line_start": 54,
+        "line_end": 6887,
+        "description": "JSONReader is a fat interface that forces subclasses to implement a massive number of highly specialized methods.",
+        "reasoning": "The abstract class JSONReader defines hundreds of abstract methods that every subclass must implement. This includes a massive series of optimization methods like nextIfName4Match2 through nextIfName4Match43 (lines 480-1000+), which are highly specific to binary format (JSONB) optimizations. Additionally, it defines numerous format-specific parsing methods (e.g., readLocalTime8, readLocalDate10) as abstract. This forces subclasses for standard text formats (like JSONReaderUTF8 or JSONReaderASCII) to provide implementations for dozens of methods that are irrelevant to their specific format or encoding. Furthermore, methods like nextIfMatch(byte type) and nextIfMatchTypedAny() (lines 2049-2060) throw 'UnsupportedOperation' exceptions in the base class, indicating that the interface is forcing a contract that is not universally applicable to its implementations.",
+        "first_detected_scan": "fastjson2_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_07",
+          "fastjson2_ISP_scan_08",
+          "fastjson2_ISP_scan_09",
+          "fastjson2_ISP_scan_10",
+          "fastjson2_ISP_scan_11",
+          "fastjson2_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-001",
+        "rank": 2,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF8.java",
+        "entity_name": "JSONReaderUTF8",
+        "entity_type": "class",
+        "line_start": 774,
+        "line_end": 1215,
+        "description": "Implementation of a 'Fat Interface' containing dozens of specialized optimization methods.",
+        "reasoning": "The JSONReader hierarchy (as seen in JSONReaderUTF8) defines a massive set of methods for matching field names and values of specific lengths (e.g., nextIfName4Match1 through nextIfName4Match43). This 'Fat Interface' forces every subclass to implement these highly specific optimization hooks, regardless of whether the implementation strategy or data source benefits from them. This violates ISP by bloating the core reader contract with implementation-specific optimization details that should be segregated from the general parsing interface.",
+        "first_detected_scan": "fastjson2_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_01",
+          "fastjson2_ISP_scan_02",
+          "fastjson2_ISP_scan_03",
+          "fastjson2_ISP_scan_04",
+          "fastjson2_ISP_scan_05",
+          "fastjson2_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF16.java",
+        "entity_name": "JSONReaderUTF16",
+        "entity_type": "class",
+        "line_start": 1500,
+        "line_end": 1950,
+        "description": "Implementation of a 'Fat Interface' containing dozens of specialized optimization methods.",
+        "reasoning": "Similar to the UTF8 implementation, JSONReaderUTF16 is forced to satisfy a bloated contract in the JSONReader base class. It implements a vast array of specialized 'Match' methods (nextIfName8Match0, nextIfName4Match2, etc.) that are coupled to specific char patterns and lengths. This forces the class to provide logic for a large number of methods that should be segregated into specialized optimization interfaces rather than being part of the primary JSON parsing contract.",
+        "first_detected_scan": "fastjson2_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_01",
+          "fastjson2_ISP_scan_03",
+          "fastjson2_ISP_scan_04",
+          "fastjson2_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderJSONB.java",
+        "entity_name": "JSONReaderJSONB",
+        "entity_type": "class",
+        "line_start": 25,
+        "line_end": 6303,
+        "description": "JSONReaderJSONB is forced to implement numerous text-specific methods from JSONReader that are not applicable to binary JSON.",
+        "reasoning": "As a subclass of JSONReader, JSONReaderJSONB is forced to provide implementations for methods like nextIfMatch(char), nextIfArrayStart(), nextIfComma(), and skipComment(). Because these operations are specific to text-based JSON and have no meaning in the binary JSONB format, the class is forced to throw 'UnsupportedOperationException' or 'JSONException(\"UnsupportedOperation\")' (e.g., L261, L266, L271, L4826), which is a clear violation of ISP.",
+        "first_detected_scan": "fastjson2_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_10",
+          "fastjson2_ISP_scan_11",
+          "fastjson2_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-008",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONWriter.java",
+        "entity_name": "JSONWriter",
+        "entity_type": "class",
+        "line_start": 68,
+        "line_end": 5055,
+        "description": "JSONWriter is a fat interface that forces implementations to depend on a broad range of unrelated output methods.",
+        "reasoning": "JSONWriter contains a vast number of abstract methods for writing every possible data type and handling different output formats (text vs binary). The base class itself contains several methods that throw 'UnsupportedOperationException' (e.g., writeRaw at L1230, writeSymbol at L1463, writeTypeName at L2416), indicating that the interface is too broad and forces subclasses to inherit or implement methods they do not support or use.",
+        "first_detected_scan": "fastjson2_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_10",
+          "fastjson2_ISP_scan_11",
+          "fastjson2_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-005",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF16.java",
+        "entity_name": "JSONReaderUTF16",
+        "entity_type": "class",
+        "line_start": 16,
+        "line_end": 1450,
+        "description": "JSONReaderUTF16 is forced to implement a bloated contract that includes specialized parsing for non-core JSON types.",
+        "reasoning": "God Class smell -> ISP violation. Similar to the UTF8 implementation, JSONReaderUTF16 is forced to implement the entire JSONReader contract, which is a 'fat interface'. It includes dozens of methods for specialized Java 8 date/time types (readLocalDate8, readLocalDate9, etc.), UUIDs, and regular expression patterns. This forces the class to carry significant implementation baggage that should be segregated into separate, more focused interfaces or external handlers, ensuring that a basic JSON reader implementation isn't forced to support every possible data type supported by the library.",
+        "first_detected_scan": "fastjson2_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-004",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF16.java",
+        "entity_name": "JSONReaderUTF16",
+        "entity_type": "class",
+        "line_start": 1860,
+        "line_end": 2330,
+        "description": "Inheritance of a fat interface requiring dozens of specialized matching methods.",
+        "reasoning": "Similar to the UTF8 implementation, JSONReaderUTF16 is forced to implement the full suite of optimization methods (nextIfName8Match0, nextIfName4Match1...43, etc.) defined in the JSONReader base. This forces the class to depend on and implement a large number of methods that are only relevant to specific internal performance optimizations of the library's codec generator. This violates ISP by forcing implementations to satisfy a massive, non-segregated interface containing nearly 100 methods, many of which serve distinct, specialized purposes.",
+        "first_detected_scan": "fastjson2_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "ISP-003",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF8.java",
+        "entity_name": "JSONReaderUTF8",
+        "entity_type": "class",
+        "line_start": 1968,
+        "line_end": 2230,
+        "description": "Reader interface is polluted with specific date format parsing methods.",
+        "reasoning": "The reader hierarchy includes methods like readLocalDate8, readLocalDate9, readLocalDate10, and readLocalDate11. These methods represent specific string-length optimizations for date parsing. Including them in the primary reader interface forces all implementations to support these specific formats, violating ISP by not segregating general JSON parsing from specialized, format-specific optimizations.",
+        "first_detected_scan": "fastjson2_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_ISP_scan_01"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-002",
+        "rank": 1,
+        "scan_count": 6,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF8.java",
+        "entity_name": "JSONReaderUTF8.readBigDecimal",
+        "entity_type": "method",
+        "line_start": 2068,
+        "line_end": 2070,
+        "description": "Direct instantiation of concrete JSONObject class.",
+        "reasoning": "The method directly instantiates 'new JSONObject()' when encountering an object structure during BigDecimal parsing. This creates a tight coupling to a specific implementation of the Map interface, preventing users from providing custom object containers or using alternative Map implementations through dependency injection or a factory.",
+        "first_detected_scan": "fastjson2_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_01",
+          "fastjson2_DIP_scan_02",
+          "fastjson2_DIP_scan_03",
+          "fastjson2_DIP_scan_04",
+          "fastjson2_DIP_scan_05",
+          "fastjson2_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-003",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF16.java",
+        "entity_name": "JSONReaderUTF16.readBigDecimal",
+        "entity_type": "method",
+        "line_start": 1011,
+        "line_end": 1013,
+        "description": "Direct instantiation of concrete JSONObject class.",
+        "reasoning": "Similar to the UTF8 reader, this method hard-codes the dependency on the concrete JSONObject class, violating the principle that high-level parsing logic should depend on abstractions for data containers.",
+        "first_detected_scan": "fastjson2_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_01",
+          "fastjson2_DIP_scan_02",
+          "fastjson2_DIP_scan_04",
+          "fastjson2_DIP_scan_06",
+          "fastjson2_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-062",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReader.java",
+        "entity_name": "JSONReader.of",
+        "entity_type": "method",
+        "line_start": 2110,
+        "line_end": 2296,
+        "description": "Static factory methods directly instantiate concrete subclasses of JSONReader.",
+        "reasoning": "The static factory methods `JSONReader.of(...)` and `JSONReader.ofJSONB(...)` directly instantiate concrete implementations like `JSONReaderUTF8`, `JSONReaderUTF16`, `JSONReaderASCII`, and `JSONReaderJSONB`. This means the high-level abstraction `JSONReader` is coupled to its low-level concrete implementations, which is a direct violation of the Dependency Inversion Principle. New concrete implementations cannot be introduced without modifying the `JSONReader` class itself.",
+        "first_detected_scan": "fastjson2_DIP_scan_07",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_07",
+          "fastjson2_DIP_scan_09",
+          "fastjson2_DIP_scan_10",
+          "fastjson2_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-001",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis",
+        "entity_type": "method",
+        "line_start": 559,
+        "line_end": 565,
+        "description": "Low-level utility depends on high-level implementation details and concrete reader instances.",
+        "reasoning": "The parseMillis method directly instantiates a JSONReader and references a specific concrete implementation (ObjectReaderImplDate.INSTANCE). Utility classes should provide atomic logic and not depend on the high-level parsing subsystem or specific implementation details of the framework readers.",
+        "first_detected_scan": "fastjson2_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_01",
+          "fastjson2_DIP_scan_06",
+          "fastjson2_DIP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "DIP-006",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis(char[], int, int, ZoneId)",
+        "entity_type": "method",
+        "line_start": 435,
+        "line_end": 490,
+        "description": "Directly instantiates and uses a concrete ObjectReader implementation for date parsing.",
+        "reasoning": "Similar to the byte array version, this method in 'DateUtils' directly invokes 'ObjectReaderImplDate.INSTANCE.readObject'. This couples the utility class to a specific concrete implementation of an object reader, violating DIP by depending on a detail rather than an abstraction.",
+        "first_detected_scan": "fastjson2_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_03",
+          "fastjson2_DIP_scan_05",
+          "fastjson2_DIP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "DIP-077",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSON.java",
+        "entity_name": "JSON.parse / JSON.toJSONString / JSON.toJSONBytes / JSON.writeTo",
+        "entity_type": "class",
+        "line_start": 121,
+        "line_end": 3834,
+        "description": "The high-level JSON utility class directly depends on concrete factory methods of JSONReader and JSONWriter.",
+        "reasoning": "The `JSON` class, serving as a high-level entry point for parsing and serialization, directly calls static factory methods like `JSONReader.of(...)` and `JSONWriter.of(...)`. This creates a direct dependency on the concrete factory implementations, which in turn instantiate concrete reader/writer types. This violates the Dependency Inversion Principle, as a high-level module should depend on abstractions (e.g., an injectable `JSONFactory` interface) rather than concrete low-level details.",
+        "first_detected_scan": "fastjson2_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_10",
+          "fastjson2_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-007",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONReaderUTF8.java",
+        "entity_name": "JSONReaderUTF8.readString(ValueConsumer, boolean)",
+        "entity_type": "method",
+        "line_start": 1152,
+        "line_end": 1269,
+        "description": "Directly instantiates a concrete JSONWriter implementation within a JSONReader.",
+        "reasoning": "The 'JSONReaderUTF8' class (a low-level module for parsing UTF8 JSON) directly creates an instance of 'JSONWriterUTF8' via 'JSONWriterUTF8.of()' to handle string formatting. This creates an unnecessary and tight coupling between a specific concrete reader implementation and a specific concrete writer implementation. Ideally, the reader should not depend on a concrete writer; if it needs writing capabilities, it should depend on an abstraction (e.g., a 'JSONWriter' interface) or receive it through injection, adhering to the 'details should depend on abstractions' part of DIP. This coupling makes it difficult to change or test the writing mechanism independently.",
+        "first_detected_scan": "fastjson2_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_03",
+          "fastjson2_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-076",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONWriter.java",
+        "entity_name": "JSONWriter.of",
+        "entity_type": "class",
+        "line_start": 925,
+        "line_end": 1153,
+        "description": "The abstract JSONWriter class contains static factory methods that directly instantiate concrete writer implementations.",
+        "reasoning": "Similar to `JSONReader`, the high-level abstraction `JSONWriter` should not depend on low-level concrete implementations like `JSONWriterUTF8`, `JSONWriterUTF16`, `JSONWriterJSONB`, or `JSONWriterPretty`. The factory methods `of(...)` hard-code the choice of concrete types, violating the principle that high-level modules should depend on abstractions, not details. This creates tight coupling and reduces flexibility.",
+        "first_detected_scan": "fastjson2_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_10",
+          "fastjson2_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis",
+        "entity_type": "method",
+        "line_start": 538,
+        "line_end": 548,
+        "description": "Low-level utility class depends on high-level parsing modules.",
+        "reasoning": "The parseMillis method in DateUtils (a low-level utility) directly references and instantiates JSONReader and ObjectReaderImplDate. This creates a circular dependency between the utility package and the core parsing logic. According to DIP, low-level utilities should be independent and not depend on high-level implementation details like the JSON parsing engine.",
+        "first_detected_scan": "fastjson2_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_02",
+          "fastjson2_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-079",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/reader/ObjectReaderCreator.java",
+        "entity_name": "ObjectReaderCreator.createObjectReader",
+        "entity_type": "class",
+        "line_start": 134,
+        "line_end": 3570,
+        "description": "The abstract ObjectReaderCreator class directly instantiates various concrete ObjectReader implementations.",
+        "reasoning": "An abstract factory class (`ObjectReaderCreator`) should define the interface for creating objects but should not be responsible for directly instantiating concrete implementations (e.g., `ObjectReaderNoneDefaultConstructor`, `ObjectReaderSeeAlso`, `ObjectReaderImplValue`, `ObjectReaderAdapter`, etc.) within its own methods. This responsibility should be delegated to its concrete subclasses (like `ObjectReaderCreatorASM`) or an external factory, ensuring that the abstraction does not depend on details.",
+        "first_detected_scan": "fastjson2_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_10",
+          "fastjson2_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-061",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "low",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/util/DateUtils.java",
+        "entity_name": "DateUtils.parseMillis(char[], int, int, ZoneId)",
+        "entity_type": "method",
+        "line_start": 614,
+        "line_end": 691,
+        "description": "Direct dependency on a concrete JSON object reader implementation for date parsing.",
+        "reasoning": "Similar to the byte-array version, this 'parseMillis' method directly instantiates and uses 'ObjectReaderImplDate.INSTANCE' (a concrete singleton) to parse date strings embedded in JSON. This represents a direct dependency of the 'DateUtils' utility (a detail) on a specific JSON deserialization implementation (another detail) without an abstraction, which is an 'Inappropriate Intimacy' smell and a low-severity DIP violation.",
+        "first_detected_scan": "fastjson2_DIP_scan_06",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_06",
+          "fastjson2_DIP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "DIP-078",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "core/src/main/java/com/alibaba/fastjson2/JSONB.java",
+        "entity_name": "JSONB.parse / JSONB.toBytes / JSONB.writeTo",
+        "entity_type": "class",
+        "line_start": 418,
+        "line_end": 1932,
+        "description": "The high-level JSONB utility class directly depends on concrete factory methods of JSONReader and JSONWriter for JSONB format.",
+        "reasoning": "Similar to the `JSON` class, the `JSONB` utility class directly calls static factory methods like `JSONReader.ofJSONB(...)` and `JSONWriter.ofJSONB(...)`. This creates a direct dependency on the concrete factory implementations for JSONB, which instantiate concrete reader/writer types. This violates the Dependency Inversion Principle, as a high-level module should depend on abstractions rather than concrete low-level details.",
+        "first_detected_scan": "fastjson2_DIP_scan_10",
+        "duplicate_scan_ids": [
+          "fastjson2_DIP_scan_10"
+        ]
+      }
+    ]
+  }
+}

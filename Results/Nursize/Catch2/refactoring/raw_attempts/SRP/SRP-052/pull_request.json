@@ -1,0 +1,51 @@
+{
+  "issue_id": "SRP-052",
+  "principle": "SRP",
+  "title": "Refactor SRP-052 (SRP): The RunContext class acts as a 'God Object,' encompassing responsibilities fo...",
+  "branch": "refactor/SRP-052",
+  "base": "main",
+  "head_commit": "41de562d56a553d72414f348724359c474bc5345",
+  "status": "llm_error",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": "unhandled error: FatalLLMError: Server unavailable (503) \u2014 skipping to preserve quota: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 28,
+    "line_end": 161,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "The RunContext class acts as a 'God Object,' encompassing responsibilities for test execution, assertion capture, section management, generator tracking, benchmark handling, reporting coordination, configuration caching, output redirection, fatal error handling, and concurrency management.",
+    "reasoning": "This class is responsible for nearly every aspect of a test run. Any change to how tests are executed, how results are captured, how sections or generators are managed, how benchmarks are processed, how reporting is coordinated, or how fatal errors are handled would require modifications to this single class. This violates SRP by having far too many reasons to change and managing too many disparate concerns."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/catch2/internal/catch_run_context.hpp",
+        "loc": 116,
+        "blank_lines": 35,
+        "comment_lines": 16,
+        "function_count": 0,
+        "avg_cc": 12.0,
+        "max_cc": 12.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2534.7917079925537
+}

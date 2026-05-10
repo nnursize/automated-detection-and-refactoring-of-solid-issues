@@ -1,0 +1,96 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java
+index 163b26b..9f78c63 100644
+--- a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java
++++ b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java
+@@ -170,47 +170,57 @@ public final class ConstructorConstructor {
+     return newUnsafeAllocator(rawType);
+   }
+ 
++  private interface SpecialCollectionCreator {
++    <T> ObjectConstructor<T> create(Type type, Class<? super T> rawType);
++  }
++
++  private static final List<SpecialCollectionCreator> SPECIAL_COLLECTION_CREATORS = List.of(
++      new SpecialCollectionCreator() {
++        @Override public <T> ObjectConstructor<T> create(Type type, Class<? super T> rawType) {
++          if (!EnumSet.class.isAssignableFrom(rawType)) return null;
++          return () -> {
++            if (type instanceof ParameterizedType) {
++              Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
++              if (elementType instanceof Class) {
++                @SuppressWarnings({"unchecked", "rawtypes"})
++                T set = (T) EnumSet.noneOf((Class) elementType);
++                return set;
++              }
++              throw new JsonIOException("Invalid EnumSet type: " + type);
++            }
++            throw new JsonIOException("Invalid EnumSet type: " + type);
++          };
++        }
++      },
++      new SpecialCollectionCreator() {
++        @Override public <T> ObjectConstructor<T> create(Type type, Class<? super T> rawType) {
++          if (rawType != EnumMap.class) return null;
++          return () -> {
++            if (type instanceof ParameterizedType) {
++              Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
++              if (elementType instanceof Class) {
++                @SuppressWarnings({"unchecked", "rawtypes"})
++                T map = (T) new EnumMap((Class) elementType);
++                return map;
++              }
++              throw new JsonIOException("Invalid EnumMap type: " + type);
++            }
++            throw new JsonIOException("Invalid EnumMap type: " + type);
++          };
++        }
++      }
++  );
++
+   /**
+    * Creates constructors for special JDK collection types which do not have a public no-args
+    * constructor.
+    */
+   private static <T> ObjectConstructor<T> newSpecialCollectionConstructor(
+       Type type, Class<? super T> rawType) {
+-    if (EnumSet.class.isAssignableFrom(rawType)) {
+-      return () -> {
+-        if (type instanceof ParameterizedType) {
+-          Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
+-          if (elementType instanceof Class) {
+-            @SuppressWarnings({"unchecked", "rawtypes"})
+-            T set = (T) EnumSet.noneOf((Class) elementType);
+-            return set;
+-          } else {
+-            throw new JsonIOException("Invalid EnumSet type: " + type);
+-          }
+-        } else {
+-          throw new JsonIOException("Invalid EnumSet type: " + type);
+-        }
+-      };
++    for (SpecialCollectionCreator creator : SPECIAL_COLLECTION_CREATORS) {
++      ObjectConstructor<T> constructor = creator.create(type, rawType);
++      if (constructor != null) return constructor;
+     }
+-    // Only support creation of EnumMap, but not of custom subtypes; for them type parameters
+-    // and constructor parameter might have completely different meaning
+-    else if (rawType == EnumMap.class) {
+-      return () -> {
+-        if (type instanceof ParameterizedType) {
+-          Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
+-          if (elementType instanceof Class) {
+-            @SuppressWarnings({"unchecked", "rawtypes"})
+-            T map = (T) new EnumMap((Class) elementType);
+-            return map;
+-          } else {
+-            throw new JsonIOException("Invalid EnumMap type: " + type);
+-          }
+-        } else {
+-          throw new JsonIOException("Invalid EnumMap type: " + type);
+-        }
+-      };
+-    }
+-
+     return null;
+   }
+ 

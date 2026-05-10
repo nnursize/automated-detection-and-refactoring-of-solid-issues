@@ -1,0 +1,80 @@
+{
+  "issue_id": "OCP-033",
+  "principle": "OCP",
+  "title": "Refactor OCP-033 (OCP): Switch statement on character code for token parsing requires modification fo...",
+  "branch": "refactor/OCP-033",
+  "base": "main",
+  "head_commit": "68ce7e9ad175b8602bc625a892c37584b60ad05f",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3609,
+    "completion_tokens": 1042
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser.nextToken",
+    "entity_type": "method",
+    "line_start": 479,
+    "line_end": 546,
+    "severity": "high",
+    "scan_count": 4,
+    "description": "Switch statement on character code for token parsing requires modification for new tokens.",
+    "reasoning": "The switch-case logic based on the character `i` to identify the next token is a hard-coded parser logic that must be modified to support any new JSON token or value type."
+  },
+  "fix_logic": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.2,
+    "summary": "Extract token parsing switch statement into a protected method to allow extension.",
+    "rationale": "The original `nextToken` method contained a `switch` statement that directly handled various character codes to determine the next JSON token. This violated the Open/Closed Principle because adding support for new token types would require modifying this `switch` statement. By extracting this logic into a new `protected` method, `_parseValueToken`, the `nextToken` method is now closed for modification. Subclasses can override `_parseValueToken` to introduce or alter token parsing behavior without changing the core `nextToken` logic, thus adhering to OCP. All existing behavior is preserved as the extracted logic is identical.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "            JsonToken t;\n\n            switch (i) {\n            case '-':\n                t = _parseSignedNumber(true);\n                break;\n            case '+':\n                if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {\n                    t = _parseSignedNumber(false);\n                } else {\n                    t = _handleUnexpectedValue(i);\n                }\n                break;\n            case '.': // [core#611]:\n                t = _parseFloatThatStartsWithPeriod(false, false);\n                break;\n            case '0':\n            case '1':\n            case '2':\n            case '3':\n            case '4':\n            case '5':\n            case '6':\n            case '7':\n            case '8':\n            case '9':\n                t = _parseUnsignedNumber(i);\n                break;\n            case 'f':\n                _matchFalse();\n                 t = JsonToken.VALUE_FALSE;\n                break;\n            case 'n':\n                _matchNull();\n                t = JsonToken.VALUE_NULL;\n                break;\n            case 't':\n                _matchTrue();\n                t = JsonToken.VALUE_TRUE;\n                break;\n            case '[':\n                t = JsonToken.START_ARRAY;\n                break;\n            case '{':\n                t = JsonToken.START_OBJECT;\n                break;\n\n            default:\n                t = _handleUnexpectedValue(i);\n            }",
+        "replace_text": "            JsonToken t = _parseValueToken(i);",
+        "search_lines": 50,
+        "replace_lines": 1
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "search_text": "        _nextToken = t;\n        return _currToken;\n    }",
+        "replace_text": "        _nextToken = t;\n        return _currToken;\n    }\n\n    /**\n     * Helper method called by {@link #nextToken()} to parse a value token\n     * based on the first character encountered.\n     * This method is protected to allow subclasses to override and extend\n     * token parsing behavior.\n     *\n     * @param i The first character of the token.\n     * @return The {@link JsonToken} representing the parsed value.\n     * @throws JacksonException If an unexpected character is encountered or parsing fails.\n     */\n    protected JsonToken _parseValueToken(int i) throws JacksonException\n    {\n        switch (i) {\n        case '-':\n            return _parseSignedNumber(true);\n        case '+':\n            if (isEnabled(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS)) {\n                return _parseSignedNumber(false);\n            }\n            return _handleUnexpectedValue(i);\n        case '.': // [core#611]:\n            return _parseFloatThatStartsWithPeriod(false, false);\n        case '0':\n        case '1':\n        case '2':\n        case '3':\n        case '4':\n        case '5':\n        case '6':\n        case '7':\n        case '8':\n        case '9':\n            return _parseUnsignedNumber(i);\n        case 'f':\n            _matchFalse();\n            return JsonToken.VALUE_FALSE;\n        case 'n':\n            _matchNull();\n            return JsonToken.VALUE_NULL;\n        case 't':\n            _matchTrue();\n            return JsonToken.VALUE_TRUE;\n        case '[':\n            return JsonToken.START_ARRAY;\n        case '{':\n            return JsonToken.START_OBJECT;\n        default:\n            return _handleUnexpectedValue(i);\n        }\n    }",
+        "search_lines": 3,
+        "replace_lines": 54
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+        "loc": 3541,
+        "blank_lines": 274,
+        "comment_lines": 281,
+        "function_count": 111,
+        "avg_cc": 9.88,
+        "max_cc": 987.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 37326.910734176636
+}

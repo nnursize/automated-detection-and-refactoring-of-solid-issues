@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        /**\n         * Returns true if the instance is a section tracker\n         *\n         * Subclasses should override to true if they are, replaces RTTI\n         * for internal debug checks.\n         */\n        virtual bool isSectionTracker() const;\n        /**\n         * Returns true if the instance is a generator tracker\n         *\n         * Subclasses should override to true if they are, replaces RTTI\n         * for internal debug checks.\n         */\n        virtual bool isGeneratorTracker() const;\n    };",
+    "replace_text": "    };"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "    class SectionTracker : public TrackerBase {\n        std::vector<StringRef> m_filters;\n        // Note that lifetime-wise we piggy back off the name stored in the `ITracker` parent`.\n        // Currently it allocates owns the name, so this is safe. If it is later refactored\n        // to not own the name, the name still has to outlive the `ITracker` parent, so\n        // this should still be safe.\n        StringRef m_trimmed_name;\n    public:\n        SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );\n\n        bool isSectionTracker() const override;\n\n        bool isComplete() const override;",
+    "replace_text": "    class SectionTracker : public TrackerBase {\n        std::vector<StringRef> m_filters;\n        // Note that lifetime-wise we piggy back off the name stored in the `ITracker` parent`.\n        // Currently it allocates owns the name, so this is safe. If it is later refactored\n        // to not own the name, the name still has to outlive the `ITracker` parent, so\n        // this should still be safe.\n        StringRef m_trimmed_name;\n    public:\n        SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );\n\n        bool isComplete() const override;"
+  }
+]

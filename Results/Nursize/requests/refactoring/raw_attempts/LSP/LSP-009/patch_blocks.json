@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/requests/structures.py",
+    "search_text": "class LookupDict(dict):\n    \"\"\"Dictionary lookup object.\"\"\"\n\n    def __init__(self, name=None):\n        self.name = name\n        super().__init__()\n\n    def __repr__(self):\n        return f\"<lookup '{self.name}'>\"\n\n    def __getitem__(self, key):\n        # We allow fall-through here, so values default to None\n\n        return self.__dict__.get(key, None)\n\n    def get(self, key, default=None):\n        return self.__dict__.get(key, default)",
+    "replace_text": "class LookupDict(Mapping):\n    \"\"\"Dictionary lookup object.\"\"\"\n\n    def __init__(self, name=None):\n        self.name = name\n        self._items = {}\n\n    def __getitem__(self, key):\n        return self._items.get(key)\n\n    def __iter__(self):\n        return iter(self._items)\n\n    def __len__(self):\n        return len(self._items)\n\n    def __repr__(self):\n        return f\"<lookup '{self.name}'>\"\n\n    def get(self, key, default=None):\n        return self._items.get(key, default)"
+  }
+]

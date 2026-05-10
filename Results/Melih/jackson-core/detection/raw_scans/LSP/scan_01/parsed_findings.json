@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._closeInput",
+    "entity_type": "method",
+    "line_start": 182,
+    "line_end": 195,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subclass implementation of _closeInput() changes behavior by conditionally closing the underlying InputStream.",
+    "reasoning": "The base class JsonParserBase defines _closeInput() as a protected method intended to handle resource cleanup. The implementation in UTF8StreamJsonParser introduces conditional logic based on 'isResourceManaged()' or 'AUTO_CLOSE_SOURCE' features. While this is common in Jackson, it effectively changes the contract of the method from 'close the input' to 'conditionally close the input based on internal state', which can lead to unexpected resource leaks or premature closures if a caller expects the base class contract to be strictly followed."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+    "entity_name": "UTF8DataInputJsonParser._closeInput",
+    "entity_type": "method",
+    "line_start": 113,
+    "line_end": 113,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass implementation of _closeInput() is a no-op, violating the expected cleanup contract.",
+    "reasoning": "The base class JsonParserBase defines _closeInput() as a protected method responsible for releasing resources. By providing an empty implementation, the subclass fails to perform necessary cleanup of the DataInput source, which violates the postcondition of the base class method contract."
+  }
+]

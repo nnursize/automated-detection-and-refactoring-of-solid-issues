@@ -1,0 +1,100 @@
+{
+  "issue_id": "SRP-007",
+  "principle": "SRP",
+  "title": "Refactor SRP-007 (SRP): Combines URL parsing, scheme/host validation, IDNA encoding, parameter encodi...",
+  "branch": "refactor/SRP-007",
+  "base": "main",
+  "head_commit": "86adf5b7fc0237d018b9f36b810b5e074c620668",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 10131,
+    "completion_tokens": 1270
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_url",
+    "entity_type": "method",
+    "line_start": 251,
+    "line_end": 307,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Combines URL parsing, scheme/host validation, IDNA encoding, parameter encoding, and URI requoting.",
+    "reasoning": "This method is responsible for preparing the request URL. It mixes several concerns: 1) Parsing the URL into components. 2) Validating the scheme and host. 3) Applying IDNA encoding to the hostname. 4) Encoding URL parameters (delegating to `_encode_params`). 5) Reconstructing and requoting the final URI. Changes in URL validation rules, IDNA encoding standards, parameter encoding logic, or URI quoting behavior would all necessitate changes to this single method."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract URL preparation logic into a dedicated helper method to improve SRP compliance.",
+    "rationale": "The `prepare_url` method was doing too much (parsing, validation, IDNA encoding, parameter encoding, and reconstruction). By extracting the URL reconstruction and validation logic into a private helper `_prepare_url_components`, we separate the high-level orchestration from the low-level URL manipulation details.",
+    "files_touched": [
+      "src/requests/models.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/models.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/models.py",
+        "search_text": "    def prepare_url(self, url, params):\n        \"\"\"Prepares the given HTTP URL.\"\"\"\n        #: Accept objects that have string representations.\n        #: We're unable to blindly call unicode/str functions\n        #: as this will include the bytestring indicator (b'')\n        #: on python 3.x.\n        #: https://github.com/psf/requests/pull/2238\n        if isinstance(url, bytes):\n            url = url.decode(\"utf8\")\n        else:\n            url = str(url)\n\n        # Remove leading whitespaces from url\n        url = url.lstrip()\n\n        # Don't do any URL preparation for non-HTTP schemes like `mailto`,\n        # `data` etc to work around exceptions from `url_parse`, which\n        # handles RFC 3986 only.\n        if \":\" in url and not url.lower().startswith(\"http\"):\n            self.url = url\n            return\n\n        # Support for unicode domain names and paths.\n        try:\n            scheme, auth, host, port, path, query, fragment = parse_url(url)\n        except LocationParseError as e:\n            raise InvalidURL(*e.args)\n\n        if not scheme:\n            raise MissingSchema(\n                f\"Invalid URL {url!r}: No scheme supplied. \"\n                f\"Perhaps you meant https://{url}?\"\n            )\n\n        if not host:\n            raise InvalidURL(f\"Invalid URL {url!r}: No host supplied\")\n\n        # In general, we want to try IDNA encoding the hostname if the string contains\n        # non-ASCII characters. This allows users to automatically get the correct IDNA\n        # behaviour. For strings containing only ASCII characters, we need to also verify\n        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.\n        if not unicode_is_ascii(host):\n            try:\n                host = self._get_idna_encoded_host(host)\n            except UnicodeError:\n                raise InvalidURL(\"URL has an invalid label.\")\n        elif host.startswith((\"*\", \".\")):\n            raise InvalidURL(\"URL has an invalid label.\")\n\n        # Carefully reconstruct the network location\n        netloc = auth or \"\"\n        if netloc:\n            netloc += \"@\"\n        netloc += host\n        if port:\n            netloc += f\":{port}\"\n\n        # Bare domains aren't valid URLs.\n        if not path:\n            path = \"/\"\n\n        if isinstance(params, (str, bytes)):\n            params = to_native_string(params)\n\n        enc_params = self._encode_params(params)\n        if enc_params:\n            if query:\n                query = f\"{query}&{enc_params}\"\n            else:\n                query = enc_params\n\n        url = requote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))\n        self.url = url",
+        "replace_text": "    def _prepare_url_components(self, url, params):\n        \"\"\"Parses, validates, and encodes URL components.\"\"\"\n        try:\n            scheme, auth, host, port, path, query, fragment = parse_url(url)\n        except LocationParseError as e:\n            raise InvalidURL(*e.args)\n\n        if not scheme:\n            raise MissingSchema(\n                f\"Invalid URL {url!r}: No scheme supplied. \"\n                f\"Perhaps you meant https://{url}?\"\n            )\n\n        if not host:\n            raise InvalidURL(f\"Invalid URL {url!r}: No host supplied\")\n\n        if not unicode_is_ascii(host):\n            try:\n                host = self._get_idna_encoded_host(host)\n            except UnicodeError:\n                raise InvalidURL(\"URL has an invalid label.\")\n        elif host.startswith((\"*\", \".\")):\n            raise InvalidURL(\"URL has an invalid label.\")\n\n        netloc = auth or \"\"\n        if netloc:\n            netloc += \"@\"\n        netloc += host\n        if port:\n            netloc += f\":{port}\"\n\n        if not path:\n            path = \"/\"\n\n        if isinstance(params, (str, bytes)):\n            params = to_native_string(params)\n\n        enc_params = self._encode_params(params)\n        if enc_params:\n            if query:\n                query = f\"{query}&{enc_params}\"\n            else:\n                query = enc_params\n\n        return urlunparse([scheme, netloc, path, None, query, fragment])\n\n    def prepare_url(self, url, params):\n        \"\"\"Prepares the given HTTP URL.\"\"\"\n        if isinstance(url, bytes):\n            url = url.decode(\"utf8\")\n        else:\n            url = str(url)\n\n        url = url.lstrip()\n\n        if \":\" in url and not url.lower().startswith(\"http\"):\n            self.url = url\n            return\n\n        self.url = requote_uri(self._prepare_url_components(url, params))",
+        "search_lines": 73,
+        "replace_lines": 60
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165962.29219436646,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:482: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.19s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 12:35:46] \"GET /digest-auth/auth/user/pass/SHA-512 HTTP/1.1\" 200 37\n127.0.0.1 - - [04/May/2026 12:36:17] \"GET /get HTTP/1.1\" 200 222\n127.0.0.1 - - [04/May/2026 12:36:17] \"GET /redirect-to?url=http%3A%2F%2F%3A1 HTTP/1.1\" 302 0\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 743,
+        "blank_lines": 182,
+        "comment_lines": 116,
+        "function_count": 44,
+        "avg_cc": 4.46,
+        "max_cc": 21.0,
+        "mi": 21.73
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 745,
+        "blank_lines": 183,
+        "comment_lines": 100,
+        "function_count": 45,
+        "avg_cc": 4.39,
+        "max_cc": 21.0,
+        "mi": 21.22
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/models.py b/src/requests/models.py\nindex 2d043f5..6c69679 100644\n--- a/src/requests/models.py\n+++ b/src/requests/models.py\n@@ -408,29 +408,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n             raise UnicodeError\n         return host\n \n-    def prepare_url(self, url, params):\n-        \"\"\"Prepares the given HTTP URL.\"\"\"\n-        #: Accept objects that have string representations.\n-        #: We're unable to blindly call unicode/str functions\n-        #: as this will include the bytestring indicator (b'')\n-        #: on python 3.x.\n-        #: https://github.com/psf/requests/pull/2238\n-        if isinstance(url, bytes):\n-            url = url.decode(\"utf8\")\n-        else:\n-            url = str(url)\n-\n-        # Remove leading whitespaces from url\n-        url = url.lstrip()\n-\n-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,\n-        # `data` etc to work around exceptions from `url_parse`, which\n-        # handles RFC 3986 only.\n-        if \":\" in url and not url.lower().startswith(\"http\"):\n-            self.url = url\n-            return\n-\n-        # Support for unicode domain names and paths.\n+    def _prepare_url_components(self, url, params):\n+        \"\"\"Parses, validates, and encodes URL components.\"\"\"\n         try:\n             scheme, auth, host, port, path, query, fragment = parse_url(url)\n         except LocationParseError as e:\n@@ -445,10 +424,6 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n         if not host:\n             raise InvalidURL(f\"Invalid URL {url!r}: No host supplied\")\n \n-        # In general, we want to try IDNA encoding the hostname if the string contains\n-        # non-ASCII characters. This allows users to automatically get the correct IDNA\n-        # behaviour. For strings containing only ASCII characters, we need to also verify\n-        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.\n         if not unicode_is_ascii(host):\n             try:\n                 host = self._get_idna_encoded_host(host)\n@@ -457,7 +432,6 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n         elif host.startswith((\"*\", \".\")):\n             raise InvalidURL(\"URL has an invalid label.\")\n \n-        # Carefully reconstruct the network location\n         netloc = auth or \"\"\n         if netloc:\n             netloc += \"@\"\n@@ -465,7 +439,6 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n         if port:\n             netloc += f\":{port}\"\n \n-        # Bare domains aren't valid URLs.\n         if not path:\n             path = \"/\"\n \n@@ -479,8 +452,22 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n             else:\n                 query = enc_params\n \n-        url = requote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))\n-        self.url = url\n+        return urlunparse([scheme, netloc, path, None, query, fragment])\n+\n+    def prepare_url(self, url, params):\n+        \"\"\"Prepares the given HTTP URL.\"\"\"\n+        if isinstance(url, bytes):\n+            url = url.decode(\"utf8\")\n+        else:\n+            url = str(url)\n+\n+        url = url.lstrip()\n+\n+        if \":\" in url and not url.lower().startswith(\"http\"):\n+            self.url = url\n+            return\n+\n+        self.url = requote_uri(self._prepare_url_components(url, params))\n \n     def prepare_headers(self, headers):\n         \"\"\"Prepares the given HTTP headers.\"\"\"\n",
+  "duration_ms": 175260.22267341614
+}

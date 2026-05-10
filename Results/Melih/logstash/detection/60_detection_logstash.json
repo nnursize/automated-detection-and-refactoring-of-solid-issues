@@ -1,0 +1,1157 @@
+{
+  "repo_name": "logstash",
+  "per_principle_quota": 12,
+  "total_selected": 60,
+  "total_quota": 60,
+  "short_of_quota": {},
+  "filters": {
+    "extensions": [
+      ".java"
+    ]
+  },
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-002",
+        "rank": 1,
+        "scan_count": 10,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "entity_name": "DeadLetterQueueWriter",
+        "entity_type": "class",
+        "line_start": 88,
+        "line_end": 605,
+        "description": "Class mixes low-level I/O, retention policy logic, and inter-process synchronization.",
+        "reasoning": "This class is responsible for: 1) Writing entries to the DLQ, 2) Managing file segment lifecycle (rollover and sealing), 3) Implementing business logic for retention policies (age-based and size-based deletion), and 4) Monitoring the filesystem for external notifications from the reader process using a WatchService. The policy logic (when to delete) should be separated from the mechanism (how to write/delete files).",
+        "first_detected_scan": "logstash_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_01",
+          "logstash_SRP_scan_02",
+          "logstash_SRP_scan_04",
+          "logstash_SRP_scan_05",
+          "logstash_SRP_scan_07",
+          "logstash_SRP_scan_08",
+          "logstash_SRP_scan_09",
+          "logstash_SRP_scan_10",
+          "logstash_SRP_scan_11",
+          "logstash_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-003",
+        "rank": 2,
+        "scan_count": 10,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+        "entity_name": "Event",
+        "entity_type": "class",
+        "line_start": 53,
+        "line_end": 415,
+        "description": "Data carrier class mixed with serialization and string interpolation logic.",
+        "reasoning": "The Event class is the primary data container but also encapsulates: 1) Complex serialization/deserialization logic for JSON, CBOR, and Map formats, 2) String interpolation logic (sprintf), and 3) Metadata management. While it is a core entity, the inclusion of specific third-party mapping logic (Jackson) and interpolation engines violates the principle that a data carrier should be decoupled from its external representations and processing logic.",
+        "first_detected_scan": "logstash_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_01",
+          "logstash_SRP_scan_02",
+          "logstash_SRP_scan_04",
+          "logstash_SRP_scan_05",
+          "logstash_SRP_scan_07",
+          "logstash_SRP_scan_08",
+          "logstash_SRP_scan_09",
+          "logstash_SRP_scan_10",
+          "logstash_SRP_scan_11",
+          "logstash_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-004",
+        "rank": 3,
+        "scan_count": 10,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt",
+        "entity_type": "class",
+        "line_start": 88,
+        "line_end": 650,
+        "description": "Mixes pipeline state management with low-level metric registration and DLQ instantiation.",
+        "reasoning": "This class manages the high-level execution state of a pipeline but also contains detailed logic for: 1) Instantiating specific DeadLetterQueueWriter implementations based on settings, 2) Manually registering a wide array of flow metrics into specific namespaces, and 3) Handling JRuby/Java bridge concerns. The metric registration logic is particularly verbose and unrelated to the core responsibility of pipeline execution.",
+        "first_detected_scan": "logstash_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_01",
+          "logstash_SRP_scan_02",
+          "logstash_SRP_scan_04",
+          "logstash_SRP_scan_05",
+          "logstash_SRP_scan_07",
+          "logstash_SRP_scan_08",
+          "logstash_SRP_scan_09",
+          "logstash_SRP_scan_10",
+          "logstash_SRP_scan_11",
+          "logstash_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-007",
+        "rank": 4,
+        "scan_count": 9,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue",
+        "entity_type": "class",
+        "line_start": 58,
+        "line_end": 740,
+        "description": "Queue class manages logical queue operations alongside physical file system concerns.",
+        "reasoning": "The Queue class handles the high-level logic of a persistent queue (read/write/ack) but is also responsible for low-level file system tasks like disk space availability checks, file locking, and directory-level upgrades (QueueUpgrade). These infrastructure concerns should be separated from the queue's behavioral logic.",
+        "first_detected_scan": "logstash_SRP_scan_02",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_02",
+          "logstash_SRP_scan_04",
+          "logstash_SRP_scan_05",
+          "logstash_SRP_scan_07",
+          "logstash_SRP_scan_08",
+          "logstash_SRP_scan_09",
+          "logstash_SRP_scan_10",
+          "logstash_SRP_scan_11",
+          "logstash_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-010",
+        "rank": 5,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "org.logstash.execution.AbstractPipelineExt",
+        "entity_type": "class",
+        "line_start": 105,
+        "line_end": 644,
+        "description": "The Pipeline JRuby extension manages execution, metrics, security, and DLQ logic.",
+        "reasoning": "This class is responsible for compiling the Pipeline IR, initializing complex flow metrics, managing the lifecycle of the Dead Letter Queue (DLQ) writer, handling secret store integration, and providing health status details. It mixes high-level execution logic with specific infrastructural concerns like security (SecretStore) and diagnostics (Metrics/Health).",
+        "first_detected_scan": "logstash_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "SRP-009",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+        "entity_name": "org.logstash.Event",
+        "entity_type": "class",
+        "line_start": 52,
+        "line_end": 329,
+        "description": "The Event class mixes data encapsulation with serialization and interpolation logic.",
+        "reasoning": "While its primary responsibility is to encapsulate Logstash event data, it also contains methods for JSON serialization/deserialization (toJson, fromJson), CBOR serialization, and complex string interpolation logic (sprintf). Serialization and formatting are external concerns that should be handled by dedicated codec or utility classes rather than the core data object.",
+        "first_detected_scan": "logstash_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "SRP-013",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+        "entity_name": "FieldReference",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 250,
+        "description": "FieldReference combines data representation with complex string parsing logic.",
+        "reasoning": "Large Class smell -> SRP violation because it encapsulates both the identity of a field path (the data structure) and the complex logic required to parse that path from a string (StrictTokenizer). The parsing logic is a separate responsibility from the representation of the parsed result.",
+        "first_detected_scan": "logstash_SRP_scan_04",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "SRP-011",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "entity_name": "org.logstash.common.io.DeadLetterQueueWriter",
+        "entity_type": "class",
+        "line_start": 85,
+        "line_end": 645,
+        "description": "The DLQ Writer handles low-level I/O, high-level retention policies, and filesystem monitoring.",
+        "reasoning": "The class manages the creation and sealing of data segments (I/O), implements business logic for age and size-based retention policies, and includes a WatchService to monitor the filesystem for notifications from the reader. Policy enforcement and filesystem monitoring are distinct responsibilities from the actual writing of data records.",
+        "first_detected_scan": "logstash_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "SRP-017",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "entity_name": "DatasetCompiler",
+        "entity_type": "class",
+        "line_start": 41,
+        "line_end": 574,
+        "description": "Compiler class mixed with runtime dataset implementations.",
+        "reasoning": "The class contains the logic to compile datasets but also defines internal runtime structures like 'Complement' (L486) and 'ComputeAndClear' (L547). The logic for generating/compiling execution code should be separated from the operational behavior of the resulting dataset objects.",
+        "first_detected_scan": "logstash_SRP_scan_12",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-006",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "entity_name": "PluginFactoryExt",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 260,
+        "description": "Combines plugin resolution with specific wiring logic for different plugin types.",
+        "reasoning": "The class is responsible for: 1) Resolving plugin names to classes, 2) Generating unique IDs, 3) Instantiating Ruby vs Java plugins, and 4) Wiring specific metrics and execution contexts into the plugins. It contains specialized logic for 'FilterDelegators' and 'OutputDelegators' that goes beyond simple instantiation, mixing factory logic with configuration and monitoring setup.",
+        "first_detected_scan": "logstash_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_01"
+        ]
+      },
+      {
+        "issue_id": "SRP-012",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "low",
+        "file_path": "logstash-core/src/main/java/org/logstash/FieldReference.java",
+        "entity_name": "org.logstash.FieldReference",
+        "entity_type": "class",
+        "line_start": 36,
+        "line_end": 261,
+        "description": "FieldReference mixes parsing logic, global configuration, and multi-layered caching.",
+        "reasoning": "This class encapsulates field paths but also contains the grammar/tokenizer logic for parsing those paths, manages global static state for escape styles, and maintains two separate concurrent caches (Java String and JRuby RubyString). The parsing logic (StrictTokenizer) and the global configuration of escape styles could be extracted to separate concerns.",
+        "first_detected_scan": "logstash_SRP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "SRP-014",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "low",
+        "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "entity_name": "JavaKeyStore",
+        "entity_type": "class",
+        "line_start": 77,
+        "line_end": 447,
+        "description": "JavaKeyStore handles secret management and low-level OS file permission management.",
+        "reasoning": "The class manages the KeyStore lifecycle but also contains specific logic for setting POSIX file attributes/permissions and handling OS-specific file locking (Windows vs. Unix). These low-level OS concerns should be abstracted away from the secret storage logic.",
+        "first_detected_scan": "logstash_SRP_scan_08",
+        "duplicate_scan_ids": [
+          "logstash_SRP_scan_08"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-001",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+        "entity_name": "EventCondition.Compiler.buildCondition",
+        "entity_type": "method",
+        "line_start": 100,
+        "line_end": 125,
+        "description": "Type-checking logic using instanceof chain for expression compilation",
+        "reasoning": "The buildCondition method uses a long chain of instanceof checks to determine how to compile different BooleanExpression types. Adding a new expression type to the Logstash configuration language requires modifying this central compiler method instead of extending the system through polymorphism or a visitor pattern.",
+        "first_detected_scan": "logstash_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_01",
+          "logstash_OCP_scan_02",
+          "logstash_OCP_scan_03",
+          "logstash_OCP_scan_04",
+          "logstash_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-024",
+        "rank": 2,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+        "entity_name": "Compiler.buildCondition",
+        "entity_type": "method",
+        "line_start": 115,
+        "line_end": 143,
+        "description": "The buildCondition method uses a long instanceof chain to dispatch compilation logic based on expression types.",
+        "reasoning": "Adding a new type of BooleanExpression requires modifying this central compiler method to add a new branch. This violates OCP as the class is not closed for modification when extending the language's expression set. A better approach would be a visitor pattern or polymorphic dispatch on the expression objects themselves.",
+        "first_detected_scan": "logstash_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_07",
+          "logstash_OCP_scan_08",
+          "logstash_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-027",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue.openPages",
+        "entity_type": "method",
+        "line_start": 165,
+        "line_end": 260,
+        "description": "The Queue class is tightly coupled to the concrete MmapPageIOV2 implementation.",
+        "reasoning": "The method openPages (and others like newCheckpointedHeadpage) explicitly instantiates MmapPageIOV2. If a new storage format or a V3 version of the page IO is introduced, the core Queue class must be modified. This should be abstracted behind a PageIO factory or injected via settings.",
+        "first_detected_scan": "logstash_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_07",
+          "logstash_OCP_scan_08",
+          "logstash_OCP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "OCP-020",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+        "entity_type": "method",
+        "line_start": 582,
+        "line_end": 605,
+        "description": "Hardcoded switch on configuration protocol strings",
+        "reasoning": "The method uses a switch statement to map protocol strings ('string', 'file', 'x-pack-metrics', etc.) to human-readable descriptions. This violates OCP because introducing a new configuration source requires modifying the core pipeline class. Instead, the source metadata objects should provide their own descriptive details polymorphically.",
+        "first_detected_scan": "logstash_OCP_scan_06",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_06",
+          "logstash_OCP_scan_07",
+          "logstash_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-006",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "entity_name": "PluginFactoryExt.plugin",
+        "entity_type": "method",
+        "line_start": 220,
+        "line_end": 251,
+        "description": "Hardcoded branching logic for plugin instantiation based on type",
+        "reasoning": "The private plugin method contains hardcoded if/else logic to handle specific PluginType values (OUTPUT, FILTER, etc.). The logic for creating delegators and assigning metrics is tightly coupled to these specific categories. Adding a new architectural plugin category would require modifying this factory method.",
+        "first_detected_scan": "logstash_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_02",
+          "logstash_OCP_scan_03",
+          "logstash_OCP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "OCP-035",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.validateVersion",
+        "entity_type": "class",
+        "line_start": 317,
+        "line_end": 317,
+        "description": "The `validateVersion` method likely contains type-checking logic that violates OCP.",
+        "reasoning": "The `validateVersion(byte version)` method in `MmapPageIOV1` (and `MmapPageIOV2`) suggests that it contains `if/else if` or `switch` statements to handle different page format versions. Introducing a new page format version (e.g., V3) would require modifying this existing method to add a new branch, violating OCP. A more extensible design would delegate version-specific validation to a strategy object or a version-specific handler.",
+        "first_detected_scan": "logstash_OCP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_10",
+          "logstash_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-003",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+        "entity_type": "method",
+        "line_start": 650,
+        "line_end": 670,
+        "description": "Switch statement on protocol strings for source details",
+        "reasoning": "This method uses a switch statement to handle different configuration source protocols ('string', 'file', 'module', etc.). Adding a new source type requires modifying this execution class. This logic should be delegated to the source objects themselves.",
+        "first_detected_scan": "logstash_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_01",
+          "logstash_OCP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "OCP-025",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+        "entity_type": "method",
+        "line_start": 868,
+        "line_end": 887,
+        "description": "The method uses a switch statement on hardcoded protocol strings to determine source details.",
+        "reasoning": "Adding a new configuration source protocol (e.g., 'http' or 's3') requires modifying this method to add a new case to the switch statement. This logic should be encapsulated within the SourceWithMetadata implementations or a registry of detail providers.",
+        "first_detected_scan": "logstash_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_07",
+          "logstash_OCP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "OCP-008",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/health/PipelineIndicator.java",
+        "entity_name": "PipelineIndicator.StatusProbe.analyze",
+        "entity_type": "method",
+        "line_start": 159,
+        "line_end": 198,
+        "description": "Switch statement on pipeline state for health analysis",
+        "reasoning": "The analyze method in StatusProbe uses a switch statement to generate health reports based on the pipeline's State enum. If a new pipeline state is introduced, this analysis logic must be modified. Encapsulating the analysis logic within state-specific objects would follow OCP.",
+        "first_detected_scan": "logstash_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_02",
+          "logstash_OCP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "OCP-007",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/secret/cli/SecretStoreCli.java",
+        "entity_name": "SecretStoreCli.command",
+        "entity_type": "method",
+        "line_start": 191,
+        "line_end": 285,
+        "description": "Switch statement used to dispatch CLI command execution",
+        "reasoning": "The command method uses a switch statement to execute logic for different secret store operations (CREATE, LIST, ADD, REMOVE). Adding a new CLI command requires modifying this method. Implementing a Command pattern would allow adding new commands by creating new classes rather than modifying the central CLI controller.",
+        "first_detected_scan": "logstash_OCP_scan_02",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_02",
+          "logstash_OCP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "OCP-040",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/Javafier.java",
+        "entity_name": "Javafier.fallbackConvert",
+        "entity_type": "class",
+        "line_start": 61,
+        "line_end": 61,
+        "description": "The `fallbackConvert` method likely uses type-checking logic for conversions, violating OCP.",
+        "reasoning": "The `fallbackConvert(final Object o, final Class<?> cls)` method explicitly takes `Class<?> cls`. This is a strong indicator that the method uses `instanceof` checks or `switch` statements on `cls` to perform type-specific conversions. Adding support for a new convertible type would require modifying this method, violating OCP. A more extensible design would use a chain of responsibility or a registry of type-specific converters.",
+        "first_detected_scan": "logstash_OCP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "OCP-046",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/RubyUtil.java",
+        "entity_name": "RubyUtil",
+        "entity_type": "class",
+        "line_start": 272,
+        "line_end": 561,
+        "description": "Hardcoded registration of JRuby extension classes.",
+        "reasoning": "The `RubyUtil` class contains numerous direct calls to `setupLogstashClass` for specific JRuby extension classes (e.g., `ShutdownWatcherExt`, `JRubyWrappedWriteClientExt`, `JrubyMemoryReadClientExt`). If a new JRuby extension class is introduced, this class must be modified to include another `setupLogstashClass` call, violating the Open/Closed Principle. A more OCP-compliant approach would involve a dynamic discovery mechanism or a pluggable registry where extensions can register themselves without requiring changes to `RubyUtil`.",
+        "first_detected_scan": "logstash_OCP_scan_12",
+        "duplicate_scan_ids": [
+          "logstash_OCP_scan_12"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-001",
+        "rank": 1,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.recover",
+        "entity_type": "method",
+        "line_start": 128,
+        "line_end": 130,
+        "description": "Subtype throws UnsupportedOperationException for a method defined in the base interface.",
+        "reasoning": "The `PageIO` interface (implied by `MmapPageIOV1` implementing it) defines a `recover()` method. `MmapPageIOV1` throws an `UnsupportedOperationException` instead of providing a functional implementation. This violates LSP because a client expecting a `PageIO` to perform recovery would fail when given an instance of `MmapPageIOV1`.",
+        "first_detected_scan": "logstash_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_01",
+          "logstash_LSP_scan_05",
+          "logstash_LSP_scan_06",
+          "logstash_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-046",
+        "rank": 2,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+        "entity_name": "Event.append",
+        "entity_type": "method",
+        "line_start": 306,
+        "line_end": 311,
+        "description": "Method uses instanceof check to conditionally skip core functionality.",
+        "reasoning": "The `append` method checks if the input `e` is an instance of `Event`. If `e` is not an `Event` (but is a `co.elastic.logstash.api.Event` subtype), the method simply returns `this` without performing any append operation. This violates LSP because a subtype of `co.elastic.logstash.api.Event` that is not `Event` cannot be substituted for `Event` without altering the correctness of the program, as the expected behavior of appending the event's data is skipped.",
+        "first_detected_scan": "logstash_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_03",
+          "logstash_LSP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "LSP-090",
+        "rank": 3,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.recover",
+        "entity_type": "method",
+        "line_start": 140,
+        "line_end": 142,
+        "description": "Subtype throws UnsupportedOperationException for a base type method.",
+        "reasoning": "The `recover()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `recover()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness.",
+        "first_detected_scan": "logstash_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_10",
+          "logstash_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-091",
+        "rank": 4,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.create",
+        "entity_type": "method",
+        "line_start": 146,
+        "line_end": 147,
+        "description": "Subtype throws UnsupportedOperationException for a base type method.",
+        "reasoning": "The `create()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `create()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness.",
+        "first_detected_scan": "logstash_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_10",
+          "logstash_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-092",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.ensurePersisted",
+        "entity_type": "method",
+        "line_start": 166,
+        "line_end": 167,
+        "description": "Subtype throws UnsupportedOperationException for a base type method.",
+        "reasoning": "The `ensurePersisted()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `ensurePersisted()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness.",
+        "first_detected_scan": "logstash_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_10",
+          "logstash_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-093",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.purge",
+        "entity_type": "method",
+        "line_start": 171,
+        "line_end": 172,
+        "description": "Subtype throws UnsupportedOperationException for a base type method.",
+        "reasoning": "The `purge()` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `purge()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness.",
+        "first_detected_scan": "logstash_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_10",
+          "logstash_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-094",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1.write",
+        "entity_type": "method",
+        "line_start": 177,
+        "line_end": 178,
+        "description": "Subtype throws UnsupportedOperationException for a base type method.",
+        "reasoning": "The `write(byte[] bytes, long seqNum)` method in `MmapPageIOV1` explicitly throws `UnsupportedOperationException`. This violates LSP because a client expecting a `PageIO` (the base type) would assume `write()` is a supported operation, but substituting `MmapPageIOV1` breaks this expectation by throwing an exception not declared in the base contract, indicating the subtype cannot be used in place of the base type without altering correctness.",
+        "first_detected_scan": "logstash_LSP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_10",
+          "logstash_LSP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "LSP-075",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "entity_name": "DeadLetterQueueWriter.close",
+        "entity_type": "method",
+        "line_start": 407,
+        "line_end": 421,
+        "description": "Swallows exceptions (including IOException) from critical cleanup steps, altering Closeable.close() contract.",
+        "reasoning": "The `DeadLetterQueueWriter.close()` method overrides `java.io.Closeable.close()`, which declares `throws IOException`. This implementation catches `Exception` (which includes `IOException`) from `finalizeSegment()` and `releaseFileLock()`, logs them as warnings, and then ignores them. This directly violates the `Closeable.close()` contract by preventing clients from catching and handling `IOException`s that occur during resource release, thus altering the expected error reporting behavior.",
+        "first_detected_scan": "logstash_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_07",
+          "logstash_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-081",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt.isShutdownRequested",
+        "entity_type": "method",
+        "line_start": 909,
+        "line_end": 912,
+        "description": "Final method in an abstract class throws IllegalStateException, effectively nullifying its intended functionality.",
+        "reasoning": "The `isShutdownRequested` method is declared `final` in an abstract class `AbstractPipelineExt`, yet its implementation always throws an `IllegalStateException` with a message indicating that concrete implementations *should* provide it. This violates LSP because `AbstractPipelineExt` cannot be substituted for a concrete pipeline without altering the program's correctness; any call to this method will result in an unexpected runtime exception. This effectively nullifies the method's contract in the abstract class, forcing clients to handle an exception or rely on subclasses that paradoxically override a final method (a contradiction in Java).",
+        "first_detected_scan": "logstash_LSP_scan_08",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_08",
+          "logstash_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-022",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "entity_name": "JavaKeyStore.create",
+        "entity_type": "method",
+        "line_start": 57,
+        "line_end": 90,
+        "description": "Method throws multiple specific SecretStoreException subtypes not declared by the base interface.",
+        "reasoning": "The `SecretStore` interface (implied by `JavaKeyStore` implementing it) defines a `create()` method. `JavaKeyStore#create` throws `SecretStoreException.AlreadyExistsException`, `SecretStoreException.CreateException`, and `SecretStoreException.UnknownException`. If the `SecretStore` interface does not declare these specific `RuntimeException` subtypes, then `JavaKeyStore` violates LSP by throwing exceptions that a client might not be prepared to handle, breaking the client's expectation of correctness.",
+        "first_detected_scan": "logstash_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_01",
+          "logstash_LSP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "LSP-023",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "entity_name": "JavaKeyStore.delete",
+        "entity_type": "method",
+        "line_start": 93,
+        "line_end": 103,
+        "description": "Method throws specific SecretStoreException subtype not declared by the base interface.",
+        "reasoning": "The `SecretStore` interface defines a `delete()` method. `JavaKeyStore#delete` throws `SecretStoreException.UnknownException`. If the `SecretStore` interface does not declare this specific `RuntimeException` subtype, then `JavaKeyStore` violates LSP.",
+        "first_detected_scan": "logstash_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_01",
+          "logstash_LSP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "LSP-021",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+        "entity_name": "DatasetCompiler.Complement.compute",
+        "entity_type": "method",
+        "line_start": 506,
+        "line_end": 515,
+        "description": "Subtype catches a specific RuntimeException and alters propagation behavior.",
+        "reasoning": "The `DatasetCompiler.Complement#compute` method catches `ConditionalEvaluationError` (a `RuntimeException`). If the `Dataset` interface's contract for `compute` implies that all `RuntimeException`s should propagate, then catching this specific exception and returning `data` (a behavioral change) violates LSP. A client might expect certain exceptions to propagate, but `Complement` handles it differently.",
+        "first_detected_scan": "logstash_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_LSP_scan_01",
+          "logstash_LSP_scan_07"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-015",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue",
+        "entity_type": "class",
+        "line_start": 40,
+        "line_end": 744,
+        "description": "The 'Queue' class acts as a fat interface, forcing clients to depend on methods they do not use.",
+        "reasoning": "The 'Queue' class combines multiple responsibilities (writing, reading, acknowledging, administrative tasks like opening/closing, and querying detailed state). Clients that only need to perform write operations are forced to depend on methods related to reading, acknowledging, and various state queries, and vice-versa. This broad API surface violates ISP by not segregating the interface into more focused roles like 'QueueWriter', 'QueueReader', and 'QueueAdmin'.",
+        "first_detected_scan": "logstash_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_05",
+          "logstash_ISP_scan_08",
+          "logstash_ISP_scan_10",
+          "logstash_ISP_scan_11",
+          "logstash_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-016",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt.isShutdownRequested",
+        "entity_type": "method",
+        "line_start": 601,
+        "line_end": 604,
+        "description": "The 'isShutdownRequested' method in 'AbstractPipelineExt' forces subclasses to implement functionality they may not need.",
+        "reasoning": "The 'isShutdownRequested()' method in 'AbstractPipelineExt' explicitly throws an 'IllegalStateException' if not overridden by a concrete subclass. This forces all subclasses to provide an implementation for this method, even if a particular subclass (e.g., a temporary pipeline for config validation) does not require or use shutdown request logic. This violates ISP by making clients (subclasses) depend on a method they might not need to implement meaningfully.",
+        "first_detected_scan": "logstash_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_05",
+          "logstash_ISP_scan_07",
+          "logstash_ISP_scan_10",
+          "logstash_ISP_scan_11",
+          "logstash_ISP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+        "entity_name": "co.elastic.logstash.api.Event",
+        "entity_type": "class",
+        "line_start": 39,
+        "line_end": 400,
+        "description": "The co.elastic.logstash.api.Event interface is a 'fat' interface combining many responsibilities.",
+        "reasoning": "The `co.elastic.logstash.api.Event` interface defines a large number of methods covering various aspects of an event (reading, writing, cancelling, tagging, cloning, serialization, etc.). Clients that only need a subset of these functionalities (e.g., a component that only reads event fields, or one that only tags events) are forced to depend on the entire interface, including methods they do not use. This increases coupling and makes it harder to create specialized event processors. The interface could be segregated into smaller, more focused interfaces such as `ReadableEvent`, `WritableEvent`, `CancellableEvent`, `TaggingEvent`, etc.",
+        "first_detected_scan": "logstash_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_01",
+          "logstash_ISP_scan_03",
+          "logstash_ISP_scan_04",
+          "logstash_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-014",
+        "rank": 4,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "MmapPageIOV1",
+        "entity_type": "class",
+        "line_start": 21,
+        "line_end": 226,
+        "description": "The MmapPageIOV1 class implements the PageIO interface but throws UnsupportedOperationException for several methods.",
+        "reasoning": "The PageIO interface (defined in org.logstash.ackedqueue.io.PageIO) is a 'fat interface' that forces MmapPageIOV1 to implement methods like `recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`, and `hasSpace()` even though MmapPageIOV1 is specifically designed for read-only operations on V1 pages and cannot support these write/management operations. This violates the Interface Segregation Principle as MmapPageIOV1 is coupled to methods it does not use. The PageIO interface should be split into more granular interfaces, such as `ReadablePageIO` and `WritablePageIO`.",
+        "first_detected_scan": "logstash_ISP_scan_04",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_04",
+          "logstash_ISP_scan_05",
+          "logstash_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "org.logstash.ackedqueue.io.MmapPageIOV1",
+        "entity_type": "class",
+        "line_start": 29,
+        "line_end": 222,
+        "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+        "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface but throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, and `write()`. This is a textbook violation of the Interface Segregation Principle. It indicates that the `PageIO` interface is 'fat' and groups together responsibilities (reading, writing, lifecycle management, recovery) that are not universally applicable to all its implementations. `MmapPageIOV1` only supports reading, but is forced to provide implementations for writing, creating, and other operations it does not support. The `PageIO` interface should be segregated into smaller, more focused interfaces (e.g., `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `LifecyclePageIO`) so that clients are only forced to depend on methods relevant to their specific needs.",
+        "first_detected_scan": "logstash_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_02",
+          "logstash_ISP_scan_03",
+          "logstash_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-011",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+        "entity_name": "org.logstash.secret.store.SecretStore",
+        "entity_type": "class",
+        "line_start": 45,
+        "line_end": 45,
+        "description": "The 'SecretStore' interface combines management, query, and persistence operations.",
+        "reasoning": "The `SecretStore` interface includes methods for creating/deleting the store (`create`, `delete`), loading (`load`), listing/checking secrets (`list`, `containsSecret`), and persisting/retrieving/purging individual secrets (`persistSecret`, `retrieveSecret`, `purgeSecret`). A client that only needs to read secrets (e.g., for configuration expansion) is forced to depend on methods for modifying the store or secrets, which it does not use. This makes the interface fat for such clients.",
+        "first_detected_scan": "logstash_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_03",
+          "logstash_ISP_scan_04",
+          "logstash_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-012",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+        "entity_name": "org.logstash.ackedqueue.io.PageIO",
+        "entity_type": "class",
+        "line_start": 27,
+        "line_end": 27,
+        "description": "The 'PageIO' interface is a fat interface mixing I/O, lifecycle, and state query methods.",
+        "reasoning": "The `PageIO` interface defines a very broad set of operations including opening/closing (`open`, `close`), reading/writing data (`read`, `write`), lifecycle management (`create`, `deactivate`, `activate`, `purge`, `recover`), persistence (`ensurePersisted`), and state queries (`getCapacity`, `getMinSeqNum`, `getElementCount`, `hasSpace`, `persistedByteCount`, `getHead`, `isCorruptedPage`). Clients interacting with a page might only need a subset of these methods (e.g., a reader client only needs read-related methods, a writer client only needs write-related methods). Forcing all clients to depend on all these methods violates ISP.",
+        "first_detected_scan": "logstash_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_03",
+          "logstash_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-024",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "entity_name": "DeadLetterQueueWriter",
+        "entity_type": "class",
+        "line_start": 109,
+        "line_end": 814,
+        "description": "DeadLetterQueueWriter handles both writing entries and managing retention policies/file system watching.",
+        "reasoning": "The class is bloated with logic for file system watching, retention policy execution, and segment finalization. Clients that only need to write entries are forced to depend on the entire management and cleanup logic, violating ISP.",
+        "first_detected_scan": "logstash_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_10",
+          "logstash_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-005",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "entity_name": "RubyIntegration.PluginFactory",
+        "entity_type": "class",
+        "line_start": 20,
+        "line_end": 100,
+        "description": "The RubyIntegration.PluginFactory interface combines methods for building different types of plugins.",
+        "reasoning": "The `RubyIntegration.PluginFactory` interface defines methods for building various types of plugins (`buildInput`, `buildOutput`, `buildFilter`, `buildCodec`) as well as specific codec-related methods (`buildDefaultCodec`, `buildRubyCodecWrapper`). A client that only needs to build, for instance, input plugins, is forced to depend on the methods for building output, filter, and codec plugins, which it does not use. This makes the interface less focused and increases the surface area of dependency for clients. The interface could be segregated into more specific factory interfaces, such as `InputPluginFactory`, `OutputPluginFactory`, `FilterPluginFactory`, and `CodecFactory`.",
+        "first_detected_scan": "logstash_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_01",
+          "logstash_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-017",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+        "entity_name": "co.elastic.logstash.api.Event",
+        "entity_type": "class",
+        "line_start": 36,
+        "line_end": 37,
+        "description": "The 'co.elastic.logstash.api.Event' interface is a fat interface, bundling too many responsibilities.",
+        "reasoning": "The 'co.elastic.logstash.api.Event' interface defines a large number of methods covering diverse functionalities such as field access, modification, cancellation, timestamp management, tagging, cloning, and merging. Clients (e.g., plugins) that only need a subset of these functionalities (e.g., only reading fields or only tagging) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP by not segregating the interface into more focused roles like 'ReadableEvent', 'WritableEvent', 'CloneableEvent', etc.",
+        "first_detected_scan": "logstash_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-003",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+        "entity_name": "PageIO",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 240,
+        "description": "MmapPageIOV1 implements PageIO but throws UnsupportedOperationException for several methods.",
+        "reasoning": "The `PageIO` interface defines a broad set of operations for page management (reading, writing, creating, recovering, persisting, purging, checking space, activating, deactivating, closing). The `MmapPageIOV1` class, which represents an older version of page I/O, explicitly throws `UnsupportedOperationException` for several methods (`recover()`, `create()`, `ensurePersisted()`, `purge()`, `write()`, `hasSpace()`). This is a textbook violation of ISP, as `MmapPageIOV1` is forced to implement methods that are not relevant to its specific functionality (read-only for an older format). This indicates that `PageIO` is too broad and should be segregated into smaller, more specific interfaces, such as `ReadablePageIO`, `WritablePageIO`, `RecoverablePageIO`, `CreatablePageIO`, `PersistablePageIO`, `PurgeablePageIO`, and `SpaceCheckablePageIO`.",
+        "first_detected_scan": "logstash_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_01"
+        ]
+      },
+      {
+        "issue_id": "ISP-018",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+        "entity_name": "PageIO",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 31,
+        "description": "The 'PageIO' interface is a fat interface, bundling too many responsibilities.",
+        "reasoning": "The 'PageIO' interface defines a broad set of methods related to various aspects of page management, including opening, reading, recovering, creating, activating/deactivating, persisting, purging, writing, and querying page properties. Implementations are forced to provide all these methods. Clients that only require a subset of these functionalities (e.g., only reading from a page or only writing to a page) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP.",
+        "first_detected_scan": "logstash_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "logstash_ISP_scan_05"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-001",
+        "rank": 1,
+        "scan_count": 11,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue.Queue",
+        "entity_type": "class",
+        "line_start": 89,
+        "line_end": 120,
+        "description": "Direct instantiation of dependencies in constructor",
+        "reasoning": "The Queue constructor directly instantiates FileCheckpointIO and uses hardcoded logic to create dependencies, preventing the injection of mock implementations for testing and violating the Dependency Inversion Principle.",
+        "first_detected_scan": "logstash_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_01",
+          "logstash_DIP_scan_02",
+          "logstash_DIP_scan_04",
+          "logstash_DIP_scan_05",
+          "logstash_DIP_scan_06",
+          "logstash_DIP_scan_07",
+          "logstash_DIP_scan_08",
+          "logstash_DIP_scan_09",
+          "logstash_DIP_scan_10",
+          "logstash_DIP_scan_11",
+          "logstash_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-008",
+        "rank": 2,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "entity_name": "DeadLetterQueueWriter.nextWriter",
+        "entity_type": "method",
+        "line_start": 579,
+        "line_end": 583,
+        "description": "High-level module directly instantiates RecordIOWriter",
+        "reasoning": "The DeadLetterQueueWriter directly instantiates the concrete class RecordIOWriter. This creates a hard-coded dependency on a low-level detail, preventing the use of alternative writers and complicating unit testing.",
+        "first_detected_scan": "logstash_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_03",
+          "logstash_DIP_scan_06",
+          "logstash_DIP_scan_07",
+          "logstash_DIP_scan_08",
+          "logstash_DIP_scan_09",
+          "logstash_DIP_scan_10",
+          "logstash_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-009",
+        "rank": 3,
+        "scan_count": 6,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "entity_name": "AbstractPipelineExt.openQueue",
+        "entity_type": "class",
+        "line_start": 213,
+        "line_end": 213,
+        "description": "Direct instantiation of QueueFactoryExt inside openQueue method",
+        "reasoning": "The AbstractPipelineExt class directly calls QueueFactoryExt.create to obtain a queue instance. This tightly couples the pipeline execution logic to the queue factory implementation, preventing the injection of alternative queue implementations or mock queues for testing.",
+        "first_detected_scan": "logstash_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_05",
+          "logstash_DIP_scan_07",
+          "logstash_DIP_scan_08",
+          "logstash_DIP_scan_09",
+          "logstash_DIP_scan_11",
+          "logstash_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "entity_name": "PluginFactoryExt.plugin",
+        "entity_type": "method",
+        "line_start": 165,
+        "line_end": 222,
+        "description": "Direct instantiation of concrete plugin delegators",
+        "reasoning": "The method directly instantiates OutputDelegatorExt and other concrete classes based on plugin type, violating DIP by coupling the factory to specific implementation classes rather than relying on an abstract factory or registry pattern.",
+        "first_detected_scan": "logstash_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_01",
+          "logstash_DIP_scan_03",
+          "logstash_DIP_scan_10",
+          "logstash_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-003",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+        "entity_name": "CompiledPipeline.CompiledPipeline",
+        "entity_type": "class",
+        "line_start": 96,
+        "line_end": 113,
+        "description": "Direct instantiation of internal components",
+        "reasoning": "The constructor directly instantiates ConfigVariableExpander and other internal components, making it difficult to swap these dependencies for testing or alternative configurations.",
+        "first_detected_scan": "logstash_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_01",
+          "logstash_DIP_scan_06",
+          "logstash_DIP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "DIP-006",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue.openPages",
+        "entity_type": "method",
+        "line_start": 172,
+        "line_end": 222,
+        "description": "High-level module depends on low-level implementation MmapPageIOV2",
+        "reasoning": "The Queue class directly instantiates MmapPageIOV2, a concrete implementation for file I/O. This couples the high-level business logic of the queue to a specific storage implementation, violating the Dependency Inversion Principle.",
+        "first_detected_scan": "logstash_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_03",
+          "logstash_DIP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "DIP-007",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue.newCheckpointedHeadpage",
+        "entity_type": "method",
+        "line_start": 298,
+        "line_end": 305,
+        "description": "High-level module depends on low-level implementation MmapPageIOV2",
+        "reasoning": "The Queue class directly instantiates MmapPageIOV2. It should depend on an abstraction (e.g., PageIO interface) and receive an implementation factory or provider.",
+        "first_detected_scan": "logstash_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_03"
+        ]
+      },
+      {
+        "issue_id": "DIP-005",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue.newCheckpointedHeadpage",
+        "entity_type": "method",
+        "line_start": 305,
+        "line_end": 311,
+        "description": "Direct instantiation of MmapPageIOV2 inside the method.",
+        "reasoning": "The method directly instantiates MmapPageIOV2. High-level logic should not be responsible for creating specific, low-level storage implementations; this should be handled by a factory or injected dependency.",
+        "first_detected_scan": "logstash_DIP_scan_02",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "DIP-002",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "entity_name": "Queue.newCheckpointedHeadpage",
+        "entity_type": "method",
+        "line_start": 321,
+        "line_end": 328,
+        "description": "Direct instantiation of MmapPageIOV2",
+        "reasoning": "The method directly instantiates the concrete class MmapPageIOV2 instead of depending on an abstraction (e.g., PageIO factory), creating tight coupling to a specific IO implementation.",
+        "first_detected_scan": "logstash_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_01"
+        ]
+      },
+      {
+        "issue_id": "DIP-012",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+        "entity_name": "Compiler",
+        "entity_type": "class",
+        "line_start": 82,
+        "line_end": 721,
+        "description": "The Compiler class is responsible for instantiating various concrete EventCondition implementations.",
+        "reasoning": "The Compiler class directly creates concrete instances of EventCondition subclasses (e.g., FieldMatches, ConstantMatches). This creates a dependency on concrete implementations for every condition type. A factory pattern or dependency injection should be used to decouple the compiler from specific condition logic.",
+        "first_detected_scan": "logstash_DIP_scan_11",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "DIP-014",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "entity_name": "PluginFactoryExt.buildInput",
+        "entity_type": "class",
+        "line_start": 119,
+        "line_end": 122,
+        "description": "Factory method directly instantiating plugins without abstraction injection",
+        "reasoning": "The method is responsible for instantiating plugins directly. In a DIP-compliant architecture, the factory should utilize a registry or provider pattern where the injection of the plugin implementation is managed outside of the instantiation logic.",
+        "first_detected_scan": "logstash_DIP_scan_12",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-010",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "entity_name": "DeadLetterQueueWriter.Builder.build",
+        "entity_type": "class",
+        "line_start": 169,
+        "line_end": 184,
+        "description": "Hard-coded instantiation of FixedRateScheduler or NoopScheduler",
+        "reasoning": "The builder directly decides which concrete implementation of SchedulerService to instantiate based on internal flags. This makes the DeadLetterQueueWriter dependent on specific scheduling implementations rather than relying on an injected scheduler abstraction.",
+        "first_detected_scan": "logstash_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "logstash_DIP_scan_05"
+        ]
+      }
+    ]
+  }
+}

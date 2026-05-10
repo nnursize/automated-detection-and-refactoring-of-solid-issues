@@ -1,0 +1,336 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-008
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `Catch::Clara::Detail::BoundRef` (current lines L4509-L4514 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 1 independent scans
+
+### Description
+Type-checking flags isContainer and isFlag in base class
+
+### Reasoning
+The BoundRef base class includes methods to query whether a subtype is a container or a flag. This 'Type-checking' smell allows the command-line parser to handle subclasses differently based on their specific nature rather than through a uniform polymorphic interface. This violates LSP as the base type cannot be used without the caller knowing the specific properties of the subtype.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 4388 earlier lines elided ...
+                    T m_value;
+                };
+            };
+
+            template <> class ResultValueBase<void> : public ResultBase {
+            protected:
+                using ResultBase::ResultBase;
+            };
+
+            template <typename T = void>
+            class BasicResult : public ResultValueBase<T> {
+            public:
+                template <typename U>
+                explicit BasicResult( BasicResult<U> const& other ):
+                    ResultValueBase<T>( other.type() ),
+                    m_errorMessage( other.errorMessage() ) {
+                    assert( type() != ResultType::Ok );
+                }
+
+                template <typename U>
+                static auto ok( U&& value ) -> BasicResult {
+                    return { ResultType::Ok, CATCH_FORWARD(value) };
+                }
+                static auto ok() -> BasicResult { return { ResultType::Ok }; }
+                static auto logicError( std::string&& message )
+                    -> BasicResult {
+                    return { ResultType::LogicError, CATCH_MOVE(message) };
+                }
+                static auto runtimeError( std::string&& message )
+                    -> BasicResult {
+                    return { ResultType::RuntimeError, CATCH_MOVE(message) };
+                }
+
+                explicit operator bool() const {
+                    return m_type == ResultType::Ok;
+                }
+                auto type() const -> ResultType { return m_type; }
+                auto errorMessage() const -> std::string const& {
+                    return m_errorMessage;
+                }
+
+            protected:
+                void enforceOk() const override {
+
+                    // Errors shouldn't reach this point, but if they do
+                    // the actual error message will be in m_errorMessage
+                    assert( m_type != ResultType::LogicError );
+                    assert( m_type != ResultType::RuntimeError );
+                    if ( m_type != ResultType::Ok )
+                        std::abort();
+                }
+
+                std::string
+                    m_errorMessage; // Only populated if resultType is an error
+
+                BasicResult( ResultType type,
+                             std::string&& message ):
+                    ResultValueBase<T>( type ), m_errorMessage( CATCH_MOVE(message) ) {
+                    assert( m_type != ResultType::Ok );
+                }
+
+                using ResultValueBase<T>::ResultValueBase;
+                using ResultBase::m_type;
+            };
+
+            class ParseState {
+            public:
+                ParseState( ParseResultType type,
+                            TokenStream remainingTokens );
+
+                ParseResultType type() const { return m_type; }
+                TokenStream const& remainingTokens() const& {
+                    return m_remainingTokens;
+                }
+                TokenStream&& remainingTokens() && {
+                    return CATCH_MOVE( m_remainingTokens );
+                }
+
+            private:
+                ParseResultType m_type;
+                TokenStream m_remainingTokens;
+            };
+
+            using Result = BasicResult<void>;
+            using ParserResult = BasicResult<ParseResultType>;
+            using InternalParseResult = BasicResult<ParseState>;
+
+            struct HelpColumns {
+                std::string left;
+                StringRef descriptions;
+            };
+
+            template <typename T>
+            ParserResult convertInto( std::string const& source, T& target ) {
+                std::stringstream ss( source );
+                ss >> target;
+                if ( ss.fail() ) {
+                    return ParserResult::runtimeError(
+                        "Unable to convert '" + source +
+                        "' to destination type" );
+                } else {
+                    return ParserResult::ok( ParseResultType::Matched );
+                }
+            }
+            ParserResult convertInto( std::string const& source,
+                                      std::string& target );
+            ParserResult convertInto( std::string const& source, bool& target );
+
+#ifdef CLARA_CONFIG_OPTIONAL_TYPE
+            template <typename T>
+            auto convertInto( std::string const& source,
+                              CLARA_CONFIG_OPTIONAL_TYPE<T>& target )
+                -> ParserResult {
+                T temp;
+                auto result = convertInto( source, temp );
+                if ( result )
+                    target = CATCH_MOVE( temp );
+                return result;
+            }
+#endif // CLARA_CONFIG_OPTIONAL_TYPE
+
+            struct BoundRef : Catch::Detail::NonCopyable {
+                virtual ~BoundRef() = default;
+                virtual bool isContainer() const;
+                virtual bool isFlag() const;
+            };
+            struct BoundValueRefBase : BoundRef {
+                virtual auto setValue( std::string const& arg )
+                    -> ParserResult = 0;
+            };
+            struct BoundFlagRefBase : BoundRef {
+                virtual auto setFlag( bool flag ) -> ParserResult = 0;
+                bool isFlag() const override;
+            };
+
+            template <typename T> struct BoundValueRef : BoundValueRefBase {
+                T& m_ref;
+
+                explicit BoundValueRef( T& ref ): m_ref( ref ) {}
+
+                ParserResult setValue( std::string const& arg ) override {
+                    return convertInto( arg, m_ref );
+                }
+            };
+
+            template <typename T>
+            struct BoundValueRef<std::vector<T>> : BoundValueRefBase {
+                std::vector<T>& m_ref;
+
+                explicit BoundValueRef( std::vector<T>& ref ): m_ref( ref ) {}
+
+                auto isContainer() const -> bool override { return true; }
+
+                auto setValue( std::string const& arg )
+                    -> ParserResult override {
+                    T temp;
+                    auto result = convertInto( arg, temp );
+                    if ( result )
+                        m_ref.push_back( temp );
+                    return result;
+                }
+            };
+
+            struct BoundFlagRef : BoundFlagRefBase {
+                bool& m_ref;
+
+                explicit BoundFlagRef( bool& ref ): m_ref( ref ) {}
+
+                ParserResult setFlag( bool flag ) override;
+            };
+
+            template <typename ReturnType> struct LambdaInvoker {
+                static_assert(
+                    std::is_same<ReturnType, ParserResult>::value,
+                    "Lambda must return void or clara::ParserResult" );
+
+                template <typename L, typename ArgType>
+                static auto invoke( L const& lambda, ArgType const& arg )
+                    -> ParserResult {
+                    return lambda( arg );
+                }
+            };
+
+            template <> struct LambdaInvoker<void> {
+                template <typename L, typename ArgType>
+                static auto invoke( L const& lambda, ArgType const& arg )
+                    -> ParserResult {
+                    lambda( arg );
+                    return ParserResult::ok( ParseResultType::Matched );
+                }
+            };
+
+            template <typename ArgType, typename L>
+            auto invokeLambda( L const& lambda, std::string const& arg )
+                -> ParserResult {
+                ArgType temp{};
+                auto result = convertInto( arg, temp );
+                return !result ? result
+                               : LambdaInvoker<typename UnaryLambdaTraits<
+                                     L>::ReturnType>::invoke( lambda, temp );
+            }
+
+            template <typename L> struct BoundLambda : BoundValueRefBase {
+                L m_lambda;
+
+                static_assert(
+                    UnaryLambdaTraits<L>::isValid,
+                    "Supplied lambda must take exactly one argument" );
+                explicit BoundLambda( L const& lambda ): m_lambda( lambda ) {}
+
+                auto setValue( std::string const& arg )
+                    -> ParserResult override {
+                    return invokeLambda<typename UnaryLambdaTraits<L>::ArgType>(
+                        m_lambda, arg );
+                }
+            };
+
+            template <typename L> struct BoundManyLambda : BoundLambda<L> {
+                explicit BoundManyLambda( L const& lambda ): BoundLambda<L>( lambda ) {}
+                bool isContainer() const override { return true; }
+            };
+
+            template <typename L> struct BoundFlagLambda : BoundFlagRefBase {
+                L m_lambda;
+
+                static_assert(
+                    UnaryLambdaTraits<L>::isValid,
+                    "Supplied lambda must take exactly one argument" );
+                static_assert(
+                    std::is_same<typename UnaryLambdaTraits<L>::ArgType,
+                                 bool>::value,
+                    "flags must be boolean" );
+
+                explicit BoundFlagLambda( L const& lambda ):
+                    m_lambda( lambda ) {}
+
+                auto setFlag( bool flag ) -> ParserResult override {
+                    return LambdaInvoker<typename UnaryLambdaTraits<
+                        L>::ReturnType>::invoke( m_lambda, flag );
+                }
+            };
+
+            enum class Optionality { Optional, Required };
+
+            class ParserBase {
+            public:
+# ... 9625 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

@@ -1,0 +1,40 @@
+{
+  "issue_id": "DIP-001",
+  "principle": "DIP",
+  "title": "Refactor DIP-001 (DIP): Static global variable 'currentContext' in Catch::Context class.",
+  "branch": "refactor/DIP-001",
+  "base": "main",
+  "head_commit": "83b3c825c2fcc66cc6ff817cbc5b149ac97eea55",
+  "status": "obsolete",
+  "obsolete_reason": "entity `Catch::Context::currentContext` not found in current source of `extras/catch_amalgamated.hpp` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Context::currentContext",
+    "entity_type": "class",
+    "line_start": 279,
+    "line_end": 279,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Static global variable 'currentContext' in Catch::Context class.",
+    "reasoning": "The `Catch::Context::currentContext` is a static global variable. High-level modules (like tests or any code that uses `getCurrentContext`) depend directly on this concrete global state. This violates DIP because it hardcodes a dependency on a specific implementation detail (the global context instance) rather than depending on an abstraction. It makes it difficult to replace or mock the context for testing or to manage multiple contexts. Ideally, the context should be passed through dependency injection or managed through a more flexible mechanism."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 710.277795791626
+}

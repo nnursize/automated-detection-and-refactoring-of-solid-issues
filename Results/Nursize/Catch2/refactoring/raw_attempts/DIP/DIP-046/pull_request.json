@@ -1,0 +1,40 @@
+{
+  "issue_id": "DIP-046",
+  "principle": "DIP",
+  "title": "Refactor DIP-046 (DIP): Factory function `makeColourImpl` directly creates specific `ColourImpl` impl...",
+  "branch": "refactor/DIP-046",
+  "base": "main",
+  "head_commit": "b8f6f0f1c452bbddece60350b3ba7bc6470fbf52",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::makeColourImpl",
+    "entity_type": "class",
+    "line_start": 731,
+    "line_end": 735,
+    "severity": "medium",
+    "scan_count": 3,
+    "description": "Factory function `makeColourImpl` directly creates specific `ColourImpl` implementations.",
+    "reasoning": "The `Catch::makeColourImpl` function acts as a factory but directly creates concrete `ColourImpl` implementations based on `ColourMode` and platform detection. While it returns a `ColourImpl` (an abstraction), the factory itself is tied to the specific implementations it knows how to create. DIP suggests that the creation of `ColourImpl` or the specific implementations should be provided externally (e.g., via dependency injection or configuration), rather than being hardcoded within this factory function."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

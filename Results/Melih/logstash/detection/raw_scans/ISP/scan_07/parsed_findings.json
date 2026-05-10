@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 950,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Fat base class forcing subclasses to inherit multiple unrelated responsibilities.",
+    "reasoning": "The class violates ISP by combining queue management, metrics collection, dead letter queue handling, and plugin lifecycle management into a single base class. This forces all pipeline implementations to depend on and potentially implement methods for features they might not use, creating a 'fat' interface for the hierarchy."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.isShutdownRequested",
+    "entity_type": "class",
+    "line_start": 898,
+    "line_end": 902,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Method throws IllegalStateException, forcing subclasses to implement it.",
+    "reasoning": "By defining a method that throws an exception instead of providing a default implementation or being part of a more specialized interface, the class forces all subclasses to implement a method that may not be relevant to their specific type of pipeline, violating the principle that clients should not be forced to depend on methods they do not use."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+    "entity_name": "CompiledPipeline.NoopEvaluationListener",
+    "entity_type": "class",
+    "line_start": 105,
+    "line_end": 112,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Empty implementation of ConditionalEvaluationListener.",
+    "reasoning": "The class implements the notify method with an empty body, indicating it is forced to satisfy an interface contract it does not need. This suggests the interface should be split or the dependency should be optional."
+  }
+]

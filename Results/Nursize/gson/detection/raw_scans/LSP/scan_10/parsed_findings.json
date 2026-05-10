@@ -1,0 +1,101 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement.getAsJsonObject",
+    "entity_type": "method",
+    "line_start": 159,
+    "line_end": 163,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Base class contract for 'getAsX' methods is too broad, forcing subclasses to throw IllegalStateException.",
+    "reasoning": "The `JsonElement` abstract class defines numerous `getAsX()` methods (e.g., `getAsJsonObject()`, `getAsJsonArray()`, `getAsNumber()`, `getAsString()`). Its default implementations throw `IllegalStateException` if the element is not of the expected type. Subtypes like `JsonArray`, `JsonObject`, `JsonPrimitive`, and `JsonNull` cannot logically fulfill all these contracts. For example, a `JsonArray` cannot be converted to a `JsonObject` or a `Number`. This forces clients to perform type-checking (e.g., `isJsonArray()`) before calling `getAsJsonArray()`, which is a classic indicator of a 'fat interface' and an LSP violation. Subtypes are not substitutable for the base type without clients needing to know the concrete type to avoid runtime exceptions."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "entity_name": "JsonTreeReader.close",
+    "entity_type": "method",
+    "line_start": 298,
+    "line_end": 299,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass changes the exception contract of a public interface method by throwing AssertionError.",
+    "reasoning": "`JsonReader` implements `Closeable`, meaning its `close()` method is part of a public contract and should typically throw `IOException` or do nothing. `JsonTreeReader.close()` throws an `AssertionError`. This changes the expected exception type from a checked `IOException` (or no exception) to an unchecked `AssertionError`, which indicates a programming bug rather than a controlled failure. A client expecting to close a `JsonReader` (or any `Closeable`) would not anticipate an `AssertionError`, thus breaking substitutability."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonPrimitive.java",
+    "entity_name": "JsonPrimitive.getAsNumber",
+    "entity_type": "method",
+    "line_start": 139,
+    "line_end": 145,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass throws UnsupportedOperationException for a method defined in the base class contract.",
+    "reasoning": "`JsonElement` defines `getAsNumber()`. `JsonPrimitive.getAsNumber()` throws `UnsupportedOperationException` if the primitive is not a number or string (e.g., if it's a boolean primitive). This indicates that the operation is not supported for certain valid states of the `JsonPrimitive`, violating the contract implied by `JsonElement`. Instead, it should either return a default value (if contract allows) or throw a more appropriate exception like `IllegalStateException` or `JsonParseException`, consistent with other `getAsX` methods in the `JsonElement` hierarchy."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+    "entity_name": "RecordNotSupportedHelper.getRecordComponentNames",
+    "entity_type": "method",
+    "line_start": 308,
+    "line_end": 309,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Concrete subclass implements abstract methods by throwing UnsupportedOperationException.",
+    "reasoning": "`RecordHelper` is an abstract class defining abstract methods like `getRecordComponentNames()`. `RecordNotSupportedHelper` is a concrete subclass that implements this (and other abstract methods) by throwing `UnsupportedOperationException`. This directly violates LSP because a client expecting a `RecordHelper` would not anticipate `UnsupportedOperationException` for a method that is declared abstract, implying it should be supported by all concrete implementations. This forces clients to handle a specific exception for this subtype, breaking substitutability."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeWriter.java",
+    "entity_name": "JsonTreeWriter.jsonValue",
+    "entity_type": "method",
+    "line_start": 240,
+    "line_end": 241,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass throws UnsupportedOperationException for a public method defined in the base class.",
+    "reasoning": "`JsonWriter` defines the public method `jsonValue(String value)`. `JsonTreeWriter`, a subclass, implements this method by throwing `UnsupportedOperationException`. This means `JsonTreeWriter` cannot be substituted for `JsonWriter` in all contexts where `jsonValue` might be called, as the operation is not supported by the subtype. This violates LSP by altering the expected behavior of a public method from the base class contract."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+    "entity_name": "NonNullElementWrapperList.add",
+    "entity_type": "method",
+    "line_start": 63,
+    "line_end": 63,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subclass strengthens preconditions by disallowing null elements, which are generally permitted by the base interface (List).",
+    "reasoning": "`NonNullElementWrapperList` extends `AbstractList` (which implements `List`). The `List` interface generally permits null elements unless explicitly stated otherwise. This subclass, however, enforces a non-null constraint, throwing `NullPointerException` if a null element is added or set (via its `nonNull` helper method). This strengthens the precondition for `add` and `set` methods, violating LSP. A client expecting a generic `List` might attempt to add a null element, which would succeed for most `List` implementations but fail for `NonNullElementWrapperList`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/UnsafeAllocator.java",
+    "entity_name": "UnsafeAllocator.newInstance",
+    "entity_type": "method",
+    "line_start": 120,
+    "line_end": 121,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "One concrete implementation of an abstract method throws UnsupportedOperationException.",
+    "reasoning": "`UnsafeAllocator` is an abstract class with an abstract method `newInstance(Class<T> c)`. One of its concrete implementations (returned by `create()`) throws `UnsupportedOperationException`. This violates LSP because the abstract method implies that the operation is generally supported, and failure should be due to allocation issues (e.g., `InstantiationException`), not a fundamental lack of support for the operation itself. A client expecting an `UnsafeAllocator` might not anticipate `UnsupportedOperationException` for this core method, breaking substitutability."
+  },
+  {
+    "file_path": "gson/test-shrinker/src/main/java/com/example/GenericClasses.java",
+    "entity_name": "GenericClasses.Adapter.write",
+    "entity_type": "method",
+    "line_start": 63,
+    "line_end": 64,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Concrete subclass implements an abstract method by throwing UnsupportedOperationException.",
+    "reasoning": "`GenericClasses.Adapter` extends `TypeAdapter<DummyClass>`. The `TypeAdapter` class defines `write` as an abstract method, implying that all concrete subtypes must provide a functional implementation. By throwing `UnsupportedOperationException`, this adapter explicitly states it cannot perform the `write` operation, which directly violates the contract of `TypeAdapter`. A client expecting a `TypeAdapter` would not expect this method to be unsupported, thus breaking substitutability."
+  },
+  {
+    "file_path": "gson/proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java",
+    "entity_name": "ProtoTypeAdapter.deserialize",
+    "entity_type": "method",
+    "line_start": 295,
+    "line_end": 295,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype strengthens precondition by restricting input types not specified in the base interface.",
+    "reasoning": "`ProtoTypeAdapter` implements `JsonDeserializer<Message>`. Its `deserialize` method throws an `IllegalStateException` with the message 'only generated messages are supported'. The `JsonDeserializer` interface's `deserialize` method contract does not specify such a restriction on the `Message` type. By imposing this stronger precondition, `ProtoTypeAdapter` violates LSP, as it cannot be substituted for a general `JsonDeserializer<Message>` without potentially causing unexpected runtime errors for clients providing non-generated `Message` types."
+  }
+]

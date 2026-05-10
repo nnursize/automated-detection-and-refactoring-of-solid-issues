@@ -1,0 +1,100 @@
+{
+  "issue_id": "SRP-010",
+  "principle": "SRP",
+  "title": "Refactor SRP-010 (SRP): Iterates over raw response data, handles streaming, decodes unicode, and catc...",
+  "branch": "refactor/SRP-010",
+  "base": "main",
+  "head_commit": "fee6776a86057ca49096021ed1cbe5150b2812d8",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9962,
+    "completion_tokens": 1188
+  },
+  "detected_issue": {
+    "file_path": "src/requests/models.py",
+    "entity_name": "Response.iter_content",
+    "entity_type": "method",
+    "line_start": 507,
+    "line_end": 554,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Iterates over raw response data, handles streaming, decodes unicode, and catches/re-raises various urllib3 exceptions.",
+    "reasoning": "This method combines several responsibilities: 1) Iterating over the raw response stream (from `self.raw.stream` or a file-like object). 2) Managing the `_content_consumed` state and raising `StreamConsumedError`. 3) Validating `chunk_size`. 4) Conditionally decoding unicode (delegating to `stream_decode_response_unicode`). 5) Catching and re-raising a wide array of `urllib3` exceptions as `requests` exceptions. The core iteration logic, error handling, and conditional decoding are distinct concerns."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract raw stream iteration logic from Response.iter_content into a private helper method.",
+    "rationale": "The iter_content method was violating SRP by handling both the high-level state management/validation and the low-level raw stream iteration/exception mapping. Extracting the iteration logic into _iter_raw_stream clarifies the responsibilities and makes the code more maintainable.",
+    "files_touched": [
+      "src/requests/models.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/models.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/models.py",
+        "search_text": "    def iter_content(self, chunk_size=1, decode_unicode=False):\n        \"\"\"Iterates over the response data.  When stream=True is set on the\n        request, this avoids reading the content at once into memory for\n        large responses.  The chunk size is the number of bytes it should\n        read into memory.  This is not necessarily the length of each item\n        returned as decoding can take place.\n\n        chunk_size must be of type int or None. A value of None will\n        function differently depending on the value of `stream`.\n        stream=True will read data as it arrives in whatever size the\n        chunks are received. If stream=False, data is returned as\n        a single chunk.\n\n        If decode_unicode is True, content will be decoded using the best\n        available encoding based on the response.\n        \"\"\"\n\n        def generate():\n            # Special case for urllib3.\n            if hasattr(self.raw, \"stream\"):\n                try:\n                    yield from self.raw.stream(chunk_size, decode_content=True)\n                except ProtocolError as e:\n                    raise ChunkedEncodingError(e)\n                except DecodeError as e:\n                    raise ContentDecodingError(e)\n                except ReadTimeoutError as e:\n                    raise ConnectionError(e)\n                except SSLError as e:\n                    raise RequestsSSLError(e)\n            else:\n                # Standard file-like object.\n                while True:\n                    chunk = self.raw.read(chunk_size)\n                    if not chunk:\n                        break\n                    yield chunk\n\n            self._content_consumed = True\n\n        if self._content_consumed and isinstance(self._content, bool):\n            raise StreamConsumedError()\n        elif chunk_size is not None and not isinstance(chunk_size, int):\n            raise TypeError(\n                f\"chunk_size must be an int, it is instead a {type(chunk_size)}.\"\n            )\n        # simulate reading small chunks of the content\n        reused_chunks = iter_slices(self._content, chunk_size)\n\n        stream_chunks = generate()\n\n        chunks = reused_chunks if self._content_consumed else stream_chunks\n\n        if decode_unicode:\n            chunks = stream_decode_response_unicode(chunks, self)\n\n        return chunks",
+        "replace_text": "    def _iter_raw_stream(self, chunk_size):\n        \"\"\"Iterates over the raw response stream.\"\"\"\n        # Special case for urllib3.\n        if hasattr(self.raw, \"stream\"):\n            try:\n                yield from self.raw.stream(chunk_size, decode_content=True)\n            except ProtocolError as e:\n                raise ChunkedEncodingError(e)\n            except DecodeError as e:\n                raise ContentDecodingError(e)\n            except ReadTimeoutError as e:\n                raise ConnectionError(e)\n            except SSLError as e:\n                raise RequestsSSLError(e)\n        else:\n            # Standard file-like object.\n            while True:\n                chunk = self.raw.read(chunk_size)\n                if not chunk:\n                    break\n                yield chunk\n\n        self._content_consumed = True\n\n    def iter_content(self, chunk_size=1, decode_unicode=False):\n        \"\"\"Iterates over the response data.  When stream=True is set on the\n        request, this avoids reading the content at once into memory for\n        large responses.  The chunk size is the number of bytes it should\n        read into memory.  This is not necessarily the length of each item\n        returned as decoding can take place.\n\n        chunk_size must be of type int or None. A value of None will\n        function differently depending on the value of `stream`.\n        stream=True will read data as it arrives in whatever size the\n        chunks are received. If stream=False, data is returned as\n        a single chunk.\n\n        If decode_unicode is True, content will be decoded using the best\n        available encoding based on the response.\n        \"\"\"\n\n        if self._content_consumed and isinstance(self._content, bool):\n            raise StreamConsumedError()\n        elif chunk_size is not None and not isinstance(chunk_size, int):\n            raise TypeError(\n                f\"chunk_size must be an int, it is instead a {type(chunk_size)}.\"\n            )\n        # simulate reading small chunks of the content\n        reused_chunks = iter_slices(self._content, chunk_size)\n\n        stream_chunks = self._iter_raw_stream(chunk_size)\n\n        chunks = reused_chunks if self._content_consumed else stream_chunks\n\n        if decode_unicode:\n            chunks = stream_decode_response_unicode(chunks, self)\n\n        return chunks",
+        "search_lines": 57,
+        "replace_lines": 58
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165970.6950187683,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [SSL: TLSV1_ALERT_UNKNOWN_CA] tlsv1 alert unknown ca (_ssl.c:1006)\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:482: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 165.19s (0:02:45)\n\n[stderr]\n127.0.0.1 - - [04/May/2026 12:39:37] \"GET /html HTTP/1.1\" 200 3741\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 745,
+        "blank_lines": 183,
+        "comment_lines": 100,
+        "function_count": 45,
+        "avg_cc": 4.39,
+        "max_cc": 21.0,
+        "mi": 21.22
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/models.py",
+        "loc": 746,
+        "blank_lines": 183,
+        "comment_lines": 100,
+        "function_count": 45,
+        "avg_cc": 4.46,
+        "max_cc": 21.0,
+        "mi": 20.13
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/models.py b/src/requests/models.py\nindex 6c69679..1264d02 100644\n--- a/src/requests/models.py\n+++ b/src/requests/models.py\n@@ -785,6 +785,30 @@ class Response:\n             # to a standard Python utf-8 str.\n             return \"utf-8\"\n \n+    def _iter_raw_stream(self, chunk_size):\n+        \"\"\"Iterates over the raw response stream.\"\"\"\n+        # Special case for urllib3.\n+        if hasattr(self.raw, \"stream\"):\n+            try:\n+                yield from self.raw.stream(chunk_size, decode_content=True)\n+            except ProtocolError as e:\n+                raise ChunkedEncodingError(e)\n+            except DecodeError as e:\n+                raise ContentDecodingError(e)\n+            except ReadTimeoutError as e:\n+                raise ConnectionError(e)\n+            except SSLError as e:\n+                raise RequestsSSLError(e)\n+        else:\n+            # Standard file-like object.\n+            while True:\n+                chunk = self.raw.read(chunk_size)\n+                if not chunk:\n+                    break\n+                yield chunk\n+\n+        self._content_consumed = True\n+\n     def iter_content(self, chunk_size=1, decode_unicode=False):\n         \"\"\"Iterates over the response data.  When stream=True is set on the\n         request, this avoids reading the content at once into memory for\n@@ -802,29 +826,6 @@ class Response:\n         available encoding based on the response.\n         \"\"\"\n \n-        def generate():\n-            # Special case for urllib3.\n-            if hasattr(self.raw, \"stream\"):\n-                try:\n-                    yield from self.raw.stream(chunk_size, decode_content=True)\n-                except ProtocolError as e:\n-                    raise ChunkedEncodingError(e)\n-                except DecodeError as e:\n-                    raise ContentDecodingError(e)\n-                except ReadTimeoutError as e:\n-                    raise ConnectionError(e)\n-                except SSLError as e:\n-                    raise RequestsSSLError(e)\n-            else:\n-                # Standard file-like object.\n-                while True:\n-                    chunk = self.raw.read(chunk_size)\n-                    if not chunk:\n-                        break\n-                    yield chunk\n-\n-            self._content_consumed = True\n-\n         if self._content_consumed and isinstance(self._content, bool):\n             raise StreamConsumedError()\n         elif chunk_size is not None and not isinstance(chunk_size, int):\n@@ -834,7 +835,7 @@ class Response:\n         # simulate reading small chunks of the content\n         reused_chunks = iter_slices(self._content, chunk_size)\n \n-        stream_chunks = generate()\n+        stream_chunks = self._iter_raw_stream(chunk_size)\n \n         chunks = reused_chunks if self._content_consumed else stream_chunks\n \n",
+  "duration_ms": 170079.93960380554
+}

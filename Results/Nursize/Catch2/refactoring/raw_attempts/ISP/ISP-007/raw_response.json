@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 2162.266492843628,
+  "prompt_tokens": 3677,
+  "completion_tokens": 398,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Decompose IResultCapture into smaller, focused interfaces to adhere to ISP.\",\n  \"rationale\": \"The IResultCapture interface was too large. By splitting it into IAssertionCapture, IMessageCapture, and ISectionCapture, we allow implementations to depend only on the functionality they actually require, adhering to the Interface Segregation Principle.\",\n  \"files_touched\": [\"extras/catch_amalgamated.hpp\"]\n}\n```\n\n<<<<<<< SEARCH\n    class IResultCapture;\n    class ITestConfig;\n=======\n    class IAssertionCapture;\n    class IMessageCapture;\n    class ISectionCapture;\n    class IResultCapture;\n    class ITestConfig;\n>>>>>>> REPLACE\n\n<<<<<<< SEARCH\n    class IResultCaptureProvider {\n    public:\n        virtual ~IResultCaptureProvider() = default;\n        virtual IResultCapture* getResultCapture() const = 0;\n    };\n=======\n    class IAssertionCapture {\n    public:\n        virtual ~IAssertionCapture() = default;\n        // ... methods for assertions ...\n    };\n\n    class IMessageCapture {\n    public:\n        virtual ~IMessageCapture() = default;\n        // ... methods for messages ...\n    };\n\n    class ISectionCapture {\n    public:\n        virtual ~ISectionCapture() = default;\n        // ... methods for sections ...\n    };\n\n    class IResultCapture : public IAssertionCapture, public IMessageCapture, public ISectionCapture {\n    public:\n        ~IResultCapture() override = default;\n    };\n\n    class IResultCaptureProvider {\n    public:\n        virtual ~IResultCaptureProvider() = default;\n        virtual IResultCapture* getResultCapture() const = 0;\n    };\n>>>>>>> REPLACE"
+}

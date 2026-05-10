@@ -1,0 +1,58 @@
+diff --git a/src/main/java/tools/jackson/core/TokenStreamFactory.java b/src/main/java/tools/jackson/core/TokenStreamFactory.java
+index db6e706..b307069 100644
+--- a/src/main/java/tools/jackson/core/TokenStreamFactory.java
++++ b/src/main/java/tools/jackson/core/TokenStreamFactory.java
+@@ -1230,7 +1230,7 @@ public abstract class TokenStreamFactory
+         if (!recyclerExternal) {
+             br = _getBufferRecycler();
+         }
+-        IOContext ctxt = new IOContext(_streamReadConstraints, _streamWriteConstraints,
++        IOContext ctxt = new DefaultIOContextFactory().createContext(_streamReadConstraints, _streamWriteConstraints,
+                 _errorReportConfiguration,
+                 br, contentRef,
+                 resourceManaged, enc);
+diff --git a/src/main/java/tools/jackson/core/io/IOContextFactory.java b/src/main/java/tools/jackson/core/io/IOContextFactory.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/io/IOContextFactory.java
+@@ -0,0 +1,14 @@
++package tools.jackson.core.io;
++
++import tools.jackson.core.JsonEncoding;
++import tools.jackson.core.ErrorReportConfiguration;
++import tools.jackson.core.StreamReadConstraints;
++import tools.jackson.core.StreamWriteConstraints;
++import tools.jackson.core.util.BufferRecycler;
++
++public interface IOContextFactory {
++    IOContext createContext(StreamReadConstraints src, StreamWriteConstraints swc,
++                            ErrorReportConfiguration erc,
++                            BufferRecycler br, ContentReference contentRef,
++                            boolean resourceManaged, JsonEncoding enc);
++}
+\ No newline at end of file
+diff --git a/src/main/java/tools/jackson/core/io/DefaultIOContextFactory.java b/src/main/java/tools/jackson/core/io/DefaultIOContextFactory.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/io/DefaultIOContextFactory.java
+@@ -0,0 +1,17 @@
++package tools.jackson.core.io;
++
++import tools.jackson.core.JsonEncoding;
++import tools.jackson.core.ErrorReportConfiguration;
++import tools.jackson.core.StreamReadConstraints;
++import tools.jackson.core.StreamWriteConstraints;
++import tools.jackson.core.util.BufferRecycler;
++
++public class DefaultIOContextFactory implements IOContextFactory {
++    @Override
++    public IOContext createContext(StreamReadConstraints src, StreamWriteConstraints swc,
++                                   ErrorReportConfiguration erc,
++                                   BufferRecycler br, ContentReference contentRef,
++                                   boolean resourceManaged, JsonEncoding enc) {
++        return new IOContext(src, swc, erc, br, contentRef, resourceManaged, enc);
++    }
++}
+\ No newline at end of file

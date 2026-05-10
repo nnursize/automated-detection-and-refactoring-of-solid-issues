@@ -1,0 +1,31 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index f63e59b..50a372b 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -210,7 +210,7 @@ class RequestEncodingMixin:
+         return body, content_type
+ 
+ 
+-class RequestHooksMixin:
++class RegisterOnlyHooksMixin:
+     def register_hook(self, event, hook):
+         """Properly register a hook."""
+ 
+@@ -222,6 +222,8 @@ class RequestHooksMixin:
+         elif hasattr(hook, "__iter__"):
+             self.hooks[event].extend(h for h in hook if isinstance(h, Callable))
+ 
++
++class RequestHooksMixin(RegisterOnlyHooksMixin):
+     def deregister_hook(self, event, hook):
+         """Deregister a previously registered hook.
+         Returns True if the hook existed, False if not.
+@@ -234,7 +236,7 @@ class RequestHooksMixin:
+             return False
+ 
+ 
+-class Request(RequestHooksMixin):
++class Request(RegisterOnlyHooksMixin):
+     """A user-created :class:`Request <Request>` object.
+ 
+     Used to prepare a :class:`PreparedRequest <PreparedRequest>`, which is sent to the server.

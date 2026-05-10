@@ -1,0 +1,61 @@
+{
+  "issue_id": "DIP-023",
+  "principle": "DIP",
+  "title": "Refactor DIP-023 (DIP): Direct instantiation of concrete UTF8Writer.",
+  "branch": "refactor/DIP-023",
+  "base": "main",
+  "head_commit": "5650ed69e32cc1205ea2281f12c8a5b6bcfeaebf",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4377,
+    "completion_tokens": 458
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+    "entity_name": "TextualTSFactory._createWriter",
+    "entity_type": "class",
+    "line_start": 339,
+    "line_end": 346,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Direct instantiation of concrete UTF8Writer.",
+    "reasoning": "The _createWriter method directly instantiates UTF8Writer, coupling the factory to a specific implementation of the Writer abstraction instead of allowing for the injection of different writer types."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a factory method for creating UTF8Writer to decouple TextualTSFactory from the concrete implementation.",
+    "rationale": "By moving the instantiation of UTF8Writer into a protected factory method, we allow subclasses to override the creation logic, adhering to the Dependency Inversion Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+        "loc": 303,
+        "blank_lines": 37,
+        "comment_lines": 14,
+        "function_count": 17,
+        "avg_cc": 2.76,
+        "max_cc": 31.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2521.151542663574
+}

@@ -1,0 +1,85 @@
+{
+  "issue_id": "LSP-003",
+  "principle": "LSP",
+  "title": "Refactor LSP-003 (LSP): Subclass enforces mandatory internal state-management side-effects on further...",
+  "branch": "refactor/LSP-003",
+  "base": "main",
+  "head_commit": "3649d6b45268af01f256aa903a2d14a1b3c3de44",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3968,
+    "completion_tokens": 476
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::CumulativeReporterBase",
+    "entity_type": "class",
+    "line_start": 7668,
+    "line_end": 7727,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Subclass enforces mandatory internal state-management side-effects on further subtypes.",
+    "reasoning": "The documentation for `CumulativeReporterBase` explicitly states that subclasses overriding testing-related member functions (like `sectionStarting` or `assertionEnded`) must call the base implementation to avoid breaking internal tree construction. This imposes a strict behavioral contract on subtypes that is not present in the parent `IEventListener` interface. If a subtype fails to call the base method, it violates the postconditions required for the correctness of the cumulative report (leading to UB), meaning the subtype is not safely substitutable for the base class."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Fix LSP violation in CumulativeReporterBase by making internal state management non-overridable",
+    "rationale": "The LSP violation occurred because subclasses were expected to call base methods to maintain internal state, which is an implementation detail that shouldn't be exposed as a contract. By splitting the public interface (non-virtual) from the internal implementation (private virtual hooks), we enforce the required state management while preventing subclasses from accidentally breaking the tree construction.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "        void sectionStarting( SectionInfo const& sectionInfo ) override;\n\n        void assertionStarting( AssertionInfo const& ) override {}\n\n        void assertionEnded( AssertionStats const& assertionStats ) override;\n        void sectionEnded( SectionStats const& sectionStats ) override;\n        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}\n        void testCaseEnded( TestCaseStats const& testCaseStats ) override;\n        void testRunEnded( TestRunStats const& testRunStats ) override;\n        //! Customization point: called after last test finishes (testRunEnded has been handled)\n        virtual void testRunEndedCumulative() = 0;",
+        "replace_text": "        void sectionStarting( SectionInfo const& sectionInfo ) final;\n\n        void assertionStarting( AssertionInfo const& ) final {}\n\n        void assertionEnded( AssertionStats const& assertionStats ) final;\n        void sectionEnded( SectionStats const& sectionStats ) final;\n        void testCasePartialEnded( TestCaseStats const&, uint64_t ) final {}\n        void testCaseEnded( TestCaseStats const& testCaseStats ) final;\n        void testRunEnded( TestRunStats const& testRunStats ) final;\n\n    protected:\n        virtual void sectionStartingCumulative( SectionInfo const& ) {}\n        virtual void assertionEndedCumulative( AssertionStats const& ) {}\n        virtual void sectionEndedCumulative( SectionStats const& ) {}\n        virtual void testCaseEndedCumulative( TestCaseStats const& ) {}\n        virtual void testRunEndedCumulative( TestRunStats const& ) = 0;",
+        "search_lines": 11,
+        "replace_lines": 16
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10459,
+        "blank_lines": 3072,
+        "comment_lines": 723,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10464,
+        "blank_lines": 3073,
+        "comment_lines": 722,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex c9df2ab..7cf84e8 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -13540,17 +13540,22 @@ namespace Catch {\n \n         void testCaseStarting( TestCaseInfo const& ) override {}\n         void testCasePartialStarting( TestCaseInfo const&, uint64_t ) override {}\n-        void sectionStarting( SectionInfo const& sectionInfo ) override;\n+        void sectionStarting( SectionInfo const& sectionInfo ) final;\n \n-        void assertionStarting( AssertionInfo const& ) override {}\n+        void assertionStarting( AssertionInfo const& ) final {}\n \n-        void assertionEnded( AssertionStats const& assertionStats ) override;\n-        void sectionEnded( SectionStats const& sectionStats ) override;\n-        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}\n-        void testCaseEnded( TestCaseStats const& testCaseStats ) override;\n-        void testRunEnded( TestRunStats const& testRunStats ) override;\n-        //! Customization point: called after last test finishes (testRunEnded has been handled)\n-        virtual void testRunEndedCumulative() = 0;\n+        void assertionEnded( AssertionStats const& assertionStats ) final;\n+        void sectionEnded( SectionStats const& sectionStats ) final;\n+        void testCasePartialEnded( TestCaseStats const&, uint64_t ) final {}\n+        void testCaseEnded( TestCaseStats const& testCaseStats ) final;\n+        void testRunEnded( TestRunStats const& testRunStats ) final;\n+\n+    protected:\n+        virtual void sectionStartingCumulative( SectionInfo const& ) {}\n+        virtual void assertionEndedCumulative( AssertionStats const& ) {}\n+        virtual void sectionEndedCumulative( SectionStats const& ) {}\n+        virtual void testCaseEndedCumulative( TestCaseStats const& ) {}\n+        virtual void testRunEndedCumulative( TestRunStats const& ) = 0;\n \n         void skipTest(TestCaseInfo const&) override {}\n \n",
+  "duration_ms": 12765.600204467773
+}

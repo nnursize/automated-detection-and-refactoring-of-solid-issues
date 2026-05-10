@@ -1,0 +1,349 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: OCP-004
+- **Principle**: Open/Closed Principle (OCP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `Catch::IConfig` (current lines L568-L587 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 2 independent scans
+
+### Description
+The IConfig interface is too large, requiring modification for new configuration options.
+
+### Reasoning
+The 'Fat Interface' smell is present in `IConfig`. It exposes a wide range of configuration settings. If a new configuration option is introduced in Catch2, a new pure virtual getter method would need to be added to `IConfig`. This would necessitate modifying all concrete implementations of `IConfig` (e.g., `Catch::Config`), violating the Open/Closed Principle.
+
+## Principle reference
+**Open/Closed Principle** — Software entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.
+
+What typically signals a violation:
+- Long if/elif/else or switch chains that would need modification to add new types
+- Functions with type-checking logic (isinstance checks) to handle different cases
+- Code that requires modifying existing classes to add new features
+- Missing use of polymorphism, strategy pattern, or plugin architecture
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 447 earlier lines elided ...
+#if !defined( CATCH_INTERNAL_CONFIG_EXCEPTIONS_ENABLED ) && \
+    !defined( CATCH_CONFIG_DISABLE_EXCEPTIONS ) &&          \
+    !defined( CATCH_CONFIG_NO_DISABLE_EXCEPTIONS )
+#  define CATCH_CONFIG_DISABLE_EXCEPTIONS
+#endif
+
+#if defined(CATCH_INTERNAL_CONFIG_POLYFILL_ISNAN) && !defined(CATCH_CONFIG_NO_POLYFILL_ISNAN) && !defined(CATCH_CONFIG_POLYFILL_ISNAN)
+#  define CATCH_CONFIG_POLYFILL_ISNAN
+#endif
+
+#if defined(CATCH_INTERNAL_CONFIG_USE_ASYNC)  && !defined(CATCH_INTERNAL_CONFIG_NO_ASYNC) && !defined(CATCH_CONFIG_NO_USE_ASYNC) && !defined(CATCH_CONFIG_USE_ASYNC)
+#  define CATCH_CONFIG_USE_ASYNC
+#endif
+
+#if defined(CATCH_INTERNAL_CONFIG_GLOBAL_NEXTAFTER) && !defined(CATCH_CONFIG_NO_GLOBAL_NEXTAFTER) && !defined(CATCH_CONFIG_GLOBAL_NEXTAFTER)
+#  define CATCH_CONFIG_GLOBAL_NEXTAFTER
+#endif
+
+
+// The goal of this macro is to avoid evaluation of the arguments, but
+// still have the compiler warn on problems inside...
+#if defined( CATCH_INTERNAL_CONFIG_USE_BUILTIN_CONSTANT_P ) && \
+    !defined( CATCH_INTERNAL_CONFIG_NO_USE_BUILTIN_CONSTANT_P ) && !defined(CATCH_CONFIG_USE_BUILTIN_CONSTANT_P)
+#define CATCH_CONFIG_USE_BUILTIN_CONSTANT_P
+#endif
+
+#if defined( CATCH_CONFIG_USE_BUILTIN_CONSTANT_P ) && \
+    !defined( CATCH_CONFIG_NO_USE_BUILTIN_CONSTANT_P )
+#    define CATCH_INTERNAL_IGNORE_BUT_WARN( ... )                                              \
+        (void)__builtin_constant_p( __VA_ARGS__ ) /* NOLINT(cppcoreguidelines-pro-type-vararg, \
+                                                     hicpp-vararg) */
+#else
+#    define CATCH_INTERNAL_IGNORE_BUT_WARN( ... )
+#endif
+
+// Even if we do not think the compiler has that warning, we still have
+// to provide a macro that can be used by the code.
+#if !defined(CATCH_INTERNAL_START_WARNINGS_SUPPRESSION)
+#   define CATCH_INTERNAL_START_WARNINGS_SUPPRESSION
+#endif
+#if !defined(CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION)
+#   define CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION
+#endif
+#if !defined(CATCH_INTERNAL_SUPPRESS_PARENTHESES_WARNINGS)
+#   define CATCH_INTERNAL_SUPPRESS_PARENTHESES_WARNINGS
+#endif
+#if !defined(CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS)
+#   define CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS
+#endif
+#if !defined(CATCH_INTERNAL_SUPPRESS_UNUSED_RESULT)
+#   define CATCH_INTERNAL_SUPPRESS_UNUSED_RESULT
+#endif
+#if !defined(CATCH_INTERNAL_SUPPRESS_UNUSED_VARIABLE_WARNINGS)
+#   define CATCH_INTERNAL_SUPPRESS_UNUSED_VARIABLE_WARNINGS
+#endif
+#if !defined(CATCH_INTERNAL_SUPPRESS_USELESS_CAST_WARNINGS)
+#   define CATCH_INTERNAL_SUPPRESS_USELESS_CAST_WARNINGS
+#endif
+#if !defined(CATCH_INTERNAL_SUPPRESS_ZERO_VARIADIC_WARNINGS)
+#   define CATCH_INTERNAL_SUPPRESS_ZERO_VARIADIC_WARNINGS
+#endif
+#if !defined( CATCH_INTERNAL_SUPPRESS_UNUSED_TEMPLATE_WARNINGS )
+#    define CATCH_INTERNAL_SUPPRESS_UNUSED_TEMPLATE_WARNINGS
+#endif
+#if !defined( CATCH_INTERNAL_SUPPRESS_COMMA_WARNINGS )
+#    define CATCH_INTERNAL_SUPPRESS_COMMA_WARNINGS
+#endif
+#if !defined( CATCH_INTERNAL_SUPPRESS_SHADOW_WARNINGS )
+#    define CATCH_INTERNAL_SUPPRESS_SHADOW_WARNINGS
+#endif
+
+#if defined(__APPLE__) && defined(__apple_build_version__) && (__clang_major__ < 10)
+#   undef CATCH_INTERNAL_SUPPRESS_UNUSED_TEMPLATE_WARNINGS
+#elif defined(__clang__) && (__clang_major__ < 5)
+#   undef CATCH_INTERNAL_SUPPRESS_UNUSED_TEMPLATE_WARNINGS
+#endif
+
+
+#if defined(CATCH_CONFIG_DISABLE_EXCEPTIONS)
+#define CATCH_TRY if ((true))
+#define CATCH_CATCH_ALL if ((false))
+#define CATCH_CATCH_ANON(type) if ((false))
+#else
+#define CATCH_TRY try
+#define CATCH_CATCH_ALL catch (...)
+#define CATCH_CATCH_ANON(type) catch (type)
+#endif
+
+#if defined(CATCH_INTERNAL_CONFIG_TRADITIONAL_MSVC_PREPROCESSOR) && !defined(CATCH_CONFIG_NO_TRADITIONAL_MSVC_PREPROCESSOR) && !defined(CATCH_CONFIG_TRADITIONAL_MSVC_PREPROCESSOR)
+#define CATCH_CONFIG_TRADITIONAL_MSVC_PREPROCESSOR
+#endif
+
+#if defined( CATCH_PLATFORM_WINDOWS ) &&       \
+    !defined( CATCH_CONFIG_COLOUR_WIN32 ) && \
+    !defined( CATCH_CONFIG_NO_COLOUR_WIN32 ) && \
+    !defined( CATCH_INTERNAL_CONFIG_NO_COLOUR_WIN32 )
+#    define CATCH_CONFIG_COLOUR_WIN32
+#endif
+
+#if defined( CATCH_CONFIG_SHARED_LIBRARY ) && defined( _MSC_VER ) && \
+    !defined( CATCH_CONFIG_STATIC )
+#    ifdef Catch2_EXPORTS
+#        define CATCH_EXPORT //__declspec( dllexport ) // not needed
+#    else
+#        define CATCH_EXPORT __declspec( dllimport )
+#    endif
+#else
+#    define CATCH_EXPORT
+#endif
+
+#endif // CATCH_COMPILER_CAPABILITIES_HPP_INCLUDED
+
+
+#ifndef CATCH_CONTEXT_HPP_INCLUDED
+#define CATCH_CONTEXT_HPP_INCLUDED
+
+
+namespace Catch {
+
+    class IResultCapture;
+    class IConfig;
+
+    class Context {
+        IConfig const* m_config = nullptr;
+        IResultCapture* m_resultCapture = nullptr;
+
+        CATCH_EXPORT static Context currentContext;
+        friend Context& getCurrentMutableContext();
+        friend Context const& getCurrentContext();
+
+    public:
+        constexpr IResultCapture* getResultCapture() const {
+            return m_resultCapture;
+        }
+        constexpr IConfig const* getConfig() const { return m_config; }
+        constexpr void setResultCapture( IResultCapture* resultCapture ) {
+            m_resultCapture = resultCapture;
+        }
+        constexpr void setConfig( IConfig const* config ) { m_config = config; }
+    };
+
+    Context& getCurrentMutableContext();
+
+    inline Context const& getCurrentContext() {
+        return Context::currentContext;
+    }
+
+    class SimplePcg32;
+    SimplePcg32& sharedRng();
+}
+
+#endif // CATCH_CONTEXT_HPP_INCLUDED
+
+
+#ifndef CATCH_MOVE_AND_FORWARD_HPP_INCLUDED
+#define CATCH_MOVE_AND_FORWARD_HPP_INCLUDED
+
+#include <type_traits>
+
+//! Replacement for std::move with better compile time performance
+#define CATCH_MOVE(...) static_cast<std::remove_reference_t<decltype(__VA_ARGS__)>&&>(__VA_ARGS__)
+
+//! Replacement for std::forward with better compile time performance
+#define CATCH_FORWARD(...) static_cast<decltype(__VA_ARGS__)&&>(__VA_ARGS__)
+
+#endif // CATCH_MOVE_AND_FORWARD_HPP_INCLUDED
+
+
+#ifndef CATCH_TEST_FAILURE_EXCEPTION_HPP_INCLUDED
+#define CATCH_TEST_FAILURE_EXCEPTION_HPP_INCLUDED
+
+namespace Catch {
+
+    //! Used to signal that an assertion macro failed
+    struct TestFailureException{};
+    //! Used to signal that the remainder of a test should be skipped
+    struct TestSkipException {};
+
+    /**
+     * Outlines throwing of `TestFailureException` into a single TU
+     *
+     * Also handles `CATCH_CONFIG_DISABLE_EXCEPTIONS` for callers.
+     */
+    [[noreturn]] void throw_test_failure_exception();
+
+    /**
+     * Outlines throwing of `TestSkipException` into a single TU
+     *
+     * Also handles `CATCH_CONFIG_DISABLE_EXCEPTIONS` for callers.
+     */
+    [[noreturn]] void throw_test_skip_exception();
+
+} // namespace Catch
+
+#endif // CATCH_TEST_FAILURE_EXCEPTION_HPP_INCLUDED
+
+
+#ifndef CATCH_UNIQUE_NAME_HPP_INCLUDED
+#define CATCH_UNIQUE_NAME_HPP_INCLUDED
+
+
+
+
+/** \file
+ * Wrapper for the CONFIG configuration option
+ *
+ * When generating internal unique names, there are two options. Either
+ * we mix in the current line number, or mix in an incrementing number.
+ * We prefer the latter, using `__COUNTER__`, but users might want to
+ * use the former.
+ */
+
+#ifndef CATCH_CONFIG_COUNTER_HPP_INCLUDED
+#define CATCH_CONFIG_COUNTER_HPP_INCLUDED
+
+
+#if ( !defined(__JETBRAINS_IDE__) || __JETBRAINS_IDE__ >= 20170300L )
+    #define CATCH_INTERNAL_CONFIG_COUNTER
+#endif
+
+#if defined( CATCH_INTERNAL_CONFIG_COUNTER ) && \
+    !defined( CATCH_CONFIG_NO_COUNTER ) && \
+    !defined( CATCH_CONFIG_COUNTER )
+#    define CATCH_CONFIG_COUNTER
+#endif
+
+
+#endif // CATCH_CONFIG_COUNTER_HPP_INCLUDED
+#define INTERNAL_CATCH_UNIQUE_NAME_LINE2( name, line ) name##line
+#define INTERNAL_CATCH_UNIQUE_NAME_LINE( name, line ) INTERNAL_CATCH_UNIQUE_NAME_LINE2( name, line )
+#ifdef CATCH_CONFIG_COUNTER
+#  define INTERNAL_CATCH_UNIQUE_NAME( name ) INTERNAL_CATCH_UNIQUE_NAME_LINE( name, __COUNTER__ )
+#else
+#  define INTERNAL_CATCH_UNIQUE_NAME( name ) INTERNAL_CATCH_UNIQUE_NAME_LINE( name, __LINE__ )
+#endif
+
+#endif // CATCH_UNIQUE_NAME_HPP_INCLUDED
+
+
+#ifndef CATCH_INTERFACES_CAPTURE_HPP_INCLUDED
+#define CATCH_INTERFACES_CAPTURE_HPP_INCLUDED
+
+#include <string>
+
+
+
+#ifndef CATCH_STRINGREF_HPP_INCLUDED
+#define CATCH_STRINGREF_HPP_INCLUDED
+
+
+
+
+#ifndef CATCH_LIFETIMEBOUND_HPP_INCLUDED
+#define CATCH_LIFETIMEBOUND_HPP_INCLUDED
+
+#if !defined( __has_cpp_attribute )
+#    define CATCH_ATTR_LIFETIMEBOUND
+#elif __has_cpp_attribute( msvc::lifetimebound )
+#    define CATCH_ATTR_LIFETIMEBOUND [[msvc::lifetimebound]]
+#elif __has_cpp_attribute( clang::lifetimebound )
+# ... 13617 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

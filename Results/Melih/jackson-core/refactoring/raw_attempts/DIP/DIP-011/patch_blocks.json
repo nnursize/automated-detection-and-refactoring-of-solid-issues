@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+    "search_text": "    protected IOContext _createContext(ContentReference contentRef, boolean resourceManaged,\n            JsonEncoding enc)\n    {\n        BufferRecycler br = null;\n        Object content = (contentRef == null) ? null : contentRef.getRawContent();\n        // 18-Jan-2024, tatu: [core#1195] Let's see if we can reuse already allocated recycler\n        //   (is the case when SegmentedStringWriter / ByteArrayBuilder passed)\n        if (content instanceof BufferRecycler.Gettable) {\n            br = ((BufferRecycler.Gettable) content).bufferRecycler();\n        }\n        boolean recyclerExternal = (br != null);\n        if (!recyclerExternal) {\n            br = _getBufferRecycler();\n        }\n        IOContext ctxt = new IOContext(_streamReadConstraints, _streamWriteConstraints,\n                _errorReportConfiguration,\n                br, contentRef,\n                resourceManaged, enc);\n        if (recyclerExternal) {\n            ctxt.markBufferRecyclerReleased();\n        }\n        return ctxt;\n    }",
+    "replace_text": "    protected IOContext _createContext(ContentReference contentRef, boolean resourceManaged,\n            JsonEncoding enc)\n    {\n        BufferRecycler br = null;\n        Object content = (contentRef == null) ? null : contentRef.getRawContent();\n        // 18-Jan-2024, tatu: [core#1195] Let's see if we can reuse already allocated recycler\n        //   (is the case when SegmentedStringWriter / ByteArrayBuilder passed)\n        if (content instanceof BufferRecycler.Gettable) {\n            br = ((BufferRecycler.Gettable) content).bufferRecycler();\n        }\n        boolean recyclerExternal = (br != null);\n        if (!recyclerExternal) {\n            br = _getBufferRecycler();\n        }\n        IOContext ctxt = new DefaultIOContextFactory().createContext(_streamReadConstraints, _streamWriteConstraints,\n                _errorReportConfiguration,\n                br, contentRef,\n                resourceManaged, enc);\n        if (recyclerExternal) {\n            ctxt.markBufferRecyclerReleased();\n        }\n        return ctxt;\n    }"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/io/IOContextFactory.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.io;\n\nimport tools.jackson.core.JsonEncoding;\nimport tools.jackson.core.ErrorReportConfiguration;\nimport tools.jackson.core.StreamReadConstraints;\nimport tools.jackson.core.StreamWriteConstraints;\nimport tools.jackson.core.util.BufferRecycler;\n\npublic interface IOContextFactory {\n    IOContext createContext(StreamReadConstraints src, StreamWriteConstraints swc,\n                            ErrorReportConfiguration erc,\n                            BufferRecycler br, ContentReference contentRef,\n                            boolean resourceManaged, JsonEncoding enc);\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/io/DefaultIOContextFactory.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.io;\n\nimport tools.jackson.core.JsonEncoding;\nimport tools.jackson.core.ErrorReportConfiguration;\nimport tools.jackson.core.StreamReadConstraints;\nimport tools.jackson.core.StreamWriteConstraints;\nimport tools.jackson.core.util.BufferRecycler;\n\npublic class DefaultIOContextFactory implements IOContextFactory {\n    @Override\n    public IOContext createContext(StreamReadConstraints src, StreamWriteConstraints swc,\n                                   ErrorReportConfiguration erc,\n                                   BufferRecycler br, ContentReference contentRef,\n                                   boolean resourceManaged, JsonEncoding enc) {\n        return new IOContext(src, swc, erc, br, contentRef, resourceManaged, enc);\n    }\n}"
+  }
+]

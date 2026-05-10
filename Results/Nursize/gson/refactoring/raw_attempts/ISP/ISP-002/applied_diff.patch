@@ -1,0 +1,17 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
+index bb26de5..5979b7b 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java
+@@ -117,6 +117,12 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
+           raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);
+     }
+ 
++    // If the class is anonymous or a local class, we cannot reflectively instantiate it.
++    // We return null to let other factories handle it or to let Gson skip it.
++    if (raw.isAnonymousClass() || raw.isLocalClass()) {
++      return null;
++    }
++
+     ObjectConstructor<T> constructor = constructorConstructor.get(type, true);
+     return new FieldReflectionAdapter<>(
+         constructor, getBoundFields(gson, type, raw, blockInaccessible, false));

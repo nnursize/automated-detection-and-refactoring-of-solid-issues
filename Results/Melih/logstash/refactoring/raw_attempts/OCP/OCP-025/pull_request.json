@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-025",
+  "principle": "OCP",
+  "title": "Refactor OCP-025 (OCP): The method uses a switch statement on hardcoded protocol strings to determine...",
+  "branch": "refactor/OCP-025",
+  "base": "main",
+  "head_commit": "afbe603f8be25cc855a929d53fdd8774bf2cd5b7",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 12199,
+    "completion_tokens": 254
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.getPipelineSourceDetails",
+    "entity_type": "method",
+    "line_start": 868,
+    "line_end": 887,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The method uses a switch statement on hardcoded protocol strings to determine source details.",
+    "reasoning": "Adding a new configuration source protocol (e.g., 'http' or 's3') requires modifying this method to add a new case to the switch statement. This logic should be encapsulated within the SourceWithMetadata implementations or a registry of detail providers."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor pipeline source description logic to use polymorphism",
+    "rationale": "The switch statement in AbstractPipelineExt violates the Open/Closed Principle. By moving the responsibility of providing a description to the SourceWithMetadata interface (or a default method/implementation), we allow new protocols to be added without modifying the core pipeline execution logic.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "search_text": "    private String getSourceDescription(SourceWithMetadata source) {\n        switch (source.getProtocol()) {\n            case \"string\": return \"config string\";\n            case \"file\": return source.getId();\n            case \"x-pack-metrics\": return \"monitoring pipeline\";\n            case \"x-pack-config-management\": return \"central pipeline management\";\n            case \"module\": return \"module\";\n            default: return source.getProtocol();\n        }\n    }",
+        "replace_text": "    private String getSourceDescription(SourceWithMetadata source) {\n        return source.getDescription();\n    }",
+        "search_lines": 10,
+        "replace_lines": 3
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 770,
+        "blank_lines": 135,
+        "comment_lines": 4,
+        "function_count": 62,
+        "avg_cc": 1.81,
+        "max_cc": 51.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+        "loc": 763,
+        "blank_lines": 135,
+        "comment_lines": 4,
+        "function_count": 62,
+        "avg_cc": 1.73,
+        "max_cc": 46.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\nindex 7b2e452..545a302 100644\n--- a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\n+++ b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\n@@ -811,14 +811,7 @@ public class AbstractPipelineExt extends RubyBasicObject {\n     }\n \n     private String getSourceDescription(SourceWithMetadata source) {\n-        switch (source.getProtocol()) {\n-            case \"string\": return \"config string\";\n-            case \"file\": return source.getId();\n-            case \"x-pack-metrics\": return \"monitoring pipeline\";\n-            case \"x-pack-config-management\": return \"central pipeline management\";\n-            case \"module\": return \"module\";\n-            default: return source.getProtocol();\n-        }\n+        return source.getDescription();\n     }\n \n     protected final IRubyObject getSetting(final ThreadContext context, final String name) {\n",
+  "duration_ms": 15313.591718673706
+}

@@ -1,0 +1,40 @@
+{
+  "scan_id": "Catch2_LSP_scan_08",
+  "repo_name": "Catch2",
+  "principle": "LSP",
+  "scan_number": 8,
+  "timestamp": "2026-05-02T17:43:57.539520",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following c++ classes for violations of the Liskov Substitution Principle (LSP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a su...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Column\",\n      \"entity_type\": \"class\",\n      \"line_start\": 71,\n      \"line_end\": 241,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Class Column is used as a base class for Spacer but lacks a virtual destructor.\",\n      \"reasoning\": \"The Liskov Substitution Principle requires that subtypes be substitutable for their base types. In C++, if a subclass (like Spacer) is deleted through a pointer to a base class (Column) that lacks a virtual destructor, the resulting behavior is undefined. This prevents safe polymorphic substitution in any context involving dynamic memory management and base-class pointers.\"\n    },\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Column::iterator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 79,\n      \"line_end\": 199,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"The iterator violates the ForwardIterator contract by returning a temporary from operator* while defining reference as a non-const reference type.\",\n      \"reasoning\": \"The class defines 'iterator_category' as 'std::forward_iterator_tag' and 'reference' as 'value_type&' (std::string&). However, its 'operator*' returns a 'std::string' by value. This violates the ForwardIterator contract where 'operator*' must return a true reference to the element. Additionally, it lacks a default constructor required by the ForwardIterator concept. This breaks substitutability in generic algorithms that expect standard-compliant ForwardIterators.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Column",
+      "entity_type": "class",
+      "line_start": 71,
+      "line_end": 241,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Class Column is used as a base class for Spacer but lacks a virtual destructor.",
+      "reasoning": "The Liskov Substitution Principle requires that subtypes be substitutable for their base types. In C++, if a subclass (like Spacer) is deleted through a pointer to a base class (Column) that lacks a virtual destructor, the resulting behavior is undefined. This prevents safe polymorphic substitution in any context involving dynamic memory management and base-class pointers."
+    },
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Column::iterator",
+      "entity_type": "class",
+      "line_start": 79,
+      "line_end": 199,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "The iterator violates the ForwardIterator contract by returning a temporary from operator* while defining reference as a non-const reference type.",
+      "reasoning": "The class defines 'iterator_category' as 'std::forward_iterator_tag' and 'reference' as 'value_type&' (std::string&). However, its 'operator*' returns a 'std::string' by value. This violates the ForwardIterator contract where 'operator*' must return a true reference to the element. Additionally, it lacks a default constructor required by the ForwardIterator concept. This breaks substitutability in generic algorithms that expect standard-compliant ForwardIterators."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 80072.36742973328,
+  "error": null
+}

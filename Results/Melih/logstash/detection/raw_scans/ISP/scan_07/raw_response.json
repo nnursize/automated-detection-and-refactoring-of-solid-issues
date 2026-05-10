@@ -1,0 +1,51 @@
+{
+  "scan_id": "logstash_ISP_scan_07",
+  "repo_name": "logstash",
+  "principle": "ISP",
+  "scan_number": 7,
+  "timestamp": "2026-04-19T17:01:18.739018",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Interface Segregation Principle (ISP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface ...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 119,\n      \"line_end\": 950,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Fat base class forcing subclasses to inherit multiple unrelated responsibilities.\",\n      \"reasoning\": \"The class violates ISP by combining queue management, metrics collection, dead letter queue handling, and plugin lifecycle management into a single base class. This forces all pipeline implementations to depend on and potentially implement methods for features they might not use, creating a 'fat' interface for the hierarchy.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt.isShutdownRequested\",\n      \"entity_type\": \"class\",\n      \"line_start\": 898,\n      \"line_end\": 902,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"Method throws IllegalStateException, forcing subclasses to implement it.\",\n      \"reasoning\": \"By defining a method that throws an exception instead of providing a default implementation or being part of a more specialized interface, the class forces all subclasses to implement a method that may not be relevant to their specific type of pipeline, violating the principle that clients should not be forced to depend on methods they do not use.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java\",\n      \"entity_name\": \"CompiledPipeline.NoopEvaluationListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 105,\n      \"line_end\": 112,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"Empty implementation of ConditionalEvaluationListener.\",\n      \"reasoning\": \"The class implements the notify method with an empty body, indicating it is forced to satisfy an interface contract it does not need. This suggests the interface should be split or the dependency should be optional.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter.NoopScheduler\",\n      \"entity_type\": \"class\",\n      \"line_start\": 202,\n      \"line_end\": 213,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",",
+  "findings": [
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 119,
+      "line_end": 950,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Fat base class forcing subclasses to inherit multiple unrelated responsibilities.",
+      "reasoning": "The class violates ISP by combining queue management, metrics collection, dead letter queue handling, and plugin lifecycle management into a single base class. This forces all pipeline implementations to depend on and potentially implement methods for features they might not use, creating a 'fat' interface for the hierarchy."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt.isShutdownRequested",
+      "entity_type": "class",
+      "line_start": 898,
+      "line_end": 902,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "Method throws IllegalStateException, forcing subclasses to implement it.",
+      "reasoning": "By defining a method that throws an exception instead of providing a default implementation or being part of a more specialized interface, the class forces all subclasses to implement a method that may not be relevant to their specific type of pipeline, violating the principle that clients should not be forced to depend on methods they do not use."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/config/ir/CompiledPipeline.java",
+      "entity_name": "CompiledPipeline.NoopEvaluationListener",
+      "entity_type": "class",
+      "line_start": 105,
+      "line_end": 112,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "Empty implementation of ConditionalEvaluationListener.",
+      "reasoning": "The class implements the notify method with an empty body, indicating it is forced to satisfy an interface contract it does not need. This suggests the interface should be split or the dependency should be optional."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 94626.44338607788,
+  "error": null
+}

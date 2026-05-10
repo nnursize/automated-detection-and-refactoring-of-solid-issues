@@ -1,0 +1,95 @@
+{
+  "scan_id": "jackson-core_SRP_scan_02",
+  "repo_name": "jackson-core",
+  "principle": "SRP",
+  "scan_number": 2,
+  "timestamp": "2026-05-01T17:18:42.792203",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persiste...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 17,\n      \"line_end\": 1548,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class combines multiple distinct responsibilities including input stream management, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character encoding/decoding, whitespace/comment skipping, and error reporting.\",\n      \"reasoning\": \"This class is a 'God class' that handles too many unrelated concerns. For instance, `_loadMore()` (I/O), `nextToken()` (token traversal), `_parseUnsignedNumber()` (number parsing), `_parseName()` (name parsing/canonicalization), `_decodeBase64()` (Base64 decoding), and `_decodeEscaped()` (character decoding) are all part of this single class. A change in any of these areas (e.g., input buffering strategy, JSON number format rules, Base64 standard, character escaping rules) would require modifying this class, violating the 'one reason to change' principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java\",\n      \"entity_name\": \"NonBlockingUtf8JsonParserBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 17,\n      \"line_end\": 1058,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class combines non-blocking input management, complex non-blocking JSON token traversal state machine, various non-blocking JSON value parsing, non-blocking JSON name parsing and canonicalization, non-blocking character encoding/decoding, non-blocking whitespace/comment skipping, and error reporting.\",\n      \"reasoning\": \"Similar to `UTF8StreamJsonParser`, this class is a 'God class' but with the added complexity of non-blocking I/O and state management. The `_finishToken()` method acts as a dispatcher to numerous other `_finishXxx()` methods, each handling a specific token type's continuation. This structure highlights the bundling of many distinct responsibilities (e.g., `_finishBOM`, `_finishKeywordToken`, `_finishNumberIntegralPart`, `_parseEscapedName`, `_decodeSplitUTF8_3`) within a single class, making it extremely complex and difficult to maintain. Any change to the non-blocking I/O model, JSON parsing rules, or character decoding logic would necessitate extensive modifications.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java\",\n      \"entity_name\": \"UTF8DataInputJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 17,\n      \"line_end\": 1045,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class combines input stream management from `DataInput`, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character encoding/decoding, whitespace/comment skipping, and error reporting.\",\n      \"reasoning\": \"This class exhibits the same fundamental SRP violations as `UTF8StreamJsonParser`. It integrates low-level `DataInput` reading, the core JSON parsing state machine, specific logic for parsing different JSON value types, complex UTF-8 character decoding and escape sequence handling, Base64 decoding, and error reporting. For example, `_parseUnsignedNumber()` (number parsing), `_parseName()` (name parsing), `_decodeBase64()` (Base64 decoding), and `_decodeUtf8_2()` (UTF-8 decoding) are all tightly coupled within this single class. This makes it highly susceptible to changes from multiple, unrelated domains.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java\",\n      \"entity_name\": \"ReaderBasedJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 17,\n      \"line_end\": 1500,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class combines input stream management from `Reader`, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character escaping, whitespace/comment skipping, and error reporting.\",\n      \"reasoning\": \"Similar to its `UTF8StreamJsonParser` counterpart, this class is a 'God class'. Although it uses a `Reader` and thus doesn't handle UTF-8 byte-level decoding, it still bundles many responsibilities: I/O buffering (`_loadMore()`), JSON structure parsing (`nextToken()`), value parsing (`_parseUnsignedNumber()`, `_finishString()`), name canonicalization (`_parseName()`), Base64 decoding (`_decodeBase64()`), character escaping (`_decodeEscaped()`), and comprehensive error reporting (`_reportInvalidToken()`). A change in any of these distinct areas would necessitate modifications to this single class.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 14,\n      \"line_end\": 1064,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The abstract class defines an overly broad API, encompassing core JSON writing, native ID handling, POJO/tree serialization delegation, copy-through methods, and numerous convenience property writing methods, making it a 'God interface'.\",\n      \"reasoning\": \"While an abstract class defines an API, the sheer breadth of responsibilities implied by its abstract methods and default implementations indicates a 'God interface' problem. For example, `writeObjectId()` and `writeTypeId()` are for format-specific native ID support, distinct from basic JSON structural (`writeStartObject()`) or value (`writeString()`) generation. Similarly, `writePOJO()` and `writeTree()` delegate to higher-level databinding, and the `copyCurrentEvent()` methods are for parser-to-generator transformation. This broad API forces concrete implementations to take on many distinct responsibilities, making them prone to SRP violations.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 14,\n      \"line_end\": 1032,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class combines output stream management, JSON structural generation, JSON name writing, string/text encoding and escaping, raw UTF-8 string handling, Base64 encoding, numeric formatting, boolean/null writing, and detailed character encoding/escaping logic.\",\n      \"reasoning\": \"This class is a severe SRP violator, acting as a 'God class' for UTF-8 JSON generation. It manages the `OutputStream` and internal byte buffers (`_flushBuffer()`, `_writeBytes()`), handles JSON structure (`writeStartArray()`), property names (`writeName()`), and various value types. Crucially, it contains highly specialized logic for character encoding and escaping (`_writeStringSegment2()`, `_outputSurrogatePair()`, `_writeGenericEscape()`), Base64 encoding (`_writeBinary()`), and numeric formatting (`writeNumber()`). A change in any of these areas would require modifying this single, large, and complex class.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 14,\n      \"line_end\": 883,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class combines output writer management, JSON structural generation, JSON name writing, string/text escaping, raw content writing, Base64 encoding, numeric formatting, boolean/null writing, and detailed character escape sequence generation.\",\n      \"reasoning\": \"This class is another significant SRP violator, similar to `UTF8JsonGenerator`. It manages the `Writer` and internal character buffers (`_flushBuffer()`, `writeRawLong()`), handles JSON structure (`writeStartObject()`), property names (`_writeName()`), and various value types. It includes complex logic for string escaping (`_writeString2()`, `_writeStringASCII()`, `_writeStringCustom()`), Base64 encoding (`_writeBinary()`), numeric formatting (`writeNumber()`), and generating character escape sequences (`_prependOrWriteCharacterEscape()`). A change in any of these distinct responsibilities would require modifying this single, large class.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 17,
+      "line_end": 1548,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class combines multiple distinct responsibilities including input stream management, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character encoding/decoding, whitespace/comment skipping, and error reporting.",
+      "reasoning": "This class is a 'God class' that handles too many unrelated concerns. For instance, `_loadMore()` (I/O), `nextToken()` (token traversal), `_parseUnsignedNumber()` (number parsing), `_parseName()` (name parsing/canonicalization), `_decodeBase64()` (Base64 decoding), and `_decodeEscaped()` (character decoding) are all part of this single class. A change in any of these areas (e.g., input buffering strategy, JSON number format rules, Base64 standard, character escaping rules) would require modifying this class, violating the 'one reason to change' principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+      "entity_name": "NonBlockingUtf8JsonParserBase",
+      "entity_type": "class",
+      "line_start": 17,
+      "line_end": 1058,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class combines non-blocking input management, complex non-blocking JSON token traversal state machine, various non-blocking JSON value parsing, non-blocking JSON name parsing and canonicalization, non-blocking character encoding/decoding, non-blocking whitespace/comment skipping, and error reporting.",
+      "reasoning": "Similar to `UTF8StreamJsonParser`, this class is a 'God class' but with the added complexity of non-blocking I/O and state management. The `_finishToken()` method acts as a dispatcher to numerous other `_finishXxx()` methods, each handling a specific token type's continuation. This structure highlights the bundling of many distinct responsibilities (e.g., `_finishBOM`, `_finishKeywordToken`, `_finishNumberIntegralPart`, `_parseEscapedName`, `_decodeSplitUTF8_3`) within a single class, making it extremely complex and difficult to maintain. Any change to the non-blocking I/O model, JSON parsing rules, or character decoding logic would necessitate extensive modifications."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8DataInputJsonParser.java",
+      "entity_name": "UTF8DataInputJsonParser",
+      "entity_type": "class",
+      "line_start": 17,
+      "line_end": 1045,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class combines input stream management from `DataInput`, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character encoding/decoding, whitespace/comment skipping, and error reporting.",
+      "reasoning": "This class exhibits the same fundamental SRP violations as `UTF8StreamJsonParser`. It integrates low-level `DataInput` reading, the core JSON parsing state machine, specific logic for parsing different JSON value types, complex UTF-8 character decoding and escape sequence handling, Base64 decoding, and error reporting. For example, `_parseUnsignedNumber()` (number parsing), `_parseName()` (name parsing), `_decodeBase64()` (Base64 decoding), and `_decodeUtf8_2()` (UTF-8 decoding) are all tightly coupled within this single class. This makes it highly susceptible to changes from multiple, unrelated domains."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+      "entity_name": "ReaderBasedJsonParser",
+      "entity_type": "class",
+      "line_start": 17,
+      "line_end": 1500,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class combines input stream management from `Reader`, JSON token traversal, various JSON value parsing (strings, numbers, booleans, null), JSON name parsing and canonicalization, Base64 decoding, character escaping, whitespace/comment skipping, and error reporting.",
+      "reasoning": "Similar to its `UTF8StreamJsonParser` counterpart, this class is a 'God class'. Although it uses a `Reader` and thus doesn't handle UTF-8 byte-level decoding, it still bundles many responsibilities: I/O buffering (`_loadMore()`), JSON structure parsing (`nextToken()`), value parsing (`_parseUnsignedNumber()`, `_finishString()`), name canonicalization (`_parseName()`), Base64 decoding (`_decodeBase64()`), character escaping (`_decodeEscaped()`), and comprehensive error reporting (`_reportInvalidToken()`). A change in any of these distinct areas would necessitate modifications to this single class."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator",
+      "entity_type": "class",
+      "line_start": 14,
+      "line_end": 1064,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The abstract class defines an overly broad API, encompassing core JSON writing, native ID handling, POJO/tree serialization delegation, copy-through methods, and numerous convenience property writing methods, making it a 'God interface'.",
+      "reasoning": "While an abstract class defines an API, the sheer breadth of responsibilities implied by its abstract methods and default implementations indicates a 'God interface' problem. For example, `writeObjectId()` and `writeTypeId()` are for format-specific native ID support, distinct from basic JSON structural (`writeStartObject()`) or value (`writeString()`) generation. Similarly, `writePOJO()` and `writeTree()` delegate to higher-level databinding, and the `copyCurrentEvent()` methods are for parser-to-generator transformation. This broad API forces concrete implementations to take on many distinct responsibilities, making them prone to SRP violations."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator",
+      "entity_type": "class",
+      "line_start": 14,
+      "line_end": 1032,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class combines output stream management, JSON structural generation, JSON name writing, string/text encoding and escaping, raw UTF-8 string handling, Base64 encoding, numeric formatting, boolean/null writing, and detailed character encoding/escaping logic.",
+      "reasoning": "This class is a severe SRP violator, acting as a 'God class' for UTF-8 JSON generation. It manages the `OutputStream` and internal byte buffers (`_flushBuffer()`, `_writeBytes()`), handles JSON structure (`writeStartArray()`), property names (`writeName()`), and various value types. Crucially, it contains highly specialized logic for character encoding and escaping (`_writeStringSegment2()`, `_outputSurrogatePair()`, `_writeGenericEscape()`), Base64 encoding (`_writeBinary()`), and numeric formatting (`writeNumber()`). A change in any of these areas would require modifying this single, large, and complex class."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator",
+      "entity_type": "class",
+      "line_start": 14,
+      "line_end": 883,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class combines output writer management, JSON structural generation, JSON name writing, string/text escaping, raw content writing, Base64 encoding, numeric formatting, boolean/null writing, and detailed character escape sequence generation.",
+      "reasoning": "This class is another significant SRP violator, similar to `UTF8JsonGenerator`. It manages the `Writer` and internal character buffers (`_flushBuffer()`, `writeRawLong()`), handles JSON structure (`writeStartObject()`), property names (`_writeName()`), and various value types. It includes complex logic for string escaping (`_writeString2()`, `_writeStringASCII()`, `_writeStringCustom()`), Base64 encoding (`_writeBinary()`), numeric formatting (`writeNumber()`), and generating character escape sequences (`_prependOrWriteCharacterEscape()`). A change in any of these distinct responsibilities would require modifying this single, large class."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 40214.112997055054,
+  "error": null
+}

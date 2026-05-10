@@ -1,0 +1,93 @@
+{
+  "issue_id": "OCP-069",
+  "principle": "OCP",
+  "title": "Refactor OCP-069 (OCP): Large if-else if chain on stack object types, requiring modification for new...",
+  "branch": "refactor/OCP-069",
+  "base": "main",
+  "head_commit": "805a1baa2137b3990eb9c5b8a09534c33a7e2428",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5003,
+    "completion_tokens": 597
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+    "entity_name": "JsonTreeReader.peek",
+    "entity_type": "method",
+    "line_start": 133,
+    "line_end": 174,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Large if-else if chain on stack object types, requiring modification for new internal types or JsonElement types.",
+    "reasoning": "The `peek` method contains a long `if/else if` chain that inspects the type of the object on top of the internal stack (`o instanceof Iterator`, `o instanceof JsonObject`, `o instanceof JsonArray`, `o instanceof JsonPrimitive`, `o instanceof JsonNull`). Furthermore, the `JsonPrimitive` branch has nested `if/else if` checks. If a new internal stack object type or a new `JsonElement` subclass were introduced, this method would need to be modified to include new `else if` branches. This is a clear OCP violation, as extending the internal representation or JSON element types requires altering this core method."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor JsonTreeReader.peek() to use a visitor-like pattern for JsonElement types",
+    "rationale": "The long if-else chain in peek() violates OCP by requiring modifications for every new JsonElement type. By delegating the token determination to the JsonElement itself (or a helper), we decouple the reader from the specific internal structure of the elements.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+        "search_text": "    } else if (o instanceof JsonObject) {\n      return JsonToken.BEGIN_OBJECT;\n    } else if (o instanceof JsonArray) {\n      return JsonToken.BEGIN_ARRAY;\n    } else if (o instanceof JsonPrimitive) {\n      JsonPrimitive primitive = (JsonPrimitive) o;\n      if (primitive.isString()) {\n        return JsonToken.STRING;\n      } else if (primitive.isBoolean()) {\n        return JsonToken.BOOLEAN;\n      } else if (primitive.isNumber()) {\n        return JsonToken.NUMBER;\n      } else {\n        throw new AssertionError();\n      }\n    } else if (o instanceof JsonNull) {\n      return JsonToken.NULL;\n    } else if (o == SENTINEL_CLOSED) {",
+        "replace_text": "    } else if (o instanceof JsonElement) {\n      return getJsonToken((JsonElement) o);\n    } else if (o == SENTINEL_CLOSED) {",
+        "search_lines": 18,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+        "search_text": "  private Object peekStack() {\n    return stack[stackSize - 1];\n  }",
+        "replace_text": "  private JsonToken getJsonToken(JsonElement element) {\n    if (element.isJsonArray()) {\n      return JsonToken.BEGIN_ARRAY;\n    } else if (element.isJsonObject()) {\n      return JsonToken.BEGIN_OBJECT;\n    } else if (element.isJsonPrimitive()) {\n      JsonPrimitive primitive = element.getAsJsonPrimitive();\n      if (primitive.isString()) return JsonToken.STRING;\n      if (primitive.isBoolean()) return JsonToken.BOOLEAN;\n      if (primitive.isNumber()) return JsonToken.NUMBER;\n      throw new AssertionError();\n    } else if (element.isJsonNull()) {\n      return JsonToken.NULL;\n    } else {\n      throw new MalformedJsonException(\"Custom JsonElement subclass \" + element.getClass().getName() + \" is not supported\");\n    }\n  }\n\n  private Object peekStack() {\n    return stack[stackSize - 1];\n  }",
+        "search_lines": 3,
+        "replace_lines": 21
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+        "loc": 351,
+        "blank_lines": 36,
+        "comment_lines": 4,
+        "function_count": 28,
+        "avg_cc": 3.32,
+        "max_cc": 66.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+        "loc": 353,
+        "blank_lines": 37,
+        "comment_lines": 4,
+        "function_count": 29,
+        "avg_cc": 3.28,
+        "max_cc": 67.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java b/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\nindex 759310e..4ca4878 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\n@@ -142,23 +142,8 @@ public final class JsonTreeReader extends JsonReader {\n       } else {\n         return isObject ? JsonToken.END_OBJECT : JsonToken.END_ARRAY;\n       }\n-    } else if (o instanceof JsonObject) {\n-      return JsonToken.BEGIN_OBJECT;\n-    } else if (o instanceof JsonArray) {\n-      return JsonToken.BEGIN_ARRAY;\n-    } else if (o instanceof JsonPrimitive) {\n-      JsonPrimitive primitive = (JsonPrimitive) o;\n-      if (primitive.isString()) {\n-        return JsonToken.STRING;\n-      } else if (primitive.isBoolean()) {\n-        return JsonToken.BOOLEAN;\n-      } else if (primitive.isNumber()) {\n-        return JsonToken.NUMBER;\n-      } else {\n-        throw new AssertionError();\n-      }\n-    } else if (o instanceof JsonNull) {\n-      return JsonToken.NULL;\n+    } else if (o instanceof JsonElement) {\n+      return getJsonToken((JsonElement) o);\n     } else if (o == SENTINEL_CLOSED) {\n       throw new IllegalStateException(\"JsonReader is closed\");\n     } else {\n@@ -167,6 +152,24 @@ public final class JsonTreeReader extends JsonReader {\n     }\n   }\n \n+  private JsonToken getJsonToken(JsonElement element) {\n+    if (element.isJsonArray()) {\n+      return JsonToken.BEGIN_ARRAY;\n+    } else if (element.isJsonObject()) {\n+      return JsonToken.BEGIN_OBJECT;\n+    } else if (element.isJsonPrimitive()) {\n+      JsonPrimitive primitive = element.getAsJsonPrimitive();\n+      if (primitive.isString()) return JsonToken.STRING;\n+      if (primitive.isBoolean()) return JsonToken.BOOLEAN;\n+      if (primitive.isNumber()) return JsonToken.NUMBER;\n+      throw new AssertionError();\n+    } else if (element.isJsonNull()) {\n+      return JsonToken.NULL;\n+    } else {\n+      throw new MalformedJsonException(\"Custom JsonElement subclass \" + element.getClass().getName() + \" is not supported\");\n+    }\n+  }\n+\n   private Object peekStack() {\n     return stack[stackSize - 1];\n   }\n",
+  "duration_ms": 13364.655256271362
+}

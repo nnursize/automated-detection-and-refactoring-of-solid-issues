@@ -1,0 +1,38 @@
+diff --git a/src/requests/sessions.py b/src/requests/sessions.py
+index 2dc6d7a..a72f932 100644
+--- a/src/requests/sessions.py
++++ b/src/requests/sessions.py
+@@ -188,6 +188,13 @@ class SessionRedirectMixin:
+         # Standard case: root URI must match
+         return changed_port or changed_scheme
+ 
++    def send_redirect(self, request, **kwargs):
++        """
++        Abstract method to send a request.
++        This should be implemented by the class using this mixin.
++        """
++        raise NotImplementedError("Subclasses must implement send_redirect")
++
+     def resolve_redirects(
+         self,
+         resp,
+@@ -294,7 +301,7 @@ class SessionRedirectMixin:
+             if yield_requests:
+                 yield req
+             else:
+-                resp = self.send(
++                resp = self.send_redirect(
+                     req,
+                     stream=stream,
+                     timeout=timeout,
+@@ -699,6 +706,10 @@ class Session(SessionRedirectMixin, SessionAdapterMixin):
+ 
+         return self.request("DELETE", url, **kwargs)
+ 
++    def send_redirect(self, request, **kwargs):
++        """Proxy to self.send for redirect handling."""
++        return self.send(request, **kwargs)
++
+     def send(self, request, **kwargs):
+         """Send a given PreparedRequest.
+ 

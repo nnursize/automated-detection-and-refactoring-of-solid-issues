@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 2247.5643157958984,
+  "prompt_tokens": 6074,
+  "completion_tokens": 327,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Replace CookieConflictError with KeyError in __getitem__ to adhere to MutableMapping contract\",\n  \"rationale\": \"The Liskov Substitution Principle requires that subtypes do not raise exceptions not expected by the base interface. MutableMapping.__getitem__ is expected to raise KeyError when a key is missing. By catching the custom CookieConflictError and re-raising it as a KeyError, we ensure that callers of the mapping interface receive the expected exception type.\",\n  \"files_touched\": [\"src/requests/cookies.py\"]\n}\n```\n\n<<<<<<< SEARCH\n    def __getitem__(self, name):\n        \"\"\"Dict-like __getitem__() for compatibility with client code. Throws\n        exception if there are more than one cookie with name. In that case,\n        use the more explicit get() method instead.\n\n        .. warning:: operation is O(n), not O(1).\n        \"\"\"\n        return self._find_no_duplicates(name)\n=======\n    def __getitem__(self, name):\n        \"\"\"Dict-like __getitem__() for compatibility with client code. Throws\n        exception if there are more than one cookie with name. In that case,\n        use the more explicit get() method instead.\n\n        .. warning:: operation is O(n), not O(1).\n        \"\"\"\n        try:\n            return self._find_no_duplicates(name)\n        except CookieConflictError as e:\n            raise KeyError(str(e))\n>>>>>>> REPLACE"
+}

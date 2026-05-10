@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.isShutdownRequested",
+    "entity_type": "method",
+    "line_start": 909,
+    "line_end": 912,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Final method in an abstract class throws IllegalStateException, effectively nullifying its intended functionality.",
+    "reasoning": "The `isShutdownRequested` method is declared `final` in an abstract class `AbstractPipelineExt`, yet its implementation always throws an `IllegalStateException` with a message indicating that concrete implementations *should* provide it. This violates LSP because `AbstractPipelineExt` cannot be substituted for a concrete pipeline without altering the program's correctness; any call to this method will result in an unexpected runtime exception. This effectively nullifies the method's contract in the abstract class, forcing clients to handle an exception or rely on subclasses that paradoxically override a final method (a contradiction in Java)."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter.close",
+    "entity_type": "method",
+    "line_start": 400,
+    "line_end": 414,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Overrides Closeable.close() but catches and swallows all IOExceptions, changing the method's contract.",
+    "reasoning": "The `DeadLetterQueueWriter.close()` method overrides `java.io.Closeable.close()`, which declares `throws IOException`. However, `DeadLetterQueueWriter.close()` internally catches and logs `Exception` (including `IOException`) from `finalizeSegment` and `releaseFileLock`, and `IOException` from `closeConsumedSegmentsNotification`, without rethrowing them. This changes the method's contract to never throw `IOException` to its callers, weakening the postcondition of `Closeable.close()` and violating LSP. Clients expecting `close()` to report `IOException`s will not receive them, altering program correctness."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.overwrite",
+    "entity_type": "method",
+    "line_start": 365,
+    "line_end": 370,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Performs type-checking and a no-op for non-`Event` subtypes, violating the interface contract.",
+    "reasoning": "The `Event.overwrite(co.elastic.logstash.api.Event e)` method checks `if (e instanceof Event)`. If `e` is not an instance of `Event`, it simply returns `e` without performing any overwrite logic. This violates LSP because the method's contract, as defined by the `co.elastic.logstash.api.Event` interface, implies that it should be able to overwrite with *any* valid `co.elastic.logstash.api.Event` implementation. By failing to perform the expected operation for other subtypes, `Event` is not fully substitutable for `co.elastic.logstash.api.Event`, altering the correctness of programs that rely on the interface contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.append",
+    "entity_type": "method",
+    "line_start": 372,
+    "line_end": 377,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Performs type-checking and a no-op for non-`Event` subtypes, violating the interface contract.",
+    "reasoning": "The `Event.append(co.elastic.logstash.api.Event e)` method checks `if (e instanceof Event)`. If `e` is not an instance of `Event`, it simply returns `e` without performing any append logic. This violates LSP for the same reasons as `Event.overwrite`. The method's contract, as defined by the `co.elastic.logstash.api.Event` interface, implies that it should be able to append *any* valid `co.elastic.logstash.api.Event` implementation. By failing to perform the expected operation for other subtypes, `Event` is not fully substitutable for `co.elastic.logstash.api.Event`, altering the correctness of programs that rely on the interface contract."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/graph/Graph.java",
+    "entity_name": "Graph.getSourceWithMetadata",
+    "entity_type": "method",
+    "line_start": 428,
+    "line_end": 430,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Returns null for a method that might implicitly expect a non-null object, weakening the postcondition.",
+    "reasoning": "The `Graph.getSourceWithMetadata()` method, which implements `SourceComponent.getSourceWithMetadata()`, returns `null`. While the `SourceComponent` interface does not explicitly forbid `null` returns, if clients are implicitly expected to receive a valid `SourceWithMetadata` object (e.g., to call methods on it without null checks), then returning `null` weakens the postcondition. This can lead to `NullPointerException`s in client code that assumes a non-null return, thereby altering the correctness of the program when `Graph` is substituted for `SourceComponent`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV2.java",
+    "entity_name": "MmapPageIOV2.close",
+    "entity_type": "method",
+    "line_start": 283,
+    "line_end": 289,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Allows a checked IOException to propagate as an unchecked UndeclaredThrowableException, violating the interface contract.",
+    "reasoning": "The `MmapPageIOV2.close()` method implements `PageIO.close()`, which has a `void` return type and declares no checked exceptions. However, `MmapPageIOV2.close()` calls `this.buffer.force()`, which is `MappedByteBuffer.force()`. `MappedByteBuffer.force()` inherits from `FileChannel.force()`, which explicitly declares `throws IOException`. Since `MmapPageIOV2.close()` does not declare `throws IOException` (nor does the `PageIO` interface), any `IOException` thrown by `force()` will be wrapped in an `UndeclaredThrowableException` (a `RuntimeException`) and rethrown. This changes the method's contract from 'no checked exceptions' to 'may throw an unchecked wrapper of a checked exception', violating LSP by altering the expected correctness for clients that might assume `close()` is truly 'no-throw' based on the interface signature."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/secret/store/backend/JavaKeyStore.java",
+    "entity_name": "JavaKeyStore.create",
+    "entity_type": "method",
+    "line_start": 90,
+    "line_end": 135,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Introduces new checked exceptions (NoSuchFileException, AccessDeniedException) not declared by the base interface.",
+    "reasoning": "The `JavaKeyStore.create(SecureConfig config)` method implements `SecretStore.create()`, which does not declare any checked exceptions. However, `JavaKeyStore.create()` can throw `NoSuchFileException` and `AccessDeniedException`, both of which are checked exceptions (subtypes of `IOException`). This violates LSP because clients interacting with `SecretStore` through its interface would not be prepared to catch these checked exceptions, leading to compilation errors or unexpected runtime behavior if the exceptions are not handled (e.g., wrapped in `UndeclaredThrowableException` if not explicitly caught and rethrown as unchecked). This fundamentally changes the method's exception contract."
+  }
+]

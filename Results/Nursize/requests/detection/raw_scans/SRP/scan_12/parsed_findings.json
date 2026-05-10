@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest",
+    "entity_type": "class",
+    "line_start": 315,
+    "line_end": 639,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The PreparedRequest class is responsible for too many distinct aspects of request preparation.",
+    "reasoning": "This class handles the preparation of various request components including URL, headers, body (data, files, json), authentication, and cookies. Each of these preparation steps (e.g., `prepare_url`, `prepare_headers`, `prepare_body`, `prepare_auth`, `prepare_cookies`) represents a distinct concern and a separate reason for the class to change. A change in URL encoding logic should not necessitate changes in cookie preparation logic. This class acts as a 'God preparer' and violates SRP."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response",
+    "entity_type": "class",
+    "line_start": 642,
+    "line_end": 1041,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Response class mixes raw content access/streaming with content interpretation, decoding, error handling, and link parsing.",
+    "reasoning": "The Response class is responsible for providing raw content (`iter_content`, `content`), but also for sophisticated content interpretation and decoding (`text`, `json`, `apparent_encoding` which includes encoding detection), error handling (`raise_for_status`), and parsing specific headers like links (`links`). These are distinct responsibilities. For example, changing how JSON is parsed or how character encoding is detected should not affect how raw bytes are streamed or how status codes are checked. This indicates multiple reasons to change."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter",
+    "entity_type": "class",
+    "line_start": 145,
+    "line_end": 698,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The HTTPAdapter class manages connection pools, handles certificate verification, transforms requests, transforms responses, and orchestrates the underlying HTTP library interaction.",
+    "reasoning": "This class has multiple, often unrelated, reasons to change. It's responsible for managing `urllib3` connection pools (`init_poolmanager`, `get_connection`), handling certificate verification (`cert_verify`), modifying outgoing requests (`add_headers`, `request_url`), converting `urllib3` responses to `requests.Response` objects (`build_response`), and orchestrating the entire send process (`send`). Each of these areas could be a separate concern. For instance, a change in connection pooling strategy or certificate handling should ideally not impact how a `urllib3` response is mapped to a `requests.Response`."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session.send",
+    "entity_type": "method",
+    "line_start": 674,
+    "line_end": 748,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The Session.send method orchestrates sending, translates exceptions from the underlying library, and wraps raw responses.",
+    "reasoning": "While `Session.send`'s primary role is to dispatch a `PreparedRequest` via an adapter, its implementation also involves translating exceptions from the underlying `urllib3` library into `requests` exceptions, wrapping the raw `urllib3` response into a `requests.Response` object, and potentially integrating retry/redirect logic. This combines network dispatching with error translation and response object construction, giving it multiple reasons to change beyond just 'sending the request'."
+  }
+]

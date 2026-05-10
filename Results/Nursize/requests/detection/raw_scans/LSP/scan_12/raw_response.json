@@ -1,0 +1,40 @@
+{
+  "scan_id": "requests_LSP_scan_12",
+  "repo_name": "requests",
+  "principle": "LSP",
+  "scan_number": 12,
+  "timestamp": "2026-05-03T01:39:49.021772",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"RequestsCookieJar\",\n      \"entity_type\": \"class\",\n      \"line_start\": 176,\n      \"line_end\": 437,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Incompatible multiple inheritance from cookielib.CookieJar and MutableMapping\",\n      \"reasoning\": \"RequestsCookieJar inherits from both cookielib.CookieJar and MutableMapping. The __iter__ method contract for CookieJar (standard library) requires yielding Cookie objects, while the MutableMapping contract (collections.abc) requires yielding keys (strings). Since a single __iter__ implementation cannot satisfy both behavioral contracts simultaneously, the class cannot be safely substituted for both of its base types in all contexts.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/auth.py\",\n      \"entity_name\": \"HTTPProxyAuth\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 104,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subclass violates the behavioral postcondition of the parent class by altering header targets\",\n      \"reasoning\": \"HTTPProxyAuth inherits from HTTPBasicAuth but overrides the __call__ method to set 'Proxy-Authorization' instead of the 'Authorization' header. This violates the postcondition of the parent class (which is to provide authentication for the origin server). A client expecting an HTTPBasicAuth object to authorize a request will find HTTPProxyAuth non-substitutable because it fails to authenticate the request to the target resource.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "RequestsCookieJar",
+      "entity_type": "class",
+      "line_start": 176,
+      "line_end": 437,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Incompatible multiple inheritance from cookielib.CookieJar and MutableMapping",
+      "reasoning": "RequestsCookieJar inherits from both cookielib.CookieJar and MutableMapping. The __iter__ method contract for CookieJar (standard library) requires yielding Cookie objects, while the MutableMapping contract (collections.abc) requires yielding keys (strings). Since a single __iter__ implementation cannot satisfy both behavioral contracts simultaneously, the class cannot be safely substituted for both of its base types in all contexts."
+    },
+    {
+      "file_path": "requests/src/requests/auth.py",
+      "entity_name": "HTTPProxyAuth",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 104,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subclass violates the behavioral postcondition of the parent class by altering header targets",
+      "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth but overrides the __call__ method to set 'Proxy-Authorization' instead of the 'Authorization' header. This violates the postcondition of the parent class (which is to provide authentication for the origin server). A client expecting an HTTPBasicAuth object to authorize a request will find HTTPProxyAuth non-substitutable because it fails to authenticate the request to the target resource."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 48250.834941864014,
+  "error": null
+}

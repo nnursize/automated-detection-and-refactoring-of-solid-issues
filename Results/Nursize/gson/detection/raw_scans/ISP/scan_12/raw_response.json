@@ -1,0 +1,51 @@
+{
+  "scan_id": "gson_ISP_scan_12",
+  "repo_name": "gson",
+  "principle": "ISP",
+  "scan_number": 12,
+  "timestamp": "2026-05-02T16:01:31.211283",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement\",\n      \"entity_type\": \"class\",\n      \"line_start\": 96,\n      \"line_end\": 434,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"JsonElement provides a fat interface for all JSON types, forcing subclasses to inherit irrelevant methods.\",\n      \"reasoning\": \"The base class defines specific conversion methods like getAsJsonArray(), getAsJsonObject(), and various getAsPrimitiveType() methods (e.g., getAsBoolean, getAsNumber). Subclasses representing specific JSON types (like JsonObject or JsonArray) are forced to inherit these methods even when they are not applicable, often resulting in methods that throw IllegalStateException (as seen in L163, L178, L194). This forces clients to depend on a broad API rather than role-specific interfaces for each JSON type.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java\",\n      \"entity_name\": \"ReflectionHelper.RecordNotSupportedHelper\",\n      \"entity_type\": \"class\",\n      \"line_start\": 300,\n      \"line_end\": 324,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"RecordNotSupportedHelper is forced to implement the RecordHelper interface despite being unable to support its contract.\",\n      \"reasoning\": \"The class implements the RecordHelper interface (defined at L223) but provides implementations for getRecordComponentNames, getCanonicalRecordConstructor, and getAccessor that simply throw UnsupportedOperationException. This indicates that the RecordHelper interface is too broad for this implementation context (JVMs without record support), and the class is being forced to implement methods it cannot fulfill meaningfully.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/TypeAdapter.java\",\n      \"entity_name\": \"TypeAdapter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 121,\n      \"line_end\": 322,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"TypeAdapter combines serialization and deserialization roles into a single abstract class.\",\n      \"reasoning\": \"The TypeAdapter class requires subclasses to implement both the abstract write() method (L130) for serialization and the abstract read() method (L194) for deserialization. This violates ISP for implementations that only need to support one-way conversion, as they are forced to depend on and implement methods for the unused direction.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement",
+      "entity_type": "class",
+      "line_start": 96,
+      "line_end": 434,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "JsonElement provides a fat interface for all JSON types, forcing subclasses to inherit irrelevant methods.",
+      "reasoning": "The base class defines specific conversion methods like getAsJsonArray(), getAsJsonObject(), and various getAsPrimitiveType() methods (e.g., getAsBoolean, getAsNumber). Subclasses representing specific JSON types (like JsonObject or JsonArray) are forced to inherit these methods even when they are not applicable, often resulting in methods that throw IllegalStateException (as seen in L163, L178, L194). This forces clients to depend on a broad API rather than role-specific interfaces for each JSON type."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java",
+      "entity_name": "ReflectionHelper.RecordNotSupportedHelper",
+      "entity_type": "class",
+      "line_start": 300,
+      "line_end": 324,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "RecordNotSupportedHelper is forced to implement the RecordHelper interface despite being unable to support its contract.",
+      "reasoning": "The class implements the RecordHelper interface (defined at L223) but provides implementations for getRecordComponentNames, getCanonicalRecordConstructor, and getAccessor that simply throw UnsupportedOperationException. This indicates that the RecordHelper interface is too broad for this implementation context (JVMs without record support), and the class is being forced to implement methods it cannot fulfill meaningfully."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/TypeAdapter.java",
+      "entity_name": "TypeAdapter",
+      "entity_type": "class",
+      "line_start": 121,
+      "line_end": 322,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "TypeAdapter combines serialization and deserialization roles into a single abstract class.",
+      "reasoning": "The TypeAdapter class requires subclasses to implement both the abstract write() method (L130) for serialization and the abstract read() method (L194) for deserialization. This violates ISP for implementations that only need to support one-way conversion, as they are forced to depend on and implement methods for the unused direction."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 27833.990335464478,
+  "error": null
+}

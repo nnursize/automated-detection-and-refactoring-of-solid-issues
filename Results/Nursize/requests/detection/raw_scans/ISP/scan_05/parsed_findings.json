@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.add_headers",
+    "entity_type": "method",
+    "line_start": 346,
+    "line_end": 360,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The `HTTPAdapter.add_headers` method is implemented as a no-op, indicating it's not essential for the base adapter's core functionality.",
+    "reasoning": "The `HTTPAdapter` class's `send` method calls `self.add_headers()`. However, the default implementation of `add_headers` is an empty `pass` statement, with a comment explicitly stating it 'does nothing by default' and is 'left for overriding by users that subclass.' This means `HTTPAdapter` is forced to provide an implementation for a method that is not part of its core responsibility in its base form. This violates ISP because the `HTTPAdapter` (as a client of its own internal interface) is forced to depend on and implement a method it does not use meaningfully, pushing the responsibility of a potentially unused method onto the base class. A more segregated design would introduce this method via a specific mixin or a different pattern only for adapters that genuinely need to add headers."
+  },
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 68,
+    "line_end": 70,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The `MockRequest.add_header` method explicitly raises `NotImplementedError`.",
+    "reasoning": "The `MockRequest` class is designed to mimic the `urllib2.Request` interface to integrate with `http.cookiejar.CookieJar`. However, its `add_header` method explicitly raises a `NotImplementedError`. This is a direct violation of the Interface Segregation Principle because `MockRequest` is forced to implement a method from the `urllib2.Request` interface that it does not support or use. The presence of such a method in the interface forces the implementing class to depend on a capability it cannot provide, indicating the interface is too fat for this specific client. The comment confirms that `http.cookiejar` has no legitimate use for this method in this context."
+  }
+]

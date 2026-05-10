@@ -1,0 +1,62 @@
+{
+  "scan_id": "gson_DIP_scan_03",
+  "repo_name": "gson",
+  "principle": "DIP",
+  "scan_number": 3,
+  "timestamp": "2026-05-02T16:35:17.825309",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Dependency Inversion Principle (DIP).\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions. When a class directly instantiates its dependencies instead of receiving them through injection, it violates DIP.\n\n## What to Look For\n- Classes that directly instantiate their dependencie...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/Gson.java\",\n      \"entity_name\": \"Gson\",\n      \"entity_type\": \"class\",\n      \"line_start\": 262,\n      \"line_end\": 273,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level Gson class directly instantiates low-level internal implementation details.\",\n      \"reasoning\": \"In the constructor, the Gson class directly instantiates concrete classes from the 'internal' package, specifically 'ConstructorConstructor' and 'JsonAdapterAnnotationTypeAdapterFactory'. According to DIP, high-level modules should depend on abstractions, not implementation details. This creates a rigid dependency where the main API is tightly coupled to internal utility logic.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/GsonBuilder.java\",\n      \"entity_name\": \"GsonBuilder.createFactories\",\n      \"entity_type\": \"method\",\n      \"line_start\": 657,\n      \"line_end\": 669,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Hard-coded instantiation of concrete TypeAdapterFactory implementations.\",\n      \"reasoning\": \"The createFactories method manually instantiates several concrete internal implementations like 'CollectionTypeAdapterFactory', 'MapTypeAdapterFactory', and 'ReflectiveTypeAdapterFactory'. This violates DIP as the high-level configuration builder depends on the existence and constructors of many low-level implementation details instead of interacting with them through a generic registration or injection mechanism.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/TypeAdapter.java\",\n      \"entity_name\": \"TypeAdapter.fromJsonTree\",\n      \"entity_type\": \"method\",\n      \"line_start\": 183,\n      \"line_end\": 190,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base abstraction depends on a concrete subclass implementation detail.\",\n      \"reasoning\": \"The abstract class 'TypeAdapter' directly instantiates 'JsonTreeReader', which is a concrete implementation of 'JsonReader' located in an internal package ('internal.bind'). Abstractions should not depend on details; here, the base class is coupled to a specific implementation of the reading logic, making it difficult to change the tree-reading implementation without modifying the base abstraction.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\",\n      \"entity_name\": \"ReflectiveTypeAdapterFactory.createBoundField\",\n      \"entity_type\": \"method\",\n      \"line_start\": 204,\n      \"line_end\": 208,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Concrete factory directly instantiates TypeAdapterRuntimeTypeWrapper.\",\n      \"reasoning\": \"The method directly instantiates 'TypeAdapterRuntimeTypeWrapper' using the 'new' keyword. This couples the field-binding logic to a specific wrapper implementation rather than receiving a decorated adapter or using a factory, making the runtime type wrapping logic hard to replace or test in isolation.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+      "entity_name": "Gson",
+      "entity_type": "class",
+      "line_start": 262,
+      "line_end": 273,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level Gson class directly instantiates low-level internal implementation details.",
+      "reasoning": "In the constructor, the Gson class directly instantiates concrete classes from the 'internal' package, specifically 'ConstructorConstructor' and 'JsonAdapterAnnotationTypeAdapterFactory'. According to DIP, high-level modules should depend on abstractions, not implementation details. This creates a rigid dependency where the main API is tightly coupled to internal utility logic."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+      "entity_name": "GsonBuilder.createFactories",
+      "entity_type": "method",
+      "line_start": 657,
+      "line_end": 669,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Hard-coded instantiation of concrete TypeAdapterFactory implementations.",
+      "reasoning": "The createFactories method manually instantiates several concrete internal implementations like 'CollectionTypeAdapterFactory', 'MapTypeAdapterFactory', and 'ReflectiveTypeAdapterFactory'. This violates DIP as the high-level configuration builder depends on the existence and constructors of many low-level implementation details instead of interacting with them through a generic registration or injection mechanism."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/TypeAdapter.java",
+      "entity_name": "TypeAdapter.fromJsonTree",
+      "entity_type": "method",
+      "line_start": 183,
+      "line_end": 190,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Base abstraction depends on a concrete subclass implementation detail.",
+      "reasoning": "The abstract class 'TypeAdapter' directly instantiates 'JsonTreeReader', which is a concrete implementation of 'JsonReader' located in an internal package ('internal.bind'). Abstractions should not depend on details; here, the base class is coupled to a specific implementation of the reading logic, making it difficult to change the tree-reading implementation without modifying the base abstraction."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+      "entity_name": "ReflectiveTypeAdapterFactory.createBoundField",
+      "entity_type": "method",
+      "line_start": 204,
+      "line_end": 208,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Concrete factory directly instantiates TypeAdapterRuntimeTypeWrapper.",
+      "reasoning": "The method directly instantiates 'TypeAdapterRuntimeTypeWrapper' using the 'new' keyword. This couples the field-binding logic to a specific wrapper implementation rather than receiving a decorated adapter or using a factory, making the runtime type wrapping logic hard to replace or test in isolation."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 132720.80278396606,
+  "error": null
+}

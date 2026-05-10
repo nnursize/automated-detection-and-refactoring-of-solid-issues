@@ -1,0 +1,168 @@
+{
+  "issue_id": "SRP-007",
+  "principle": "SRP",
+  "title": "Refactor SRP-007 (SRP): Queue class manages logical queue operations alongside physical file system c...",
+  "branch": "refactor/SRP-007",
+  "base": "main",
+  "head_commit": "1c876b4b4de952ca93cb22874807365b68658b60",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11151,
+    "completion_tokens": 3956
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 58,
+    "line_end": 740,
+    "severity": "medium",
+    "scan_count": 9,
+    "description": "Queue class manages logical queue operations alongside physical file system concerns.",
+    "reasoning": "The Queue class handles the high-level logic of a persistent queue (read/write/ack) but is also responsible for low-level file system tasks like disk space availability checks, file locking, and directory-level upgrades (QueueUpgrade). These infrastructure concerns should be separated from the queue's behavioral logic."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract Queue infrastructure concerns into a dedicated QueueManager class",
+    "rationale": "The Queue class was violating SRP by managing both high-level queue logic and low-level infrastructure concerns (file locking, disk space checks, directory upgrades). I extracted these infrastructure responsibilities into a new QueueManager class to improve maintainability and separation of concerns.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java"
+    ],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java"
+    ],
+    "patch_blocks_count": 10,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    private final Path dirPath;\n    private final int maxUnread;\n    private final int checkpointMaxAcks;\n    private final int checkpointMaxWrites;\n\n    private final AtomicBoolean closed;\n\n    // deserialization\n    private final Class<? extends Queueable> elementClass;\n    private final Method deserializeMethod;\n    private final CompressionCodec compressionCodec;\n\n    // thread safety\n    private final ReentrantLock lock = new ReentrantLock();\n    private final Condition notFull  = lock.newCondition();\n    private final Condition notEmpty = lock.newCondition();\n\n    // exclusive dir access\n    private FileLock dirLock;\n    private final static String LOCK_NAME = \".lock\";\n\n    private static final Logger logger = LogManager.getLogger(Queue.class);\n\n    private final Metric metric;\n\n\n    public Queue(Settings settings) {\n        this(settings, null);\n    }\n\n    public Queue(Settings settings, Metric metric) {\n        this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n        try {\n            final Path queueDir = Paths.get(settings.getDirPath());\n            // Files.createDirectories raises a FileAlreadyExistsException\n            // if queue dir is symlinked, so worth checking against Files.exists\n            if (Files.exists(queueDir) == false) {\n                Files.createDirectories(queueDir);\n            }\n            this.dirPath = queueDir.toRealPath();\n        } catch (final IOException ex) {\n            throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n        }\n\n        this.pageCapacity = settings.getCapacity();",
+        "replace_text": "    private final QueueManager queueManager;\n    private final int maxUnread;\n    private final int checkpointMaxAcks;\n    private final int checkpointMaxWrites;\n\n    private final AtomicBoolean closed;\n\n    // deserialization\n    private final Class<? extends Queueable> elementClass;\n    private final Method deserializeMethod;\n    private final CompressionCodec compressionCodec;\n\n    // thread safety\n    private final ReentrantLock lock = new ReentrantLock();\n    private final Condition notFull  = lock.newCondition();\n    private final Condition notEmpty = lock.newCondition();\n\n    private static final Logger logger = LogManager.getLogger(Queue.class);\n\n    private final Metric metric;\n\n\n    public Queue(Settings settings) {\n        this(settings, null);\n    }\n\n    public Queue(Settings settings, Metric metric) {\n        this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n        try {\n            this.queueManager = new QueueManager(settings.getDirPath());\n        } catch (final IOException ex) {\n            throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n        }\n\n        this.pageCapacity = settings.getCapacity();",
+        "search_lines": 45,
+        "replace_lines": 35
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    public String getDirPath() {\n        return this.dirPath.toString();\n    }",
+        "replace_text": "    public String getDirPath() {\n        return this.queueManager.getDirPath().toString();\n    }",
+        "search_lines": 3,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "        lock.lock();\n        try {\n            try {\n                // verify exclusive access to the dirPath\n                this.dirLock = FileLockFactory.obtainLock(this.dirPath, LOCK_NAME);\n            } catch (LockException e) {\n                throw new LockException(\"The queue failed to obtain exclusive access, cause: \" + e.getMessage());\n            }\n\n            try {\n                openPages();\n                this.closed.set(false);\n            } catch (IOException e) {\n                // upon any exception while opening the queue and after dirlock has been obtained\n                // we need to make sure to release the dirlock. Calling the close method on a partially\n                // open queue has no effect because the closed flag is still true.\n                releaseLockAndSwallow();\n                throw(e);\n            }\n        } finally {\n            lock.unlock();\n        }\n    }",
+        "replace_text": "        lock.lock();\n        try {\n            this.queueManager.acquireLock();\n            try {\n                openPages();\n                this.closed.set(false);\n            } catch (IOException e) {\n                releaseLockAndSwallow();\n                throw(e);\n            }\n        } finally {\n            lock.unlock();\n        }\n    }",
+        "search_lines": 23,
+        "replace_lines": 14
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    private void openPages() throws IOException {\n        final int headPageNum;\n\n        // Upgrade to serialization format V2\n        QueueUpgrade.upgradeQueueDirectoryToV2(dirPath);\n\n        Checkpoint headCheckpoint;\n        try {\n            headCheckpoint = this.checkpointIO.read(checkpointIO.headFileName());\n        } catch (NoSuchFileException e) {\n            // if there is no head checkpoint, create a new headpage and checkpoint it and exit method\n\n            logger.debug(\"No head checkpoint found at: {}, creating new head page\", checkpointIO.headFileName());\n\n            this.ensureDiskAvailable(this.maxBytes, 0);\n\n            this.seqNum = 0;\n            headPageNum = 0;\n\n            newCheckpointedHeadpage(headPageNum);\n            this.closed.set(false);\n\n            return;\n        }",
+        "replace_text": "    private void openPages() throws IOException {\n        final int headPageNum;\n\n        // Upgrade to serialization format V2\n        this.queueManager.upgrade();\n\n        Checkpoint headCheckpoint;\n        try {\n            headCheckpoint = this.checkpointIO.read(checkpointIO.headFileName());\n        } catch (NoSuchFileException e) {\n            // if there is no head checkpoint, create a new headpage and checkpoint it and exit method\n\n            logger.debug(\"No head checkpoint found at: {}, creating new head page\", checkpointIO.headFileName());\n\n            this.queueManager.ensureDiskAvailable(this.maxBytes, 0);\n\n            this.seqNum = 0;\n            headPageNum = 0;\n\n            newCheckpointedHeadpage(headPageNum);\n            this.closed.set(false);\n\n            return;\n        }",
+        "search_lines": 24,
+        "replace_lines": 24
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "        // reconstruct all tail pages state upto but excluding the head page\n        for (int pageNum = headCheckpoint.getFirstUnackedPageNum(); pageNum < headCheckpoint.getPageNum(); pageNum++) {\n            final String cpFileName = checkpointIO.tailFileName(pageNum);\n            if (!dirPath.resolve(cpFileName).toFile().exists()) {\n                continue;\n            }\n            final Checkpoint cp = this.checkpointIO.read(cpFileName);\n\n            logger.debug(\"opening tail page: {}, in: {}, with checkpoint: {}\", pageNum, this.dirPath, cp);\n\n            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.dirPath);\n            // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case\n            // we can purge it and we don't care about its integrity for example if it is of zero-byte file size.\n            if (cp.isFullyAcked()) {",
+        "replace_text": "        // reconstruct all tail pages state upto but excluding the head page\n        for (int pageNum = headCheckpoint.getFirstUnackedPageNum(); pageNum < headCheckpoint.getPageNum(); pageNum++) {\n            final String cpFileName = checkpointIO.tailFileName(pageNum);\n            if (!this.queueManager.getDirPath().resolve(cpFileName).toFile().exists()) {\n                continue;\n            }\n            final Checkpoint cp = this.checkpointIO.read(cpFileName);\n\n            logger.debug(\"opening tail page: {}, in: {}, with checkpoint: {}\", pageNum, this.queueManager.getDirPath(), cp);\n\n            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n            // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case\n            // we can purge it and we don't care about its integrity for example if it is of zero-byte file size.\n            if (cp.isFullyAcked()) {",
+        "search_lines": 14,
+        "replace_lines": 14
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "        logger.debug(\"opening head page: {}, in: {}, with checkpoint: {}\", headCheckpoint.getPageNum(), this.dirPath, headCheckpoint);\n\n        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);\n        pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data\n\n        pqSizeBytes += (long) pageIO.getHead();\n        ensureDiskAvailable(this.maxBytes, pqSizeBytes);",
+        "replace_text": "        logger.debug(\"opening head page: {}, in: {}, with checkpoint: {}\", headCheckpoint.getPageNum(), this.queueManager.getDirPath(), headCheckpoint);\n\n        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n        pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data\n\n        pqSizeBytes += (long) pageIO.getHead();\n        this.queueManager.ensureDiskAvailable(this.maxBytes, pqSizeBytes);",
+        "search_lines": 7,
+        "replace_lines": 7
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    private boolean cleanedUpFullyAckedCorruptedPage(Checkpoint headCheckpoint, long pqSizeBytes) throws IOException {\n        if (headCheckpoint.isFullyAcked()) {\n            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);\n            if (pageIO.isCorruptedPage()) {\n                logger.debug(\"Queue is fully acked. Found zero byte page.{}. Recreate checkpoint.head and delete corrupted page\", headCheckpoint.getPageNum());\n\n                this.checkpointIO.purge(checkpointIO.headFileName());\n                pageIO.purge();\n\n                if (headCheckpoint.maxSeqNum() > this.seqNum) {\n                    this.seqNum = headCheckpoint.maxSeqNum();\n                }\n\n                newCheckpointedHeadpage(headCheckpoint.getPageNum() + 1);\n\n                pqSizeBytes += (long) pageIO.getHead();\n                ensureDiskAvailable(this.maxBytes, pqSizeBytes);\n                return true;\n            }\n        }\n        return false;\n    }",
+        "replace_text": "    private boolean cleanedUpFullyAckedCorruptedPage(Checkpoint headCheckpoint, long pqSizeBytes) throws IOException {\n        if (headCheckpoint.isFullyAcked()) {\n            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n            if (pageIO.isCorruptedPage()) {\n                logger.debug(\"Queue is fully acked. Found zero byte page.{}. Recreate checkpoint.head and delete corrupted page\", headCheckpoint.getPageNum());\n\n                this.checkpointIO.purge(checkpointIO.headFileName());\n                pageIO.purge();\n\n                if (headCheckpoint.maxSeqNum() > this.seqNum) {\n                    this.seqNum = headCheckpoint.maxSeqNum();\n                }\n\n                newCheckpointedHeadpage(headCheckpoint.getPageNum() + 1);\n\n                pqSizeBytes += (long) pageIO.getHead();\n                this.queueManager.ensureDiskAvailable(this.maxBytes, pqSizeBytes);\n                return true;\n            }\n        }\n        return false;\n    }",
+        "search_lines": 22,
+        "replace_lines": 22
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    private void newCheckpointedHeadpage(int pageNum) throws IOException {\n        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.dirPath);\n        headPageIO.create();\n        logger.debug(\"created new head page: {}\", headPageIO);\n        this.headPage = PageFactory.newHeadPage(pageNum, this, headPageIO);\n        this.headPage.forceCheckpoint();\n    }",
+        "replace_text": "    private void newCheckpointedHeadpage(int pageNum) throws IOException {\n        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n        headPageIO.create();\n        logger.debug(\"created new head page: {}\", headPageIO);\n        this.headPage = PageFactory.newHeadPage(pageNum, this, headPageIO);\n        this.headPage.forceCheckpoint();\n    }",
+        "search_lines": 7,
+        "replace_lines": 7
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    private void releaseLockAndSwallow() {\n        try {\n            FileLockFactory.releaseLock(this.dirLock);\n        } catch (IOException e) {\n            // log error and ignore\n            logger.error(\"Queue close releaseLock failed, error={}\", e.getMessage());\n        }\n    }",
+        "replace_text": "    private void releaseLockAndSwallow() {\n        try {\n            this.queueManager.releaseLock();\n        } catch (IOException e) {\n            // log error and ignore\n            logger.error(\"Queue close releaseLock failed, error={}\", e.getMessage());\n        }\n    }",
+        "search_lines": 8,
+        "replace_lines": 8
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java",
+        "new_content": "package org.logstash.ackedqueue;\n\nimport java.io.IOException;\nimport java.nio.channels.FileLock;\nimport java.nio.file.Files;\nimport java.nio.file.Path;\nimport java.nio.file.Paths;\nimport org.logstash.FileLockFactory;\nimport org.logstash.LockException;\nimport org.logstash.common.FsUtil;\n\npublic final class QueueManager {\n    private final Path dirPath;\n    private FileLock dirLock;\n    private final static String LOCK_NAME = \".lock\";\n\n    public QueueManager(String path) throws IOException {\n        final Path queueDir = Paths.get(path);\n        if (Files.exists(queueDir) == false) {\n            Files.createDirectories(queueDir);\n        }\n        this.dirPath = queueDir.toRealPath();\n    }\n\n    public void upgrade() throws IOException {\n        QueueUpgrade.upgradeQueueDirectoryToV2(dirPath);\n    }\n\n    public void acquireLock() throws IOException {\n        try {\n            this.dirLock = FileLockFactory.obtainLock(this.dirPath, LOCK_NAME);\n        } catch (LockException e) {\n            throw new LockException(\"The queue failed to obtain exclusive access, cause: \" + e.getMessage());\n        }\n    }\n\n    public void releaseLock() throws IOException {\n        if (this.dirLock != null) {\n            FileLockFactory.releaseLock(this.dirLock);\n        }\n    }\n\n    public void ensureDiskAvailable(final long maxPqSize, long currentPqSize) throws IOException {\n        if (!FsUtil.hasFreeSpace(this.dirPath, maxPqSize - currentPqSize)) {\n            throw new IOException(\n                    String.format(\"Unable to allocate %d more bytes for persisted queue on top of its current usage of %d bytes\",\n                            maxPqSize - currentPqSize, currentPqSize));\n        }\n    }\n\n    public Path getDirPath() {\n        return dirPath;\n    }\n}",
+        "new_content_lines": 54
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 744,
+        "blank_lines": 150,
+        "comment_lines": 86,
+        "function_count": 43,
+        "avg_cc": 4.58,
+        "max_cc": 155.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 734,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java",
+        "loc": 46,
+        "blank_lines": 8,
+        "comment_lines": 0,
+        "function_count": 5,
+        "avg_cc": 2.0,
+        "max_cc": 6.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\nindex 42771a1..2a80b79 100644\n--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n@@ -75,7 +75,7 @@ public final class Queue implements Closeable {\n     private final CheckpointIO checkpointIO;\n     private final int pageCapacity;\n     private final long maxBytes;\n-    private final Path dirPath;\n+    private final QueueManager queueManager;\n     private final int maxUnread;\n     private final int checkpointMaxAcks;\n     private final int checkpointMaxWrites;\n@@ -92,10 +92,6 @@ public final class Queue implements Closeable {\n     private final Condition notFull  = lock.newCondition();\n     private final Condition notEmpty = lock.newCondition();\n \n-    // exclusive dir access\n-    private FileLock dirLock;\n-    private final static String LOCK_NAME = \".lock\";\n-\n     private static final Logger logger = LogManager.getLogger(Queue.class);\n \n     private final Metric metric;\n@@ -108,13 +104,7 @@ public final class Queue implements Closeable {\n     public Queue(Settings settings, Metric metric) {\n         this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n         try {\n-            final Path queueDir = Paths.get(settings.getDirPath());\n-            // Files.createDirectories raises a FileAlreadyExistsException\n-            // if queue dir is symlinked, so worth checking against Files.exists\n-            if (Files.exists(queueDir) == false) {\n-                Files.createDirectories(queueDir);\n-            }\n-            this.dirPath = queueDir.toRealPath();\n+            this.queueManager = new QueueManager(settings.getDirPath());\n         } catch (final IOException ex) {\n             throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n         }\n@@ -143,7 +133,7 @@ public final class Queue implements Closeable {\n     }\n \n     public String getDirPath() {\n-        return this.dirPath.toString();\n+        return this.queueManager.getDirPath().toString();\n     }\n \n     public long getMaxBytes() {\n@@ -187,20 +177,11 @@ public final class Queue implements Closeable {\n \n         lock.lock();\n         try {\n-            try {\n-                // verify exclusive access to the dirPath\n-                this.dirLock = FileLockFactory.obtainLock(this.dirPath, LOCK_NAME);\n-            } catch (LockException e) {\n-                throw new LockException(\"The queue failed to obtain exclusive access, cause: \" + e.getMessage());\n-            }\n-\n+            this.queueManager.acquireLock();\n             try {\n                 openPages();\n                 this.closed.set(false);\n             } catch (IOException e) {\n-                // upon any exception while opening the queue and after dirlock has been obtained\n-                // we need to make sure to release the dirlock. Calling the close method on a partially\n-                // open queue has no effect because the closed flag is still true.\n                 releaseLockAndSwallow();\n                 throw(e);\n             }\n@@ -213,7 +194,7 @@ public final class Queue implements Closeable {\n         final int headPageNum;\n \n         // Upgrade to serialization format V2\n-        QueueUpgrade.upgradeQueueDirectoryToV2(dirPath);\n+        this.queueManager.upgrade();\n \n         Checkpoint headCheckpoint;\n         try {\n@@ -223,7 +204,7 @@ public final class Queue implements Closeable {\n \n             logger.debug(\"No head checkpoint found at: {}, creating new head page\", checkpointIO.headFileName());\n \n-            this.ensureDiskAvailable(this.maxBytes, 0);\n+            this.queueManager.ensureDiskAvailable(this.maxBytes, 0);\n \n             this.seqNum = 0;\n             headPageNum = 0;\n@@ -242,14 +223,14 @@ public final class Queue implements Closeable {\n         // reconstruct all tail pages state upto but excluding the head page\n         for (int pageNum = headCheckpoint.getFirstUnackedPageNum(); pageNum < headCheckpoint.getPageNum(); pageNum++) {\n             final String cpFileName = checkpointIO.tailFileName(pageNum);\n-            if (!dirPath.resolve(cpFileName).toFile().exists()) {\n+            if (!this.queueManager.getDirPath().resolve(cpFileName).toFile().exists()) {\n                 continue;\n             }\n             final Checkpoint cp = this.checkpointIO.read(cpFileName);\n \n-            logger.debug(\"opening tail page: {}, in: {}, with checkpoint: {}\", pageNum, this.dirPath, cp);\n+            logger.debug(\"opening tail page: {}, in: {}, with checkpoint: {}\", pageNum, this.queueManager.getDirPath(), cp);\n \n-            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.dirPath);\n+            PageIO pageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n             // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case\n             // we can purge it and we don't care about its integrity for example if it is of zero-byte file size.\n             if (cp.isFullyAcked()) {\n@@ -272,13 +253,13 @@ public final class Queue implements Closeable {\n         // transform the head page into a tail page only if the headpage is non-empty\n         // in both cases it will be checkpointed to track any changes in the firstUnackedPageNum when reconstructing the tail pages\n \n-        logger.debug(\"opening head page: {}, in: {}, with checkpoint: {}\", headCheckpoint.getPageNum(), this.dirPath, headCheckpoint);\n+        logger.debug(\"opening head page: {}, in: {}, with checkpoint: {}\", headCheckpoint.getPageNum(), this.queueManager.getDirPath(), headCheckpoint);\n \n-        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);\n+        PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n         pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data\n \n         pqSizeBytes += (long) pageIO.getHead();\n-        ensureDiskAvailable(this.maxBytes, pqSizeBytes);\n+        this.queueManager.ensureDiskAvailable(this.maxBytes, pqSizeBytes);\n \n         if (pageIO.getMinSeqNum() != headCheckpoint.getMinSeqNum() || pageIO.getElementCount() != headCheckpoint.getElementCount()) {\n             // the recovered page IO shows different minSeqNum or elementCount than the checkpoint, use the page IO attributes\n@@ -336,7 +317,7 @@ public final class Queue implements Closeable {\n      */\n     private boolean cleanedUpFullyAckedCorruptedPage(Checkpoint headCheckpoint, long pqSizeBytes) throws IOException {\n         if (headCheckpoint.isFullyAcked()) {\n-            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);\n+            PageIO pageIO = new MmapPageIOV2(headCheckpoint.getPageNum(), this.pageCapacity, this.queueManager.getDirPath());\n             if (pageIO.isCorruptedPage()) {\n                 logger.debug(\"Queue is fully acked. Found zero byte page.{}. Recreate checkpoint.head and delete corrupted page\", headCheckpoint.getPageNum());\n \n@@ -350,7 +331,7 @@ public final class Queue implements Closeable {\n                 newCheckpointedHeadpage(headCheckpoint.getPageNum() + 1);\n \n                 pqSizeBytes += (long) pageIO.getHead();\n-                ensureDiskAvailable(this.maxBytes, pqSizeBytes);\n+                this.queueManager.ensureDiskAvailable(this.maxBytes, pqSizeBytes);\n                 return true;\n             }\n         }\n@@ -404,7 +385,7 @@ public final class Queue implements Closeable {\n      * @throws IOException\n      */\n     private void newCheckpointedHeadpage(int pageNum) throws IOException {\n-        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.dirPath);\n+        PageIO headPageIO = new MmapPageIOV2(pageNum, this.pageCapacity, this.queueManager.getDirPath());\n         headPageIO.create();\n         logger.debug(\"created new head page: {}\", headPageIO);\n         this.headPage = PageFactory.newHeadPage(pageNum, this, headPageIO);\n@@ -823,7 +804,7 @@ public final class Queue implements Closeable {\n \n     private void releaseLockAndSwallow() {\n         try {\n-            FileLockFactory.releaseLock(this.dirLock);\n+            this.queueManager.releaseLock();\n         } catch (IOException e) {\n             // log error and ignore\n             logger.error(\"Queue close releaseLock failed, error={}\", e.getMessage());\ndiff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/QueueManager.java\n@@ -0,0 +1,54 @@\n+package org.logstash.ackedqueue;\n+\n+import java.io.IOException;\n+import java.nio.channels.FileLock;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.nio.file.Paths;\n+import org.logstash.FileLockFactory;\n+import org.logstash.LockException;\n+import org.logstash.common.FsUtil;\n+\n+public final class QueueManager {\n+    private final Path dirPath;\n+    private FileLock dirLock;\n+    private final static String LOCK_NAME = \".lock\";\n+\n+    public QueueManager(String path) throws IOException {\n+        final Path queueDir = Paths.get(path);\n+        if (Files.exists(queueDir) == false) {\n+            Files.createDirectories(queueDir);\n+        }\n+        this.dirPath = queueDir.toRealPath();\n+    }\n+\n+    public void upgrade() throws IOException {\n+        QueueUpgrade.upgradeQueueDirectoryToV2(dirPath);\n+    }\n+\n+    public void acquireLock() throws IOException {\n+        try {\n+            this.dirLock = FileLockFactory.obtainLock(this.dirPath, LOCK_NAME);\n+        } catch (LockException e) {\n+            throw new LockException(\"The queue failed to obtain exclusive access, cause: \" + e.getMessage());\n+        }\n+    }\n+\n+    public void releaseLock() throws IOException {\n+        if (this.dirLock != null) {\n+            FileLockFactory.releaseLock(this.dirLock);\n+        }\n+    }\n+\n+    public void ensureDiskAvailable(final long maxPqSize, long currentPqSize) throws IOException {\n+        if (!FsUtil.hasFreeSpace(this.dirPath, maxPqSize - currentPqSize)) {\n+            throw new IOException(\n+                    String.format(\"Unable to allocate %d more bytes for persisted queue on top of its current usage of %d bytes\",\n+                            maxPqSize - currentPqSize, currentPqSize));\n+        }\n+    }\n+\n+    public Path getDirPath() {\n+        return dirPath;\n+    }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 31378.137826919556
+}

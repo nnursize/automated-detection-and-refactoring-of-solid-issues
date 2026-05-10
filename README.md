@@ -21,6 +21,54 @@ Automated detection of **SOLID design principle violations** in open-source code
 
 ---
 
+## Submission Results Folder
+
+The final submission artifacts are consolidated under [Results/](Results/) so the detection and refactoring outputs can be checked from one place. The folder is organized by team member and assigned repository:
+
+```text
+Results/
+|-- Nursize/
+|   |-- requests/
+|   |-- gson/
+|   |-- Catch2/
+|-- Melih/
+| ...
+|-- Alperen/
+| ...
+```
+
+
+Each completed repository folder follows the same structure:
+
+```text
+<repo>/
+|-- detection/
+|   |-- 60_detection_<repo>.json  # final 60-candidate detection/refactor shortlist
+|   `-- raw_scans/                # raw scan outputs copied from scans/<repo>/
+|-- manual_labels/                # manual detection/refactor labels copied from evaluations/
+`-- refactoring/
+    |-- <repo>_pull_requests.json
+    |-- <repo>_refactor_summary.md
+    |-- raw_attempts/             # full per-issue prompts, raw responses, diffs, metrics, and mock PR files
+    `-- refactored_codes/         # per-issue non-empty applied_diff.patch files only
+```
+
+For detection review, start with:
+
+- `Results/<member>/<repo>/detection/60_detection_<repo>.json`
+- `Results/<member>/<repo>/detection/raw_scans/registry.json`
+
+For refactoring review, start with:
+
+- `Results/<member>/<repo>/refactoring/<repo>_pull_requests.json`
+- `Results/<member>/<repo>/refactoring/<repo>_refactor_summary.md`
+- `Results/<member>/<repo>/refactoring/refactored_codes/<PRINCIPLE>/<issue_id>/applied_diff.patch`
+- `Results/<member>/<repo>/refactoring/raw_attempts/<PRINCIPLE>/<issue_id>/applied_diff.patch`
+
+The `refactored_codes/` folder is the quickest way to inspect only the code changes. It mirrors the `raw_attempts/` principle/issue layout, but includes only issues with a non-empty `applied_diff.patch`.
+
+---
+
 ## Setup
 
 ### 1. Clone and create a virtual environment
@@ -111,7 +159,7 @@ scan:
   reports_dir: "reports"
 ```
 
-Available configs out of the box: [configs/seaborn.yaml](configs/seaborn.yaml) (Python), [configs/jackson-core.yaml](configs/jackson-core.yaml) (Java), [configs/logstash.yaml](configs/logstash.yaml) (Java+Ruby).
+Available configs out of the box: [configs/requests.yaml](configs/requests.yaml) (Python), [configs/gson.yaml](configs/gson.yaml) (Java), [configs/catch2.yaml](configs/catch2.yaml) (C++), [configs/seaborn.yaml](configs/seaborn.yaml) (Python), [configs/jackson-core.yaml](configs/jackson-core.yaml) (Java), and [configs/logstash.yaml](configs/logstash.yaml) (Java+Ruby).
 
 ---
 
@@ -282,11 +330,12 @@ The framework is adapter-based:
 
 | Target | Adapter | Verification mode |
 |--------|---------|-------------------|
-| Python / seaborn | `python` | Applies patches, checks Python syntax, runs pytest, and commits only if tests have no new failures. |
-| Java / jackson-core | `java-maven` | Applies patches and commits them as `applied_unverified`; automated Maven tests are intentionally skipped. |
+| Python / seaborn, requests | `python` | Applies patches, checks Python syntax, runs pytest, and commits only if tests have no new failures. |
+| Java / jackson-core, gson | `java-maven` | Applies patches and commits them as `applied_unverified`; automated Maven tests are intentionally skipped. |
 | Java/Ruby / logstash | `java-gradle` | Applies patches and commits them as `applied_unverified`; automated Gradle tests are intentionally skipped. |
+| C++ / Catch2 | `c-cpp` | Applies patches, runs lightweight syntax checks where practical, and commits them as `applied_unverified`; full CMake/test execution is intentionally skipped. |
 
-Adapters are not only test runners. They also provide the refactoring pipeline with language/build-system selection, source-file extension rules, sibling-source discovery for prompt context, syntax-check hooks after patch application, and the `supports_testing` flag that decides whether an applied patch becomes `applied_passed` or `applied_unverified`. For Java adapters, test execution is disabled, but the adapter is still part of the non-test refactoring flow.
+Adapters are not only test runners. They also provide the refactoring pipeline with language/build-system selection, source-file extension rules, sibling-source discovery for prompt context, syntax-check hooks after patch application, and the `supports_testing` flag that decides whether an applied patch becomes `applied_passed` or `applied_unverified`. For Java and C/C++ adapters, full test execution is disabled, but the adapter is still part of the non-test refactoring flow.
 
 ## Refactoring inputs
 
@@ -376,6 +425,16 @@ refactor:
   max_output_tokens: 65536
 ```
 
+C++ example from [configs/catch2.yaml](configs/catch2.yaml):
+
+```yaml
+refactor:
+  test_timeout_sec: 1800.0
+  full_suite_timeout_sec: 3600.0
+  temperature: 0.2
+  max_output_tokens: 65536
+```
+
 Important settings:
 
 | Setting | Meaning |
@@ -384,7 +443,7 @@ Important settings:
 | `max_output_tokens` | Output budget for Gemini. The stock configs use `65536` to reduce truncation on large refactors. |
 | `python_executable` | Python interpreter used to create the target repo virtualenv. |
 | `install_extras` | Editable install argument for Python target repos. |
-| `build_system` | Java build adapter selection: `maven` or `gradle`. |
+| `build_system` | Java build adapter selection: `maven` or `gradle`; omitted for Python and C/C++ configs. |
 | `gradle_test_task` / `gradle_compile_task` | Gradle task names for Logstash-style multi-module repos. |
 | `test_timeout_sec` | Per-attempt test timeout when tests are enabled. |
 | `full_suite_timeout_sec` | Final full-suite timeout for tested adapters. |
@@ -543,7 +602,7 @@ Every issue that the refactoring run reaches gets a `pull_request.json` with one
 | `applied_passed` | Python patch applied and pytest found no new failures compared with baseline. | Yes | Yes |
 | `applied_unverified` | Patch applied and committed in a patch-only adapter such as Java/Maven or Java/Gradle. | No | Yes |
 | `applied_failed` | Patch applied, but tests showed new failures. The workspace is reverted. | Yes | No |
-| `patch_failed` | No usable patch was applied. Examples: no patch blocks, SEARCH text not found, duplicate/ambiguous match, syntax error, or `MAX_TOKENS` truncation. | No | No |
+| `patch_failed` | No usable patch was applied. Examples: no patch blocks, SEARCH text not found, duplicate/ambiguous match, syntax error, no net diff/no-op replacement, or `MAX_TOKENS` truncation. | No | No |
 | `detection_rejected` | The detection was manually labeled false in `evaluations/<repo>_labels.json`. | No | No |
 | `obsolete` | The entity could not be found in the current workspace, usually because an earlier refactor changed the source. | No | No |
 | `llm_error` | The Gemini call failed or an unexpected orchestration error occurred. | No | No |

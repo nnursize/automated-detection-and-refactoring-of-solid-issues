@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.deserialize",
+    "entity_type": "method",
+    "line_start": 395,
+    "line_end": 402,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Implicit contract violation: expects a static method on Queueable subtypes not defined in interface.",
+    "reasoning": "The `Queueable` interface defines an instance method `serialize()`. However, the `Queue` class's `deserialize(byte[] bytes)` instance method uses reflection to invoke a *static* `deserialize(byte[] bytes)` method on the `elementClass` (which is expected to be a `Class<? extends Queueable>`). This imposes an implicit contract on all `Queueable` subtypes that is not part of the `Queueable` interface's public contract. If a `Queueable` subtype is provided to the `Queue` that does not define this static method, `Queue.deserialize` will fail at runtime. This violates LSP by adding an unstated precondition on subtypes that is not discoverable from the base interface."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.isShutdownRequested",
+    "entity_type": "method",
+    "line_start": 640,
+    "line_end": 643,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Abstract method contract violation: base implementation throws exception instead of providing default behavior.",
+    "reasoning": "The `isShutdownRequested` method is intended to be implemented by concrete subclasses. Its current implementation in `AbstractPipelineExt` explicitly throws an `IllegalStateException`. This violates LSP because a subclass is not substitutable for its base type without altering correctness; any client code calling this method on an `AbstractPipelineExt` instance (or a subclass that fails to override it) would encounter a runtime error instead of a defined behavior. This effectively makes the method abstract without using the `abstract` keyword, but with a breaking default implementation."
+  }
+]

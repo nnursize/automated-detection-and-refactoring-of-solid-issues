@@ -1,0 +1,83 @@
+{
+  "issue_id": "OCP-002",
+  "principle": "OCP",
+  "title": "Refactor OCP-002 (OCP): Extensive if-else if and switch statements for parsing logic violate OCP.",
+  "branch": "refactor/OCP-002",
+  "base": "main",
+  "head_commit": "d86482803f3f6a4fdd6cbb0bbd0e240415001d3a",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5857,
+    "completion_tokens": 605
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.doPeek",
+    "entity_type": "method",
+    "line_start": 298,
+    "line_end": 401,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "Extensive if-else if and switch statements for parsing logic violate OCP.",
+    "reasoning": "The `doPeek()` method contains multiple `if-else if` and `switch` statements that handle different `JsonScope` states and character parsing rules. Any addition of new JSON structures, parsing rules, or token types would necessitate modifying this method, making it closed for extension without modification."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "",
+    "rationale": "",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/stream/PeekStrategy.java"
+    ],
+    "files_created": [
+      "gson/src/main/java/com/google/gson/stream/PeekStrategy.java"
+    ],
+    "files_modified": [],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "create",
+        "file_path": "gson/src/main/java/com/google/gson/stream/PeekStrategy.java",
+        "new_content": "package com.google.gson.stream;\n\nimport java.io.IOException;\n\ninterface PeekStrategy {\n    int peek(JsonReader reader) throws IOException;\n}",
+        "new_content_lines": 7
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+        "loc": 1708,
+        "blank_lines": 127,
+        "comment_lines": 49,
+        "function_count": 44,
+        "avg_cc": 10.64,
+        "max_cc": 425.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/PeekStrategy.java",
+        "loc": 5,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 1.0,
+        "max_cc": 1.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/stream/PeekStrategy.java b/gson/src/main/java/com/google/gson/stream/PeekStrategy.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/gson/src/main/java/com/google/gson/stream/PeekStrategy.java\n@@ -0,0 +1,7 @@\n+package com.google.gson.stream;\n+\n+import java.io.IOException;\n+\n+interface PeekStrategy {\n+    int peek(JsonReader reader) throws IOException;\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 3908.888816833496
+}

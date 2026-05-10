@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "    protected final String _getText2(JsonToken t) throws JacksonException\n    {\n        if (t == null) {\n            return null;\n        }\n        switch (t.id()) {\n        case ID_PROPERTY_NAME:\n            return _streamReadContext.currentName();\n\n        case ID_STRING:\n            // fall through\n        case ID_NUMBER_INT:\n        case ID_NUMBER_FLOAT:\n            // For these, text buffer has the value\n            return _textBuffer.contentsAsString();\n\n        default:\n            // For others, we have char[] form\n            return t.asCharArray();\n        }\n    }",
+    "replace_text": "    protected final String _getText2(JsonToken t) throws JacksonException\n    {\n        if (t == null) {\n            return null;\n        }\n        if (t == JsonToken.PROPERTY_NAME) {\n            return _streamReadContext.currentName();\n        }\n        // For VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT, text buffer has the value\n        if (t.isNumeric()) {\n            return _textBuffer.contentsAsString();\n        }\n        // For others (START_OBJECT, END_OBJECT, VALUE_TRUE, VALUE_FALSE, VALUE_NULL, etc.),\n        // we have char[] form\n        return t.asCharArray();\n    }"
+  }
+]

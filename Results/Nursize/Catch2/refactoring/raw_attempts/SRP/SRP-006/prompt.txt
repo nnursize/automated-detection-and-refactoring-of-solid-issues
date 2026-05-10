@@ -1,0 +1,356 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-006
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `Catch::Benchmark::Benchmark` (current lines L2171-L2197 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+Class combines benchmark definition, preparation, execution, and error handling/reporting.
+
+### Reasoning
+The `Benchmark` class stores the benchmark name and function (`fun`), prepares the execution plan (`prepare` method, involving timing and iteration calculation), executes the benchmark (`run` method, which interacts with `IConfig` and `IResultCapture`), and handles exceptions during execution. These are distinct responsibilities: defining a benchmark, planning its execution, performing the execution, and reporting/error handling. Changes to any of these aspects would require modifying this single class.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 2050 earlier lines elided ...
+                    classify_outliers(times.data(), times.data() + times.size()),
+                };
+            }
+
+            template <typename Clock>
+            Environment measure_environment() {
+#if defined(__clang__)
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wexit-time-destructors"
+#endif
+                static Catch::Detail::unique_ptr<Environment> env;
+#if defined(__clang__)
+#    pragma clang diagnostic pop
+#endif
+                if (env) {
+                    return *env;
+                }
+
+                auto iters = Detail::warmup<Clock>();
+                auto resolution = Detail::estimate_clock_resolution<Clock>(iters);
+                auto cost = Detail::estimate_clock_cost<Clock>(resolution.mean);
+
+                env = Catch::Detail::make_unique<Environment>( Environment{resolution, cost} );
+                return *env;
+            }
+        } // namespace Detail
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_ESTIMATE_CLOCK_HPP_INCLUDED
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_ANALYSE_HPP_INCLUDED
+#define CATCH_ANALYSE_HPP_INCLUDED
+
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_SAMPLE_ANALYSIS_HPP_INCLUDED
+#define CATCH_SAMPLE_ANALYSIS_HPP_INCLUDED
+
+
+#include <vector>
+
+namespace Catch {
+    namespace Benchmark {
+        struct SampleAnalysis {
+            std::vector<FDuration> samples;
+            Estimate<FDuration> mean;
+            Estimate<FDuration> standard_deviation;
+            OutlierClassification outliers;
+            double outlier_variance;
+        };
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_SAMPLE_ANALYSIS_HPP_INCLUDED
+
+
+namespace Catch {
+    class IConfig;
+
+    namespace Benchmark {
+        namespace Detail {
+            SampleAnalysis analyse(const IConfig &cfg, FDuration* first, FDuration* last);
+        } // namespace Detail
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_ANALYSE_HPP_INCLUDED
+
+#include <algorithm>
+#include <chrono>
+#include <exception>
+#include <string>
+#include <cmath>
+
+namespace Catch {
+    namespace Benchmark {
+        struct BenchmarkRunner {
+            template <typename Clock>
+            static void run(std::string&& name, Detail::BenchmarkFunction& fun) {
+                static_assert( Clock::is_steady, "Benchmarking clock should be steady" );
+                auto const* cfg = getCurrentContext().getConfig();
+                auto env = Detail::measure_environment<Clock>();
+
+                getResultCapture().benchmarkPreparing(name);
+                CATCH_TRY{
+                    auto plan = user_code([&] {
+                        auto min_time = env.clock_resolution.mean * Detail::minimum_ticks;
+                        auto run_time = std::max(min_time, std::chrono::duration_cast<decltype(min_time)>(cfg->benchmarkWarmupTime()));
+                        auto&& test = Detail::run_for_at_least<Clock>(std::chrono::duration_cast<IDuration>(run_time), 1, fun);
+                        int new_iters = static_cast<int>(std::ceil(min_time * test.iterations / test.elapsed));
+                        return ExecutionPlan{ new_iters, test.elapsed / test.iterations * new_iters * cfg->benchmarkSamples(), fun, std::chrono::duration_cast<FDuration>(cfg->benchmarkWarmupTime()), Detail::warmup_iterations };
+                    });
+
+                    BenchmarkInfo info {
+                        name,
+                        plan.estimated_duration.count(),
+                        plan.iterations_per_sample,
+                        cfg->benchmarkSamples(),
+                        cfg->benchmarkResamples(),
+                        env.clock_resolution.mean.count(),
+                        env.clock_cost.mean.count()
+                    };
+
+                    getResultCapture().benchmarkStarting(info);
+                    auto samples = user_code([&] { return plan.template run<Clock>(*cfg, env); });
+                    auto analysis = Detail::analyse(*cfg, samples.data(), samples.data() + samples.size());
+                    BenchmarkStats<> stats{ CATCH_MOVE(info), CATCH_MOVE(analysis.samples), analysis.mean, analysis.standard_deviation, analysis.outliers, analysis.outlier_variance };
+                    getResultCapture().benchmarkEnded(stats);
+                } CATCH_CATCH_ALL {
+                    getResultCapture().benchmarkFailed(translateActiveException());
+                    std::rethrow_exception(std::current_exception());
+                }
+            }
+        };
+
+        struct Benchmark {
+            Benchmark(std::string&& benchmarkName)
+                : name(CATCH_MOVE(benchmarkName)) {}
+
+            template <class FUN>
+            Benchmark(std::string&& benchmarkName , FUN &&func)
+                : fun(CATCH_MOVE(func)), name(CATCH_MOVE(benchmarkName)) {}
+
+            template <typename Fun, std::enable_if_t<!Detail::is_related_v<Fun, Benchmark>, int> = 0>
+            Benchmark & operator=(Fun func) {
+                auto const* cfg = getCurrentContext().getConfig();
+                if (!cfg->skipBenchmarks()) {
+                    fun = Detail::BenchmarkFunction(func);
+                    BenchmarkRunner::run<default_clock>(std::string(name), fun);
+                }
+                return *this;
+            }
+
+            explicit operator bool() {
+                return true;
+            }
+
+        private:
+            Detail::BenchmarkFunction fun;
+            std::string name;
+        };
+    }
+} // namespace Catch
+
+#define INTERNAL_CATCH_GET_1_ARG(arg1, arg2, ...) arg1
+#define INTERNAL_CATCH_GET_2_ARG(arg1, arg2, ...) arg2
+
+#define INTERNAL_CATCH_BENCHMARK(BenchmarkName, name, benchmarkIndex)\
+    if( Catch::Benchmark::Benchmark BenchmarkName{name} ) \
+        BenchmarkName = [&](int benchmarkIndex)
+
+#define INTERNAL_CATCH_BENCHMARK_ADVANCED(BenchmarkName, name)\
+    if( Catch::Benchmark::Benchmark BenchmarkName{name} ) \
+        BenchmarkName = [&]
+
+#if defined(CATCH_CONFIG_PREFIX_ALL)
+
+#define CATCH_BENCHMARK(...) \
+    INTERNAL_CATCH_BENCHMARK(INTERNAL_CATCH_UNIQUE_NAME(CATCH2_INTERNAL_BENCHMARK_), INTERNAL_CATCH_GET_1_ARG(__VA_ARGS__,,), INTERNAL_CATCH_GET_2_ARG(__VA_ARGS__,,))
+#define CATCH_BENCHMARK_ADVANCED(name) \
+    INTERNAL_CATCH_BENCHMARK_ADVANCED(INTERNAL_CATCH_UNIQUE_NAME(CATCH2_INTERNAL_BENCHMARK_), name)
+
+#else
+
+#define BENCHMARK(...) \
+    INTERNAL_CATCH_BENCHMARK(INTERNAL_CATCH_UNIQUE_NAME(CATCH2_INTERNAL_BENCHMARK_), INTERNAL_CATCH_GET_1_ARG(__VA_ARGS__,,), INTERNAL_CATCH_GET_2_ARG(__VA_ARGS__,,))
+#define BENCHMARK_ADVANCED(name) \
+    INTERNAL_CATCH_BENCHMARK_ADVANCED(INTERNAL_CATCH_UNIQUE_NAME(CATCH2_INTERNAL_BENCHMARK_), name)
+
+#endif
+
+#endif // CATCH_BENCHMARK_HPP_INCLUDED
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_CONSTRUCTOR_HPP_INCLUDED
+#define CATCH_CONSTRUCTOR_HPP_INCLUDED
+
+
+#include <type_traits>
+
+namespace Catch {
+    namespace Benchmark {
+        namespace Detail {
+            template <typename T, bool Destruct>
+            struct ObjectStorage
+            {
+                ObjectStorage() = default;
+
+                ObjectStorage(const ObjectStorage& other)
+                {
+                    new(&data) T(other.stored_object());
+                }
+
+                ObjectStorage(ObjectStorage&& other)
+                {
+                    new(data) T(CATCH_MOVE(other.stored_object()));
+                }
+
+                ~ObjectStorage() { destruct_on_exit<T>(); }
+
+                template <typename... Args>
+                void construct(Args&&... args)
+                {
+                    new (data) T(CATCH_FORWARD(args)...);
+                }
+
+                template <bool AllowManualDestruction = !Destruct>
+                std::enable_if_t<AllowManualDestruction> destruct()
+                {
+                    stored_object().~T();
+                }
+
+            private:
+                // If this is a constructor benchmark, destruct the underlying object
+                template <typename U>
+                void destruct_on_exit(std::enable_if_t<Destruct, U>* = nullptr) { destruct<true>(); }
+                // Otherwise, don't
+                template <typename U>
+                void destruct_on_exit(std::enable_if_t<!Destruct, U>* = nullptr) { }
+
+#if defined( __GNUC__ ) && __GNUC__ <= 6
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
+                T& stored_object() { return *reinterpret_cast<T*>( data ); }
+
+                T const& stored_object() const {
+                    return *reinterpret_cast<T const*>( data );
+                }
+#if defined( __GNUC__ ) && __GNUC__ <= 6
+#    pragma GCC diagnostic pop
+#endif
+
+                alignas( T ) unsigned char data[sizeof( T )]{};
+            };
+        } // namespace Detail
+
+        template <typename T>
+        using storage_for = Detail::ObjectStorage<T, true>;
+
+        template <typename T>
+        using destructable_object = Detail::ObjectStorage<T, false>;
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_CONSTRUCTOR_HPP_INCLUDED
+
+#endif // CATCH_BENCHMARK_ALL_HPP_INCLUDED
+
+
+#ifndef CATCH_APPROX_HPP_INCLUDED
+#define CATCH_APPROX_HPP_INCLUDED
+
+
+
+#ifndef CATCH_TOSTRING_HPP_INCLUDED
+#define CATCH_TOSTRING_HPP_INCLUDED
+
+#include <ctime>
+# ... 12012 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

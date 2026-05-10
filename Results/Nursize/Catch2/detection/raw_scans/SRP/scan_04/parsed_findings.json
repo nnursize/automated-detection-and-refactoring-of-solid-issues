@@ -1,0 +1,79 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ReporterBase",
+    "entity_type": "class",
+    "line_start": 2920,
+    "line_end": 2959,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The `ReporterBase` class handles multiple distinct responsibilities, including stream management, colour management, custom option storage, and default listing implementations.",
+    "reasoning": "This class exhibits a 'Divergent Change' smell. It has several reasons to change: if the underlying stream handling changes, if the colour application logic changes, if the custom reporter options structure changes, or if the default formatting for listing test entities (reporters, listeners, tests, tags) changes. These are separate concerns that should ideally be encapsulated in distinct components."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::StreamingReporterBase",
+    "entity_type": "class",
+    "line_start": 2961,
+    "line_end": 3008,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "The `StreamingReporterBase` class inherits multiple responsibilities from `ReporterBase` and adds its own for streaming event handling and internal state management.",
+    "reasoning": "This class inherits the SRP violations from `ReporterBase` (stream, colour, options, listing). Additionally, it manages the lifecycle of streaming test events (e.g., `testRunStarting`, `testCaseStarting`, `sectionStarting`) and maintains internal state like `currentTestRunInfo`, `currentTestCaseInfo`, and `m_sectionStack`. While its primary role is event streaming, the inherited responsibilities make it a 'Large Class' and contribute to 'Divergent Change' in the overall reporter hierarchy."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::ConsoleReporter",
+    "entity_type": "class",
+    "line_start": 3066,
+    "line_end": 3109,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The `ConsoleReporter` class mixes event handling with complex console-specific output formatting, lazy printing logic, and internal state management.",
+    "reasoning": "This class is a 'God Class' with a 'Divergent Change' smell. It is responsible for reacting to various test events (inherited from `StreamingReporterBase`), but also contains extensive logic for formatting output specifically for the console (e.g., `printHeaderString`, `printTotalsDivider`), managing when to print (`lazyPrint`), and handling internal state related to printing (`m_headerPrinted`, `m_testRunInfoPrinted`). Changes to console formatting, event structure, or printing strategy all require modifying this single class."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::CumulativeReporterBase",
+    "entity_type": "class",
+    "line_start": 3130,
+    "line_end": 3210,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The `CumulativeReporterBase` class combines event handling with complex in-memory data structuring (building a tree of test results) and configuration for what data to store.",
+    "reasoning": "This class exhibits a 'Divergent Change' smell. It inherits the responsibilities of `ReporterBase` (stream, colour, options, listing). On top of that, its core responsibility is to collect all test events and build a hierarchical data structure (`m_testRun`, `m_testCases`, `m_rootSection`, etc.) representing the entire test run. It also includes configuration for whether to store successful or failed assertion details. Changes to the data model, event collection, or storage configuration would all impact this class, violating SRP."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::JunitReporter",
+    "entity_type": "class",
+    "line_start": 3220,
+    "line_end": 3259,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The `JunitReporter` class mixes the responsibility of processing and collecting test results (inherited) with the specific concern of serializing them into JUnit XML format.",
+    "reasoning": "This class inherits the SRP violations from `CumulativeReporterBase` and `ReporterBase`. Its own methods (`writeRun`, `writeTestCase`, `writeSection`, `writeAssertions`, `writeAssertion`) are tightly coupled to the JUnit XML schema and the `XmlWriter` utility. This creates a 'Divergent Change' scenario: changes to the JUnit XML format, or changes to how test results are collected and structured, both require modifications to this class. The XML serialization logic should be separated from the reporting logic."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::SonarQubeReporter",
+    "entity_type": "class",
+    "line_start": 3340,
+    "line_end": 3372,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The `SonarQubeReporter` class mixes the responsibility of processing and collecting test results (inherited) with the specific concern of serializing them into SonarQube XML format.",
+    "reasoning": "Similar to `JunitReporter`, this class inherits SRP violations from `CumulativeReporterBase` and `ReporterBase`. It directly embeds logic for generating SonarQube-specific XML output (`xml` member, `writeRun`, `writeTestFile`, `writeTestCase`, etc.). This tightly couples the reporting logic with a specific XML format, leading to 'Divergent Change' if either the format or the underlying test result data model changes."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::XmlReporter",
+    "entity_type": "class",
+    "line_start": 3441,
+    "line_end": 3485,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The `XmlReporter` class mixes the responsibility of streaming test events (inherited) with the specific concern of serializing them into a generic XML format.",
+    "reasoning": "This class inherits SRP violations from `StreamingReporterBase` and `ReporterBase`. It directly manages an `XmlWriter` and contains methods (`writeSourceInfo`, `testRunStarting`, `testCaseStarting`, etc.) that are responsible for generating generic XML output. This tight coupling means changes to the generic XML schema or changes to the event streaming model would both require modifications to this class, violating SRP."
+  }
+]

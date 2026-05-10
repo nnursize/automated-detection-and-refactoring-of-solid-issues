@@ -1,0 +1,120 @@
+{
+  "issue_id": "DIP-008",
+  "principle": "DIP",
+  "title": "Refactor DIP-008 (DIP): High-level module directly instantiates RecordIOWriter",
+  "branch": "refactor/DIP-008",
+  "base": "main",
+  "head_commit": "976f844ddb91d13914b7732d9991cf5258f2e23f",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7971,
+    "completion_tokens": 1535
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter.nextWriter",
+    "entity_type": "method",
+    "line_start": 579,
+    "line_end": 583,
+    "severity": "high",
+    "scan_count": 7,
+    "description": "High-level module directly instantiates RecordIOWriter",
+    "reasoning": "The DeadLetterQueueWriter directly instantiates the concrete class RecordIOWriter. This creates a hard-coded dependency on a low-level detail, preventing the use of alternative writers and complicating unit testing."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a factory interface for RecordIOWriter to decouple DeadLetterQueueWriter from concrete implementation.",
+    "rationale": "The DeadLetterQueueWriter was directly instantiating RecordIOWriter. By introducing a RecordIOWriterFactory, we allow the writer to depend on an abstraction, enabling better testability and adherence to the Dependency Inversion Principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java"
+    ],
+    "files_created": [
+      "logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java"
+    ],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java"
+    ],
+    "patch_blocks_count": 4,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "search_text": "    private final Clock clock;\n    private final RetentionPolicyManager retentionPolicyManager;\n    private final SchedulerService flusherService;",
+        "replace_text": "    private final Clock clock;\n    private final RetentionPolicyManager retentionPolicyManager;\n    private final SchedulerService flusherService;\n    private final RecordIOWriterFactory writerFactory;",
+        "search_lines": 3,
+        "replace_lines": 4
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "search_text": "    private DeadLetterQueueWriter(final Path queuePath, final long maxSegmentSize, final long maxQueueSize,\n                                  final Duration flushInterval, final QueueStorageType storageType, final Duration retentionTime,\n                                  final Clock clock, SchedulerService flusherService) throws IOException {\n        this.clock = clock;\n\n        this.fileLock = FileLockFactory.obtainLock(queuePath, LOCK_FILE);\n        this.queuePath = queuePath;\n        this.maxSegmentSize = maxSegmentSize;\n        this.maxQueueSize = maxQueueSize;\n        this.storageType = storageType;\n        this.flushInterval = flushInterval;\n        this.currentQueueSize = new AtomicLong(computeQueueSize());\n        this.retentionPolicyManager = new RetentionPolicyManager(queuePath, maxQueueSize, storageType, retentionTime, clock, currentQueueSize, expiredEvents);\n\n        cleanupTempFiles();\n        retentionPolicyManager.updateOldestSegmentReference();\n        currentSegmentIndex = listSegmentPaths(queuePath)\n                .map(s -> s.getFileName().toString().split(\"\\\\.\")[0])\n                .mapToInt(Integer::parseInt)\n                .max().orElse(0);\n        nextWriter();\n        this.lastEntryTimestamp = Timestamp.now();\n        this.flusherService = flusherService;\n        this.flusherService.repeatedAction(this::scheduledFlushCheck);\n\n        setupConsumedSegmentsNotificationWatcher();\n    }",
+        "replace_text": "    private DeadLetterQueueWriter(final Path queuePath, final long maxSegmentSize, final long maxQueueSize,\n                                  final Duration flushInterval, final QueueStorageType storageType, final Duration retentionTime,\n                                  final Clock clock, SchedulerService flusherService) throws IOException {\n        this(queuePath, maxSegmentSize, maxQueueSize, flushInterval, storageType, retentionTime, clock, flusherService, RecordIOWriter::new);\n    }\n\n    private DeadLetterQueueWriter(final Path queuePath, final long maxSegmentSize, final long maxQueueSize,\n                                  final Duration flushInterval, final QueueStorageType storageType, final Duration retentionTime,\n                                  final Clock clock, SchedulerService flusherService, RecordIOWriterFactory writerFactory) throws IOException {\n        this.clock = clock;\n        this.writerFactory = writerFactory;\n\n        this.fileLock = FileLockFactory.obtainLock(queuePath, LOCK_FILE);\n        this.queuePath = queuePath;\n        this.maxSegmentSize = maxSegmentSize;\n        this.maxQueueSize = maxQueueSize;\n        this.storageType = storageType;\n        this.flushInterval = flushInterval;\n        this.currentQueueSize = new AtomicLong(computeQueueSize());\n        this.retentionPolicyManager = new RetentionPolicyManager(queuePath, maxQueueSize, storageType, retentionTime, clock, currentQueueSize, expiredEvents);\n\n        cleanupTempFiles();\n        retentionPolicyManager.updateOldestSegmentReference();\n        currentSegmentIndex = listSegmentPaths(queuePath)\n                .map(s -> s.getFileName().toString().split(\"\\\\.\")[0])\n                .mapToInt(Integer::parseInt)\n                .max().orElse(0);\n        nextWriter();\n        this.lastEntryTimestamp = Timestamp.now();\n        this.flusherService = flusherService;\n        this.flusherService.repeatedAction(this::scheduledFlushCheck);\n\n        setupConsumedSegmentsNotificationWatcher();\n    }",
+        "search_lines": 27,
+        "replace_lines": 34
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "search_text": "    private void nextWriter() throws IOException {\n        Path nextSegmentPath = queuePath.resolve(String.format(TEMP_FILE_PATTERN, ++currentSegmentIndex));\n        currentWriter = new RecordIOWriter(nextSegmentPath);\n        currentQueueSize.incrementAndGet();\n        logger.debug(\"Created new head segment {}\", nextSegmentPath);\n    }",
+        "replace_text": "    private void nextWriter() throws IOException {\n        Path nextSegmentPath = queuePath.resolve(String.format(TEMP_FILE_PATTERN, ++currentSegmentIndex));\n        currentWriter = writerFactory.create(nextSegmentPath);\n        currentQueueSize.incrementAndGet();\n        logger.debug(\"Created new head segment {}\", nextSegmentPath);\n    }",
+        "search_lines": 6,
+        "replace_lines": 6
+      },
+      {
+        "kind": "create",
+        "file_path": "logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java",
+        "new_content": "/*\n * Licensed to Elasticsearch B.V. under one or more contributor\n * license agreements. See the NOTICE file distributed with\n * this work for additional information regarding copyright\n * ownership. Elasticsearch B.V. licenses this file to you under\n * the Apache License, Version 2.0 (the \"License\"); you may\n * not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *\thttp://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing,\n * software distributed under the License is distributed on an\n * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n * KIND, either express or implied.  See the License for the\n * specific language governing permissions and limitations\n * under the License.\n */\npackage org.logstash.common.io;\n\nimport java.io.IOException;\nimport java.nio.file.Path;\n\npublic interface RecordIOWriterFactory {\n    RecordIOWriter create(Path path) throws IOException;\n}",
+        "new_content_lines": 26
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "loc": 584,
+        "blank_lines": 82,
+        "comment_lines": 18,
+        "function_count": 44,
+        "avg_cc": 2.41,
+        "max_cc": 63.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+        "loc": 591,
+        "blank_lines": 83,
+        "comment_lines": 18,
+        "function_count": 44,
+        "avg_cc": 2.41,
+        "max_cc": 63.0,
+        "mi": 0.0
+      },
+      {
+        "file": "logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java",
+        "loc": 24,
+        "blank_lines": 2,
+        "comment_lines": 0,
+        "function_count": 0,
+        "avg_cc": 3.0,
+        "max_cc": 3.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java b/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\nindex abfa460..52ef30c 100644\n--- a/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\n+++ b/logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\n@@ -152,6 +152,7 @@ public final class DeadLetterQueueWriter implements Closeable {\n     private final Clock clock;\n     private final RetentionPolicyManager retentionPolicyManager;\n     private final SchedulerService flusherService;\n+    private final RecordIOWriterFactory writerFactory;\n     private ScheduledExecutorService scheduledFSWatcher = Executors.newScheduledThreadPool(1, r -> {\n         Thread t = new Thread(r);\n         //Allow this thread to die when the JVM dies\n@@ -288,7 +289,14 @@ public final class DeadLetterQueueWriter implements Closeable {\n     private DeadLetterQueueWriter(final Path queuePath, final long maxSegmentSize, final long maxQueueSize,\n                                   final Duration flushInterval, final QueueStorageType storageType, final Duration retentionTime,\n                                   final Clock clock, SchedulerService flusherService) throws IOException {\n+        this(queuePath, maxSegmentSize, maxQueueSize, flushInterval, storageType, retentionTime, clock, flusherService, RecordIOWriter::new);\n+    }\n+\n+    private DeadLetterQueueWriter(final Path queuePath, final long maxSegmentSize, final long maxQueueSize,\n+                                  final Duration flushInterval, final QueueStorageType storageType, final Duration retentionTime,\n+                                  final Clock clock, SchedulerService flusherService, RecordIOWriterFactory writerFactory) throws IOException {\n         this.clock = clock;\n+        this.writerFactory = writerFactory;\n \n         this.fileLock = FileLockFactory.obtainLock(queuePath, LOCK_FILE);\n         this.queuePath = queuePath;\n@@ -614,7 +622,7 @@ public final class DeadLetterQueueWriter implements Closeable {\n \n     private void nextWriter() throws IOException {\n         Path nextSegmentPath = queuePath.resolve(String.format(TEMP_FILE_PATTERN, ++currentSegmentIndex));\n-        currentWriter = new RecordIOWriter(nextSegmentPath);\n+        currentWriter = writerFactory.create(nextSegmentPath);\n         currentQueueSize.incrementAndGet();\n         logger.debug(\"Created new head segment {}\", nextSegmentPath);\n     }\ndiff --git a/logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java b/logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/logstash-core/src/main/java/org/logstash/common/io/RecordIOWriterFactory.java\n@@ -0,0 +1,26 @@\n+/*\n+ * Licensed to Elasticsearch B.V. under one or more contributor\n+ * license agreements. See the NOTICE file distributed with\n+ * this work for additional information regarding copyright\n+ * ownership. Elasticsearch B.V. licenses this file to you under\n+ * the Apache License, Version 2.0 (the \"License\"); you may\n+ * not use this file except in compliance with the License.\n+ * You may obtain a copy of the License at\n+ *\n+ *\thttp://www.apache.org/licenses/LICENSE-2.0\n+ *\n+ * Unless required by applicable law or agreed to in writing,\n+ * software distributed under the License is distributed on an\n+ * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n+ * KIND, either express or implied.  See the License for the\n+ * specific language governing permissions and limitations\n+ * under the License.\n+ */\n+package org.logstash.common.io;\n+\n+import java.io.IOException;\n+import java.nio.file.Path;\n+\n+public interface RecordIOWriterFactory {\n+    RecordIOWriter create(Path path) throws IOException;\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 12559.27848815918
+}

@@ -1,0 +1,93 @@
+{
+  "issue_id": "LSP-012",
+  "principle": "LSP",
+  "title": "Refactor LSP-012 (LSP): Subclass-driven state changes lead to Undefined Behavior in base class contract",
+  "branch": "refactor/LSP-012",
+  "base": "main",
+  "head_commit": "0143d25da3ee2b47a8fb7462f83a2de2fdb86bc0",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 4102,
+    "completion_tokens": 617
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::CumulativeReporterBase",
+    "entity_type": "class",
+    "line_start": 5078,
+    "line_end": 5128,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Subclass-driven state changes lead to Undefined Behavior in base class contract",
+    "reasoning": "The class documentation explicitly states that subclasses can set 'm_shouldStoreSuccesfulAssertions' or 'm_shouldStoreFailedAssertions' to false, but that 'Accessing the assertion expansions if it wasn't stored is UB.' This is a postcondition weakening smell. A consumer using a pointer to the base class CumulativeReporterBase expects a valid contract where assertion data is available. If a subclass weakens this postcondition by disabling storage, it breaks the program's correctness for any component relying on the base class's standard behavior, fulfilling the definition of an LSP violation."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove UB-inducing customization points from CumulativeReporterBase",
+    "rationale": "The customization points m_shouldStoreSuccesfulAssertions and m_shouldStoreFailedAssertions allowed subclasses to disable storage, which caused Undefined Behavior when accessing assertion data. Removing these flags ensures the base class contract is always satisfied, adhering to the Liskov Substitution Principle.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    /**\n     * Utility base for reporters that need to handle all results at once\n     *\n     * It stores tree of all test cases, sections and assertions, and after the\n     * test run is finished, calls into `testRunEndedCumulative` to pass the\n     * control to the deriving class.\n     *\n     * If you are deriving from this class and override any testing related\n     * member functions, you should first call into the base's implementation to\n     * avoid breaking the tree construction.\n     *\n     * Due to the way this base functions, it has to expand assertions up-front,\n     * even if they are later unused (e.g. because the deriving reporter does\n     * not report successful assertions, or because the deriving reporter does\n     * not use assertion expansion at all). Derived classes can use two\n     * customization points, `m_shouldStoreSuccesfulAssertions` and\n     * `m_shouldStoreFailedAssertions`, to disable the expansion and gain extra\n     * performance. **Accessing the assertion expansions if it wasn't stored is\n     * UB.**\n     */\n    class CumulativeReporterBase : public ReporterBase {",
+        "replace_text": "    /**\n     * Utility base for reporters that need to handle all results at once\n     *\n     * It stores tree of all test cases, sections and assertions, and after the\n     * test run is finished, calls into `testRunEndedCumulative` to pass the\n     * control to the deriving class.\n     *\n     * If you are deriving from this class and override any testing related\n     * member functions, you should first call into the base's implementation to\n     * avoid breaking the tree construction.\n     */\n    class CumulativeReporterBase : public ReporterBase {",
+        "search_lines": 21,
+        "replace_lines": 12
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    protected:\n        //! Should the cumulative base store the assertion expansion for successful assertions?\n        bool m_shouldStoreSuccesfulAssertions = true;\n        //! Should the cumulative base store the assertion expansion for failed assertions?\n        bool m_shouldStoreFailedAssertions = true;\n\n        // We need lazy construction here. We should probably refactor it",
+        "replace_text": "    protected:\n        // We need lazy construction here. We should probably refactor it",
+        "search_lines": 7,
+        "replace_lines": 2
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10470,
+        "blank_lines": 3073,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.33,
+        "max_cc": 1277.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10459,
+        "blank_lines": 3072,
+        "comment_lines": 723,
+        "function_count": 3,
+        "avg_cc": 425.0,
+        "max_cc": 1273.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex b589142..c9df2ab 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -13489,15 +13489,6 @@ namespace Catch {\n      * If you are deriving from this class and override any testing related\n      * member functions, you should first call into the base's implementation to\n      * avoid breaking the tree construction.\n-     *\n-     * Due to the way this base functions, it has to expand assertions up-front,\n-     * even if they are later unused (e.g. because the deriving reporter does\n-     * not report successful assertions, or because the deriving reporter does\n-     * not use assertion expansion at all). Derived classes can use two\n-     * customization points, `m_shouldStoreSuccesfulAssertions` and\n-     * `m_shouldStoreFailedAssertions`, to disable the expansion and gain extra\n-     * performance. **Accessing the assertion expansions if it wasn't stored is\n-     * UB.**\n      */\n     class CumulativeReporterBase : public ReporterBase {\n     public:\n@@ -13564,11 +13555,6 @@ namespace Catch {\n         void skipTest(TestCaseInfo const&) override {}\n \n     protected:\n-        //! Should the cumulative base store the assertion expansion for successful assertions?\n-        bool m_shouldStoreSuccesfulAssertions = true;\n-        //! Should the cumulative base store the assertion expansion for failed assertions?\n-        bool m_shouldStoreFailedAssertions = true;\n-\n         // We need lazy construction here. We should probably refactor it\n         // later, after the events are redone.\n         //! The root node of the test run tree.\n",
+  "duration_ms": 25046.281814575195
+}

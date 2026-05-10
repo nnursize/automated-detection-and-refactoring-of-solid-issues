@@ -1,0 +1,27 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java b/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java
+index 6590dcf..e594fae 100644
+--- a/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java
++++ b/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java
+@@ -148,14 +148,12 @@ public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+       } else {
+         out.value(primitive.getAsString());
+       }
+-
+     } else if (value.isJsonArray()) {
+       out.beginArray();
+       for (JsonElement e : value.getAsJsonArray()) {
+         write(out, e);
+       }
+       out.endArray();
+-
+     } else if (value.isJsonObject()) {
+       out.beginObject();
+       for (Map.Entry<String, JsonElement> e : value.getAsJsonObject().entrySet()) {
+@@ -163,7 +161,6 @@ public class JsonElementTypeAdapter extends TypeAdapter<JsonElement> {
+         write(out, e.getValue());
+       }
+       out.endObject();
+-
+     } else {
+       throw new IllegalArgumentException("Couldn't write " + value.getClass());
+     }

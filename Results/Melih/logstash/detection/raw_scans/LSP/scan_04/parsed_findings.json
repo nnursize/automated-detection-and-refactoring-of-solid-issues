@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "entity_name": "MmapPageIOV1",
+    "entity_type": "class",
+    "line_start": 180,
+    "line_end": 215,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype MmapPageIOV1 throws UnsupportedOperationException for methods defined in its base interface PageIO, and changes contract of hasSpace.",
+    "reasoning": "The `MmapPageIOV1` class implements the `PageIO` interface but throws `UnsupportedOperationException` for `recover()`, `create()`, `ensurePersisted()`, `purge()`, and `write()`. It also changes the contract of `hasSpace()` to always return `false`. This violates the Liskov Substitution Principle because `MmapPageIOV1` instances cannot be substituted for `PageIO` instances without altering the correctness of the program, as they do not fulfill the contract implied by the `PageIO` interface for these methods. This indicates a fundamental design flaw in the `PageIO` abstraction if it's intended to be a general-purpose page I/O."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "EventCondition.Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 69,
+    "line_end": 96,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Method dispatches logic based on concrete type of BooleanExpression using an if-else if chain.",
+    "reasoning": "The `buildCondition` method in `EventCondition.Compiler` uses an `if-else if` chain to determine the concrete type of `BooleanExpression` (e.g., `Eq`, `RegexEq`, `In`, `Or`, `And`, `Truthy`, `Not`, `Gt`, `Gte`, `Lt`, `Lte`, `Neq`). This 'Switch Statements on Type' smell violates the Liskov Substitution Principle because introducing new subtypes of `BooleanExpression` would require modifying this method, rather than extending behavior through polymorphism. A more LSP-compliant design would use a visitor pattern or polymorphic methods on `BooleanExpression` itself."
+  }
+]

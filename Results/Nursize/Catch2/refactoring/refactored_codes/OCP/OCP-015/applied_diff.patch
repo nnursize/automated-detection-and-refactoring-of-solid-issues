@@ -1,0 +1,82 @@
+diff --git a/extras/catch_amalgamated.cpp b/extras/catch_amalgamated.cpp
+index a4406d0..0df59e9 100644
+--- a/extras/catch_amalgamated.cpp
++++ b/extras/catch_amalgamated.cpp
+@@ -9287,15 +9287,16 @@ public:
+         messages(_stats.infoMessages),
+         colourImpl(colourImpl_),
+         printInfoMessages(_printInfoMessages) {
++        initialize();
++    }
++
++    void initialize() {
+         switch (result.getResultType()) {
+         case ResultWas::Ok:
+             colour = Colour::Success;
+             passOrFail = "PASSED"_sr;
+-            //if( result.hasMessage() )
+-            if (messages.size() == 1)
+-                messageLabel = "with message"_sr;
+-            if (messages.size() > 1)
+-                messageLabel = "with messages"_sr;
++            if (messages.size() == 1) messageLabel = "with message"_sr;
++            else if (messages.size() > 1) messageLabel = "with messages"_sr;
+             break;
+         case ResultWas::ExpressionFailed:
+             if (result.isOk()) {
+@@ -9305,25 +9306,15 @@ public:
+                 colour = Colour::Error;
+                 passOrFail = "FAILED"_sr;
+             }
+-            if (messages.size() == 1)
+-                messageLabel = "with message"_sr;
+-            if (messages.size() > 1)
+-                messageLabel = "with messages"_sr;
++            if (messages.size() == 1) messageLabel = "with message"_sr;
++            else if (messages.size() > 1) messageLabel = "with messages"_sr;
+             break;
+         case ResultWas::ThrewException:
+             colour = Colour::Error;
+             passOrFail = "FAILED"_sr;
+-            // todo switch
+-            switch (messages.size()) { case 0:
+-                messageLabel = "due to unexpected exception with "_sr;
+-                break;
+-            case 1:
+-                messageLabel = "due to unexpected exception with message"_sr;
+-                break;
+-            default:
+-                messageLabel = "due to unexpected exception with messages"_sr;
+-                break;
+-            }
++            if (messages.size() == 0) messageLabel = "due to unexpected exception with "_sr;
++            else if (messages.size() == 1) messageLabel = "due to unexpected exception with message"_sr;
++            else messageLabel = "due to unexpected exception with messages"_sr;
+             break;
+         case ResultWas::FatalErrorCondition:
+             colour = Colour::Error;
+@@ -9344,20 +9335,15 @@ public:
+         case ResultWas::ExplicitFailure:
+             passOrFail = "FAILED"_sr;
+             colour = Colour::Error;
+-            if (messages.size() == 1)
+-                messageLabel = "explicitly with message"_sr;
+-            if (messages.size() > 1)
+-                messageLabel = "explicitly with messages"_sr;
++            if (messages.size() == 1) messageLabel = "explicitly with message"_sr;
++            else if (messages.size() > 1) messageLabel = "explicitly with messages"_sr;
+             break;
+         case ResultWas::ExplicitSkip:
+             colour = Colour::Skip;
+             passOrFail = "SKIPPED"_sr;
+-            if (messages.size() == 1)
+-                messageLabel = "explicitly with message"_sr;
+-            if (messages.size() > 1)
+-                messageLabel = "explicitly with messages"_sr;
++            if (messages.size() == 1) messageLabel = "explicitly with message"_sr;
++            else if (messages.size() > 1) messageLabel = "explicitly with messages"_sr;
+             break;
+-            // These cases are here to prevent compiler warnings
+         case ResultWas::Unknown:
+         case ResultWas::FailureBit:
+         case ResultWas::Exception:

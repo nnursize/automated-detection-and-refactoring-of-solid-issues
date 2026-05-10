@@ -1,0 +1,40 @@
+{
+  "issue_id": "LSP-012",
+  "principle": "LSP",
+  "title": "Refactor LSP-012 (LSP): Abstract methods in a base class force subclasses into a specific non-blockin...",
+  "branch": "refactor/LSP-012",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": "The cited method getNextSignedByteFromBuffer does not exist in NonBlockingJsonParserBase. The method is actually defined in concrete subclasses (NonBlockingByteArrayJsonParser, NonBlockingByteBufferJsonParser) and NonBlockingJsonParserBase itself only declares one abstract method (releaseBuffered). The detection cites the wrong class."
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingJsonParserBase.java",
+    "entity_name": "NonBlockingJsonParserBase.getNextSignedByteFromBuffer",
+    "entity_type": "class",
+    "line_start": 172,
+    "line_end": 172,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Abstract methods in a base class force subclasses into a specific non-blocking contract that violates the standard JsonParser contract.",
+    "reasoning": "The introduction of abstract methods like getNextSignedByteFromBuffer forces subclasses to implement a specific non-blocking state machine, which is not part of the standard JsonParser interface, breaking the ability to treat all JsonParsers uniformly."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

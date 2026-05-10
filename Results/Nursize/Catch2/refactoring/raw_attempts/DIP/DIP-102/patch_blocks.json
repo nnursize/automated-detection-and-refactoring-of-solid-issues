@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "    class IGeneratorTracker;\n    class IConfig;\n    class IEventListener;\n    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;\n    class OutputRedirect;",
+    "replace_text": "    class IGeneratorTracker;\n    class IConfig;\n    class IEventListener;\n    class OutputRedirect;"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        explicit RunContext( IConfig const* _config, IEventListenerPtr&& reporter );",
+    "replace_text": "        explicit RunContext( IConfig const* _config, Detail::unique_ptr<IEventListener>&& reporter );"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        Detail::AtomicCounts m_atomicAssertionCount;\n        IEventListenerPtr m_reporter;\n        std::vector<SectionEndInfo> m_unfinishedSections;",
+    "replace_text": "        Detail::AtomicCounts m_atomicAssertionCount;\n        Detail::unique_ptr<IEventListener> m_reporter;\n        std::vector<SectionEndInfo> m_unfinishedSections;"
+  }
+]

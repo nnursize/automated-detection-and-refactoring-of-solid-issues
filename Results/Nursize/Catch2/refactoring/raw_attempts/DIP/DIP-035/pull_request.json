@@ -1,0 +1,40 @@
+{
+  "issue_id": "DIP-035",
+  "principle": "DIP",
+  "title": "Refactor DIP-035 (DIP): Function `applyCommandLine` directly instantiates `Clara::Parser`.",
+  "branch": "refactor/DIP-035",
+  "base": "main",
+  "head_commit": "83b3c825c2fcc66cc6ff817cbc5b149ac97eea55",
+  "status": "obsolete",
+  "obsolete_reason": "entity `Catch::Session::applyCommandLine` not found in current source of `extras/catch_amalgamated.hpp` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::Session::applyCommandLine",
+    "entity_type": "class",
+    "line_start": 175,
+    "line_end": 180,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Function `applyCommandLine` directly instantiates `Clara::Parser`.",
+    "reasoning": "The `Catch::Session::applyCommandLine` function directly instantiates `Clara::Parser`. This means the session class depends directly on the concrete implementation of the command-line parser. DIP requires high-level modules to depend on abstractions. The command-line parsing functionality should be provided through an injected dependency (e.g., an `IParser` interface), allowing for different parsing strategies or mocks to be used, thus adhering to the Dependency Inversion Principle."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 667.7069664001465
+}

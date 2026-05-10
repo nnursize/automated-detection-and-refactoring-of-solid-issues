@@ -1,0 +1,13 @@
+[
+  {
+    "file_path": "requests/src/requests/cookies.py",
+    "entity_name": "MockRequest.add_header",
+    "entity_type": "method",
+    "line_start": 49,
+    "line_end": 51,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The MockRequest class is forced to implement add_header but explicitly raises NotImplementedError.",
+    "reasoning": "The `MockRequest` class is designed to mimic the interface of `urllib2.Request` for `http.cookiejar.CookieJar`. However, `MockRequest`'s internal design for handling headers (collecting new headers via `add_unredirected_header`) means it does not legitimately use or need the `add_header` method. By raising `NotImplementedError`, `MockRequest` signals that it is forced to depend on a method from a broader interface (`urllib2.Request`'s expected interface) that is irrelevant to its specific responsibilities, thus violating the Interface Segregation Principle."
+  }
+]

@@ -1,0 +1,61 @@
+diff --git a/gson/src/main/java/com/google/gson/stream/JsonReader.java b/gson/src/main/java/com/google/gson/stream/JsonReader.java
+index 0e7dd30..509ed0e 100644
+--- a/gson/src/main/java/com/google/gson/stream/JsonReader.java
++++ b/gson/src/main/java/com/google/gson/stream/JsonReader.java
+@@ -267,8 +267,7 @@ public class JsonReader implements Closeable {
+   private int pos = 0;
+   private int limit = 0;
+ 
+-  private int lineNumber = 0;
+-  private int lineStart = 0;
++  private final JsonLocationTracker locationTracker = new JsonLocationTracker();
+ 
+   int peeked = PEEKED_NONE;
+ 
+@@ -315,6 +314,10 @@ public class JsonReader implements Closeable {
+     this.in = Objects.requireNonNull(in, "in == null");
+   }
+ 
++  private IOException syntaxError(String message) throws IOException {
++    throw new MalformedJsonException(locationTracker.getMessage(message, pos));
++  }
++
+   /**
+    * Sets the strictness of this reader.
+    *
+diff --git a/gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java b/gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/gson/src/main/java/com/google/gson/stream/JsonLocationTracker.java
+@@ -0,0 +1,29 @@
++package com.google.gson.stream;
++
++/**
++ * Tracks the current location (line and column) in a JSON stream for error reporting.
++ */
++final class JsonLocationTracker {
++  private int lineNumber = 0;
++  private int lineStart = 0;
++
++  public void incrementLine() {
++    lineNumber++;
++  }
++
++  public void setLineStart(int pos) {
++    lineStart = pos;
++  }
++
++  public int getLineNumber() {
++    return lineNumber + 1;
++  }
++
++  public int getColumnNumber(int pos) {
++    return pos - lineStart + 1;
++  }
++
++  public String getMessage(String message, int pos) {
++    return message + " at line " + getLineNumber() + " column " + getColumnNumber(pos) + " path " + "";
++  }
++}
+\ No newline at end of file

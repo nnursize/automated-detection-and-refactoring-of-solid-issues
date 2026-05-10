@@ -1,0 +1,1166 @@
+{
+  "repo_name": "requests",
+  "per_principle_quota": 12,
+  "total_selected": 60,
+  "total_quota": 60,
+  "short_of_quota": {},
+  "by_principle": {
+    "SRP": [
+      {
+        "issue_id": "SRP-006",
+        "rank": 1,
+        "scan_count": 7,
+        "severity": "medium",
+        "file_path": "src/requests/models.py",
+        "entity_name": "RequestEncodingMixin",
+        "entity_type": "class",
+        "line_start": 50,
+        "line_end": 134,
+        "description": "Combines URL path construction with two distinct data encoding responsibilities (URL parameters and multipart files).",
+        "reasoning": "This mixin includes `path_url` (URL path construction), `_encode_params` (URL-encoded parameter serialization), and `_encode_files` (multipart/form-data serialization). While both `_encode_params` and `_encode_files` are about 'encoding', they handle fundamentally different data formats and involve distinct logic (simple key-value encoding vs. complex file handling, content-type inference, filename guessing). A change in URL parameter encoding would not affect multipart file encoding, and vice-versa, indicating separate responsibilities.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_04",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06",
+          "requests_SRP_scan_08",
+          "requests_SRP_scan_09",
+          "requests_SRP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "SRP-021",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.cert_verify",
+        "entity_type": "method",
+        "line_start": 158,
+        "line_end": 204,
+        "description": "Configures SSL certificate verification settings on a urllib3 connection, including CA bundles, client certificates, and path validation.",
+        "reasoning": "This method has multiple responsibilities related to SSL certificate configuration: 1) Determining the CA certificate bundle location (from `verify` or `DEFAULT_CA_BUNDLE_PATH`, including handling zipped paths). 2) Setting the `cert_reqs` on the connection (required or none). 3) Setting `ca_certs` or `ca_cert_dir`. 4) Configuring client certificates (`cert_file`, `key_file`). 5) Validating the existence of all specified certificate files. These are distinct aspects of TLS configuration and validation.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_09",
+          "requests_SRP_scan_10",
+          "requests_SRP_scan_11",
+          "requests_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-008",
+        "rank": 3,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "PreparedRequest.prepare_body",
+        "entity_type": "method",
+        "line_start": 320,
+        "line_end": 378,
+        "description": "Handles JSON serialization, streamed body management, multipart file encoding, URL-encoded data, and Content-Type inference.",
+        "reasoning": "This method is a 'god method' for preparing the request body. It has too many reasons to change: 1) Changes in JSON serialization (e.g., `complexjson.dumps` behavior, error handling). 2) Changes in streamed body handling (e.g., `super_len`, `body.tell()`, `Content-Length`/`Transfer-Encoding` logic). 3) Changes in multipart file encoding (delegating to `_encode_files`). 4) Changes in URL-encoded data handling (delegating to `_encode_params`). 5) Changes in how `Content-Type` is inferred and set. Each of these is a distinct responsibility that could evolve independently.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_06",
+          "requests_SRP_scan_09",
+          "requests_SRP_scan_10",
+          "requests_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-016",
+        "rank": 4,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "Session.prepare_request",
+        "entity_type": "method",
+        "line_start": 339,
+        "line_end": 376,
+        "description": "Merges cookies, applies environment authentication, and merges headers, params, and hooks from session and request.",
+        "reasoning": "This method is responsible for preparing a `Request` into a `PreparedRequest` by applying session-level settings. It combines several distinct merging strategies: 1) Merging request cookies with session cookies. 2) Conditionally applying environment-based authentication (`get_netrc_auth`). 3) Merging headers, parameters, and hooks using `merge_setting` and `merge_hooks`. Each of these merging operations for different types of request components is a separate concern.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06",
+          "requests_SRP_scan_09",
+          "requests_SRP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "SRP-056",
+        "rank": 5,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "Response",
+        "entity_type": "class",
+        "line_start": 642,
+        "line_end": 1041,
+        "description": "Acts as a data holder for HTTP responses but also performs content processing, encoding detection, JSON deserialization, and header parsing.",
+        "reasoning": "The `Response` class combines the responsibility of being a simple data container for an HTTP response with several distinct content processing and interpretation responsibilities. Specifically, it includes logic for: (1) content encoding detection (`apparent_encoding`, used by `text`, `json`), (2) content decoding (bytes to unicode in `text`, `iter_content`), (3) JSON deserialization (`json`, including its own encoding guessing), and (4) parsing specific HTTP headers (`links`). These are separate concerns; a change in the JSON specification, encoding detection algorithm, or Link header parsing rules would require modifying this class, even if the core response data structure remains the same. These processing tasks could be delegated to specialized helper objects.",
+        "first_detected_scan": "requests_SRP_scan_08",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_08",
+          "requests_SRP_scan_09",
+          "requests_SRP_scan_11",
+          "requests_SRP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "SRP-013",
+        "rank": 6,
+        "scan_count": 4,
+        "severity": "high",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "SessionRedirectMixin.resolve_redirects",
+        "entity_type": "method",
+        "line_start": 103,
+        "line_end": 222,
+        "description": "Orchestrates the entire redirect handling process, including history, URL normalization, request modification, cookie management, auth/proxy rebuilding, and sending new requests.",
+        "reasoning": "This is a 'god method' for redirect handling. Its responsibilities are numerous and distinct: 1) Managing redirect history. 2) Consuming and closing previous responses. 3) Enforcing redirect limits. 4) Normalizing redirect URLs (scheme, fragment, relative paths). 5) Modifying the request method (`rebuild_method`). 6) Purging headers. 7) Extracting and merging cookies. 8) Rebuilding authentication (`rebuild_auth`). 9) Rebuilding proxy configuration (`rebuild_proxies`). 10) Rewinding the request body. 11) Sending the new request. Each of these steps is a significant responsibility that could change independently.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06",
+          "requests_SRP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "SRP-007",
+        "rank": 7,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/requests/models.py",
+        "entity_name": "PreparedRequest.prepare_url",
+        "entity_type": "method",
+        "line_start": 251,
+        "line_end": 307,
+        "description": "Combines URL parsing, scheme/host validation, IDNA encoding, parameter encoding, and URI requoting.",
+        "reasoning": "This method is responsible for preparing the request URL. It mixes several concerns: 1) Parsing the URL into components. 2) Validating the scheme and host. 3) Applying IDNA encoding to the hostname. 4) Encoding URL parameters (delegating to `_encode_params`). 5) Reconstructing and requoting the final URI. Changes in URL validation rules, IDNA encoding standards, parameter encoding logic, or URI quoting behavior would all necessitate changes to this single method.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_04",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-010",
+        "rank": 8,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/requests/models.py",
+        "entity_name": "Response.iter_content",
+        "entity_type": "method",
+        "line_start": 507,
+        "line_end": 554,
+        "description": "Iterates over raw response data, handles streaming, decodes unicode, and catches/re-raises various urllib3 exceptions.",
+        "reasoning": "This method combines several responsibilities: 1) Iterating over the raw response stream (from `self.raw.stream` or a file-like object). 2) Managing the `_content_consumed` state and raising `StreamConsumedError`. 3) Validating `chunk_size`. 4) Conditionally decoding unicode (delegating to `stream_decode_response_unicode`). 5) Catching and re-raising a wide array of `urllib3` exceptions as `requests` exceptions. The core iteration logic, error handling, and conditional decoding are distinct concerns.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_04",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-028",
+        "rank": 9,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/requests/auth.py",
+        "entity_name": "HTTPDigestAuth.build_digest_header",
+        "entity_type": "method",
+        "line_start": 78,
+        "line_end": 160,
+        "description": "Implements the full HTTP Digest Authentication header construction logic, including hash function selection, nonce/cnonce/qop calculations, and header formatting.",
+        "reasoning": "This is a 'god method' that encapsulates the entire RFC 2617 Digest Authentication header construction. Its responsibilities include: 1) Extracting various parameters (realm, nonce, qop, algorithm, opaque) from `self._thread_local.chal`. 2) Dynamically selecting the appropriate hash function (MD5, SHA, SHA-256, SHA-512). 3) Performing complex cryptographic calculations for `HA1`, `HA2`, `respdig` involving nonce, cnonce, and qop. 4) Formatting the final `Digest` header string with all its components. Any change in the Digest Auth specification, supported algorithms, or calculation methods would require extensive modification to this single function.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-001",
+        "rank": 10,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/requests/utils.py",
+        "entity_name": "super_len",
+        "entity_type": "method",
+        "line_start": 98,
+        "line_end": 160,
+        "description": "Combines multiple strategies for determining content length and issues warnings.",
+        "reasoning": "This function has several reasons to change: 1) Changes in how length is determined for different object types (e.g., `__len__`, `len` attribute, `fileno`, `tell`/`seek`). 2) Changes in `urllib3` string handling. 3) Changes in warning policies (e.g., `FileModeWarning`). 4) Changes in error handling for `tell()` on special file descriptors. These are distinct concerns that could evolve independently.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_03",
+          "requests_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-020",
+        "rank": 11,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.proxy_manager_for",
+        "entity_type": "method",
+        "line_start": 125,
+        "line_end": 156,
+        "description": "Manages and returns urllib3 ProxyManager instances, differentiating between SOCKS and HTTP proxies, and extracting auth from SOCKS proxy URLs.",
+        "reasoning": "This method is responsible for providing the correct `urllib3` `ProxyManager` for a given proxy URL. It combines: 1) Caching `ProxyManager` instances. 2) Detecting if the proxy is SOCKS-based. 3) Extracting authentication credentials from SOCKS proxy URLs. 4) Instantiating either `SOCKSProxyManager` or `proxy_from_url` based on the proxy type. These are distinct concerns related to proxy management and configuration.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_05",
+          "requests_SRP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "SRP-024",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.send",
+        "entity_type": "method",
+        "line_start": 380,
+        "line_end": 458,
+        "description": "Orchestrates sending a PreparedRequest, including connection retrieval, TLS verification, URL formatting, header modification, timeout conversion, exception handling, and response building.",
+        "reasoning": "This is a 'god method' that encapsulates the entire process of sending a `PreparedRequest` via `urllib3`. Its responsibilities include: 1) Retrieving the `urllib3` connection (`get_connection_with_tls_context`). 2) Performing TLS certificate verification (`cert_verify`). 3) Determining the request URL format (`request_url`). 4) Adding connection-specific headers (`add_headers`). 5) Handling chunked encoding. 6) Converting Requests' timeout format to `urllib3.TimeoutSauce`. 7) Executing the `conn.urlopen` call. 8) Catching and re-raising a wide array of `urllib3` exceptions as `requests` exceptions. 9) Building the `requests.Response` object (`build_response`). Each of these is a significant, distinct responsibility.",
+        "first_detected_scan": "requests_SRP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_SRP_scan_01",
+          "requests_SRP_scan_06"
+        ]
+      }
+    ],
+    "OCP": [
+      {
+        "issue_id": "OCP-025",
+        "rank": 1,
+        "scan_count": 5,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "PreparedRequest.prepare_body",
+        "entity_type": "method",
+        "line_start": 500,
+        "line_end": 561,
+        "description": "Uses complex conditional logic to handle different request body types.",
+        "reasoning": "The method relies on internal type-checking and conditional logic to dispatch processing for 'json', 'files', 'data', and 'streams'. Adding a new body serialization format or a custom data handler requires modifying this central method, indicating a lack of a pluggable strategy for body preparation.",
+        "first_detected_scan": "requests_OCP_scan_05",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_05",
+          "requests_OCP_scan_07",
+          "requests_OCP_scan_08",
+          "requests_OCP_scan_10",
+          "requests_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-022",
+        "rank": 2,
+        "scan_count": 5,
+        "severity": "medium",
+        "file_path": "src/requests/utils.py",
+        "entity_name": "super_len",
+        "entity_type": "class",
+        "line_start": 135,
+        "line_end": 207,
+        "description": "Function uses multiple hasattr checks to handle different object types",
+        "reasoning": "The function calculates object length by checking for various attributes (__len__, len, fileno, tell, seek). Supporting a new type of stream or custom object with a unique way to determine length would require adding more conditional branches to this utility.",
+        "first_detected_scan": "requests_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_03",
+          "requests_OCP_scan_04",
+          "requests_OCP_scan_05",
+          "requests_OCP_scan_06",
+          "requests_OCP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "OCP-021",
+        "rank": 3,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "SessionRedirectMixin.rebuild_method",
+        "entity_type": "method",
+        "line_start": 315,
+        "line_end": 334,
+        "description": "Hardcoded redirection logic based on specific HTTP status codes",
+        "reasoning": "This method explicitly checks for status codes (301, 302, 303) to determine when to switch HTTP methods. Adding new redirection behaviors for different status codes requires manual modification of this method instead of using a polymorphic approach.",
+        "first_detected_scan": "requests_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_03",
+          "requests_OCP_scan_04",
+          "requests_OCP_scan_05",
+          "requests_OCP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "OCP-030",
+        "rank": 4,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "SessionRedirectMixin.rebuild_method",
+        "entity_type": "class",
+        "line_start": 334,
+        "line_end": 354,
+        "description": "Hardcoded HTTP status code logic for method redirection",
+        "reasoning": "The method contains explicit checks for status codes (301, 302, 303) to determine if a request method should be changed to 'GET'. This logic is closed to extension; adding new redirection behaviors for different status codes or custom standards requires modifying the existing method.",
+        "first_detected_scan": "requests_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_07",
+          "requests_OCP_scan_08",
+          "requests_OCP_scan_09",
+          "requests_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-029",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.proxy_manager_for",
+        "entity_type": "class",
+        "line_start": 225,
+        "line_end": 253,
+        "description": "Hardcoded protocol checking for proxy managers",
+        "reasoning": "The method uses an if/elif/else block to check if a proxy URL starts with 'socks' to decide whether to instantiate a SOCKSProxyManager or a standard ProxyManager. Adding support for new proxy protocols (e.g., 'ftp', 'ssh') would require modifying this method's source code rather than extending the class through a registry or strategy pattern.",
+        "first_detected_scan": "requests_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_07",
+          "requests_OCP_scan_08",
+          "requests_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-033",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "Session",
+        "entity_type": "class",
+        "line_start": 357,
+        "line_end": 817,
+        "description": "Bloated class (Fat Interface) with hardcoded convenience methods for HTTP verbs.",
+        "reasoning": "The Session class contains hardcoded convenience methods for standard HTTP verbs (get, post, put, etc.). Adding support for new or custom HTTP methods (e.g., standardized extensions like QUERY) requires modifying the class itself, indicating it is not closed for modification.",
+        "first_detected_scan": "requests_OCP_scan_10",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_10",
+          "requests_OCP_scan_11",
+          "requests_OCP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "OCP-031",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.send",
+        "entity_type": "class",
+        "line_start": 670,
+        "line_end": 696,
+        "description": "Chain of isinstance checks for exception mapping",
+        "reasoning": "The exception handling block in the 'send' method uses a long chain of 'isinstance' checks to map internal urllib3 exceptions to Requests-specific exceptions. Adding support for new exception types from the underlying library or changing the mapping logic requires modifying the 'send' method directly.",
+        "first_detected_scan": "requests_OCP_scan_07",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_07",
+          "requests_OCP_scan_08",
+          "requests_OCP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "OCP-020",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/auth.py",
+        "entity_name": "HTTPDigestAuth.build_digest_header",
+        "entity_type": "method",
+        "line_start": 154,
+        "line_end": 182,
+        "description": "Hardcoded if/elif chain for hashing algorithms",
+        "reasoning": "The method uses a hardcoded conditional chain to select hashing algorithms (MD5, SHA, SHA-256, SHA-512). Adding support for a new algorithm like SHA-3 would require modifying this existing class rather than extending it through a strategy pattern or registry.",
+        "first_detected_scan": "requests_OCP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_03",
+          "requests_OCP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "OCP-007",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "RequestEncodingMixin._encode_params",
+        "entity_type": "method",
+        "line_start": 50,
+        "line_end": 70,
+        "description": "Conditional logic for encoding request parameters based on type.",
+        "reasoning": "This method uses a series of `if/elif` statements and `isinstance`/`hasattr` checks to determine how to encode different types of `data`. If a new type of data (e.g., a custom object that knows how to encode itself) needs to be supported, this method would require modification to add new conditional branches, violating OCP. This could be refactored using a strategy pattern or a dispatch table.",
+        "first_detected_scan": "requests_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_01",
+          "requests_OCP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "OCP-008",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "RequestEncodingMixin._encode_files",
+        "entity_type": "method",
+        "line_start": 72,
+        "line_end": 125,
+        "description": "Nested conditional logic for handling different file input formats.",
+        "reasoning": "This method contains nested `if/elif` statements to handle different tuple lengths for file specifications (2-tuple, 3-tuple, 4-tuple) and then `isinstance`/`hasattr` checks for the file pointer `fp`. If new file input formats or ways to specify file metadata were introduced, this method would need modification to extend its conditional logic, violating OCP.",
+        "first_detected_scan": "requests_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_01",
+          "requests_OCP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "OCP-010",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "PreparedRequest.prepare_body",
+        "entity_type": "method",
+        "line_start": 275,
+        "line_end": 319,
+        "description": "Complex conditional logic for preparing request body based on input type.",
+        "reasoning": "This method uses a complex `if/elif/else` structure to handle different ways of providing a request body (JSON, streamed data, multipart files, form-encoded data). It relies on the presence of `json`, `files`, and `is_stream` flags, along with `isinstance` and `hasattr` checks. Adding a new type of request body (e.g., a custom object that handles its own serialization) would require modifying this method, violating OCP. This is a strong candidate for a strategy pattern or a body preparer registry.",
+        "first_detected_scan": "requests_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_01",
+          "requests_OCP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "OCP-002",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/utils.py",
+        "entity_name": "super_len",
+        "entity_type": "class",
+        "line_start": 80,
+        "line_end": 130,
+        "description": "Multiple hasattr and isinstance checks for object length calculation.",
+        "reasoning": "The `super_len` function uses a series of `hasattr` checks (`__len__`, `len`, `fileno`, `tell`, `seek`) and an `isinstance` check for `str` to determine how to calculate the length of an object. If a new type of object with a different length-determining mechanism needs to be supported, this function must be modified to include new conditional logic, violating OCP. This could be improved by using a strategy pattern or a registry of length calculators.",
+        "first_detected_scan": "requests_OCP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_OCP_scan_01",
+          "requests_OCP_scan_02"
+        ]
+      }
+    ],
+    "LSP": [
+      {
+        "issue_id": "LSP-008",
+        "rank": 1,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/requests/auth.py",
+        "entity_name": "HTTPProxyAuth.__call__",
+        "entity_type": "method",
+        "line_start": 101,
+        "line_end": 103,
+        "description": "Subclass modifies a different header than its parent class, breaking expected side effects",
+        "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth. While HTTPBasicAuth is expected to set the 'Authorization' header, HTTPProxyAuth overrides the __call__ method to set the 'Proxy-Authorization' header instead. Because it inherits from HTTPBasicAuth rather than AuthBase directly, it fails to fulfill the specific contract of its parent class (setting the standard Auth header), making it non-substitutable in contexts expecting Basic Authentication behavior.",
+        "first_detected_scan": "requests_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_02",
+          "requests_LSP_scan_10",
+          "requests_LSP_scan_11",
+          "requests_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-004",
+        "rank": 2,
+        "scan_count": 4,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "RequestsCookieJar.__getitem__",
+        "entity_type": "class",
+        "line_start": 396,
+        "line_end": 402,
+        "description": "Subclass method raises a specialized exception not present in the base class contract.",
+        "reasoning": "RequestsCookieJar inherits from cookielib.CookieJar and MutableMapping. Its __getitem__ implementation raises CookieConflictError if multiple cookies match a name. A standard Mapping or dict contract expects either the value or a KeyError. Introducing a new exception type for a standard access operation breaks the substitution contract for callers expecting standard mapping behavior.",
+        "first_detected_scan": "requests_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_01",
+          "requests_LSP_scan_10",
+          "requests_LSP_scan_11",
+          "requests_LSP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "LSP-016",
+        "rank": 3,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 77,
+        "line_end": 81,
+        "description": "Subclass nullifies a parent class method by raising NotImplementedError.",
+        "reasoning": "Refused Bequest smell -> LSP violation because MockRequest explicitly mimics the urllib2.Request interface but raises NotImplementedError for the add_header method. This violates the substitution principle where a subtype (the mock) should be able to stand in for the base type (the real request) without throwing unexpected errors for standard interface methods.",
+        "first_detected_scan": "requests_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_05",
+          "requests_LSP_scan_08",
+          "requests_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-002",
+        "rank": 4,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "class",
+        "line_start": 88,
+        "line_end": 92,
+        "description": "Subclass nullifies a method from the base interface by raising NotImplementedError.",
+        "reasoning": "MockRequest is explicitly designed to mimic the interface of urllib2.Request (as stated in its docstring). By raising NotImplementedError for add_header, it fails to be a valid substitute for the type it mimics. If a component expecting a urllib2.Request calls add_header, the program will crash, violating the principle that subtypes must be substitutable for their base types.",
+        "first_detected_scan": "requests_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_01",
+          "requests_LSP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "LSP-006",
+        "rank": 5,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "RequestsCookieJar.__setitem__",
+        "entity_type": "method",
+        "line_start": 303,
+        "line_end": 307,
+        "description": "Subclass changes the behavior of assignment to delete keys on None value",
+        "reasoning": "In a standard MutableMapping, assigning a value to a key (jar[key] = value) is expected to store that value. RequestsCookieJar overrides this behavior so that assigning None actually deletes the key. This unexpected side effect violates the postconditions of the base interface contract.",
+        "first_detected_scan": "requests_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_02",
+          "requests_LSP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "LSP-019",
+        "rank": 6,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "RequestsCookieJar.__setitem__",
+        "entity_type": "class",
+        "line_start": 316,
+        "line_end": 320,
+        "description": "__setitem__ deletes the cookie if the value is None.",
+        "reasoning": "In the MutableMapping interface, __setitem__ is expected to associate a value with a key. Deleting the key when the value is None violates the expected behavior of a mapping, where None is a valid value and deletion should be performed via __delitem__. This side effect can lead to unexpected data loss.",
+        "first_detected_scan": "requests_LSP_scan_07",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_07",
+          "requests_LSP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "LSP-009",
+        "rank": 7,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/structures.py",
+        "entity_name": "LookupDict",
+        "entity_type": "class",
+        "line_start": 73,
+        "line_end": 88,
+        "description": "LookupDict inherits from dict but breaks the contract of __getitem__ and uses a different storage mechanism.",
+        "reasoning": "LookupDict inherits from the built-in 'dict' but overrides '__getitem__' to return None instead of raising a KeyError when a key is missing. Furthermore, it retrieves values from the instance's '__dict__' instead of the dictionary's actual internal storage. This breaks the fundamental contract of the dict type, as code expecting a dictionary and using standard error handling (try-except KeyError) will fail to detect missing keys, potentially leading to TypeErrors or incorrect logic downstream.",
+        "first_detected_scan": "requests_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_03",
+          "requests_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-001",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/structures.py",
+        "entity_name": "LookupDict.__getitem__",
+        "entity_type": "class",
+        "line_start": 101,
+        "line_end": 104,
+        "description": "Subclass method returns None instead of raising KeyError for missing keys.",
+        "reasoning": "LookupDict inherits from the built-in dict. The contract for dict.__getitem__ is to raise a KeyError when a key is not found. LookupDict overrides this to return None, which breaks the expectations of any code using it as a standard dictionary substitute, potentially leading to AttributeError or silent failures elsewhere.",
+        "first_detected_scan": "requests_LSP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_01",
+          "requests_LSP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "LSP-010",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/requests/auth.py",
+        "entity_name": "HTTPProxyAuth",
+        "entity_type": "class",
+        "line_start": 93,
+        "line_end": 98,
+        "description": "HTTPProxyAuth inherits from HTTPBasicAuth but modifies a different header, breaking behavioral substitution.",
+        "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth but overrides the '__call__' method to modify the 'Proxy-Authorization' header instead of the 'Authorization' header. This violates LSP because HTTPProxyAuth is not a valid behavioral substitute for HTTPBasicAuth; any calling code expecting the parent's contract (applying Basic credentials to the 'Authorization' header) will find that the expected header is missing when an HTTPProxyAuth instance is used.",
+        "first_detected_scan": "requests_LSP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_03",
+          "requests_LSP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "LSP-015",
+        "rank": 10,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/requests/auth.py",
+        "entity_name": "HTTPProxyAuth.__call__",
+        "entity_type": "method",
+        "line_start": 107,
+        "line_end": 109,
+        "description": "Subclass overrides behavior in a way that breaks the base class contract.",
+        "reasoning": "Refused Bequest smell -> LSP violation because HTTPProxyAuth inherits from HTTPBasicAuth but changes the side effect of the __call__ method. While HTTPBasicAuth is contracted to set the 'Authorization' header, HTTPProxyAuth sets the 'Proxy-Authorization' header instead. A component expecting an HTTPBasicAuth object to authorize a request will find the 'Authorization' header missing if passed an HTTPProxyAuth instance.",
+        "first_detected_scan": "requests_LSP_scan_05",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_05",
+          "requests_LSP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "LSP-005",
+        "rank": 11,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "RequestsCookieJar.__getitem__",
+        "entity_type": "method",
+        "line_start": 294,
+        "line_end": 301,
+        "description": "Subclass raises a custom exception not defined in the base Mapping interface",
+        "reasoning": "RequestsCookieJar implements the MutableMapping interface. The contract for Mapping.__getitem__ specifies that it should return a value or raise a KeyError. RequestsCookieJar introduces CookieConflictError when multiple cookies match a name, which is an unexpected exception type for callers of the standard Mapping interface, violating the principle that subtypes should not raise new exceptions not raised by the parent.",
+        "first_detected_scan": "requests_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_02",
+          "requests_LSP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "LSP-007",
+        "rank": 12,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "RequestsCookieJar.__delitem__",
+        "entity_type": "method",
+        "line_start": 309,
+        "line_end": 312,
+        "description": "Subclass nullifies the required exception behavior for missing keys",
+        "reasoning": "The MutableMapping interface requires that __delitem__ raise a KeyError if the key being deleted is not present in the mapping. RequestsCookieJar suppresses this behavior by calling remove_cookie_by_name, which fails silently if the cookie is missing, thus weakening the preconditions/contract of the base type.",
+        "first_detected_scan": "requests_LSP_scan_02",
+        "duplicate_scan_ids": [
+          "requests_LSP_scan_02",
+          "requests_LSP_scan_07"
+        ]
+      }
+    ],
+    "ISP": [
+      {
+        "issue_id": "ISP-003",
+        "rank": 1,
+        "scan_count": 3,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 62,
+        "line_end": 64,
+        "description": "The MockRequest class is forced to implement a method (add_header) from an interface it mimics (urllib2.Request) but does not use, explicitly raising NotImplementedError.",
+        "reasoning": "The MockRequest class is designed to mimic the urllib2.Request interface for compatibility with http.cookiejar.CookieJar. However, the add_header method is explicitly not implemented and raises NotImplementedError, with a comment stating 'cookiejar has no legitimate use for this method; add it back if you find one.' This indicates that the client (CookieJar) expects an interface (urllib2.Request) that is 'fat' for MockRequest's specific purpose. MockRequest only needs add_unredirected_header for its interaction with CookieJar, but is forced to provide add_header, thereby violating the Interface Segregation Principle.",
+        "first_detected_scan": "requests_ISP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_03",
+          "requests_ISP_scan_04",
+          "requests_ISP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "ISP-001",
+        "rank": 2,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 49,
+        "line_end": 51,
+        "description": "The MockRequest class is forced to implement add_header but explicitly raises NotImplementedError.",
+        "reasoning": "The `MockRequest` class is designed to mimic the interface of `urllib2.Request` for `http.cookiejar.CookieJar`. However, `MockRequest`'s internal design for handling headers (collecting new headers via `add_unredirected_header`) means it does not legitimately use or need the `add_header` method. By raising `NotImplementedError`, `MockRequest` signals that it is forced to depend on a method from a broader interface (`urllib2.Request`'s expected interface) that is irrelevant to its specific responsibilities, thus violating the Interface Segregation Principle.",
+        "first_detected_scan": "requests_ISP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_01",
+          "requests_ISP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "ISP-004",
+        "rank": 3,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.add_headers",
+        "entity_type": "method",
+        "line_start": 346,
+        "line_end": 360,
+        "description": "The `HTTPAdapter.add_headers` method is implemented as a no-op, indicating it's not essential for the base adapter's core functionality.",
+        "reasoning": "The `HTTPAdapter` class's `send` method calls `self.add_headers()`. However, the default implementation of `add_headers` is an empty `pass` statement, with a comment explicitly stating it 'does nothing by default' and is 'left for overriding by users that subclass.' This means `HTTPAdapter` is forced to provide an implementation for a method that is not part of its core responsibility in its base form. This violates ISP because the `HTTPAdapter` (as a client of its own internal interface) is forced to depend on and implement a method it does not use meaningfully, pushing the responsibility of a potentially unused method onto the base class. A more segregated design would introduce this method via a specific mixin or a different pattern only for adapters that genuinely need to add headers.",
+        "first_detected_scan": "requests_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_05",
+          "requests_ISP_scan_07"
+        ]
+      },
+      {
+        "issue_id": "ISP-007",
+        "rank": 4,
+        "scan_count": 2,
+        "severity": "medium",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.add_headers",
+        "entity_type": "class",
+        "line_start": 579,
+        "line_end": 591,
+        "description": "The `add_headers` method in `HTTPAdapter` has an empty `pass` implementation, indicating it's not universally needed by subclasses.",
+        "reasoning": "The Interface Segregation Principle states that clients should not be forced to depend on interfaces they do not use. By providing a `pass` implementation for `add_headers`, `HTTPAdapter` implies this method is part of its interface for subclasses, but it's not universally needed. Subclasses that do not need to add custom headers are still forced to inherit this method, even if they do nothing with it. This method could be extracted into a more specific mixin or interface for adapters that *do* need to add custom headers.",
+        "first_detected_scan": "requests_ISP_scan_07",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_07",
+          "requests_ISP_scan_08"
+        ]
+      },
+      {
+        "issue_id": "ISP-005",
+        "rank": 5,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 68,
+        "line_end": 70,
+        "description": "The `MockRequest.add_header` method explicitly raises `NotImplementedError`.",
+        "reasoning": "The `MockRequest` class is designed to mimic the `urllib2.Request` interface to integrate with `http.cookiejar.CookieJar`. However, its `add_header` method explicitly raises a `NotImplementedError`. This is a direct violation of the Interface Segregation Principle because `MockRequest` is forced to implement a method from the `urllib2.Request` interface that it does not support or use. The presence of such a method in the interface forces the implementing class to depend on a capability it cannot provide, indicating the interface is too fat for this specific client. The comment confirms that `http.cookiejar` has no legitimate use for this method in this context.",
+        "first_detected_scan": "requests_ISP_scan_05",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "ISP-008",
+        "rank": 6,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 71,
+        "line_end": 73,
+        "description": "MockRequest is forced to implement 'add_header' from an interface it mimics but explicitly raises NotImplementedError.",
+        "reasoning": "The MockRequest class is designed to mimic the urllib2.Request interface, which is expected by `http.cookiejar.CookieJar`. By explicitly raising NotImplementedError in the `add_header` method, MockRequest signals that it cannot or will not provide this functionality. This forces clients (users of MockRequest) to depend on a method that is not supported, directly violating the Interface Segregation Principle. It indicates that the interface MockRequest is adapting to is too broad for its specific needs.",
+        "first_detected_scan": "requests_ISP_scan_09",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "ISP-002",
+        "rank": 7,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 57,
+        "line_end": 59,
+        "description": "The MockRequest class is forced to implement add_header, which is not used by its primary client (http.cookiejar.CookieJar).",
+        "reasoning": "The `MockRequest` class aims to mimic the `urllib2.Request` interface to be compatible with `http.cookiejar.CookieJar`. However, the `http.cookiejar.CookieJar.add_cookie_header` method (the client of `MockRequest`) only calls `request.add_unredirected_header` and does not use `request.add_header`. Despite this, `MockRequest` is forced to provide an `add_header` method to fully conform to the `urllib2.Request` interface. By raising `NotImplementedError` and explicitly stating in the comment that 'cookiejar has no legitimate use for this method', it indicates that `MockRequest` is depending on an interface (`urllib2.Request`) that is 'fat' for its specific client's needs, violating ISP.",
+        "first_detected_scan": "requests_ISP_scan_02",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_02"
+        ]
+      },
+      {
+        "issue_id": "ISP-006",
+        "rank": 8,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "MockRequest.add_header",
+        "entity_type": "method",
+        "line_start": 74,
+        "line_end": 76,
+        "description": "MockRequest implements 'add_header' method from the urllib2.Request interface but raises NotImplementedError.",
+        "reasoning": "The `MockRequest` class is designed to mimic the `urllib2.Request` interface expected by `http.cookiejar.CookieJar`. This interface includes an `add_header` method. However, `MockRequest` explicitly raises `NotImplementedError` for this method, indicating it cannot legitimately fulfill this part of the interface. This forces clients (like `http.cookiejar`) to depend on an interface that `MockRequest` does not fully implement, directly violating the Interface Segregation Principle.",
+        "first_detected_scan": "requests_ISP_scan_06",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "ISP-010",
+        "rank": 9,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "RequestsCookieJar",
+        "entity_type": "class",
+        "line_start": 176,
+        "line_end": 437,
+        "description": "`RequestsCookieJar` implements `MutableMapping` but its `__setitem__` and `__delitem__` methods provide an incomplete or overly broad contract for cookie management.",
+        "reasoning": "`RequestsCookieJar` inherits from `collections.abc.MutableMapping`, requiring it to implement methods like `__setitem__(self, key, value)` and `__delitem__(self, key)`. The `__setitem__` method only allows setting a cookie's `name` and `value`, ignoring other critical cookie attributes like `domain`, `path`, and `expires`. Clients needing to set full cookie attributes are forced to use the more specific `set_cookie` or `set` methods. Similarly, `__delitem__` removes *all* cookies matching the given name, regardless of domain or path, which can be an overly broad operation compared to typical dictionary item deletion and might not be the desired behavior for clients needing to remove a specific cookie instance. This forces clients to depend on an interface (`MutableMapping`) that either provides an incomplete contract (`__setitem__`) or an overly broad operation (`__delitem__`) for cookie management, thus violating ISP by forcing clients to depend on methods they might not fully use or that don't precisely match their needs for granular cookie control.",
+        "first_detected_scan": "requests_ISP_scan_10",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_10"
+        ]
+      },
+      {
+        "issue_id": "ISP-009",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/requests/models.py",
+        "entity_name": "Request",
+        "entity_type": "class",
+        "line_start": 232,
+        "line_end": 312,
+        "description": "The Request class inherits 'deregister_hook' from RequestHooksMixin but does not appear to use this functionality itself.",
+        "reasoning": "The Request class inherits from RequestHooksMixin, which provides both 'register_hook' and 'deregister_hook' methods. While Request utilizes 'register_hook' during its initialization, there is no apparent use case or call to 'deregister_hook' within the Request class's own responsibilities. This means Request is forced to depend on a method it does not use, indicating a potential 'fat interface' in the mixin from Request's perspective. Although the mixin is small, it still represents a dependency on unused functionality.",
+        "first_detected_scan": "requests_ISP_scan_09",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_09"
+        ]
+      },
+      {
+        "issue_id": "ISP-011",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/requests/models.py",
+        "entity_name": "Response",
+        "entity_type": "class",
+        "line_start": 642,
+        "line_end": 1041,
+        "description": "The Response class presents a broad API combining multiple concerns like content access, status checking, and resource management.",
+        "reasoning": "The Response class includes methods for various client needs (e.g., `iter_content` for streaming, `json` for JSON parsing, `ok` for status, `close` for resource management). Clients interacting with a Response object are forced to depend on the entire broad interface, even if they only require a subset of its functionalities (e.g., only checking status or only streaming content). This suggests the API could be segregated into more role-specific interfaces (e.g., IResponseStatus, IResponseContent, IResponseResource) to allow clients to depend only on what they use.",
+        "first_detected_scan": "requests_ISP_scan_11",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_11"
+        ]
+      },
+      {
+        "issue_id": "ISP-012",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "medium",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "Session",
+        "entity_type": "class",
+        "line_start": 357,
+        "line_end": 817,
+        "description": "The Session class provides a broad API encompassing request preparation, sending, redirect handling, adapter management, and various HTTP verb shortcuts.",
+        "reasoning": "The Session class combines many responsibilities, including high-level HTTP verb methods (`get`, `post`), lower-level request dispatch (`send`), and configuration (`mount`, `get_adapter`). Clients using a Session object are exposed to and depend on this entire broad interface, even if they only interact with a specific subset of its capabilities (e.g., only using the high-level verbs without needing to manage adapters or redirects manually). Segregating these concerns into more focused interfaces could reduce client dependencies on unused parts of the API.",
+        "first_detected_scan": "requests_ISP_scan_11",
+        "duplicate_scan_ids": [
+          "requests_ISP_scan_11"
+        ]
+      }
+    ],
+    "DIP": [
+      {
+        "issue_id": "DIP-002",
+        "rank": 1,
+        "scan_count": 12,
+        "severity": "high",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "Session.__init__",
+        "entity_type": "class",
+        "line_start": 161,
+        "line_end": 161,
+        "description": "Session directly instantiates concrete HTTPAdapter objects for transport.",
+        "reasoning": "The `Session` class, a high-level orchestrator for HTTP requests, directly creates instances of `HTTPAdapter` and mounts them for 'https://' and 'http://' schemes. This hardcodes the transport mechanism, making the `Session` tightly coupled to the concrete `HTTPAdapter` implementation. If a different transport adapter (e.g., for custom protocols, mocking, or alternative HTTP libraries) were needed, the `Session` class itself would require modification, violating DIP's principle that high-level modules should depend on abstractions (e.g., an `ITransportAdapter` interface) rather than concrete implementations.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_02",
+          "requests_DIP_scan_03",
+          "requests_DIP_scan_04",
+          "requests_DIP_scan_05",
+          "requests_DIP_scan_06",
+          "requests_DIP_scan_07",
+          "requests_DIP_scan_08",
+          "requests_DIP_scan_09",
+          "requests_DIP_scan_10",
+          "requests_DIP_scan_11",
+          "requests_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-004",
+        "rank": 2,
+        "scan_count": 12,
+        "severity": "medium",
+        "file_path": "src/requests/adapters.py",
+        "entity_name": "HTTPAdapter.build_response",
+        "entity_type": "method",
+        "line_start": 298,
+        "line_end": 298,
+        "description": "Low-level HTTPAdapter directly instantiates a high-level Response object.",
+        "reasoning": "The `HTTPAdapter` is a low-level component responsible for interacting with the underlying `urllib3` library. However, its `build_response` method directly instantiates the high-level `Response` object. This couples the low-level adapter to the concrete details of the high-level response representation. Ideally, the adapter should return an abstraction of a response, or a higher-level module should provide a factory for creating `Response` objects, allowing the adapter to remain independent of the specific `Response` implementation.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_02",
+          "requests_DIP_scan_03",
+          "requests_DIP_scan_04",
+          "requests_DIP_scan_05",
+          "requests_DIP_scan_06",
+          "requests_DIP_scan_07",
+          "requests_DIP_scan_08",
+          "requests_DIP_scan_09",
+          "requests_DIP_scan_10",
+          "requests_DIP_scan_11",
+          "requests_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-003",
+        "rank": 3,
+        "scan_count": 8,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "Request.prepare",
+        "entity_type": "method",
+        "line_start": 130,
+        "line_end": 130,
+        "description": "High-level Request object directly instantiates a concrete PreparedRequest.",
+        "reasoning": "The `Request` class, representing a user's high-level HTTP request, directly instantiates `PreparedRequest` within its `prepare` method. This creates a tight coupling between the abstract concept of a `Request` and the concrete implementation of how it is prepared for transmission. DIP suggests that `Request` should depend on an abstraction for request preparation (e.g., an `IRequestPreparer` interface) rather than a concrete `PreparedRequest` class, allowing for more flexible and testable preparation strategies.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_02",
+          "requests_DIP_scan_03",
+          "requests_DIP_scan_04",
+          "requests_DIP_scan_07",
+          "requests_DIP_scan_08",
+          "requests_DIP_scan_09",
+          "requests_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-001",
+        "rank": 4,
+        "scan_count": 7,
+        "severity": "high",
+        "file_path": "src/requests/api.py",
+        "entity_name": "request",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 37,
+        "description": "High-level API function directly instantiates a concrete Session object.",
+        "reasoning": "The top-level `request` function, which is the primary entry point for users, directly creates an instance of `sessions.Session`. This tightly couples the high-level API to a concrete implementation of the session management. If the `Session` class needed to be replaced or extended with a different implementation (e.g., for testing or custom behavior), this core API function would require modification. DIP suggests that high-level modules should depend on abstractions, not concrete details.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_02",
+          "requests_DIP_scan_04",
+          "requests_DIP_scan_06",
+          "requests_DIP_scan_10",
+          "requests_DIP_scan_11",
+          "requests_DIP_scan_12"
+        ]
+      },
+      {
+        "issue_id": "DIP-006",
+        "rank": 5,
+        "scan_count": 3,
+        "severity": "medium",
+        "file_path": "src/requests/auth.py",
+        "entity_name": "HTTPDigestAuth.handle_401",
+        "entity_type": "method",
+        "line_start": 204,
+        "line_end": 204,
+        "description": "HTTPDigestAuth directly depends on concrete PreparedRequest type for copying.",
+        "reasoning": "The `HTTPDigestAuth.handle_401` method, a low-level authentication handler, directly calls `r.request.copy()`. This means it has a direct dependency on the concrete `PreparedRequest` class and its `copy` method. This couples the authentication logic to a specific request implementation, making it harder to substitute `PreparedRequest` with an alternative or to test `HTTPDigestAuth` in isolation without a concrete `PreparedRequest`.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_04",
+          "requests_DIP_scan_06"
+        ]
+      },
+      {
+        "issue_id": "DIP-008",
+        "rank": 6,
+        "scan_count": 3,
+        "severity": "low",
+        "file_path": "src/requests/models.py",
+        "entity_name": "Response.__init__",
+        "entity_type": "class",
+        "line_start": 506,
+        "line_end": 506,
+        "description": "Response directly calls a factory function for a concrete CookieJar implementation.",
+        "reasoning": "The `Response` class directly initializes its `cookies` attribute by calling `cookiejar_from_dict({})`. This factory function returns a `RequestsCookieJar` (a concrete implementation). While it's a direct dependency on a concrete factory and type, the `Response` object fundamentally needs a cookie jar, and `RequestsCookieJar` is a core data structure within Requests. The use of a factory function already provides a level of indirection, making this a less severe violation than direct `new` calls for complex services.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_02",
+          "requests_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-007",
+        "rank": 7,
+        "scan_count": 3,
+        "severity": "low",
+        "file_path": "src/requests/utils.py",
+        "entity_name": "DEFAULT_CA_BUNDLE_PATH",
+        "entity_type": "class",
+        "line_start": 30,
+        "line_end": 30,
+        "description": "Utility module directly depends on a concrete function for CA bundle path.",
+        "reasoning": "The `DEFAULT_CA_BUNDLE_PATH` in `requests.utils` directly calls `certs.where()`. While `certs.where()` is a simple function returning a path (effectively a configuration value), it's a direct dependency on a concrete implementation. In a strict interpretation of DIP, even configuration lookups could be abstracted. However, given that `certs.where()` is a stable, low-level utility function providing a path, the impact of this direct dependency is minimal, and it's more akin to a constant lookup than a service dependency.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_02",
+          "requests_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-015",
+        "rank": 8,
+        "scan_count": 2,
+        "severity": "high",
+        "file_path": "src/requests/api.py",
+        "entity_name": "request",
+        "entity_type": "class",
+        "line_start": 21,
+        "line_end": 22,
+        "description": "High-level API function directly instantiates a concrete Session.",
+        "reasoning": "The `request` function, which is the primary public entry point for making HTTP requests, directly creates an instance of `requests.sessions.Session`. This couples the highest-level policy (how requests are made via the public API) to a concrete implementation (`Session` class). According to DIP, high-level modules should not depend on low-level modules; both should depend on abstractions. Here, the public API depends on a concrete session implementation, making it difficult to substitute alternative session management without modifying the core API.",
+        "first_detected_scan": "requests_DIP_scan_03",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_03",
+          "requests_DIP_scan_05"
+        ]
+      },
+      {
+        "issue_id": "DIP-012",
+        "rank": 9,
+        "scan_count": 2,
+        "severity": "low",
+        "file_path": "src/requests/cookies.py",
+        "entity_name": "cookiejar_from_dict",
+        "entity_type": "class",
+        "line_start": 308,
+        "line_end": 308,
+        "description": "Factory function directly instantiates RequestsCookieJar.",
+        "reasoning": "The `cookiejar_from_dict` function is explicitly a factory whose purpose is to create a `RequestsCookieJar` object. Factory functions are designed to encapsulate the creation of concrete objects. Therefore, its direct instantiation of `RequestsCookieJar` is not a violation of DIP, as it fulfills its role as a creator of a specific concrete type.",
+        "first_detected_scan": "requests_DIP_scan_01",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_01",
+          "requests_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-026",
+        "rank": 10,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/requests/__init__.py",
+        "entity_name": "Global Scope",
+        "entity_type": "module",
+        "line_start": 67,
+        "line_end": 72,
+        "description": "Direct call to `pyopenssl.inject_into_urllib3()` for SNI support.",
+        "reasoning": "The `__init__.py` file, a high-level entry point for package initialization, directly calls `pyopenssl.inject_into_urllib3()`. This hardcodes a specific, low-level integration detail of how `pyopenssl` enhances `urllib3` for SNI support, rather than depending on an abstraction for SSL context management or allowing for alternative SNI implementations.",
+        "first_detected_scan": "requests_DIP_scan_04",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-020",
+        "rank": 11,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/requests/models.py",
+        "entity_name": "RequestEncodingMixin._encode_files",
+        "entity_type": "method",
+        "line_start": 69,
+        "line_end": 111,
+        "description": "Direct dependency on concrete `urllib3` implementations for multipart form data encoding.",
+        "reasoning": "The `RequestEncodingMixin._encode_files` method, a core component for preparing request bodies, directly uses `urllib3.fields.RequestField` and `urllib3.filepost.encode_multipart_formdata`. This tightly couples `requests`'s request preparation logic to specific, low-level `urllib3` implementations for handling multipart form data, making it rigid to changes in the underlying HTTP library.",
+        "first_detected_scan": "requests_DIP_scan_04",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_04"
+        ]
+      },
+      {
+        "issue_id": "DIP-029",
+        "rank": 12,
+        "scan_count": 1,
+        "severity": "high",
+        "file_path": "src/requests/sessions.py",
+        "entity_name": "SessionRedirectMixin.resolve_redirects",
+        "entity_type": "method",
+        "line_start": 62,
+        "line_end": 136,
+        "description": "High-level redirect handling logic directly depends on numerous concrete utility functions and the session's send method.",
+        "reasoning": "The `resolve_redirects` method, which encapsulates complex redirect logic, directly calls several concrete utility functions like `urlparse`, `urljoin`, `requote_uri`, `extract_cookies_to_jar`, `merge_cookies`, `rewind_body`, and crucially, `self.send`. This tight coupling to specific implementations of URL manipulation, cookie management, request body handling, and the concrete request sending mechanism makes the redirect logic rigid and hard to modify or test in isolation.",
+        "first_detected_scan": "requests_DIP_scan_05",
+        "duplicate_scan_ids": [
+          "requests_DIP_scan_05"
+        ]
+      }
+    ]
+  }
+}

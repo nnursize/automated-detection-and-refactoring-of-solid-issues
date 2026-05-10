@@ -1,0 +1,62 @@
+{
+  "scan_id": "jackson-core_OCP_scan_07",
+  "repo_name": "jackson-core",
+  "principle": "OCP",
+  "scan_number": 7,
+  "timestamp": "2026-04-18T21:33:11.347878",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.2,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Open/Closed Principle (OCP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifyi...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser.nextToken\",\n      \"entity_type\": \"class\",\n      \"line_start\": 448,\n      \"line_end\": 537,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on token IDs requires modification to add new token types\",\n      \"reasoning\": \"The nextToken method uses a switch statement based on character/token types to determine the next parsing action. Adding a new JSON token type or a new structural element would require modifying this switch block, violating the Open/Closed Principle.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._getText2\",\n      \"entity_type\": \"class\",\n      \"line_start\": 315,\n      \"line_end\": 331,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Switch statement on token IDs requires modification for new token types\",\n      \"reasoning\": \"The _getText2 method uses a switch statement to handle different token types. Adding new token types requires modifying this method, which is a classic violation of OCP.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator.copyCurrentEvent\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1085,\n      \"line_end\": 1125,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Switch statement on token IDs requires modification to add new token types\",\n      \"reasoning\": \"The copyCurrentEvent method uses a switch statement to handle different token types. Adding new token types requires modifying this method, violating OCP.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator._prependOrWriteCharacterEscape\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1056,\n      \"line_end\": 1139,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded escape logic prevents extension of character escaping strategies\",\n      \"reasoning\": \"The method uses hardcoded logic for different escape codes (\\\\N, \\\\uXXXX, custom). Adding new escape strategies or modifying existing ones requires modifying this method directly.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser.nextToken",
+      "entity_type": "class",
+      "line_start": 448,
+      "line_end": 537,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on token IDs requires modification to add new token types",
+      "reasoning": "The nextToken method uses a switch statement based on character/token types to determine the next parsing action. Adding a new JSON token type or a new structural element would require modifying this switch block, violating the Open/Closed Principle."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._getText2",
+      "entity_type": "class",
+      "line_start": 315,
+      "line_end": 331,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Switch statement on token IDs requires modification for new token types",
+      "reasoning": "The _getText2 method uses a switch statement to handle different token types. Adding new token types requires modifying this method, which is a classic violation of OCP."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator.copyCurrentEvent",
+      "entity_type": "class",
+      "line_start": 1085,
+      "line_end": 1125,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Switch statement on token IDs requires modification to add new token types",
+      "reasoning": "The copyCurrentEvent method uses a switch statement to handle different token types. Adding new token types requires modifying this method, violating OCP."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator._prependOrWriteCharacterEscape",
+      "entity_type": "class",
+      "line_start": 1056,
+      "line_end": 1139,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded escape logic prevents extension of character escaping strategies",
+      "reasoning": "The method uses hardcoded logic for different escape codes (\\N, \\uXXXX, custom). Adding new escape strategies or modifying existing ones requires modifying this method directly."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3326.740503311157,
+  "error": null
+}

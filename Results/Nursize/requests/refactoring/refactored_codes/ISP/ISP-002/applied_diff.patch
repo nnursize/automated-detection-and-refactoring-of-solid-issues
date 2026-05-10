@@ -1,0 +1,18 @@
+diff --git a/src/requests/cookies.py b/src/requests/cookies.py
+index 2a787ba..32018d5 100644
+--- a/src/requests/cookies.py
++++ b/src/requests/cookies.py
+@@ -75,6 +75,13 @@ class MockRequest:
+     def get_header(self, name, default=None):
+         return self._r.headers.get(name, self._new_headers.get(name, default))
+ 
++    def add_header(self, name, value):
++        """
++        cookiejar has no legitimate use for this method;
++        use add_unredirected_header instead.
++        """
++        raise NotImplementedError("Use add_unredirected_header instead.")
++
+     def add_unredirected_header(self, name, value):
+         self._new_headers[name] = value
+ 

@@ -1,0 +1,93 @@
+{
+  "issue_id": "OCP-092",
+  "principle": "OCP",
+  "title": "Refactor OCP-092 (OCP): Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+  "branch": "refactor/OCP-092",
+  "base": "main",
+  "head_commit": "222ee34f528a0b2cb308817b426bd47da75440c6",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 14114,
+    "completion_tokens": 969
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 700,
+    "line_end": 766,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Hardcoded list of built-in TypeAdapterFactories violates OCP.",
+    "reasoning": "The `createFactories` method explicitly adds a fixed list of `TypeAdapterFactory` instances for various types. If Gson needs to support a new built-in type or a new way of handling an existing type, this method must be modified to add the new factory. This makes the class closed for extension without modification."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a registry for built-in TypeAdapterFactories to support OCP",
+    "rationale": "By moving the hardcoded list of built-in factories into a registry (or a static list that can be extended), we allow new factories to be added without modifying the core GsonBuilder logic. This implementation uses a static list of providers that can be appended to, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/GsonBuilder.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/GsonBuilder.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "search_text": "  static final List<TypeAdapterFactory> DEFAULT_TYPE_ADAPTER_FACTORIES =\n      GsonBuilder.DEFAULT.createFactories(\n          DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n\n  Excluder excluder = Excluder.DEFAULT;",
+        "replace_text": "  static final List<TypeAdapterFactory> DEFAULT_TYPE_ADAPTER_FACTORIES =\n      GsonBuilder.DEFAULT.createFactories(\n          DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n\n  private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();\n\n  static {\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n      factories.add(ObjectTypeAdapter.getFactory(DEFAULT.objectToNumberStrategy));\n    });\n    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));\n      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));\n      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n      factories.add(TypeAdapters.ENUM_FACTORY);\n    });\n  }\n\n  /** @internal */\n  public static void registerBuiltInFactoryProvider(TypeAdapterFactoryProvider provider) {\n    BUILT_IN_FACTORY_PROVIDERS.add(provider);\n  }\n\n  /** @internal */\n  public interface TypeAdapterFactoryProvider {\n    void addFactories(List<TypeAdapterFactory> factories);\n  }\n\n  Excluder excluder = Excluder.DEFAULT;",
+        "search_lines": 5,
+        "replace_lines": 30
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "search_text": "    // built-in type adapters that cannot be overridden\n    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n    factories.add(ObjectTypeAdapter.getFactory(objectToNumberStrategy));\n\n    // the excluder must precede all adapters that handle user-defined types\n    factories.add(excluder);\n\n    // users' type adapters\n    addUserDefinedAdapters(factories);\n\n    // custom Date adapters\n    addDateTypeAdapters(factories);\n\n    addPlatformTypeAdapters(factories);\n\n    // type adapters for composite and user-defined types\n    factories.add(new CollectionTypeAdapterFactory(constructorConstructor));\n    factories.add(new MapTypeAdapterFactory(constructorConstructor, complexMapKeySerialization));\n    factories.add(jsonAdapterFactory);\n    factories.add(TypeAdapters.ENUM_FACTORY);\n    factories.add(\n        new ReflectiveTypeAdapterFactory(\n            constructorConstructor,\n            fieldNamingPolicy,\n            excluder,\n            jsonAdapterFactory,\n            newImmutableList(reflectionFilters)));",
+        "replace_text": "    // built-in type adapters\n    for (TypeAdapterFactoryProvider provider : BUILT_IN_FACTORY_PROVIDERS) {\n      provider.addFactories(factories);\n    }\n\n    // the excluder must precede all adapters that handle user-defined types\n    factories.add(excluder);\n\n    // users' type adapters\n    addUserDefinedAdapters(factories);\n\n    // custom Date adapters\n    addDateTypeAdapters(factories);\n\n    addPlatformTypeAdapters(factories);\n\n    factories.add(\n        new ReflectiveTypeAdapterFactory(\n            constructorConstructor,\n            fieldNamingPolicy,\n            excluder,\n            jsonAdapterFactory,\n            newImmutableList(reflectionFilters)));",
+        "search_lines": 27,
+        "replace_lines": 23
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "loc": 998,
+        "blank_lines": 66,
+        "comment_lines": 13,
+        "function_count": 38,
+        "avg_cc": 4.24,
+        "max_cc": 124.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "loc": 1016,
+        "blank_lines": 70,
+        "comment_lines": 12,
+        "function_count": 39,
+        "avg_cc": 4.15,
+        "max_cc": 124.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/GsonBuilder.java b/gson/src/main/java/com/google/gson/GsonBuilder.java\nindex 6e411f6..74d09a2 100644\n--- a/gson/src/main/java/com/google/gson/GsonBuilder.java\n+++ b/gson/src/main/java/com/google/gson/GsonBuilder.java\n@@ -125,6 +125,31 @@ public final class GsonBuilder {\n       GsonBuilder.DEFAULT.createFactories(\n           DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n \n+  private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();\n+\n+  static {\n+    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n+      factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n+      factories.add(ObjectTypeAdapter.getFactory(DEFAULT.objectToNumberStrategy));\n+    });\n+    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {\n+      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));\n+      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));\n+      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);\n+      factories.add(TypeAdapters.ENUM_FACTORY);\n+    });\n+  }\n+\n+  /** @internal */\n+  public static void registerBuiltInFactoryProvider(TypeAdapterFactoryProvider provider) {\n+    BUILT_IN_FACTORY_PROVIDERS.add(provider);\n+  }\n+\n+  /** @internal */\n+  public interface TypeAdapterFactoryProvider {\n+    void addFactories(List<TypeAdapterFactory> factories);\n+  }\n+\n   Excluder excluder = Excluder.DEFAULT;\n   LongSerializationPolicy longSerializationPolicy = LongSerializationPolicy.DEFAULT;\n   FieldNamingStrategy fieldNamingPolicy = DEFAULT_FIELD_NAMING_STRATEGY;\n@@ -927,9 +952,10 @@ public final class GsonBuilder {\n       JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory) {\n     ArrayList<TypeAdapterFactory> factories = new ArrayList<>();\n \n-    // built-in type adapters that cannot be overridden\n-    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);\n-    factories.add(ObjectTypeAdapter.getFactory(objectToNumberStrategy));\n+    // built-in type adapters\n+    for (TypeAdapterFactoryProvider provider : BUILT_IN_FACTORY_PROVIDERS) {\n+      provider.addFactories(factories);\n+    }\n \n     // the excluder must precede all adapters that handle user-defined types\n     factories.add(excluder);\n@@ -942,11 +968,6 @@ public final class GsonBuilder {\n \n     addPlatformTypeAdapters(factories);\n \n-    // type adapters for composite and user-defined types\n-    factories.add(new CollectionTypeAdapterFactory(constructorConstructor));\n-    factories.add(new MapTypeAdapterFactory(constructorConstructor, complexMapKeySerialization));\n-    factories.add(jsonAdapterFactory);\n-    factories.add(TypeAdapters.ENUM_FACTORY);\n     factories.add(\n         new ReflectiveTypeAdapterFactory(\n             constructorConstructor,\n",
+  "duration_ms": 4112.077713012695
+}

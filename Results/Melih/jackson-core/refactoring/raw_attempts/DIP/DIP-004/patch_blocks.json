@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "    public UTF8StreamJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n            int stdFeatures, int formatReadFeatures,\n            InputStream in,\n            ByteQuadsCanonicalizer sym,\n            byte[] inputBuffer, int start, int end, int bytesPreProcessed,\n            boolean bufferRecyclable)\n    {\n        super(readCtxt, ctxt, stdFeatures, formatReadFeatures);",
+    "replace_text": "    public UTF8StreamJsonParser(ObjectReadContext readCtxt, IOContext ctxt,\n            int stdFeatures, int formatReadFeatures,\n            InputStream in,\n            ByteQuadsCanonicalizer sym,\n            byte[] inputBuffer, int start, int end, int bytesPreProcessed,\n            boolean bufferRecyclable)\n    {\n        super(readCtxt, ctxt, stdFeatures, formatReadFeatures);"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "    @Override\n    public int readBinaryValue(Base64Variant b64variant, OutputStream out) throws JacksonException\n    {\n        // if we have already read the token, just use whatever we may have\n        if (!_tokenIncomplete || _currToken != JsonToken.VALUE_STRING) {\n            byte[] b = getBinaryValue(b64variant);\n            try {\n                out.write(b);\n            } catch (IOException e) {\n                throw _wrapIOFailure(e);\n            }\n            return b.length;\n        }\n        // otherwise do \"real\" incremental parsing...\n        byte[] buf = _ioContext.allocBase64Buffer();\n        try {\n            return _base64Decoder.readBinary(b64variant, out, buf);\n        } catch (IOException e) {\n            throw _wrapIOFailure(e);\n        } finally {\n            _ioContext.releaseBase64Buffer(buf);\n        }\n    }",
+    "replace_text": "    @Override\n    public int readBinaryValue(Base64Variant b64variant, OutputStream out) throws JacksonException\n    {\n        // if we have already read the token, just use whatever we may have\n        if (!_tokenIncomplete || _currToken != JsonToken.VALUE_STRING) {\n            byte[] b = getBinaryValue(b64variant);\n            try {\n                out.write(b);\n            } catch (IOException e) {\n                throw _wrapIOFailure(e);\n            }\n            return b.length;\n        }\n        // otherwise do \"real\" incremental parsing...\n        byte[] buf = _ioContext.allocBase64Buffer();\n        try {\n            return _base64Decoder.readBinary(b64variant, out, buf);\n        } catch (IOException e) {\n            throw _wrapIOFailure(e);\n        } finally {\n            _ioContext.releaseBase64Buffer(buf);\n        }\n    }"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "search_text": "                if (buf != NO_BYTES) {\n                    _inputBuffer = NO_BYTES;\n                    _ioContext.releaseReadIOBuffer(buf);\n                }\n            }\n        }\n    }",
+    "replace_text": "                if (buf != NO_BYTES) {\n                    _inputBuffer = NO_BYTES;\n                    _ioContext.releaseReadIOBuffer(buf);\n                }\n            }\n        }\n    }"
+  },
+  {
+    "kind": "create",
+    "file_path": "src/main/java/tools/jackson/core/io/BufferRecycler.java",
+    "search_text": null,
+    "replace_text": "package tools.jackson.core.io;\n\n/**\n * Interface for buffer management to decouple parsers from concrete IOContext.\n */\npublic interface BufferRecycler {\n    byte[] allocBase64Buffer();\n    void releaseBase64Buffer(byte[] buffer);\n    void releaseReadIOBuffer(byte[] buffer);\n}"
+  }
+]

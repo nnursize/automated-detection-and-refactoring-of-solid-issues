@@ -1,0 +1,284 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: ISP-004
+- **Principle**: Interface Segregation Principle (ISP)
+- **File**: `src/catch2/internal/catch_run_context.hpp`
+- **Entity**: `IEventListener` (current lines L31-L161 in the file as shown below)
+- **Severity**: medium
+- **Confidence**: detected by 3 independent scans
+
+### Description
+IEventListener interface has too many methods, potentially forcing implementations to provide unused functionality.
+
+### Reasoning
+The IEventListener interface seems to have a large number of methods for reporting various events during test execution. An implementation that only cares about a subset of these events (e.g., only test start/end, or only assertion failures) would still need to provide implementations for all methods. This violates ISP, as clients that only need a few event notifications are forced to depend on the entire interface. It might be beneficial to split this into smaller, more specific listener interfaces.
+
+## Principle reference
+**Interface Segregation Principle** — Clients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.
+
+What typically signals a violation:
+- Abstract base classes or interfaces with too many methods
+- Classes that implement an interface but leave methods as pass or raise NotImplementedError
+- Fat interfaces that could be split into smaller, more focused ones
+- Classes forced to depend on methods they never call
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/catch2/internal/catch_run_context.hpp`
+```c++
+
+//              Copyright Catch2 Authors
+// Distributed under the Boost Software License, Version 1.0.
+//   (See accompanying file LICENSE.txt or copy at
+//        https://www.boost.org/LICENSE_1_0.txt)
+
+// SPDX-License-Identifier: BSL-1.0
+#ifndef CATCH_RUN_CONTEXT_HPP_INCLUDED
+#define CATCH_RUN_CONTEXT_HPP_INCLUDED
+
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
+#include <catch2/internal/catch_test_registry.hpp>
+#include <catch2/catch_test_run_info.hpp>
+#include <catch2/internal/catch_fatal_condition_handler.hpp>
+#include <catch2/catch_test_case_info.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_totals.hpp>
+#include <catch2/internal/catch_test_case_tracker.hpp>
+#include <catch2/catch_assertion_info.hpp>
+#include <catch2/catch_assertion_result.hpp>
+#include <catch2/internal/catch_optional.hpp>
+#include <catch2/internal/catch_move_and_forward.hpp>
+#include <catch2/internal/catch_thread_support.hpp>
+
+#include <string>
+
+namespace Catch {
+
+    class IGeneratorTracker;
+    class IConfig;
+    class IEventListener;
+    using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
+    class OutputRedirect;
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    class RunContext final : public IResultCapture {
+
+    public:
+        RunContext( RunContext const& ) = delete;
+        RunContext& operator =( RunContext const& ) = delete;
+
+        explicit RunContext( IConfig const* _config, IEventListenerPtr&& reporter );
+
+        ~RunContext() override;
+
+        Totals runTest(TestCaseHandle const& testCase);
+
+    public: // IResultCapture
+
+        // Assertion handlers
+        void handleExpr
+                (   AssertionInfo const& info,
+                    ITransientExpression const& expr,
+                    AssertionReaction& reaction ) override;
+        void handleMessage
+                (   AssertionInfo const& info,
+                    ResultWas::OfType resultType,
+                    std::string&& message,
+                    AssertionReaction& reaction ) override;
+        void handleUnexpectedExceptionNotThrown
+                (   AssertionInfo const& info,
+                    AssertionReaction& reaction ) override;
+        void handleUnexpectedInflightException
+                (   AssertionInfo const& info,
+                    std::string&& message,
+                    AssertionReaction& reaction ) override;
+        void handleIncomplete
+                (   AssertionInfo const& info ) override;
+        void handleNonExpr
+                (   AssertionInfo const &info,
+                    ResultWas::OfType resultType,
+                    AssertionReaction &reaction ) override;
+
+        void notifyAssertionStarted( AssertionInfo const& info ) override;
+        bool sectionStarted( StringRef sectionName,
+                             SourceLineInfo const& sectionLineInfo,
+                             Counts& assertions ) override;
+
+        void sectionEnded( SectionEndInfo&& endInfo ) override;
+        void sectionEndedEarly( SectionEndInfo&& endInfo ) override;
+
+        IGeneratorTracker*
+        acquireGeneratorTracker( StringRef generatorName,
+                                 SourceLineInfo const& lineInfo ) override;
+        IGeneratorTracker* createGeneratorTracker(
+            StringRef generatorName,
+            SourceLineInfo lineInfo,
+            Generators::GeneratorBasePtr&& generator ) override;
+
+
+        void benchmarkPreparing( StringRef name ) override;
+        void benchmarkStarting( BenchmarkInfo const& info ) override;
+        void benchmarkEnded( BenchmarkStats<> const& stats ) override;
+        void benchmarkFailed( StringRef error ) override;
+
+        std::string getCurrentTestName() const override;
+
+        const AssertionResult* getLastResult() const override;
+
+        void exceptionEarlyReported() override;
+
+        void handleFatalErrorCondition( StringRef message ) override;
+
+        bool lastAssertionPassed() override;
+
+    public:
+        // !TBD We need to do this another way!
+        bool aborting() const;
+
+    private:
+        void assertionPassedFastPath( SourceLineInfo lineInfo );
+        // Update the non-thread-safe m_totals from the atomic assertion counts.
+        void updateTotalsFromAtomics();
+
+        void runCurrentTest();
+        void invokeActiveTestCase();
+
+        bool testForMissingAssertions( Counts& assertions );
+
+        void assertionEnded( AssertionResult&& result );
+        void reportExpr
+                (   AssertionInfo const &info,
+                    ResultWas::OfType resultType,
+                    ITransientExpression const *expr,
+                    bool negated );
+
+        void populateReaction( AssertionReaction& reaction, bool has_normal_disposition );
+
+        // Creates dummy info for unexpected exceptions/fatal errors,
+        // where we do not have the access to one, but we still need
+        // to send one to the reporters.
+        AssertionInfo makeDummyAssertionInfo();
+
+    private:
+
+        void handleUnfinishedSections();
+        mutable Detail::Mutex m_assertionMutex;
+        TestRunInfo m_runInfo;
+        TestCaseHandle const* m_activeTestCase = nullptr;
+        ITracker* m_testCaseTracker = nullptr;
+        Optional<AssertionResult> m_lastResult;
+        IConfig const* m_config;
+        Totals m_totals;
+        Detail::AtomicCounts m_atomicAssertionCount;
+        IEventListenerPtr m_reporter;
+        std::vector<SectionEndInfo> m_unfinishedSections;
+        std::vector<ITracker*> m_activeSections;
+        TrackerContext m_trackerContext;
+        Detail::unique_ptr<OutputRedirect> m_outputRedirect;
+        FatalConditionHandler m_fatalConditionhandler;
+        // Caches m_config->abortAfter() to avoid vptr calls/allow inlining
+        size_t m_abortAfterXFailedAssertions;
+        bool m_shouldReportUnexpected = true;
+        // Caches whether `assertionStarting` events should be sent to the reporter.
+        bool m_reportAssertionStarting;
+        // Caches whether `assertionEnded` events for successful assertions should be sent to the reporter
+        bool m_includeSuccessfulResults;
+        // Caches m_config->shouldDebugBreak() to avoid vptr calls/allow inlining
+        bool m_shouldDebugBreak;
+    };
+
+    void seedRng(IConfig const& config);
+    unsigned int rngSeed();
+} // end namespace Catch
+
+#endif // CATCH_RUN_CONTEXT_HPP_INCLUDED
+
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/catch2/internal/catch_assertion_handler.cpp`
+- `src/catch2/internal/catch_assertion_handler.hpp`
+- `src/catch2/internal/catch_case_insensitive_comparisons.cpp`
+- `src/catch2/internal/catch_case_insensitive_comparisons.hpp`
+- `src/catch2/internal/catch_clara.cpp`
+- `src/catch2/internal/catch_clara.hpp`
+- `src/catch2/internal/catch_commandline.cpp`
+- `src/catch2/internal/catch_commandline.hpp`
+- `src/catch2/internal/catch_compare_traits.hpp`
+- `src/catch2/internal/catch_compiler_capabilities.hpp`
+- `src/catch2/internal/catch_config_android_logwrite.hpp`
+- `src/catch2/internal/catch_config_counter.hpp`
+- `src/catch2/internal/catch_config_prefix_messages.hpp`
+- `src/catch2/internal/catch_config_static_analysis_support.hpp`
+- `src/catch2/internal/catch_config_uncaught_exceptions.hpp`
+- `src/catch2/internal/catch_config_wchar.hpp`
+- `src/catch2/internal/catch_console_colour.cpp`
+- `src/catch2/internal/catch_console_colour.hpp`
+- `src/catch2/internal/catch_console_width.hpp`
+- `src/catch2/internal/catch_container_nonmembers.hpp`
+- `src/catch2/internal/catch_context.cpp`
+- `src/catch2/internal/catch_context.hpp`
+- `src/catch2/internal/catch_debug_console.cpp`
+- `src/catch2/internal/catch_debug_console.hpp`
+- `src/catch2/internal/catch_debugger.cpp`
+- `src/catch2/internal/catch_debugger.hpp`
+- `src/catch2/internal/catch_decomposer.cpp`
+- `src/catch2/internal/catch_decomposer.hpp`
+- `src/catch2/internal/catch_deprecation_macro.hpp`
+- `src/catch2/internal/catch_enforce.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

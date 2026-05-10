@@ -1,0 +1,40 @@
+{
+  "issue_id": "OCP-037",
+  "principle": "OCP",
+  "title": "Refactor OCP-037 (OCP): The `use` method employs a switch statement on `Colour::Code`, violating OCP.",
+  "branch": "refactor/OCP-037",
+  "base": "main",
+  "head_commit": "017928ca08b9fa5c327391e5c70d8798c14ddeb2",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": ""
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.cpp",
+    "entity_name": "Win32ColourImpl::use",
+    "entity_type": "method",
+    "line_start": 3591,
+    "line_end": 3611,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The `use` method employs a switch statement on `Colour::Code`, violating OCP.",
+    "reasoning": "The `Win32ColourImpl::use` method (and similarly `ANSIColourImpl::use` in L3670-L3697) uses a `switch` statement to apply different console colors based on a `Colour::Code` enum. This design means that if a new `Colour::Code` is introduced (extension), the `use` method must be modified (adding a new `case` branch). This is a classic violation of OCP, as it makes the existing code not closed for modification when new color types are added. A more extensible design would use polymorphism, where each `Colour::Code` could correspond to a specific `IColourStrategy` object, and adding new colors would involve creating a new strategy without modifying existing code."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

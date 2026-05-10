@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        // dynamic queries\n\n        //! Returns true if tracker run to completion (successfully or not)\n        virtual bool isComplete() const = 0;\n        //! Returns true if tracker run to completion successfully\n        bool isSuccessfullyCompleted() const {\n            return m_runState == CompletedSuccessfully;\n        }\n        //! Returns true if tracker has started but hasn't been completed\n        bool isOpen() const;\n        //! Returns true iff tracker has started\n        bool hasStarted() const;\n\n        // actions",
+    "replace_text": "        // dynamic queries\n\n        //! Returns true if tracker run to completion (successfully or not)\n        virtual bool isComplete() const = 0;\n        //! Returns true if tracker run to completion successfully\n        bool isSuccessfullyCompleted() const {\n            return m_runState == CompletedSuccessfully;\n        }\n        //! Returns true if tracker has started but hasn't been completed\n        bool isOpen() const;\n        //! Returns true iff tracker has started\n        bool hasStarted() const;\n\n        virtual bool isSectionTracker() const { return false; }\n        virtual bool isGeneratorTracker() const { return false; }\n\n        // actions"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        bool isComplete() const override;\n\n        static SectionTracker& acquire( TrackerContext& ctx, NameAndLocationRef const& nameAndLocation );\n\n        void tryOpen();",
+    "replace_text": "        bool isComplete() const override;\n        bool isSectionTracker() const override { return true; }\n\n        static SectionTracker& acquire( TrackerContext& ctx, NameAndLocationRef const& nameAndLocation );\n\n        void tryOpen();"
+  }
+]

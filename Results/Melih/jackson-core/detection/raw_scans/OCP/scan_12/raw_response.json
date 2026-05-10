@@ -1,0 +1,62 @@
+{
+  "scan_id": "jackson-core_OCP_scan_12",
+  "repo_name": "jackson-core",
+  "principle": "OCP",
+  "scan_number": 12,
+  "timestamp": "2026-04-18T21:38:29.560558",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite-preview",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Open/Closed Principle (OCP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad APIs that sh...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.writeObjectId\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1338,\n      \"line_end\": 1339,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Hardcoded exception-throwing logic for missing support of Object IDs prevents extensibility.\",\n      \"reasoning\": \"The method throws an Exception when it encounters a feature it doesn't support natively, rather than allowing for a strategy pattern or plugin architecture where external implementations could handle Object ID writing without modifying the base generator class.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.writeTypeId\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1380,\n      \"line_end\": 1381,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Hardcoded exception-throwing logic for missing support of Type IDs prevents extensibility.\",\n      \"reasoning\": \"Similar to Object IDs, the lack of a pluggable mechanism for handling Type ID writing forces this class to be modified whenever new serialization requirements arise, violating the requirement that a class should be closed for modification but open for extension.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 20,\n      \"line_end\": 4341,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Fat class with excessive low-level parsing logic mixed with core parser functionality.\",\n      \"reasoning\": \"The massive size and mixing of responsibilities (number parsing, name parsing, UTF-8 decoding, buffer management) make it impossible to extend or change specific parsing behaviors (e.g., how numbers are parsed) without modifying this single, bloated class. This should ideally use Strategy patterns for numeric and name parsing.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator._writeCustomEscape\",\n      \"entity_type\": \"class\",\n      \"line_start\": 1882,\n      \"line_end\": 1903,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Hardcoded logic for handling specific character escape scenarios.\",\n      \"reasoning\": \"The use of specific logic for character escaping inside the generator class prevents the addition of new, complex encoding strategies without modifying the generator itself. This functionality should be delegated to an 'Escaper' strategy interface.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.writeObjectId",
+      "entity_type": "class",
+      "line_start": 1338,
+      "line_end": 1339,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Hardcoded exception-throwing logic for missing support of Object IDs prevents extensibility.",
+      "reasoning": "The method throws an Exception when it encounters a feature it doesn't support natively, rather than allowing for a strategy pattern or plugin architecture where external implementations could handle Object ID writing without modifying the base generator class."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.writeTypeId",
+      "entity_type": "class",
+      "line_start": 1380,
+      "line_end": 1381,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Hardcoded exception-throwing logic for missing support of Type IDs prevents extensibility.",
+      "reasoning": "Similar to Object IDs, the lack of a pluggable mechanism for handling Type ID writing forces this class to be modified whenever new serialization requirements arise, violating the requirement that a class should be closed for modification but open for extension."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser",
+      "entity_type": "class",
+      "line_start": 20,
+      "line_end": 4341,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Fat class with excessive low-level parsing logic mixed with core parser functionality.",
+      "reasoning": "The massive size and mixing of responsibilities (number parsing, name parsing, UTF-8 decoding, buffer management) make it impossible to extend or change specific parsing behaviors (e.g., how numbers are parsed) without modifying this single, bloated class. This should ideally use Strategy patterns for numeric and name parsing."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator._writeCustomEscape",
+      "entity_type": "class",
+      "line_start": 1882,
+      "line_end": 1903,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Hardcoded logic for handling specific character escape scenarios.",
+      "reasoning": "The use of specific logic for character escaping inside the generator class prevents the addition of new, complex encoding strategies without modifying the generator itself. This functionality should be delegated to an 'Escaper' strategy interface."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 3475.719928741455,
+  "error": null
+}

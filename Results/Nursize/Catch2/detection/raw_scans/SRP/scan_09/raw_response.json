@@ -1,0 +1,139 @@
+{
+  "scan_id": "Catch2_SRP_scan_09",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 9,
+  "timestamp": "2026-05-02T11:07:17.931896",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following c++ classes for violations of the Single Responsibility Principle (SRP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a clas...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Column.operator<<\",\n      \"entity_type\": \"class\",\n      \"line_start\": 71,\n      \"line_end\": 241,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'operator<<' method handles output formatting and I/O, which is distinct from the Column's core responsibility of managing text and its layout properties.\",\n      \"reasoning\": \"The primary responsibility of the `Column` class should be to encapsulate text content and its layout configuration, and provide an iterable view of its formatted lines. The `operator<<` method, however, introduces a rendering and I/O responsibility by writing directly to an `std::ostream`. If the output format or target changes (e.g., HTML, GUI), this method would need to change, which is a different reason for change than alterations to text content or layout rules.\"\n    },\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Column.toString\",\n      \"entity_type\": \"class\",\n      \"line_start\": 71,\n      \"line_end\": 241,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'toString()' method handles output formatting and string conversion, which is distinct from the Column's core responsibility of managing text and its layout properties.\",\n      \"reasoning\": \"Similar to `operator<<`, the `toString()` method is responsible for serializing the column's formatted content into a string. This is a rendering/serialization responsibility, not directly related to managing the column's internal text and layout logic. A dedicated formatter or serializer class would better encapsulate this concern.\"\n    },\n    {\n      \"file_path\": \"Catch2/third_party/clara.hpp\",\n      \"entity_name\": \"Column.operator+\",\n      \"entity_type\": \"class\",\n      \"line_start\": 71,\n      \"line_end\": 241,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The 'operator+' method adds a responsibility for composing Column objects into a Columns object.\",\n      \"reasoning\": \"The `operator+` method enables the aggregation of `Column` objects into a `Columns` object. This is a composition or aggregation responsibility, which is distinct from the single `Column`'s responsibility of managing its own text content and layout. Changes to how columns are combined would necessitate changes to this method, unrelated to how a single column is defined or formatted.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"TapAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 11494,\n      \"line_end\": 11658,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class mixes responsibilities for content decision, specific TAP formatting, console colouring decisions, and direct I/O.\",\n      \"reasoning\": \"The `TapAssertionPrinter` is responsible for selecting the specific textual content to display based on `AssertionResult`, applying TAP-specific formatting (e.g., prefixes, suffixes, string manipulation, `pluralise`), deciding which console colours to use for different parts of the output, and directly writing to `std::ostream`. These are distinct concerns (what to report, how to format, how to style, and how to output) that should ideally be separated into different components. For instance, a 'TAP message builder' could construct a data structure representing the output, a 'TAP formatter' could convert this to a string, and an 'OutputWriter' could handle I/O and colouring.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_tap.cpp\",\n      \"entity_name\": \"TapAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 27,\n      \"line_end\": 191,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class mixes responsibilities for content decision, specific TAP formatting, console colouring decisions, and direct I/O.\",\n      \"reasoning\": \"The `TapAssertionPrinter` is responsible for selecting the specific textual content to display based on `AssertionResult`, applying TAP-specific formatting (e.g., prefixes, suffixes, string manipulation, `pluralise`), deciding which console colours to use for different parts of the output, and directly writing to `std::ostream`. These are distinct concerns (what to report, how to format, how to style, and how to output) that should ideally be separated into different components. For instance, a 'TAP message builder' could construct a data structure representing the output, a 'TAP formatter' could convert this to a string, and an 'OutputWriter' could handle I/O and colouring.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"AssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9033,\n      \"line_end\": 9196,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class mixes responsibilities for content decision, specific compact formatting, console colouring decisions, and direct I/O.\",\n      \"reasoning\": \"The `AssertionPrinter` for the compact reporter is responsible for deciding the specific textual content to display for different assertion result types, applying compact-specific formatting rules (e.g., using `compactPassedString`, `pluralise`), deciding when and which console colours to apply, and performing direct I/O to `std::ostream`. These responsibilities are distinct and would change for different reasons (e.g., changing reporting logic, changing output styling, changing I/O mechanism), thus violating SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_compact.cpp\",\n      \"entity_name\": \"AssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 36,\n      \"line_end\": 199,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The class mixes responsibilities for content decision, specific compact formatting, console colouring decisions, and direct I/O.\",\n      \"reasoning\": \"The `AssertionPrinter` for the compact reporter is responsible for deciding the specific textual content to display for different assertion result types, applying compact-specific formatting rules (e.g., using `compactPassedString`, `pluralise`), deciding when and which console colours to apply, and performing direct I/O to `std::ostream`. These responsibilities are distinct and would change for different reasons (e.g., changing reporting logic, changing output styling, changing I/O mechanism), thus violating SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9278,\n      \"line_end\": 9426,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class mixes content decision, specific console formatting, text wrapping, console colouring, and direct I/O.\",\n      \"reasoning\": \"This `ConsoleAssertionPrinter` is a 'God class' for assertion printing. It performs a multitude of distinct responsibilities: 1) determining the semantic content and labels based on the assertion result (constructor logic); 2) orchestrating the printing flow (`print()` method); 3) applying specific console-oriented formatting (e.g., newlines, indentation, specific string literals); 4) actively managing text layout/wrapping by utilizing `TextFlow::Column`; 5) making decisions about which console colours to apply; and 6) directly performing I/O to `std::ostream`. Changes to any of these unrelated concerns would require modifications to this single class, severely violating SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/reporters/catch_reporter_console.cpp\",\n      \"entity_name\": \"ConsoleAssertionPrinter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 45,\n      \"line_end\": 193,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class mixes content decision, specific console formatting, text wrapping, console colouring, and direct I/O.\",\n      \"reasoning\": \"This `ConsoleAssertionPrinter` is a 'God class' for assertion printing. It performs a multitude of distinct responsibilities: 1) determining the semantic content and labels based on the assertion result (constructor logic); 2) orchestrating the printing flow (`print()` method); 3) applying specific console-oriented formatting (e.g., newlines, indentation, specific string literals); 4) actively managing text layout/wrapping by utilizing `TextFlow::Column`; 5) making decisions about which console colours to apply; and 6) directly performing I/O to `std::ostream`. Changes to any of these unrelated concerns would require modifications to this single class, severely violating SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 10660,\n      \"line_end\": 10786,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class acts as a 'God class' by managing test execution, assertion capture, event reporting, state, configuration, error handling, generator tracking, output redirection, and concurrency.\",\n      \"reasoning\": \"The `RunContext` class is overburdened with numerous distinct responsibilities. It is the central coordinator for test execution (`runTest`, `invokeActiveTestCase`), captures and handles assertion results (`IResultCapture` methods), dispatches events to an `IEventListener`, manages the entire state of test runs and sections, handles configuration settings, deals with fatal error conditions, tracks generators, redirects output, and manages concurrency for assertions. Each of these areas could change independently, providing many reasons for this class to be modified. This makes it a classic 'God class' and a severe violation of the Single Responsibility Principle.\"\n    },\n    {\n      \"file_path\": \"Catch2/src/catch2/internal/catch_run_context.hpp\",\n      \"entity_name\": \"RunContext\",\n      \"entity_type\": \"class\",\n      \"line_start\": 36,\n      \"line_end\": 161,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The class acts as a 'God class' by managing test execution, assertion capture, event reporting, state, configuration, error handling, generator tracking, output redirection, and concurrency.\",\n      \"reasoning\": \"The `RunContext` class is overburdened with numerous distinct responsibilities. It is the central coordinator for test execution (`runTest`, `invokeActiveTestCase`), captures and handles assertion results (`IResultCapture` methods), dispatches events to an `IEventListener`, manages the entire state of test runs and sections, handles configuration settings, deals with fatal error conditions, tracks generators, redirects output, and manages concurrency for assertions. Each of these areas could change independently, providing many reasons for this class to be modified. This makes it a classic 'God class' and a severe violation of the Single Responsibility Principle.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Column.operator<<",
+      "entity_type": "class",
+      "line_start": 71,
+      "line_end": 241,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The 'operator<<' method handles output formatting and I/O, which is distinct from the Column's core responsibility of managing text and its layout properties.",
+      "reasoning": "The primary responsibility of the `Column` class should be to encapsulate text content and its layout configuration, and provide an iterable view of its formatted lines. The `operator<<` method, however, introduces a rendering and I/O responsibility by writing directly to an `std::ostream`. If the output format or target changes (e.g., HTML, GUI), this method would need to change, which is a different reason for change than alterations to text content or layout rules."
+    },
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Column.toString",
+      "entity_type": "class",
+      "line_start": 71,
+      "line_end": 241,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The 'toString()' method handles output formatting and string conversion, which is distinct from the Column's core responsibility of managing text and its layout properties.",
+      "reasoning": "Similar to `operator<<`, the `toString()` method is responsible for serializing the column's formatted content into a string. This is a rendering/serialization responsibility, not directly related to managing the column's internal text and layout logic. A dedicated formatter or serializer class would better encapsulate this concern."
+    },
+    {
+      "file_path": "Catch2/third_party/clara.hpp",
+      "entity_name": "Column.operator+",
+      "entity_type": "class",
+      "line_start": 71,
+      "line_end": 241,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The 'operator+' method adds a responsibility for composing Column objects into a Columns object.",
+      "reasoning": "The `operator+` method enables the aggregation of `Column` objects into a `Columns` object. This is a composition or aggregation responsibility, which is distinct from the single `Column`'s responsibility of managing its own text content and layout. Changes to how columns are combined would necessitate changes to this method, unrelated to how a single column is defined or formatted."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "TapAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 11494,
+      "line_end": 11658,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class mixes responsibilities for content decision, specific TAP formatting, console colouring decisions, and direct I/O.",
+      "reasoning": "The `TapAssertionPrinter` is responsible for selecting the specific textual content to display based on `AssertionResult`, applying TAP-specific formatting (e.g., prefixes, suffixes, string manipulation, `pluralise`), deciding which console colours to use for different parts of the output, and directly writing to `std::ostream`. These are distinct concerns (what to report, how to format, how to style, and how to output) that should ideally be separated into different components. For instance, a 'TAP message builder' could construct a data structure representing the output, a 'TAP formatter' could convert this to a string, and an 'OutputWriter' could handle I/O and colouring."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_tap.cpp",
+      "entity_name": "TapAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 27,
+      "line_end": 191,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class mixes responsibilities for content decision, specific TAP formatting, console colouring decisions, and direct I/O.",
+      "reasoning": "The `TapAssertionPrinter` is responsible for selecting the specific textual content to display based on `AssertionResult`, applying TAP-specific formatting (e.g., prefixes, suffixes, string manipulation, `pluralise`), deciding which console colours to use for different parts of the output, and directly writing to `std::ostream`. These are distinct concerns (what to report, how to format, how to style, and how to output) that should ideally be separated into different components. For instance, a 'TAP message builder' could construct a data structure representing the output, a 'TAP formatter' could convert this to a string, and an 'OutputWriter' could handle I/O and colouring."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "AssertionPrinter",
+      "entity_type": "class",
+      "line_start": 9033,
+      "line_end": 9196,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class mixes responsibilities for content decision, specific compact formatting, console colouring decisions, and direct I/O.",
+      "reasoning": "The `AssertionPrinter` for the compact reporter is responsible for deciding the specific textual content to display for different assertion result types, applying compact-specific formatting rules (e.g., using `compactPassedString`, `pluralise`), deciding when and which console colours to apply, and performing direct I/O to `std::ostream`. These responsibilities are distinct and would change for different reasons (e.g., changing reporting logic, changing output styling, changing I/O mechanism), thus violating SRP."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_compact.cpp",
+      "entity_name": "AssertionPrinter",
+      "entity_type": "class",
+      "line_start": 36,
+      "line_end": 199,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The class mixes responsibilities for content decision, specific compact formatting, console colouring decisions, and direct I/O.",
+      "reasoning": "The `AssertionPrinter` for the compact reporter is responsible for deciding the specific textual content to display for different assertion result types, applying compact-specific formatting rules (e.g., using `compactPassedString`, `pluralise`), deciding when and which console colours to apply, and performing direct I/O to `std::ostream`. These responsibilities are distinct and would change for different reasons (e.g., changing reporting logic, changing output styling, changing I/O mechanism), thus violating SRP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.cpp",
+      "entity_name": "ConsoleAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 9278,
+      "line_end": 9426,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class mixes content decision, specific console formatting, text wrapping, console colouring, and direct I/O.",
+      "reasoning": "This `ConsoleAssertionPrinter` is a 'God class' for assertion printing. It performs a multitude of distinct responsibilities: 1) determining the semantic content and labels based on the assertion result (constructor logic); 2) orchestrating the printing flow (`print()` method); 3) applying specific console-oriented formatting (e.g., newlines, indentation, specific string literals); 4) actively managing text layout/wrapping by utilizing `TextFlow::Column`; 5) making decisions about which console colours to apply; and 6) directly performing I/O to `std::ostream`. Changes to any of these unrelated concerns would require modifications to this single class, severely violating SRP."
+    },
+    {
+      "file_path": "Catch2/src/catch2/reporters/catch_reporter_console.cpp",
+      "entity_name": "ConsoleAssertionPrinter",
+      "entity_type": "class",
+      "line_start": 45,
+      "line_end": 193,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class mixes content decision, specific console formatting, text wrapping, console colouring, and direct I/O.",
+      "reasoning": "This `ConsoleAssertionPrinter` is a 'God class' for assertion printing. It performs a multitude of distinct responsibilities: 1) determining the semantic content and labels based on the assertion result (constructor logic); 2) orchestrating the printing flow (`print()` method); 3) applying specific console-oriented formatting (e.g., newlines, indentation, specific string literals); 4) actively managing text layout/wrapping by utilizing `TextFlow::Column`; 5) making decisions about which console colours to apply; and 6) directly performing I/O to `std::ostream`. Changes to any of these unrelated concerns would require modifications to this single class, severely violating SRP."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "RunContext",
+      "entity_type": "class",
+      "line_start": 10660,
+      "line_end": 10786,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class acts as a 'God class' by managing test execution, assertion capture, event reporting, state, configuration, error handling, generator tracking, output redirection, and concurrency.",
+      "reasoning": "The `RunContext` class is overburdened with numerous distinct responsibilities. It is the central coordinator for test execution (`runTest`, `invokeActiveTestCase`), captures and handles assertion results (`IResultCapture` methods), dispatches events to an `IEventListener`, manages the entire state of test runs and sections, handles configuration settings, deals with fatal error conditions, tracks generators, redirects output, and manages concurrency for assertions. Each of these areas could change independently, providing many reasons for this class to be modified. This makes it a classic 'God class' and a severe violation of the Single Responsibility Principle."
+    },
+    {
+      "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+      "entity_name": "RunContext",
+      "entity_type": "class",
+      "line_start": 36,
+      "line_end": 161,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The class acts as a 'God class' by managing test execution, assertion capture, event reporting, state, configuration, error handling, generator tracking, output redirection, and concurrency.",
+      "reasoning": "The `RunContext` class is overburdened with numerous distinct responsibilities. It is the central coordinator for test execution (`runTest`, `invokeActiveTestCase`), captures and handles assertion results (`IResultCapture` methods), dispatches events to an `IEventListener`, manages the entire state of test runs and sections, handles configuration settings, deals with fatal error conditions, tracks generators, redirects output, and manages concurrency for assertions. Each of these areas could change independently, providing many reasons for this class to be modified. This makes it a classic 'God class' and a severe violation of the Single Responsibility Principle."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 51082.639932632446,
+  "error": null
+}

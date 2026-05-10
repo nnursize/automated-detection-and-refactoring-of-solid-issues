@@ -1,0 +1,84 @@
+{
+  "scan_id": "jackson-core_ISP_scan_12",
+  "repo_name": "jackson-core",
+  "principle": "ISP",
+  "scan_number": 12,
+  "timestamp": "2026-05-02T15:32:49.488146",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/base/ParserBase.java\",\n      \"entity_name\": \"ParserBase._decodeEscaped\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1028,\n      \"line_end\": 1029,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The ParserBase class is forced to implement _decodeEscaped from JsonParser but explicitly throws UnsupportedOperationException.\",\n      \"reasoning\": \"The 'JsonParser' interface (or an intermediate abstract class in its hierarchy) mandates a method for decoding escaped characters. 'ParserBase', a foundational abstract class, explicitly throws 'UnsupportedOperationException' for '_decodeEscaped()', indicating it cannot universally provide this functionality. This forces subclasses or clients to depend on a method they might not use or cannot implement, violating the Interface Segregation Principle by making the parser interface too broad.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/filter/FilteringParserDelegate.java\",\n      \"entity_name\": \"FilteringParserDelegate.overrideCurrentName\",\n      \"entity_type\": \"method\",\n      \"line_start\": 251,\n      \"line_end\": 255,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The FilteringParserDelegate class is forced to implement overrideCurrentName from JsonParser but explicitly throws UnsupportedOperationException.\",\n      \"reasoning\": \"The 'JsonParser' interface (or an abstract class it extends) includes a method to override the current name. 'FilteringParserDelegate', a specialized parser that modifies token streams, explicitly throws 'UnsupportedOperationException' for 'overrideCurrentName()'. This indicates that not all concrete parser implementations can or should support this operation, making the 'JsonParser' interface too broad and forcing clients to implement unneeded methods.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/base/GeneratorBase.java\",\n      \"entity_name\": \"GeneratorBase.writeString(Reader reader, int len)\",\n      \"entity_type\": \"method\",\n      \"line_start\": 229,\n      \"line_end\": 231,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The GeneratorBase class is forced to implement writeString from a Reader but explicitly reports it as an unsupported operation.\",\n      \"reasoning\": \"The 'JsonGenerator' interface mandates a method for writing string content from a 'Reader'. 'GeneratorBase', a common abstract base for generators, explicitly calls '_reportUnsupportedOperation()' for 'writeString(Reader, int)'. This indicates that this method is not universally supported by all generator types (e.g., byte-based generators might not handle character readers efficiently), making the 'JsonGenerator' interface too large and forcing implementations to declare methods they do not support.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/base/GeneratorBase.java\",\n      \"entity_name\": \"GeneratorBase.writeBinary(Base64Variant b64variant, InputStream data, int dataLength)\",\n      \"entity_type\": \"method\",\n      \"line_start\": 264,\n      \"line_end\": 266,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The GeneratorBase class is forced to implement writeBinary from an InputStream but explicitly reports it as an unsupported operation.\",\n      \"reasoning\": \"The 'JsonGenerator' interface mandates a method for writing binary content from an 'InputStream'. 'GeneratorBase' explicitly calls '_reportUnsupportedOperation()' for 'writeBinary(Base64Variant, InputStream, int)'. This suggests that this method is not supported by all generator types (e.g., character-based generators), indicating the 'JsonGenerator' interface is too broad and violates ISP by forcing implementations to support irrelevant functionalities.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator.writeRawUTF8String\",\n      \"entity_type\": \"method\",\n      \"line_start\": 572,\n      \"line_end\": 574,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The WriterBasedJsonGenerator class is forced to implement writeRawUTF8String but explicitly reports it as an unsupported operation.\",\n      \"reasoning\": \"The 'JsonGenerator' interface mandates writing raw UTF8 byte arrays. However, 'WriterBasedJsonGenerator' operates on character streams (Writer). It explicitly calls '_reportUnsupportedOperation()' for 'writeRawUTF8String()', demonstrating it cannot natively support this byte-oriented operation. This forces the class to implement a method it doesn't need or can't efficiently handle, indicating a violation of ISP in the 'JsonGenerator' interface.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator.writeUTF8String\",\n      \"entity_type\": \"method\",\n      \"line_start\": 578,\n      \"line_end\": 580,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The WriterBasedJsonGenerator class is forced to implement writeUTF8String but explicitly reports it as an unsupported operation.\",\n      \"reasoning\": \"Similar to 'writeRawUTF8String', the 'JsonGenerator' interface mandates writing UTF8 byte arrays. 'WriterBasedJsonGenerator' (character-based) explicitly calls '_reportUnsupportedOperation()' for 'writeUTF8String()'. This is another instance where the interface is too broad, forcing a specialized implementation to expose and explicitly reject functionality that is not relevant to its core purpose, thus violating ISP.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/base/ParserBase.java",
+      "entity_name": "ParserBase._decodeEscaped",
+      "entity_type": "method",
+      "line_start": 1028,
+      "line_end": 1029,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The ParserBase class is forced to implement _decodeEscaped from JsonParser but explicitly throws UnsupportedOperationException.",
+      "reasoning": "The 'JsonParser' interface (or an intermediate abstract class in its hierarchy) mandates a method for decoding escaped characters. 'ParserBase', a foundational abstract class, explicitly throws 'UnsupportedOperationException' for '_decodeEscaped()', indicating it cannot universally provide this functionality. This forces subclasses or clients to depend on a method they might not use or cannot implement, violating the Interface Segregation Principle by making the parser interface too broad."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/filter/FilteringParserDelegate.java",
+      "entity_name": "FilteringParserDelegate.overrideCurrentName",
+      "entity_type": "method",
+      "line_start": 251,
+      "line_end": 255,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The FilteringParserDelegate class is forced to implement overrideCurrentName from JsonParser but explicitly throws UnsupportedOperationException.",
+      "reasoning": "The 'JsonParser' interface (or an abstract class it extends) includes a method to override the current name. 'FilteringParserDelegate', a specialized parser that modifies token streams, explicitly throws 'UnsupportedOperationException' for 'overrideCurrentName()'. This indicates that not all concrete parser implementations can or should support this operation, making the 'JsonParser' interface too broad and forcing clients to implement unneeded methods."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+      "entity_name": "GeneratorBase.writeString(Reader reader, int len)",
+      "entity_type": "method",
+      "line_start": 229,
+      "line_end": 231,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The GeneratorBase class is forced to implement writeString from a Reader but explicitly reports it as an unsupported operation.",
+      "reasoning": "The 'JsonGenerator' interface mandates a method for writing string content from a 'Reader'. 'GeneratorBase', a common abstract base for generators, explicitly calls '_reportUnsupportedOperation()' for 'writeString(Reader, int)'. This indicates that this method is not universally supported by all generator types (e.g., byte-based generators might not handle character readers efficiently), making the 'JsonGenerator' interface too large and forcing implementations to declare methods they do not support."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+      "entity_name": "GeneratorBase.writeBinary(Base64Variant b64variant, InputStream data, int dataLength)",
+      "entity_type": "method",
+      "line_start": 264,
+      "line_end": 266,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The GeneratorBase class is forced to implement writeBinary from an InputStream but explicitly reports it as an unsupported operation.",
+      "reasoning": "The 'JsonGenerator' interface mandates a method for writing binary content from an 'InputStream'. 'GeneratorBase' explicitly calls '_reportUnsupportedOperation()' for 'writeBinary(Base64Variant, InputStream, int)'. This suggests that this method is not supported by all generator types (e.g., character-based generators), indicating the 'JsonGenerator' interface is too broad and violates ISP by forcing implementations to support irrelevant functionalities."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator.writeRawUTF8String",
+      "entity_type": "method",
+      "line_start": 572,
+      "line_end": 574,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The WriterBasedJsonGenerator class is forced to implement writeRawUTF8String but explicitly reports it as an unsupported operation.",
+      "reasoning": "The 'JsonGenerator' interface mandates writing raw UTF8 byte arrays. However, 'WriterBasedJsonGenerator' operates on character streams (Writer). It explicitly calls '_reportUnsupportedOperation()' for 'writeRawUTF8String()', demonstrating it cannot natively support this byte-oriented operation. This forces the class to implement a method it doesn't need or can't efficiently handle, indicating a violation of ISP in the 'JsonGenerator' interface."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator.writeUTF8String",
+      "entity_type": "method",
+      "line_start": 578,
+      "line_end": 580,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The WriterBasedJsonGenerator class is forced to implement writeUTF8String but explicitly reports it as an unsupported operation.",
+      "reasoning": "Similar to 'writeRawUTF8String', the 'JsonGenerator' interface mandates writing UTF8 byte arrays. 'WriterBasedJsonGenerator' (character-based) explicitly calls '_reportUnsupportedOperation()' for 'writeUTF8String()'. This is another instance where the interface is too broad, forcing a specialized implementation to expose and explicitly reject functionality that is not relevant to its core purpose, thus violating ISP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 36057.48414993286,
+  "error": null
+}

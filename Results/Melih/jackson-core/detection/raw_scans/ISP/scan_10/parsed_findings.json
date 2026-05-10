@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+    "entity_name": "JsonParser",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 723,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The JsonParser interface is bloated by including methods for object/tree mapping that are not universally supported by all parser implementations.",
+    "reasoning": "The `JsonParser` interface declares methods like `readValueAs(Class<T> valueType)`, `readValueAs(TypeReference<T> valueTypeRef)`, `readValueAs(ResolvedType type)`, and `readValueAsTree()`. However, `ParserMinimalBase` (a common abstract base class for many parsers) provides default implementations for these methods that throw `UnsupportedOperationException`. This forces concrete parser implementations that do not support object/tree mapping to either inherit this unsupported behavior or provide empty/dummy implementations, violating ISP. These methods should be segregated into a separate interface, e.g., `ObjectMappingCapableParser`."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+    "entity_name": "JsonParser",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 723,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The JsonParser interface forces all implementations to declare buffer release methods for both byte and character streams, even if only one is applicable.",
+    "reasoning": "The `JsonParser` interface includes both `releaseBuffered(OutputStream out)` and `releaseBuffered(Writer w)`. A byte-stream parser (like `UTF8StreamJsonParser`) would typically only need to implement the `OutputStream` variant, while a character-stream parser (like `ReaderBasedJsonParser`) would only need the `Writer` variant. This forces implementations to declare and potentially provide no-op or `UnsupportedOperationException` for the irrelevant method, violating ISP. These could be split into more specific interfaces for byte-stream and character-stream parsers."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 2483,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "The JsonGenerator interface includes methods for writing content from input streams (Reader/InputStream) that are not universally supported by all generator implementations.",
+    "reasoning": "The `JsonGenerator` interface declares `writeString(Reader reader, int len)` and `writeBinary(Base64Variant bv, InputStream data, int dataLength)`. The `GeneratorBase` (a common abstract base class) provides default implementations that call `_reportUnsupportedOperation()`. This indicates that not all concrete generators are expected to support writing directly from input streams, forcing them to implement methods they don't need or cannot support, violating ISP. These methods should be moved to a more specialized interface."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 2483,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The JsonGenerator interface is bloated by including UTF8-specific byte array writing methods that are irrelevant for character-based generators.",
+    "reasoning": "The `JsonGenerator` interface includes `writeRawUTF8String(byte[] buffer, int offset, int len)` and `writeUTF8String(byte[] buffer, int offset, int len)`. `WriterBasedJsonGenerator` explicitly throws `_reportUnsupportedOperation()` for these methods, as they are inherently byte-oriented and UTF8-specific. This forces character-based generators to implement methods that are completely irrelevant to their operation, violating ISP. These methods should be segregated into a `UTF8ByteStreamGenerator` interface."
+  }
+]

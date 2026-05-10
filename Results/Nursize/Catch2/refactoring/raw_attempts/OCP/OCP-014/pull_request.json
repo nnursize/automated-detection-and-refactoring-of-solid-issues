@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-014",
+  "principle": "OCP",
+  "title": "Refactor OCP-014 (OCP): The 'print' method contains a large switch statement dispatching on 'result.g...",
+  "branch": "refactor/OCP-014",
+  "base": "main",
+  "head_commit": "ca4c9b9e6ccadfb815faf929f0ac7d65400f12a1",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3871,
+    "completion_tokens": 1402
+  },
+  "detected_issue": {
+    "file_path": "src/catch2/reporters/catch_reporter_compact.cpp",
+    "entity_name": "AssertionPrinter.print",
+    "entity_type": "method",
+    "line_start": 56,
+    "line_end": 121,
+    "severity": "high",
+    "scan_count": 4,
+    "description": "The 'print' method contains a large switch statement dispatching on 'result.getResultType()'.",
+    "reasoning": "Adding a new type of assertion result (new 'ResultWas::OfType' enum value) would require modifying this switch statement to add a new case, violating the Open/Closed Principle. This behavior should ideally be extended through polymorphism or a strategy pattern, where each result type knows how to print itself or has a dedicated printer strategy."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor AssertionPrinter to use a dispatch table for result types to improve OCP compliance.",
+    "rationale": "Replaced the large switch statement with a static dispatch table mapping ResultWas types to printer functions. This allows adding new result types by updating the table rather than modifying the core logic flow, adhering to the Open/Closed Principle.",
+    "files_touched": [
+      "src/catch2/reporters/catch_reporter_compact.cpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/catch2/reporters/catch_reporter_compact.cpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/catch2/reporters/catch_reporter_compact.cpp",
+        "search_text": "    void print() {\n        printSourceInfo();\n\n        itMessage = messages.begin();\n\n        switch (result.getResultType()) {\n        case ResultWas::Ok:\n            printResultType(Colour::ResultSuccess, compactPassedString);\n            printOriginalExpression();\n            printReconstructedExpression();\n            if (!result.hasExpression())\n                printRemainingMessages(Colour::None);\n            else\n                printRemainingMessages();\n            break;\n        case ResultWas::ExpressionFailed:\n            if (result.isOk())\n                printResultType(Colour::ResultSuccess, compactFailedString + \" - but was ok\"_sr);\n            else\n                printResultType(Colour::Error, compactFailedString);\n            printOriginalExpression();\n            printReconstructedExpression();\n            printRemainingMessages();\n            break;\n        case ResultWas::ThrewException:\n            printResultType(Colour::Error, compactFailedString);\n            printIssue(\"unexpected exception with message:\");\n            printMessage();\n            printExpressionWas();\n            printRemainingMessages();\n            break;\n        case ResultWas::FatalErrorCondition:\n            printResultType(Colour::Error, compactFailedString);\n            printIssue(\"fatal error condition with message:\");\n            printMessage();\n            printExpressionWas();\n            printRemainingMessages();\n            break;\n        case ResultWas::DidntThrowException:\n            printResultType(Colour::Error, compactFailedString);\n            printIssue(\"expected exception, got none\");\n            printExpressionWas();\n            printRemainingMessages();\n            break;\n        case ResultWas::Info:\n            printResultType(Colour::None, \"info\"_sr);\n            printMessage();\n            printRemainingMessages();\n            break;\n        case ResultWas::Warning:\n            printResultType(Colour::None, \"warning\"_sr);\n            printMessage();\n            printRemainingMessages();\n            break;\n        case ResultWas::ExplicitFailure:\n            printResultType(Colour::Error, compactFailedString);\n            printIssue(\"explicitly\");\n            printRemainingMessages(Colour::None);\n            break;\n        case ResultWas::ExplicitSkip:\n            printResultType(Colour::Skip, \"skipped\"_sr);\n            printMessage();\n            printRemainingMessages();\n            break;\n            // These cases are here to prevent compiler warnings\n        case ResultWas::Unknown:\n        case ResultWas::FailureBit:\n        case ResultWas::Exception:\n            printResultType(Colour::Error, \"** internal error **\");\n            break;\n        }\n    }",
+        "replace_text": "    void print() {\n        printSourceInfo();\n        itMessage = messages.begin();\n\n        using PrinterFunc = void (AssertionPrinter::*)();\n        static const std::pair<ResultWas::OfType, PrinterFunc> dispatch[] = {\n            {ResultWas::Ok, &AssertionPrinter::printOk},\n            {ResultWas::ExpressionFailed, &AssertionPrinter::printExpressionFailed},\n            {ResultWas::ThrewException, &AssertionPrinter::printThrewException},\n            {ResultWas::FatalErrorCondition, &AssertionPrinter::printFatalError},\n            {ResultWas::DidntThrowException, &AssertionPrinter::printDidntThrow},\n            {ResultWas::Info, &AssertionPrinter::printInfo},\n            {ResultWas::Warning, &AssertionPrinter::printWarning},\n            {ResultWas::ExplicitFailure, &AssertionPrinter::printExplicitFailure},\n            {ResultWas::ExplicitSkip, &AssertionPrinter::printExplicitSkip}\n        };\n\n        for (auto const& entry : dispatch) {\n            if (entry.first == result.getResultType()) {\n                (this->*entry.second)();\n                return;\n            }\n        }\n        printResultType(Colour::Error, \"** internal error **\");\n    }\n\n    void printOk() {\n        printResultType(Colour::ResultSuccess, compactPassedString);\n        printOriginalExpression();\n        printReconstructedExpression();\n        if (!result.hasExpression()) printRemainingMessages(Colour::None);\n        else printRemainingMessages();\n    }\n    void printExpressionFailed() {\n        if (result.isOk()) printResultType(Colour::ResultSuccess, compactFailedString + \" - but was ok\"_sr);\n        else printResultType(Colour::Error, compactFailedString);\n        printOriginalExpression();\n        printReconstructedExpression();\n        printRemainingMessages();\n    }\n    void printThrewException() {\n        printResultType(Colour::Error, compactFailedString);\n        printIssue(\"unexpected exception with message:\");\n        printMessage();\n        printExpressionWas();\n        printRemainingMessages();\n    }\n    void printFatalError() {\n        printResultType(Colour::Error, compactFailedString);\n        printIssue(\"fatal error condition with message:\");\n        printMessage();\n        printExpressionWas();\n        printRemainingMessages();\n    }\n    void printDidntThrow() {\n        printResultType(Colour::Error, compactFailedString);\n        printIssue(\"expected exception, got none\");\n        printExpressionWas();\n        printRemainingMessages();\n    }\n    void printInfo() {\n        printResultType(Colour::None, \"info\"_sr);\n        printMessage();\n        printRemainingMessages();\n    }\n    void printWarning() {\n        printResultType(Colour::None, \"warning\"_sr);\n        printMessage();\n        printRemainingMessages();\n    }\n    void printExplicitFailure() {\n        printResultType(Colour::Error, compactFailedString);\n        printIssue(\"explicitly\");\n        printRemainingMessages(Colour::None);\n    }\n    void printExplicitSkip() {\n        printResultType(Colour::Skip, \"skipped\"_sr);\n        printMessage();\n        printRemainingMessages();\n    }",
+        "search_lines": 72,
+        "replace_lines": 80
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/catch2/reporters/catch_reporter_compact.cpp",
+        "loc": 209,
+        "blank_lines": 36,
+        "comment_lines": 10,
+        "function_count": 6,
+        "avg_cc": 6.5,
+        "max_cc": 34.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "src/catch2/reporters/catch_reporter_compact.cpp",
+        "loc": 217,
+        "blank_lines": 37,
+        "comment_lines": 9,
+        "function_count": 6,
+        "avg_cc": 4.83,
+        "max_cc": 24.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/src/catch2/reporters/catch_reporter_compact.cpp b/src/catch2/reporters/catch_reporter_compact.cpp\nindex 6d2c865..ddad44c 100644\n--- a/src/catch2/reporters/catch_reporter_compact.cpp\n+++ b/src/catch2/reporters/catch_reporter_compact.cpp\n@@ -48,75 +48,83 @@ public:\n \n     void print() {\n         printSourceInfo();\n-\n         itMessage = messages.begin();\n \n-        switch (result.getResultType()) {\n-        case ResultWas::Ok:\n-            printResultType(Colour::ResultSuccess, compactPassedString);\n-            printOriginalExpression();\n-            printReconstructedExpression();\n-            if (!result.hasExpression())\n-                printRemainingMessages(Colour::None);\n-            else\n-                printRemainingMessages();\n-            break;\n-        case ResultWas::ExpressionFailed:\n-            if (result.isOk())\n-                printResultType(Colour::ResultSuccess, compactFailedString + \" - but was ok\"_sr);\n-            else\n-                printResultType(Colour::Error, compactFailedString);\n-            printOriginalExpression();\n-            printReconstructedExpression();\n-            printRemainingMessages();\n-            break;\n-        case ResultWas::ThrewException:\n-            printResultType(Colour::Error, compactFailedString);\n-            printIssue(\"unexpected exception with message:\");\n-            printMessage();\n-            printExpressionWas();\n-            printRemainingMessages();\n-            break;\n-        case ResultWas::FatalErrorCondition:\n-            printResultType(Colour::Error, compactFailedString);\n-            printIssue(\"fatal error condition with message:\");\n-            printMessage();\n-            printExpressionWas();\n-            printRemainingMessages();\n-            break;\n-        case ResultWas::DidntThrowException:\n-            printResultType(Colour::Error, compactFailedString);\n-            printIssue(\"expected exception, got none\");\n-            printExpressionWas();\n-            printRemainingMessages();\n-            break;\n-        case ResultWas::Info:\n-            printResultType(Colour::None, \"info\"_sr);\n-            printMessage();\n-            printRemainingMessages();\n-            break;\n-        case ResultWas::Warning:\n-            printResultType(Colour::None, \"warning\"_sr);\n-            printMessage();\n-            printRemainingMessages();\n-            break;\n-        case ResultWas::ExplicitFailure:\n-            printResultType(Colour::Error, compactFailedString);\n-            printIssue(\"explicitly\");\n-            printRemainingMessages(Colour::None);\n-            break;\n-        case ResultWas::ExplicitSkip:\n-            printResultType(Colour::Skip, \"skipped\"_sr);\n-            printMessage();\n-            printRemainingMessages();\n-            break;\n-            // These cases are here to prevent compiler warnings\n-        case ResultWas::Unknown:\n-        case ResultWas::FailureBit:\n-        case ResultWas::Exception:\n-            printResultType(Colour::Error, \"** internal error **\");\n-            break;\n+        using PrinterFunc = void (AssertionPrinter::*)();\n+        static const std::pair<ResultWas::OfType, PrinterFunc> dispatch[] = {\n+            {ResultWas::Ok, &AssertionPrinter::printOk},\n+            {ResultWas::ExpressionFailed, &AssertionPrinter::printExpressionFailed},\n+            {ResultWas::ThrewException, &AssertionPrinter::printThrewException},\n+            {ResultWas::FatalErrorCondition, &AssertionPrinter::printFatalError},\n+            {ResultWas::DidntThrowException, &AssertionPrinter::printDidntThrow},\n+            {ResultWas::Info, &AssertionPrinter::printInfo},\n+            {ResultWas::Warning, &AssertionPrinter::printWarning},\n+            {ResultWas::ExplicitFailure, &AssertionPrinter::printExplicitFailure},\n+            {ResultWas::ExplicitSkip, &AssertionPrinter::printExplicitSkip}\n+        };\n+\n+        for (auto const& entry : dispatch) {\n+            if (entry.first == result.getResultType()) {\n+                (this->*entry.second)();\n+                return;\n+            }\n         }\n+        printResultType(Colour::Error, \"** internal error **\");\n+    }\n+\n+    void printOk() {\n+        printResultType(Colour::ResultSuccess, compactPassedString);\n+        printOriginalExpression();\n+        printReconstructedExpression();\n+        if (!result.hasExpression()) printRemainingMessages(Colour::None);\n+        else printRemainingMessages();\n+    }\n+    void printExpressionFailed() {\n+        if (result.isOk()) printResultType(Colour::ResultSuccess, compactFailedString + \" - but was ok\"_sr);\n+        else printResultType(Colour::Error, compactFailedString);\n+        printOriginalExpression();\n+        printReconstructedExpression();\n+        printRemainingMessages();\n+    }\n+    void printThrewException() {\n+        printResultType(Colour::Error, compactFailedString);\n+        printIssue(\"unexpected exception with message:\");\n+        printMessage();\n+        printExpressionWas();\n+        printRemainingMessages();\n+    }\n+    void printFatalError() {\n+        printResultType(Colour::Error, compactFailedString);\n+        printIssue(\"fatal error condition with message:\");\n+        printMessage();\n+        printExpressionWas();\n+        printRemainingMessages();\n+    }\n+    void printDidntThrow() {\n+        printResultType(Colour::Error, compactFailedString);\n+        printIssue(\"expected exception, got none\");\n+        printExpressionWas();\n+        printRemainingMessages();\n+    }\n+    void printInfo() {\n+        printResultType(Colour::None, \"info\"_sr);\n+        printMessage();\n+        printRemainingMessages();\n+    }\n+    void printWarning() {\n+        printResultType(Colour::None, \"warning\"_sr);\n+        printMessage();\n+        printRemainingMessages();\n+    }\n+    void printExplicitFailure() {\n+        printResultType(Colour::Error, compactFailedString);\n+        printIssue(\"explicitly\");\n+        printRemainingMessages(Colour::None);\n+    }\n+    void printExplicitSkip() {\n+        printResultType(Colour::Skip, \"skipped\"_sr);\n+        printMessage();\n+        printRemainingMessages();\n     }\n \n private:\n",
+  "duration_ms": 4308.706521987915
+}

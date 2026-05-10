@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._decodeBase64",
+    "entity_type": "method",
+    "line_start": 1058,
+    "line_end": 1159,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Performs Base64 decoding, a data transformation responsibility distinct from JSON token parsing.",
+    "reasoning": "The core responsibility of a JSON parser is to identify and extract JSON tokens and their values according to the JSON grammar. Base64 decoding is a specific binary-to-text transformation that is applied *to* a string value, not part of the fundamental JSON parsing process. Decoupling this into a dedicated utility or service would make the parser solely responsible for JSON structure and primitive value extraction."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser._readBinary",
+    "entity_type": "method",
+    "line_start": 361,
+    "line_end": 482,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Manages incremental Base64 decoding and writing to an OutputStream, which is separate from JSON parsing.",
+    "reasoning": "This method orchestrates reading raw bytes, performing Base64 decoding, and writing the decoded bytes to an external OutputStream. This involves byte-level I/O, Base64 logic, and external stream interaction, which are distinct from the parser's primary job of understanding JSON syntax and extracting its components."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 20,
+    "line_end": 1391,
+    "principle": "SRP",
+    "severity": "low",
+    "description": "Encapsulates detailed low-level UTF-8 character decoding logic, which could be delegated to a dedicated character decoder.",
+    "reasoning": "The class contains numerous methods for multi-byte UTF-8 character decoding (`_decodeUtf8_2`, `_decodeUtf8_3`, `_decodeUtf8_4`) and skipping (`_skipUtf8_2`, `_skipUtf8_3`, `_skipUtf8_4`). While necessary for a UTF-8 stream parser, this byte-to-character conversion is a distinct concern from the JSON grammar parsing itself. A dedicated `Utf8CharacterDecoder` could abstract this, allowing `UTF8StreamJsonParser` to operate at a higher level of abstraction (Unicode code points) and focus solely on JSON token identification."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator._writeBinary",
+    "entity_type": "method",
+    "line_start": 1600,
+    "line_end": 1827,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Performs Base64 encoding for binary data, a data transformation distinct from JSON token generation.",
+    "reasoning": "The primary responsibility of `UTF8JsonGenerator` is to convert JSON tokens and their associated values into UTF-8 bytes and write them to an `OutputStream`. Base64 encoding is a specific binary-to-text transformation for binary data, which is then embedded as a JSON string. This encoding logic could be extracted into a separate utility, allowing the generator to focus purely on JSON structure and character encoding."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+    "entity_name": "WriterBasedJsonGenerator._writeBinary",
+    "entity_type": "method",
+    "line_start": 1284,
+    "line_end": 1500,
+    "principle": "SRP",
+    "severity": "medium",
+    "description": "Performs Base64 encoding for binary data, a data transformation distinct from JSON token generation.",
+    "reasoning": "Similar to `UTF8JsonGenerator`, this class embeds significant Base64 encoding logic for binary data. This is a specialized data transformation concern, separate from the core responsibility of converting JSON tokens and their values into characters and writing them to a `Writer`. Extracting this logic would improve modularity and reduce reasons for this class to change."
+  }
+]

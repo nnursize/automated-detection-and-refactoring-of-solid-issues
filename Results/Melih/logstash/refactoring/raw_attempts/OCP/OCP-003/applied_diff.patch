@@ -1,0 +1,45 @@
+diff --git a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java
+index 9573eff..7b2e452 100644
+--- a/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java
++++ b/logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java
+@@ -805,28 +805,22 @@ public class AbstractPipelineExt extends RubyBasicObject {
+     public RubyArray getPipelineSourceDetails(final ThreadContext context) {
+         List<RubyString> pipelineSources = new ArrayList<>(configParts.size());
+         for (SourceWithMetadata sourceWithMetadata : configParts) {
+-            String protocol = sourceWithMetadata.getProtocol();
+-            switch (protocol) {
+-                case "string":
+-                    pipelineSources.add(RubyString.newString(context.runtime, "config string"));
+-                    break;
+-                case "file":
+-                    pipelineSources.add(RubyString.newString(context.runtime, sourceWithMetadata.getId()));
+-                    break;
+-                case "x-pack-metrics":
+-                    pipelineSources.add(RubyString.newString(context.runtime, "monitoring pipeline"));
+-                    break;
+-                case "x-pack-config-management":
+-                    pipelineSources.add(RubyString.newString(context.runtime, "central pipeline management"));
+-                    break;
+-                case "module":
+-                    pipelineSources.add(RubyString.newString(context.runtime, "module"));
+-                    break;
+-            }
++            pipelineSources.add(RubyString.newString(context.runtime, getSourceDescription(sourceWithMetadata)));
+         }
+         return RubyArray.newArray(context.runtime, pipelineSources);
+     }
+ 
++    private String getSourceDescription(SourceWithMetadata source) {
++        switch (source.getProtocol()) {
++            case "string": return "config string";
++            case "file": return source.getId();
++            case "x-pack-metrics": return "monitoring pipeline";
++            case "x-pack-config-management": return "central pipeline management";
++            case "module": return "module";
++            default: return source.getProtocol();
++        }
++    }
++
+     protected final IRubyObject getSetting(final ThreadContext context, final String name) {
+         return settings.callMethod(context, "get_value", context.runtime.newString(name));
+     }

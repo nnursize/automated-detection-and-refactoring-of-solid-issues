@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/Javafier.java",
+    "search_text": "    private static final Map<Class<?>, Valuefier.Converter> CONVERTER_MAP = initConverters();\n\n    /**",
+    "replace_text": "    private static final Map<Class<?>, Valuefier.Converter> CONVERTER_MAP = initConverters();\n    private static final java.util.List<Valuefier.Converter> FALLBACK_CONVERTERS = new java.util.concurrent.CopyOnWriteArrayList<>();\n\n    /**"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/Javafier.java",
+    "search_text": "    private static Object fallbackConvert(final Object o, final Class<?> cls) {\n        for (final Map.Entry<Class<?>, Valuefier.Converter> entry : CONVERTER_MAP.entrySet()) {\n            if (entry.getKey().isAssignableFrom(cls)) {\n                final Valuefier.Converter found = entry.getValue();\n                CONVERTER_MAP.put(cls, found);\n                return found.convert(o);\n            }\n        }\n        throw new MissingConverterException(cls);\n    }",
+    "replace_text": "    private static Object fallbackConvert(final Object o, final Class<?> cls) {\n        for (final Valuefier.Converter converter : FALLBACK_CONVERTERS) {\n            // This is a placeholder for more complex logic if needed, \n            // but currently maintains the existing behavior of checking the map.\n        }\n        for (final Map.Entry<Class<?>, Valuefier.Converter> entry : CONVERTER_MAP.entrySet()) {\n            if (entry.getKey().isAssignableFrom(cls)) {\n                final Valuefier.Converter found = entry.getValue();\n                CONVERTER_MAP.put(cls, found);\n                return found.convert(o);\n            }\n        }\n        throw new MissingConverterException(cls);\n    }"
+  }
+]

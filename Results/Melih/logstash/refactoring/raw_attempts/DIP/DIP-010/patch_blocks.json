@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "search_text": "    interface SchedulerService {\n\n        /**\n         * Register the callback action to invoke on every clock tick.\n         * */\n        void repeatedAction(Runnable action);\n\n        void shutdown();\n    }\n\n    private static class FixedRateScheduler implements SchedulerService {\n\n        private final ScheduledExecutorService scheduledExecutor;\n\n        FixedRateScheduler() {\n            scheduledExecutor = Executors.newScheduledThreadPool(1, r -> {\n                Thread t = new Thread(r);\n                //Allow this thread to die when the JVM dies\n                t.setDaemon(true);\n                //Set the name\n                t.setName(\"dlq-flush-check\");\n                return t;\n            });\n        }\n\n        @Override\n        public void repeatedAction(Runnable action) {\n            scheduledExecutor.scheduleAtFixedRate(action, 1L, 1L, TimeUnit.SECONDS);\n        }\n\n        @Override\n        public void shutdown() {\n            scheduledExecutor.shutdown();\n        }\n    }\n\n    private static class NoopScheduler implements SchedulerService {\n        @Override\n        public void repeatedAction(Runnable action) {\n            // Noop\n        }\n\n        @Override\n        public void shutdown() {\n            // Noop\n        }\n    }",
+    "replace_text": "    interface SchedulerService {\n\n        /**\n         * Register the callback action to invoke on every clock tick.\n         * */\n        void repeatedAction(Runnable action);\n\n        void shutdown();\n    }"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "search_text": "            if (customSchedulerService != null) {\n                schedulerService = customSchedulerService;\n            } else {\n                if (startScheduledFlusher) {\n                    schedulerService = new FixedRateScheduler();\n                } else {\n                    schedulerService = new NoopScheduler();\n                }\n            }",
+    "replace_text": "            if (customSchedulerService != null) {\n                schedulerService = customSchedulerService;\n            } else {\n                if (startScheduledFlusher) {\n                    schedulerService = new FixedRateScheduler();\n                } else {\n                    schedulerService = new NoopScheduler();\n                }\n            }"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/FixedRateScheduler.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.common.io;\n\nimport java.util.concurrent.Executors;\nimport java.util.concurrent.ScheduledExecutorService;\nimport java.util.concurrent.TimeUnit;\n\npublic final class FixedRateScheduler implements DeadLetterQueueWriter.SchedulerService {\n\n    private final ScheduledExecutorService scheduledExecutor;\n\n    public FixedRateScheduler() {\n        scheduledExecutor = Executors.newScheduledThreadPool(1, r -> {\n            Thread t = new Thread(r);\n            //Allow this thread to die when the JVM dies\n            t.setDaemon(true);\n            //Set the name\n            t.setName(\"dlq-flush-check\");\n            return t;\n        });\n    }\n\n    @Override\n    public void repeatedAction(Runnable action) {\n        scheduledExecutor.scheduleAtFixedRate(action, 1L, 1L, TimeUnit.SECONDS);\n    }\n\n    @Override\n    public void shutdown() {\n        scheduledExecutor.shutdown();\n    }\n}"
+  },
+  {
+    "kind": "create",
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/NoopScheduler.java",
+    "search_text": null,
+    "replace_text": "package org.logstash.common.io;\n\npublic final class NoopScheduler implements DeadLetterQueueWriter.SchedulerService {\n    @Override\n    public void repeatedAction(Runnable action) {\n        // Noop\n    }\n\n    @Override\n    public void shutdown() {\n        // Noop\n    }\n}"
+  }
+]

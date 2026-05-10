@@ -1,0 +1,51 @@
+{
+  "scan_id": "requests_DIP_scan_08",
+  "repo_name": "requests",
+  "principle": "DIP",
+  "scan_number": 8,
+  "timestamp": "2026-05-03T02:29:45.733857",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Dependency Inversion Principle (DIP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nHigh-level modules should not depend on low-level modules; both should depend on abstractions. Abstraction...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/adapters.py\",\n      \"entity_name\": \"HTTPAdapter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 74,\n      \"line_end\": 103,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"HTTPAdapter directly instantiates concrete urllib3 connection managers and retry logic.\",\n      \"reasoning\": \"The HTTPAdapter class, a high-level component defining how Requests interacts with HTTP, directly instantiates concrete low-level classes from the urllib3 library (PoolManager, SOCKSProxyManager, and Retry). This violates the Dependency Inversion Principle because the high-level module (HTTPAdapter) depends on concrete low-level modules (urllib3 implementations) rather than depending on abstractions. This tight coupling makes it challenging to swap out urllib3 for an alternative HTTP library or to mock these dependencies for testing without modifying the adapter's internal implementation.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"Session.__init__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 126,\n      \"line_end\": 127,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"Session directly instantiates concrete HTTPAdapter instances.\",\n      \"reasoning\": \"The Session class, a high-level orchestrator for HTTP requests, directly instantiates concrete HTTPAdapter objects in its constructor. This violates the Dependency Inversion Principle because the high-level Session module depends on a concrete implementation (HTTPAdapter) rather than an abstraction (BaseAdapter). Ideally, Session should receive instances of BaseAdapter (or a factory for them) through dependency injection, allowing for easy substitution of different adapter implementations, better testability, and adherence to the principle that high-level modules should depend on abstractions.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Request.prepare\",\n      \"entity_type\": \"class\",\n      \"line_start\": 54,\n      \"line_end\": 54,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Request directly instantiates a concrete PreparedRequest object.\",\n      \"reasoning\": \"The Request class, a high-level model representing an HTTP request, directly instantiates the concrete PreparedRequest class in its prepare method. While PreparedRequest is an internal model within the same library layer, this still represents a direct dependency on a concrete class rather than an abstraction. A stricter adherence to DIP would involve Request depending on an abstraction (e.g., an interface or a factory) for creating PreparedRequest instances, allowing for easier substitution of different PreparedRequest implementations for testing or extension without modifying the Request class itself. The severity is medium as it's an internal model coupling rather than an external low-level library dependency.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/adapters.py",
+      "entity_name": "HTTPAdapter",
+      "entity_type": "class",
+      "line_start": 74,
+      "line_end": 103,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "HTTPAdapter directly instantiates concrete urllib3 connection managers and retry logic.",
+      "reasoning": "The HTTPAdapter class, a high-level component defining how Requests interacts with HTTP, directly instantiates concrete low-level classes from the urllib3 library (PoolManager, SOCKSProxyManager, and Retry). This violates the Dependency Inversion Principle because the high-level module (HTTPAdapter) depends on concrete low-level modules (urllib3 implementations) rather than depending on abstractions. This tight coupling makes it challenging to swap out urllib3 for an alternative HTTP library or to mock these dependencies for testing without modifying the adapter's internal implementation."
+    },
+    {
+      "file_path": "requests/src/requests/sessions.py",
+      "entity_name": "Session.__init__",
+      "entity_type": "class",
+      "line_start": 126,
+      "line_end": 127,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "Session directly instantiates concrete HTTPAdapter instances.",
+      "reasoning": "The Session class, a high-level orchestrator for HTTP requests, directly instantiates concrete HTTPAdapter objects in its constructor. This violates the Dependency Inversion Principle because the high-level Session module depends on a concrete implementation (HTTPAdapter) rather than an abstraction (BaseAdapter). Ideally, Session should receive instances of BaseAdapter (or a factory for them) through dependency injection, allowing for easy substitution of different adapter implementations, better testability, and adherence to the principle that high-level modules should depend on abstractions."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Request.prepare",
+      "entity_type": "class",
+      "line_start": 54,
+      "line_end": 54,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Request directly instantiates a concrete PreparedRequest object.",
+      "reasoning": "The Request class, a high-level model representing an HTTP request, directly instantiates the concrete PreparedRequest class in its prepare method. While PreparedRequest is an internal model within the same library layer, this still represents a direct dependency on a concrete class rather than an abstraction. A stricter adherence to DIP would involve Request depending on an abstraction (e.g., an interface or a factory) for creating PreparedRequest instances, allowing for easier substitution of different PreparedRequest implementations for testing or extension without modifying the Request class itself. The severity is medium as it's an internal model coupling rather than an external low-level library dependency."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 22264.957666397095,
+  "error": null
+}

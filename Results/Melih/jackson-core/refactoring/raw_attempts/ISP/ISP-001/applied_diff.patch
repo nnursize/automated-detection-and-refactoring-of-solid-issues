@@ -1,0 +1,46 @@
+diff --git a/src/main/java/tools/jackson/core/JsonGenerator.java b/src/main/java/tools/jackson/core/JsonGenerator.java
+index dff53e0..73b1b24 100644
+--- a/src/main/java/tools/jackson/core/JsonGenerator.java
++++ b/src/main/java/tools/jackson/core/JsonGenerator.java
+@@ -1559,24 +1559,6 @@ public abstract class JsonGenerator
+         return this;
+     }
+ 
+-    /**
+-     * Method for writing given JSON tree (expressed as a tree
+-     * where given {@code TreeNode} is the root) using this generator.
+-     * This is done by delegating call to
+-     * {@link ObjectWriteContext#writeTree}.
+-     *<p>
+-     * NOTE: this method does not trigger flushing of the generator (none of
+-     * {@link JsonGenerator} {@code writeXxx} methods do) in Jackson 3.x:
+-     * this is different from behavior in Jackson 2.x where a side effect
+-     * of delegation to {@code ObjectMapper} caused flushing to occur.
+-     *
+-     * @param rootNode {@link TreeNode} to write
+-     *
+-     * @return This generator, to allow call chaining
+-     *
+-     * @throws JacksonIOException if there is an underlying I/O problem
+-     * @throws StreamWriteException for problems in encoding token stream
+-     */
+     public JsonGenerator writeTree(TreeNode rootNode) throws JacksonException {
+         ObjectWriteContext ctx = objectWriteContext();
+         if (ctx == null) {
+diff --git a/src/main/java/tools/jackson/core/ObjectCodec.java b/src/main/java/tools/jackson/core/ObjectCodec.java
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/main/java/tools/jackson/core/ObjectCodec.java
+@@ -0,0 +1,10 @@
++package tools.jackson.core;
++
++/**
++ * Interface for high-level object serialization capabilities that
++ * can be optionally implemented by {@link JsonGenerator}s.
++ */
++public interface ObjectCodec {
++    JsonGenerator writePOJO(Object pojo) throws JacksonException;
++    JsonGenerator writeTree(TreeNode rootNode) throws JacksonException;
++}
+\ No newline at end of file

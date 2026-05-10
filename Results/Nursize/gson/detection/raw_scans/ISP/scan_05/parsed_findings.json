@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CLASS",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 44,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "TypeAdapter for java.lang.Class throws UnsupportedOperationException for both read and write methods.",
+    "reasoning": "The `TypeAdapter` interface implies bidirectional conversion (serialization and deserialization). The `TypeAdapters.CLASS` adapter explicitly throws `UnsupportedOperationException` for both its `write` and `read` methods, indicating that `java.lang.Class` is not intended for JSON conversion by Gson's default mechanisms. This violates ISP because clients using this `TypeAdapter` are forced to depend on methods that are not supported by its functionality, leading to runtime errors if invoked."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+    "entity_name": "JsonElement",
+    "entity_type": "class",
+    "line_start": 245,
+    "line_end": 316,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "Abstract JsonElement class acts as a 'fat interface' by defining numerous getAs... methods applicable only to primitive JSON types.",
+    "reasoning": "The `JsonElement` abstract class defines a large set of `getAs...` methods (e.g., `getAsString()`, `getAsNumber()`, `getAsBoolean()`) that are primarily semantically relevant for `JsonPrimitive`. By making these methods abstract and providing default implementations that throw `UnsupportedOperationException`, it forces its subclasses (`JsonArray`, `JsonObject`, `JsonNull`) to inherit or implement methods that are not applicable to their specific JSON type. This violates ISP because clients interacting with `JsonElement` are exposed to and forced to handle methods that are not universally applicable to all concrete `JsonElement` types, leading to runtime exceptions if misused."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonObject.java",
+    "entity_name": "JsonObject",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 244,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JsonObject is forced to implicitly implement irrelevant getAs... methods from JsonElement, throwing UnsupportedOperationException.",
+    "reasoning": "As a subclass of `JsonElement`, `JsonObject` is forced to implicitly provide implementations for methods like `getAsString()`, `getAsNumber()`, etc., which are inherently meaningless for a JSON object. These methods, inherited from `JsonElement`, throw `UnsupportedOperationException`. This violates ISP because clients of `JsonObject` are exposed to and can mistakenly call methods that are not supported by the type, leading to runtime errors. This is a direct consequence of `JsonElement` being a 'fat interface'."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonArray.java",
+    "entity_name": "JsonArray",
+    "entity_type": "class",
+    "line_start": 227,
+    "line_end": 313,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "JsonArray is forced to implement getAs... methods from JsonElement, throwing IllegalStateException for multi-element arrays.",
+    "reasoning": "As a subclass of `JsonElement`, `JsonArray` is forced to implement methods like `getAsString()`, `getAsNumber()`, etc. For arrays containing multiple elements, these methods throw an `IllegalStateException`, indicating they are not generally applicable to the array's nature. This pattern violates ISP because clients of `JsonArray` are exposed to methods that are not consistently supported by the type, potentially leading to unexpected runtime exceptions if the array does not meet the single-element primitive assumption. This is a direct consequence of `JsonElement` being a 'fat interface'."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonNull.java",
+    "entity_name": "JsonNull",
+    "entity_type": "class",
+    "line_start": 25,
+    "line_end": 50,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "JsonNull is forced to implicitly implement irrelevant getAs... methods from JsonElement, throwing UnsupportedOperationException.",
+    "reasoning": "As a subclass of `JsonElement`, `JsonNull` is forced to implicitly provide implementations for methods like `getAsString()`, `getAsNumber()`, etc., which are inherently meaningless for a JSON null value. These methods, inherited from `JsonElement`, throw `UnsupportedOperationException`. This violates ISP because clients of `JsonNull` are exposed to and can mistakenly call methods that are not supported by the type, leading to runtime errors. This is a direct consequence of `JsonElement` being a 'fat interface'."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/JsonStreamParser.java",
+    "entity_name": "JsonStreamParser.remove()",
+    "entity_type": "method",
+    "line_start": 105,
+    "line_end": 107,
+    "principle": "ISP",
+    "severity": "low",
+    "description": "The remove() method of JsonStreamParser, implementing Iterator, throws UnsupportedOperationException.",
+    "reasoning": "The `JsonStreamParser` implements the `Iterator` interface, which includes the optional `remove()` method. However, its implementation of `remove()` throws an `UnsupportedOperationException`. This violates ISP because clients using `JsonStreamParser` as an `Iterator` are forced to depend on a method that is not supported by the class's core functionality (streaming parsing does not involve removing elements from the underlying source). This indicates that the `Iterator` interface is too broad for this specific use case."
+  }
+]

@@ -1,0 +1,100 @@
+diff --git a/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java b/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java
+index 0675d6b..7d8f7c7 100644
+--- a/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java
++++ b/gson/src/main/java/com/google/gson/internal/reflect/ReflectionHelper.java
+@@ -184,16 +184,25 @@ public class ReflectionHelper {
+   }
+ 
+   public static String[] getRecordComponentNames(Class<?> raw) {
+-    return RECORD_HELPER.getRecordComponentNames(raw);
++    if (RECORD_HELPER instanceof RecordSupportedHelper) {
++      return ((RecordSupportedHelper) RECORD_HELPER).getRecordComponentNames(raw);
++    }
++    return new String[0];
+   }
+ 
+   /** Looks up the record accessor method that corresponds to the given record field */
+   public static Method getAccessor(Class<?> raw, Field field) {
+-    return RECORD_HELPER.getAccessor(raw, field);
++    if (RECORD_HELPER instanceof RecordSupportedHelper) {
++      return ((RecordSupportedHelper) RECORD_HELPER).getAccessor(raw, field);
++    }
++    return null;
+   }
+ 
+   public static <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {
+-    return RECORD_HELPER.getCanonicalRecordConstructor(raw);
++    if (RECORD_HELPER instanceof RecordSupportedHelper) {
++      return ((RecordSupportedHelper) RECORD_HELPER).getCanonicalRecordConstructor(raw);
++    }
++    return null;
+   }
+ 
+   public static RuntimeException createExceptionForUnexpectedIllegalAccess(
+@@ -222,12 +231,6 @@ public class ReflectionHelper {
+   /** Internal abstraction over reflection when Records are supported. */
+   private abstract static class RecordHelper {
+     abstract boolean isRecord(Class<?> clazz);
+-
+-    abstract String[] getRecordComponentNames(Class<?> clazz);
+-
+-    abstract <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw);
+-
+-    abstract Method getAccessor(Class<?> raw, Field field);
+   }
+ 
+   private static class RecordSupportedHelper extends RecordHelper {
+@@ -253,7 +256,6 @@ public class ReflectionHelper {
+       }
+     }
+ 
+-    @Override
+     String[] getRecordComponentNames(Class<?> raw) {
+       try {
+         Object[] recordComponents = (Object[]) getRecordComponents.invoke(raw);
+@@ -267,8 +269,7 @@ public class ReflectionHelper {
+       }
+     }
+ 
+-    @Override
+-    public <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {
++    <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {
+       try {
+         Object[] recordComponents = (Object[]) getRecordComponents.invoke(raw);
+         Class<?>[] recordComponentTypes = new Class<?>[recordComponents.length];
+@@ -283,8 +284,7 @@ public class ReflectionHelper {
+       }
+     }
+ 
+-    @Override
+-    public Method getAccessor(Class<?> raw, Field field) {
++    Method getAccessor(Class<?> raw, Field field) {
+       try {
+         // Records consists of record components, each with a unique name, a corresponding field and
+         // accessor method with the same name. Ref.:
+@@ -298,25 +298,9 @@ public class ReflectionHelper {
+ 
+   /** Instance used when records are not supported */
+   private static class RecordNotSupportedHelper extends RecordHelper {
+-
+     @Override
+     boolean isRecord(Class<?> clazz) {
+       return false;
+     }
+-
+-    @Override
+-    String[] getRecordComponentNames(Class<?> clazz) {
+-      return new String[0];
+-    }
+-
+-    @Override
+-    <T> Constructor<T> getCanonicalRecordConstructor(Class<T> raw) {
+-      return null;
+-    }
+-
+-    @Override
+-    public Method getAccessor(Class<?> raw, Field field) {
+-      return null;
+-    }
+   }
+ }

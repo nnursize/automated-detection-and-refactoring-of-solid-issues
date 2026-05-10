@@ -36,6 +36,7 @@ class PatchBlock(BaseModel):
 class TestResult(BaseModel):
     passed: bool
     command: str
+    return_code: int = 0
     total: int = 0
     passed_count: int = 0
     failed_count: int = 0

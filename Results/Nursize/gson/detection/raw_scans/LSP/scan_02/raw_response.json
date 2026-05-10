@@ -1,0 +1,62 @@
+{
+  "scan_id": "gson_LSP_scan_02",
+  "repo_name": "gson",
+  "principle": "LSP",
+  "scan_number": 2,
+  "timestamp": "2026-05-02T12:54:31.140704",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses tha...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java\",\n      \"entity_name\": \"JsonTreeReader\",\n      \"entity_type\": \"class\",\n      \"line_start\": 41,\n      \"line_end\": 223,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonTreeReader violates JsonReader's contract by using an unreadable internal Reader and changing close() behavior.\",\n      \"reasoning\": \"The `JsonTreeReader` extends `JsonReader`. Its constructor initializes the superclass with `UNREADABLE_READER`, an anonymous `Reader` implementation that throws `AssertionError` for `read` and `close` methods. This fundamentally breaks the contract of `JsonReader` (and `Closeable`). A client expecting a `JsonReader` to operate on an underlying `Reader` or to properly close resources will encounter an `AssertionError` when calling `close()` on a `JsonTreeReader` instance, instead of the expected `IOException` or a normal close. This makes `JsonTreeReader` not substitutable for `JsonReader` in scenarios where the underlying stream interaction or resource management is expected.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java\",\n      \"entity_name\": \"ObjectTypeAdapter.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 89,\n      \"line_end\": 97,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"ObjectTypeAdapter special-cases serialization for its own type using an instanceof check.\",\n      \"reasoning\": \"The `ObjectTypeAdapter.write` method contains an `instanceof` check: `if (typeAdapter instanceof ObjectTypeAdapter)`. If the `value` being serialized is an instance of `ObjectTypeAdapter` itself, it writes an empty JSON object (`{}`). For any other type of `value`, it delegates to `gson.getAdapter(value.getClass())`. This special-casing based on the concrete type of the object being serialized, rather than its declared type (`Object`), violates LSP. A client expecting consistent serialization behavior for `Object`s, regardless of whether that object is an `ObjectTypeAdapter` instance, will encounter unexpected output.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java\",\n      \"entity_name\": \"TypeAdapterRuntimeTypeWrapper.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 29,\n      \"line_end\": 64,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"TypeAdapterRuntimeTypeWrapper.write makes decisions based on concrete implementation types of its delegates.\",\n      \"reasoning\": \"The `write` method of `TypeAdapterRuntimeTypeWrapper` contains logic that explicitly checks the concrete type of its `runtimeTypeAdapter` and `delegate` using `instanceof` (e.g., `if (!(runtimeTypeAdapter instanceof ReflectiveTypeAdapterFactory.Adapter)) { ... } else if (!isReflective(delegate)) { ... }`). This decision-making based on the internal implementation details of the wrapped `TypeAdapter` (specifically whether it's a `ReflectiveTypeAdapterFactory.Adapter` or another kind) violates LSP. The behavior of `TypeAdapterRuntimeTypeWrapper` should be consistent regardless of the concrete type of the `TypeAdapter` it wraps, as long as that wrapped adapter adheres to the `TypeAdapter` interface contract. By changing its logic based on specific internal implementations, it breaks substitutability.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/LazilyParsedNumber.java\",\n      \"entity_name\": \"LazilyParsedNumber\",\n      \"entity_type\": \"class\",\n      \"line_start\": 26,\n      \"line_end\": 85,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"LazilyParsedNumber changes default Java serialization behavior for Number.\",\n      \"reasoning\": \"The `LazilyParsedNumber` class extends `Number` and implements `Serializable` implicitly. It overrides `writeReplace()` to return a `BigDecimal` instance, which fundamentally alters its serialized form when using Java's default serialization mechanism. Additionally, its `readObject()` method throws `InvalidObjectException`, preventing direct deserialization of `LazilyParsedNumber` instances. This violates LSP because `LazilyParsedNumber` is not substitutable for other `Number` subclasses (e.g., `Integer`, `Double`) in the context of Java's default serialization. A client expecting to serialize and deserialize any `Number` subclass using standard Java serialization would find `LazilyParsedNumber` behaving unexpectedly.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java",
+      "entity_name": "JsonTreeReader",
+      "entity_type": "class",
+      "line_start": 41,
+      "line_end": 223,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "JsonTreeReader violates JsonReader's contract by using an unreadable internal Reader and changing close() behavior.",
+      "reasoning": "The `JsonTreeReader` extends `JsonReader`. Its constructor initializes the superclass with `UNREADABLE_READER`, an anonymous `Reader` implementation that throws `AssertionError` for `read` and `close` methods. This fundamentally breaks the contract of `JsonReader` (and `Closeable`). A client expecting a `JsonReader` to operate on an underlying `Reader` or to properly close resources will encounter an `AssertionError` when calling `close()` on a `JsonTreeReader` instance, instead of the expected `IOException` or a normal close. This makes `JsonTreeReader` not substitutable for `JsonReader` in scenarios where the underlying stream interaction or resource management is expected."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ObjectTypeAdapter.java",
+      "entity_name": "ObjectTypeAdapter.write",
+      "entity_type": "method",
+      "line_start": 89,
+      "line_end": 97,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "ObjectTypeAdapter special-cases serialization for its own type using an instanceof check.",
+      "reasoning": "The `ObjectTypeAdapter.write` method contains an `instanceof` check: `if (typeAdapter instanceof ObjectTypeAdapter)`. If the `value` being serialized is an instance of `ObjectTypeAdapter` itself, it writes an empty JSON object (`{}`). For any other type of `value`, it delegates to `gson.getAdapter(value.getClass())`. This special-casing based on the concrete type of the object being serialized, rather than its declared type (`Object`), violates LSP. A client expecting consistent serialization behavior for `Object`s, regardless of whether that object is an `ObjectTypeAdapter` instance, will encounter unexpected output."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java",
+      "entity_name": "TypeAdapterRuntimeTypeWrapper.write",
+      "entity_type": "method",
+      "line_start": 29,
+      "line_end": 64,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "TypeAdapterRuntimeTypeWrapper.write makes decisions based on concrete implementation types of its delegates.",
+      "reasoning": "The `write` method of `TypeAdapterRuntimeTypeWrapper` contains logic that explicitly checks the concrete type of its `runtimeTypeAdapter` and `delegate` using `instanceof` (e.g., `if (!(runtimeTypeAdapter instanceof ReflectiveTypeAdapterFactory.Adapter)) { ... } else if (!isReflective(delegate)) { ... }`). This decision-making based on the internal implementation details of the wrapped `TypeAdapter` (specifically whether it's a `ReflectiveTypeAdapterFactory.Adapter` or another kind) violates LSP. The behavior of `TypeAdapterRuntimeTypeWrapper` should be consistent regardless of the concrete type of the `TypeAdapter` it wraps, as long as that wrapped adapter adheres to the `TypeAdapter` interface contract. By changing its logic based on specific internal implementations, it breaks substitutability."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/LazilyParsedNumber.java",
+      "entity_name": "LazilyParsedNumber",
+      "entity_type": "class",
+      "line_start": 26,
+      "line_end": 85,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "LazilyParsedNumber changes default Java serialization behavior for Number.",
+      "reasoning": "The `LazilyParsedNumber` class extends `Number` and implements `Serializable` implicitly. It overrides `writeReplace()` to return a `BigDecimal` instance, which fundamentally alters its serialized form when using Java's default serialization mechanism. Additionally, its `readObject()` method throws `InvalidObjectException`, preventing direct deserialization of `LazilyParsedNumber` instances. This violates LSP because `LazilyParsedNumber` is not substitutable for other `Number` subclasses (e.g., `Integer`, `Double`) in the context of Java's default serialization. A client expecting to serialize and deserialize any `Number` subclass using standard Java serialization would find `LazilyParsedNumber` behaving unexpectedly."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 33294.18134689331,
+  "error": null
+}

@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-024",
+  "principle": "OCP",
+  "title": "Refactor OCP-024 (OCP): The buildCondition method uses a long instanceof chain to dispatch compilatio...",
+  "branch": "refactor/OCP-024",
+  "base": "main",
+  "head_commit": "ebdec654880841571bcef5c4cdda9dcc09686534",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8769,
+    "completion_tokens": 850
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+    "entity_name": "Compiler.buildCondition",
+    "entity_type": "method",
+    "line_start": 115,
+    "line_end": 143,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "The buildCondition method uses a long instanceof chain to dispatch compilation logic based on expression types.",
+    "reasoning": "Adding a new type of BooleanExpression requires modifying this central compiler method to add a new branch. This violates OCP as the class is not closed for modification when extending the language's expression set. A better approach would be a visitor pattern or polymorphic dispatch on the expression objects themselves."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor EventCondition.Compiler to use a visitor pattern for expression compilation",
+    "rationale": "The long instanceof chain in buildCondition violates the Open/Closed Principle. By introducing a visitor interface (ConditionCompilerVisitor) and implementing it in the Compiler class, we delegate the dispatch logic to the expression types, allowing for easier extension without modifying the core compiler method.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+        "search_text": "        public EventCondition buildCondition(final BooleanExpression expression) {\n            synchronized (cache) {\n                final String cachekey = expression.toRubyString();\n                final EventCondition cached = cache.get(cachekey);\n                if (cached != null) {\n                    return cached;\n                }\n                final EventCondition condition;\n                if (expression instanceof Eq) {\n                    condition = eq((Eq) expression);\n                } else if (expression instanceof RegexEq) {\n                    condition = regex((RegexEq) expression);\n                } else if (expression instanceof In) {\n                    condition = in((In) expression);\n                } else if (expression instanceof Or || expression instanceof And) {\n                    condition = booleanCondition((BinaryBooleanExpression) expression);\n                } else if (expression instanceof Truthy) {\n                    condition = truthy((Truthy) expression);\n                } else if (expression instanceof Not) {\n                    condition = not((Not) expression);\n                } else if (expression instanceof Gt || expression instanceof Gte\n                        || expression instanceof Lt || expression instanceof Lte) {\n                    condition = comparison((BinaryBooleanExpression) expression);\n                } else if (expression instanceof Neq) {\n                    condition = not(eq((BinaryBooleanExpression) expression));\n                } else {\n                    throw new EventCondition.Compiler.UnexpectedTypeException(expression);\n                }\n                cache.put(cachekey, condition);\n                return condition;\n            }\n        }",
+        "replace_text": "        public EventCondition buildCondition(final BooleanExpression expression) {\n            synchronized (cache) {\n                final String cachekey = expression.toRubyString();\n                final EventCondition cached = cache.get(cachekey);\n                if (cached != null) {\n                    return cached;\n                }\n                final EventCondition condition = expression.accept(new ConditionCompilerVisitor(this));\n                cache.put(cachekey, condition);\n                return condition;\n            }\n        }\n\n        private final class ConditionCompilerVisitor implements org.logstash.config.ir.expression.BooleanExpressionVisitor<EventCondition> {\n            private final Compiler compiler;\n            ConditionCompilerVisitor(Compiler compiler) { this.compiler = compiler; }\n            @Override public EventCondition visit(Eq e) { return eq(e); }\n            @Override public EventCondition visit(RegexEq e) { return regex(e); }\n            @Override public EventCondition visit(In e) { return in(e); }\n            @Override public EventCondition visit(And e) { return booleanCondition(e); }\n            @Override public EventCondition visit(Or e) { return booleanCondition(e); }\n            @Override public EventCondition visit(Truthy e) { return truthy(e); }\n            @Override public EventCondition visit(Not e) { return not(e); }\n            @Override public EventCondition visit(Gt e) { return comparison(e); }\n            @Override public EventCondition visit(Gte e) { return comparison(e); }\n            @Override public EventCondition visit(Lt e) { return comparison(e); }\n            @Override public EventCondition visit(Lte e) { return comparison(e); }\n            @Override public EventCondition visit(Neq e) { return not(eq(e)); }\n        }",
+        "search_lines": 32,
+        "replace_lines": 29
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+        "loc": 628,
+        "blank_lines": 93,
+        "comment_lines": 1,
+        "function_count": 42,
+        "avg_cc": 3.33,
+        "max_cc": 99.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java",
+        "loc": 624,
+        "blank_lines": 94,
+        "comment_lines": 1,
+        "function_count": 42,
+        "avg_cc": 3.05,
+        "max_cc": 87.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java b/logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\nindex 62e3a3e..111f98a 100644\n--- a/logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\n+++ b/logstash-core/src/main/java/org/logstash/config/ir/compiler/EventCondition.java\n@@ -114,32 +114,29 @@ public interface EventCondition {\n                 if (cached != null) {\n                     return cached;\n                 }\n-                final EventCondition condition;\n-                if (expression instanceof Eq) {\n-                    condition = eq((Eq) expression);\n-                } else if (expression instanceof RegexEq) {\n-                    condition = regex((RegexEq) expression);\n-                } else if (expression instanceof In) {\n-                    condition = in((In) expression);\n-                } else if (expression instanceof Or || expression instanceof And) {\n-                    condition = booleanCondition((BinaryBooleanExpression) expression);\n-                } else if (expression instanceof Truthy) {\n-                    condition = truthy((Truthy) expression);\n-                } else if (expression instanceof Not) {\n-                    condition = not((Not) expression);\n-                } else if (expression instanceof Gt || expression instanceof Gte\n-                        || expression instanceof Lt || expression instanceof Lte) {\n-                    condition = comparison((BinaryBooleanExpression) expression);\n-                } else if (expression instanceof Neq) {\n-                    condition = not(eq((BinaryBooleanExpression) expression));\n-                } else {\n-                    throw new EventCondition.Compiler.UnexpectedTypeException(expression);\n-                }\n+                final EventCondition condition = expression.accept(new ConditionCompilerVisitor(this));\n                 cache.put(cachekey, condition);\n                 return condition;\n             }\n         }\n \n+        private final class ConditionCompilerVisitor implements org.logstash.config.ir.expression.BooleanExpressionVisitor<EventCondition> {\n+            private final Compiler compiler;\n+            ConditionCompilerVisitor(Compiler compiler) { this.compiler = compiler; }\n+            @Override public EventCondition visit(Eq e) { return eq(e); }\n+            @Override public EventCondition visit(RegexEq e) { return regex(e); }\n+            @Override public EventCondition visit(In e) { return in(e); }\n+            @Override public EventCondition visit(And e) { return booleanCondition(e); }\n+            @Override public EventCondition visit(Or e) { return booleanCondition(e); }\n+            @Override public EventCondition visit(Truthy e) { return truthy(e); }\n+            @Override public EventCondition visit(Not e) { return not(e); }\n+            @Override public EventCondition visit(Gt e) { return comparison(e); }\n+            @Override public EventCondition visit(Gte e) { return comparison(e); }\n+            @Override public EventCondition visit(Lt e) { return comparison(e); }\n+            @Override public EventCondition visit(Lte e) { return comparison(e); }\n+            @Override public EventCondition visit(Neq e) { return not(eq(e)); }\n+        }\n+\n         private EventCondition booleanCondition(final BinaryBooleanExpression expression) {\n             final Expression left = expression.getLeft();\n             final Expression right = expression.getRight();\n",
+  "duration_ms": 40680.91893196106
+}

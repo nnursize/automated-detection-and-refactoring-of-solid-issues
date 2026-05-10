@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+    "entity_name": "DatasetCompiler.Complement",
+    "entity_type": "class",
+    "line_start": 486,
+    "line_end": 541,
+    "principle": "ISP",
+    "severity": "medium",
+    "description": "Complement class implements Dataset but contains logic for a specific split-dataset branch which forces it to handle state and lifecycle management (done flag, clear method) that may not be relevant to all Dataset implementations.",
+    "reasoning": "The Dataset interface likely defines compute() and clear() methods. While Complement implements these, its internal state (done flag) and specific constructor requirements suggest it is a specialized implementation forced into a generic interface, leading to potential misuse or unnecessary state management for other Dataset implementations."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue",
+    "entity_type": "class",
+    "line_start": 55,
+    "line_end": 980,
+    "principle": "ISP",
+    "severity": "high",
+    "description": "The Queue class implements Closeable but acts as a massive service object containing logic for serialization, file locking, metrics, and page management.",
+    "reasoning": "The Queue class is a 'fat' class. By implementing Closeable, it forces a dependency on the close() method, but the class itself is burdened with far too many responsibilities (deserialization, metric collection, file system locking, page management). It violates ISP because clients needing only a simple queue interface are forced to depend on a class that exposes a vast, unrelated API surface."
+  }
+]

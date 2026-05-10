@@ -1,0 +1,183 @@
+{
+  "scan_id": "jackson-core_SRP_scan_08",
+  "repo_name": "jackson-core",
+  "principle": "SRP",
+  "scan_number": 8,
+  "timestamp": "2026-05-01T17:29:33.007326",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following java classes for violations of the Single Responsibility Principle (SRP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a cla...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._decodeBase64\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1307,\n      \"line_end\": 1403,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The parser directly implements Base64 decoding logic, which is a data transformation concern separate from JSON tokenization.\",\n      \"reasoning\": \"The core responsibility of a JSON parser is to tokenize and extract raw string values. Decoding a Base64 string into binary data is a specific data transformation that could be delegated to a separate utility or service. While convenient, embedding this logic within the parser couples it to a specific encoding scheme beyond basic UTF-8 decoding.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java\",\n      \"entity_name\": \"UTF8StreamJsonParser._readBinary\",\n      \"entity_type\": \"method\",\n      \"line_start\": 328,\n      \"line_end\": 427,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The parser directly implements Base64 decoding logic, which is a data transformation concern separate from JSON tokenization.\",\n      \"reasoning\": \"Similar to `_decodeBase64`, this method performs incremental Base64 decoding and writes the binary output to a provided OutputStream. This is a specific data transformation and I/O writing responsibility that falls outside the core parsing responsibility.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.writeTypePrefix\",\n      \"entity_type\": \"method\",\n      \"line_start\": 985,\n      \"line_end\": 1007,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The generator includes complex logic for handling type identifiers, which involves semantic interpretation and structural modification beyond basic token generation.\",\n      \"reasoning\": \"The core responsibility of a JsonGenerator is to write JSON tokens. The `writeTypePrefix` method, along with its helpers (`_writeTypePrefixUsingNative`, `_writeTypePrefixUsingWrapper`), contains logic to determine how type metadata should be embedded into the JSON structure (e.g., as a native ID, a wrapper object, or a property). This goes beyond simple token generation and introduces a semantic responsibility for type representation, which is typically a higher-level data-binding concern.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.writeTypeSuffix\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1060,\n      \"line_end\": 1098,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The generator includes complex logic for handling type identifiers, which involves semantic interpretation and structural modification beyond basic token generation.\",\n      \"reasoning\": \"Similar to `writeTypePrefix`, this method completes the type ID embedding process. It closes structural elements (objects/arrays) and writes the type ID in the appropriate location based on the `WritableTypeId` definition. This is part of the broader type ID handling responsibility, which is distinct from merely generating JSON tokens.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.copyCurrentEvent\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1285,\n      \"line_end\": 1329,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The generator consumes input from a JsonParser to copy events, mixing output generation with input consumption.\",\n      \"reasoning\": \"A JsonGenerator's primary responsibility is to produce JSON output. Methods like `copyCurrentEvent` require a `JsonParser` as an argument and read tokens from it to write corresponding tokens. This introduces a responsibility for consuming and transforming input, which is a separate concern from simply generating output. A dedicated 'JsonTransformer' or 'JsonCopier' class would be more appropriate for this functionality.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.copyCurrentEventExact\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1344,\n      \"line_end\": 1388,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The generator consumes input from a JsonParser to copy events, mixing output generation with input consumption.\",\n      \"reasoning\": \"Similar to `copyCurrentEvent`, this method consumes input from a `JsonParser` to copy events, violating the generator's single responsibility of producing output.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.copyCurrentStructure\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1409,\n      \"line_end\": 1435,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The generator consumes input from a JsonParser to copy entire structures, mixing output generation with input consumption.\",\n      \"reasoning\": \"Similar to `copyCurrentEvent`, this method consumes input from a `JsonParser` to copy an entire JSON structure (including nested objects and arrays), violating the generator's single responsibility of producing output.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator.copyCurrentStructureExact\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1449,\n      \"line_end\": 1475,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The generator consumes input from a JsonParser to copy entire structures, mixing output generation with input consumption.\",\n      \"reasoning\": \"Similar to `copyCurrentStructure`, this method consumes input from a `JsonParser` to copy an entire JSON structure, violating the generator's single responsibility of producing output.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java\",\n      \"entity_name\": \"UTF8JsonGenerator._writeBinary\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1581,\n      \"line_end\": 1729,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The generator directly implements Base64 encoding logic, which is a data transformation concern separate from JSON token generation.\",\n      \"reasoning\": \"The core responsibility of a JSON generator is to write JSON tokens. Encoding binary data into a Base64 string is a specific data transformation that could be delegated to a separate utility. While convenient for writing binary values, embedding this logic couples the generator to a specific encoding scheme beyond basic UTF-8 encoding.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator._writeBinary\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1617,\n      \"line_end\": 1765,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The generator directly implements Base64 encoding logic, which is a data transformation concern separate from JSON token generation.\",\n      \"reasoning\": \"Similar to `UTF8JsonGenerator`, this method performs Base64 encoding of binary data into characters for output. This is a specific data transformation responsibility that could be delegated to a separate utility, rather than being part of the core JSON token generation logic.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._optimizedStreamFromURL\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1283,\n      \"line_end\": 1308,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The factory includes logic for optimizing and opening input streams from URLs, which is a low-level I/O resource management concern.\",\n      \"reasoning\": \"A factory's primary responsibility is to create parser/generator instances. Opening and optimizing input streams from various sources (like URLs, files) is a distinct responsibility related to I/O resource management. This logic could be externalized to a dedicated I/O utility class, allowing the factory to focus solely on creating and configuring stream processors.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._fileInputStream\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1317,\n      \"line_end\": 1325,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The factory includes logic for opening input streams from files, which is a low-level I/O resource management concern.\",\n      \"reasoning\": \"Similar to `_optimizedStreamFromURL`, this method directly handles opening `FileInputStream`s. This is an I/O resource management task that is separate from the factory's core responsibility of creating stream processors.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._pathInputStream\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1327,\n      \"line_end\": 1335,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The factory includes logic for opening input streams from Paths, which is a low-level I/O resource management concern.\",\n      \"reasoning\": \"Similar to `_fileInputStream`, this method directly handles opening input streams from `Path` objects. This is an I/O resource management task that is separate from the factory's core responsibility.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._fileOutputStream\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1344,\n      \"line_end\": 1352,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The factory includes logic for opening output streams to files, which is a low-level I/O resource management concern.\",\n      \"reasoning\": \"This method directly handles opening `FileOutputStream`s. This is an I/O resource management task that is separate from the factory's core responsibility of creating stream processors.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/TokenStreamFactory.java\",\n      \"entity_name\": \"TokenStreamFactory._pathOutputStream\",\n      \"entity_type\": \"method\",\n      \"line_start\": 1354,\n      \"line_end\": 1362,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"The factory includes logic for opening output streams to Paths, which is a low-level I/O resource management concern.\",\n      \"reasoning\": \"Similar to `_fileOutputStream`, this method directly handles opening output streams to `Path` objects. This is an I/O resource management task that is separate from the factory's core responsibility.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._decodeBase64",
+      "entity_type": "method",
+      "line_start": 1307,
+      "line_end": 1403,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The parser directly implements Base64 decoding logic, which is a data transformation concern separate from JSON tokenization.",
+      "reasoning": "The core responsibility of a JSON parser is to tokenize and extract raw string values. Decoding a Base64 string into binary data is a specific data transformation that could be delegated to a separate utility or service. While convenient, embedding this logic within the parser couples it to a specific encoding scheme beyond basic UTF-8 decoding."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+      "entity_name": "UTF8StreamJsonParser._readBinary",
+      "entity_type": "method",
+      "line_start": 328,
+      "line_end": 427,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The parser directly implements Base64 decoding logic, which is a data transformation concern separate from JSON tokenization.",
+      "reasoning": "Similar to `_decodeBase64`, this method performs incremental Base64 decoding and writes the binary output to a provided OutputStream. This is a specific data transformation and I/O writing responsibility that falls outside the core parsing responsibility."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.writeTypePrefix",
+      "entity_type": "method",
+      "line_start": 985,
+      "line_end": 1007,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The generator includes complex logic for handling type identifiers, which involves semantic interpretation and structural modification beyond basic token generation.",
+      "reasoning": "The core responsibility of a JsonGenerator is to write JSON tokens. The `writeTypePrefix` method, along with its helpers (`_writeTypePrefixUsingNative`, `_writeTypePrefixUsingWrapper`), contains logic to determine how type metadata should be embedded into the JSON structure (e.g., as a native ID, a wrapper object, or a property). This goes beyond simple token generation and introduces a semantic responsibility for type representation, which is typically a higher-level data-binding concern."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.writeTypeSuffix",
+      "entity_type": "method",
+      "line_start": 1060,
+      "line_end": 1098,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The generator includes complex logic for handling type identifiers, which involves semantic interpretation and structural modification beyond basic token generation.",
+      "reasoning": "Similar to `writeTypePrefix`, this method completes the type ID embedding process. It closes structural elements (objects/arrays) and writes the type ID in the appropriate location based on the `WritableTypeId` definition. This is part of the broader type ID handling responsibility, which is distinct from merely generating JSON tokens."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.copyCurrentEvent",
+      "entity_type": "method",
+      "line_start": 1285,
+      "line_end": 1329,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The generator consumes input from a JsonParser to copy events, mixing output generation with input consumption.",
+      "reasoning": "A JsonGenerator's primary responsibility is to produce JSON output. Methods like `copyCurrentEvent` require a `JsonParser` as an argument and read tokens from it to write corresponding tokens. This introduces a responsibility for consuming and transforming input, which is a separate concern from simply generating output. A dedicated 'JsonTransformer' or 'JsonCopier' class would be more appropriate for this functionality."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.copyCurrentEventExact",
+      "entity_type": "method",
+      "line_start": 1344,
+      "line_end": 1388,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The generator consumes input from a JsonParser to copy events, mixing output generation with input consumption.",
+      "reasoning": "Similar to `copyCurrentEvent`, this method consumes input from a `JsonParser` to copy events, violating the generator's single responsibility of producing output."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.copyCurrentStructure",
+      "entity_type": "method",
+      "line_start": 1409,
+      "line_end": 1435,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The generator consumes input from a JsonParser to copy entire structures, mixing output generation with input consumption.",
+      "reasoning": "Similar to `copyCurrentEvent`, this method consumes input from a `JsonParser` to copy an entire JSON structure (including nested objects and arrays), violating the generator's single responsibility of producing output."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator.copyCurrentStructureExact",
+      "entity_type": "method",
+      "line_start": 1449,
+      "line_end": 1475,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The generator consumes input from a JsonParser to copy entire structures, mixing output generation with input consumption.",
+      "reasoning": "Similar to `copyCurrentStructure`, this method consumes input from a `JsonParser` to copy an entire JSON structure, violating the generator's single responsibility of producing output."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "entity_name": "UTF8JsonGenerator._writeBinary",
+      "entity_type": "method",
+      "line_start": 1581,
+      "line_end": 1729,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The generator directly implements Base64 encoding logic, which is a data transformation concern separate from JSON token generation.",
+      "reasoning": "The core responsibility of a JSON generator is to write JSON tokens. Encoding binary data into a Base64 string is a specific data transformation that could be delegated to a separate utility. While convenient for writing binary values, embedding this logic couples the generator to a specific encoding scheme beyond basic UTF-8 encoding."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator._writeBinary",
+      "entity_type": "method",
+      "line_start": 1617,
+      "line_end": 1765,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The generator directly implements Base64 encoding logic, which is a data transformation concern separate from JSON token generation.",
+      "reasoning": "Similar to `UTF8JsonGenerator`, this method performs Base64 encoding of binary data into characters for output. This is a specific data transformation responsibility that could be delegated to a separate utility, rather than being part of the core JSON token generation logic."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._optimizedStreamFromURL",
+      "entity_type": "method",
+      "line_start": 1283,
+      "line_end": 1308,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The factory includes logic for optimizing and opening input streams from URLs, which is a low-level I/O resource management concern.",
+      "reasoning": "A factory's primary responsibility is to create parser/generator instances. Opening and optimizing input streams from various sources (like URLs, files) is a distinct responsibility related to I/O resource management. This logic could be externalized to a dedicated I/O utility class, allowing the factory to focus solely on creating and configuring stream processors."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._fileInputStream",
+      "entity_type": "method",
+      "line_start": 1317,
+      "line_end": 1325,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The factory includes logic for opening input streams from files, which is a low-level I/O resource management concern.",
+      "reasoning": "Similar to `_optimizedStreamFromURL`, this method directly handles opening `FileInputStream`s. This is an I/O resource management task that is separate from the factory's core responsibility of creating stream processors."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._pathInputStream",
+      "entity_type": "method",
+      "line_start": 1327,
+      "line_end": 1335,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The factory includes logic for opening input streams from Paths, which is a low-level I/O resource management concern.",
+      "reasoning": "Similar to `_fileInputStream`, this method directly handles opening input streams from `Path` objects. This is an I/O resource management task that is separate from the factory's core responsibility."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._fileOutputStream",
+      "entity_type": "method",
+      "line_start": 1344,
+      "line_end": 1352,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The factory includes logic for opening output streams to files, which is a low-level I/O resource management concern.",
+      "reasoning": "This method directly handles opening `FileOutputStream`s. This is an I/O resource management task that is separate from the factory's core responsibility of creating stream processors."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/TokenStreamFactory.java",
+      "entity_name": "TokenStreamFactory._pathOutputStream",
+      "entity_type": "method",
+      "line_start": 1354,
+      "line_end": 1362,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "The factory includes logic for opening output streams to Paths, which is a low-level I/O resource management concern.",
+      "reasoning": "Similar to `_fileOutputStream`, this method directly handles opening output streams to `Path` objects. This is an I/O resource management task that is separate from the factory's core responsibility."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 37587.7845287323,
+  "error": null
+}

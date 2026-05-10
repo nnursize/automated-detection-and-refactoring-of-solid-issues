@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini",
+  "latency_ms": 1382.448434829712,
+  "prompt_tokens": 3262,
+  "completion_tokens": 190,
+  "finish_reason": "FinishReason.STOP",
+  "raw_text": "```json\n{\n  \"summary\": \"Remove _decodeEscaped override that throws UnsupportedOperationException\",\n  \"rationale\": \"The method _decodeEscaped is not used by non-blocking parsers, and throwing an exception violates the Liskov Substitution Principle. Removing the override allows the base class implementation (which is likely safer or empty) to be used, or simply avoids the illegal state transition.\",\n  \"files_touched\": [\"src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java\"]\n}\n```\n\n<<<<<<< SEARCH\n    // Should never be called: cannot be implemented quite as expected\n    // due to non-blocking behavior\n    @Override\n    protected char _decodeEscaped() throws JacksonException {\n        VersionUtil.throwInternal();\n        return ' ';\n    }\n=======\n>>>>>>> REPLACE"
+}

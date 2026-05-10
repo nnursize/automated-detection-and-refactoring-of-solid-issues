@@ -1,0 +1,51 @@
+{
+  "scan_id": "Catch2_LSP_scan_02",
+  "repo_name": "Catch2",
+  "principle": "LSP",
+  "scan_number": 2,
+  "timestamp": "2026-05-02T17:21:41.243724",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following c++ source code repository for violations of the Liskov Substitution Principle (LSP).\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.\n\n## What to Look For\n- Subclasses that override methods and change their expected behavior\n- Subclasses that raise exceptions not raised by the parent\n- Subclasses that...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::TestCaseTracking::ITracker\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9015,\n      \"line_end\": 9022,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base class provides type-querying methods to distinguish between subtypes.\",\n      \"reasoning\": \"The inclusion of `isSectionTracker()` and `isGeneratorTracker()` in the `ITracker` base interface is a violation of LSP. It indicates that the base abstraction is insufficient to handle all tracker types uniformly. Callers holding an `ITracker*` are encouraged to branch behavior based on these type-checking hooks rather than relying on polymorphic behavior, which breaks the principle that subtypes should be transparently substitutable for their base types.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::Clara::Detail::BoundRef\",\n      \"entity_type\": \"class\",\n      \"line_start\": 5595,\n      \"line_end\": 5599,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base class uses explicit type-checking hooks (isContainer, isFlag) to handle subclasses differently.\",\n      \"reasoning\": \"The `BoundRef` struct defines virtual methods `isContainer()` and `isFlag()` that return `false` by default and are overridden by specific subclasses. This pattern is used in `ParserRefImpl::cardinality` to branch logic based on the specific subtype. This violates LSP as the consumer of the base class must be aware of the specific implementation categories of the subtypes to ensure correct program behavior.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Catch::CumulativeReporterBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 7668,\n      \"line_end\": 7727,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Subclass enforces mandatory internal state-management side-effects on further subtypes.\",\n      \"reasoning\": \"The documentation for `CumulativeReporterBase` explicitly states that subclasses overriding testing-related member functions (like `sectionStarting` or `assertionEnded`) must call the base implementation to avoid breaking internal tree construction. This imposes a strict behavioral contract on subtypes that is not present in the parent `IEventListener` interface. If a subtype fails to call the base method, it violates the postconditions required for the correctness of the cumulative report (leading to UB), meaning the subtype is not safely substitutable for the base class.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::TestCaseTracking::ITracker",
+      "entity_type": "class",
+      "line_start": 9015,
+      "line_end": 9022,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Base class provides type-querying methods to distinguish between subtypes.",
+      "reasoning": "The inclusion of `isSectionTracker()` and `isGeneratorTracker()` in the `ITracker` base interface is a violation of LSP. It indicates that the base abstraction is insufficient to handle all tracker types uniformly. Callers holding an `ITracker*` are encouraged to branch behavior based on these type-checking hooks rather than relying on polymorphic behavior, which breaks the principle that subtypes should be transparently substitutable for their base types."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::Clara::Detail::BoundRef",
+      "entity_type": "class",
+      "line_start": 5595,
+      "line_end": 5599,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Base class uses explicit type-checking hooks (isContainer, isFlag) to handle subclasses differently.",
+      "reasoning": "The `BoundRef` struct defines virtual methods `isContainer()` and `isFlag()` that return `false` by default and are overridden by specific subclasses. This pattern is used in `ParserRefImpl::cardinality` to branch logic based on the specific subtype. This violates LSP as the consumer of the base class must be aware of the specific implementation categories of the subtypes to ensure correct program behavior."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Catch::CumulativeReporterBase",
+      "entity_type": "class",
+      "line_start": 7668,
+      "line_end": 7727,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Subclass enforces mandatory internal state-management side-effects on further subtypes.",
+      "reasoning": "The documentation for `CumulativeReporterBase` explicitly states that subclasses overriding testing-related member functions (like `sectionStarting` or `assertionEnded`) must call the base implementation to avoid breaking internal tree construction. This imposes a strict behavioral contract on subtypes that is not present in the parent `IEventListener` interface. If a subtype fails to call the base method, it violates the postconditions required for the correctness of the cumulative report (leading to UB), meaning the subtype is not safely substitutable for the base class."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 205096.41885757446,
+  "error": null
+}

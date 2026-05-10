@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-014",
+  "principle": "DIP",
+  "title": "Refactor DIP-014 (DIP): Factory method directly instantiating plugins without abstraction injection",
+  "branch": "refactor/DIP-014",
+  "base": "main",
+  "head_commit": "3530d4ce668fcabfd6bd6d37dc11d2e4033e39d4",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3843,
+    "completion_tokens": 1052
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+    "entity_name": "PluginFactoryExt.buildInput",
+    "entity_type": "class",
+    "line_start": 119,
+    "line_end": 122,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Factory method directly instantiating plugins without abstraction injection",
+    "reasoning": "The method is responsible for instantiating plugins directly. In a DIP-compliant architecture, the factory should utilize a registry or provider pattern where the injection of the plugin implementation is managed outside of the instantiation logic."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject plugin creators into PluginFactoryExt instead of instantiating them internally",
+    "rationale": "The PluginFactoryExt was directly instantiating concrete creator classes (InputPluginCreator, etc.) in registerDefaultCreators. By moving the registration to the constructor or an initialization method that accepts a map of creators, we decouple the factory from the concrete implementations, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "search_text": "    private final transient Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> pluginCreatorsRegistry = new HashMap<>(4);\n\n    public PluginFactoryExt(final Ruby runtime, final RubyClass metaClass) {\n        this(runtime, metaClass, new PluginLookup(PluginRegistry.getInstance()));\n    }\n\n    PluginFactoryExt(final Ruby runtime, final RubyClass metaClass, PluginResolver pluginResolver) {\n        super(runtime, metaClass);\n        this.pluginResolver = pluginResolver;\n    }\n\n    public PluginFactoryExt init(final PipelineIR lir,\n                                     final PluginMetricsFactoryExt metrics,\n                                     final ExecutionContextFactoryExt executionContextFactoryExt,\n                                     final RubyClass filterClass) {\n        return this.init(lir, metrics, executionContextFactoryExt, filterClass, EnvironmentVariableProvider.defaultProvider());\n    }\n\n    PluginFactoryExt init(final PipelineIR lir,\n                          final PluginMetricsFactoryExt metrics,\n                          final ExecutionContextFactoryExt executionContextFactoryExt,\n                          final RubyClass filterClass,\n                          final EnvironmentVariableProvider envVars) {\n        this.lir = lir;\n        this.metrics = metrics;\n        this.executionContextFactory = executionContextFactoryExt;\n        this.filterDelegatorClass = filterClass;\n        registerDefaultCreators(filterClass);\n        this.configVariables = ConfigVariableExpander.withoutSecret(envVars);\n        this.idGenerator = new PluginIdGenerator(lir, this.configVariables);\n        return this;\n    }\n\n    private void registerDefaultCreators(RubyClass filterClass) {\n        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.INPUT, new InputPluginCreator(this));\n        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.CODEC, new CodecPluginCreator());\n        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator(filterClass));\n        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));\n    }",
+        "replace_text": "    private final Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> pluginCreatorsRegistry;\n\n    public PluginFactoryExt(final Ruby runtime, final RubyClass metaClass) {\n        this(runtime, metaClass, new PluginLookup(PluginRegistry.getInstance()), new HashMap<>());\n    }\n\n    PluginFactoryExt(final Ruby runtime, final RubyClass metaClass, PluginResolver pluginResolver, Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> creators) {\n        super(runtime, metaClass);\n        this.pluginResolver = pluginResolver;\n        this.pluginCreatorsRegistry = creators;\n    }\n\n    public PluginFactoryExt init(final PipelineIR lir,\n                                     final PluginMetricsFactoryExt metrics,\n                                     final ExecutionContextFactoryExt executionContextFactoryExt,\n                                     final RubyClass filterClass) {\n        return this.init(lir, metrics, executionContextFactoryExt, filterClass, EnvironmentVariableProvider.defaultProvider());\n    }\n\n    PluginFactoryExt init(final PipelineIR lir,\n                          final PluginMetricsFactoryExt metrics,\n                          final ExecutionContextFactoryExt executionContextFactoryExt,\n                          final RubyClass filterClass,\n                          final EnvironmentVariableProvider envVars) {\n        this.lir = lir;\n        this.metrics = metrics;\n        this.executionContextFactory = executionContextFactoryExt;\n        this.filterDelegatorClass = filterClass;\n        if (pluginCreatorsRegistry.isEmpty()) {\n            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.INPUT, new InputPluginCreator(this));\n            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.CODEC, new CodecPluginCreator());\n            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator(filterClass));\n            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));\n        }\n        this.configVariables = ConfigVariableExpander.withoutSecret(envVars);\n        this.idGenerator = new PluginIdGenerator(lir, this.configVariables);\n        return this;\n    }",
+        "search_lines": 39,
+        "replace_lines": 38
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "loc": 218,
+        "blank_lines": 38,
+        "comment_lines": 2,
+        "function_count": 11,
+        "avg_cc": 1.82,
+        "max_cc": 10.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java",
+        "loc": 218,
+        "blank_lines": 37,
+        "comment_lines": 2,
+        "function_count": 10,
+        "avg_cc": 2.0,
+        "max_cc": 11.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\nindex 9763d2a..c32a0a1 100644\n--- a/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\n+++ b/logstash-core/src/main/java/org/logstash/plugins/factory/PluginFactoryExt.java\n@@ -60,15 +60,16 @@ public final class PluginFactoryExt extends RubyBasicObject\n \n     private transient PluginIdGenerator idGenerator;\n \n-    private final transient Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> pluginCreatorsRegistry = new HashMap<>(4);\n+    private final Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> pluginCreatorsRegistry;\n \n     public PluginFactoryExt(final Ruby runtime, final RubyClass metaClass) {\n-        this(runtime, metaClass, new PluginLookup(PluginRegistry.getInstance()));\n+        this(runtime, metaClass, new PluginLookup(PluginRegistry.getInstance()), new HashMap<>());\n     }\n \n-    PluginFactoryExt(final Ruby runtime, final RubyClass metaClass, PluginResolver pluginResolver) {\n+    PluginFactoryExt(final Ruby runtime, final RubyClass metaClass, PluginResolver pluginResolver, Map<PluginLookup.PluginType, AbstractPluginCreator<? extends Plugin>> creators) {\n         super(runtime, metaClass);\n         this.pluginResolver = pluginResolver;\n+        this.pluginCreatorsRegistry = creators;\n     }\n \n     public PluginFactoryExt init(final PipelineIR lir,\n@@ -87,19 +88,17 @@ public final class PluginFactoryExt extends RubyBasicObject\n         this.metrics = metrics;\n         this.executionContextFactory = executionContextFactoryExt;\n         this.filterDelegatorClass = filterClass;\n-        registerDefaultCreators(filterClass);\n+        if (pluginCreatorsRegistry.isEmpty()) {\n+            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.INPUT, new InputPluginCreator(this));\n+            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.CODEC, new CodecPluginCreator());\n+            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator(filterClass));\n+            this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));\n+        }\n         this.configVariables = ConfigVariableExpander.withoutSecret(envVars);\n         this.idGenerator = new PluginIdGenerator(lir, this.configVariables);\n         return this;\n     }\n \n-    private void registerDefaultCreators(RubyClass filterClass) {\n-        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.INPUT, new InputPluginCreator(this));\n-        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.CODEC, new CodecPluginCreator());\n-        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.FILTER, new FilterPluginCreator(filterClass));\n-        this.pluginCreatorsRegistry.put(PluginLookup.PluginType.OUTPUT, new OutputPluginCreator(this));\n-    }\n-\n     @SuppressWarnings(\"unchecked\")\n     @Override\n     public IRubyObject buildInput(final RubyString name,\n",
+  "duration_ms": 21314.252614974976
+}

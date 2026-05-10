@@ -1,0 +1,62 @@
+diff --git a/gson/src/main/java/com/google/gson/GsonBuilder.java b/gson/src/main/java/com/google/gson/GsonBuilder.java
+index 6e411f6..74d09a2 100644
+--- a/gson/src/main/java/com/google/gson/GsonBuilder.java
++++ b/gson/src/main/java/com/google/gson/GsonBuilder.java
+@@ -125,6 +125,31 @@ public final class GsonBuilder {
+       GsonBuilder.DEFAULT.createFactories(
+           DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);
+ 
++  private static final List<TypeAdapterFactoryProvider> BUILT_IN_FACTORY_PROVIDERS = new ArrayList<>();
++
++  static {
++    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {
++      factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
++      factories.add(ObjectTypeAdapter.getFactory(DEFAULT.objectToNumberStrategy));
++    });
++    BUILT_IN_FACTORY_PROVIDERS.add(factories -> {
++      factories.add(new CollectionTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR));
++      factories.add(new MapTypeAdapterFactory(DEFAULT_CONSTRUCTOR_CONSTRUCTOR, DEFAULT.complexMapKeySerialization));
++      factories.add(DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY);
++      factories.add(TypeAdapters.ENUM_FACTORY);
++    });
++  }
++
++  /** @internal */
++  public static void registerBuiltInFactoryProvider(TypeAdapterFactoryProvider provider) {
++    BUILT_IN_FACTORY_PROVIDERS.add(provider);
++  }
++
++  /** @internal */
++  public interface TypeAdapterFactoryProvider {
++    void addFactories(List<TypeAdapterFactory> factories);
++  }
++
+   Excluder excluder = Excluder.DEFAULT;
+   LongSerializationPolicy longSerializationPolicy = LongSerializationPolicy.DEFAULT;
+   FieldNamingStrategy fieldNamingPolicy = DEFAULT_FIELD_NAMING_STRATEGY;
+@@ -927,9 +952,10 @@ public final class GsonBuilder {
+       JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory) {
+     ArrayList<TypeAdapterFactory> factories = new ArrayList<>();
+ 
+-    // built-in type adapters that cannot be overridden
+-    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
+-    factories.add(ObjectTypeAdapter.getFactory(objectToNumberStrategy));
++    // built-in type adapters
++    for (TypeAdapterFactoryProvider provider : BUILT_IN_FACTORY_PROVIDERS) {
++      provider.addFactories(factories);
++    }
+ 
+     // the excluder must precede all adapters that handle user-defined types
+     factories.add(excluder);
+@@ -942,11 +968,6 @@ public final class GsonBuilder {
+ 
+     addPlatformTypeAdapters(factories);
+ 
+-    // type adapters for composite and user-defined types
+-    factories.add(new CollectionTypeAdapterFactory(constructorConstructor));
+-    factories.add(new MapTypeAdapterFactory(constructorConstructor, complexMapKeySerialization));
+-    factories.add(jsonAdapterFactory);
+-    factories.add(TypeAdapters.ENUM_FACTORY);
+     factories.add(
+         new ReflectiveTypeAdapterFactory(
+             constructorConstructor,

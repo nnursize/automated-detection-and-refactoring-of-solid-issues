@@ -1,0 +1,61 @@
+{
+  "issue_id": "LSP-013",
+  "principle": "LSP",
+  "title": "Refactor LSP-013 (LSP): Subclasses are forced to throw UnsupportedOperationException for specific wri...",
+  "branch": "refactor/LSP-013",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "no patch blocks produced by LLM",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5302,
+    "completion_tokens": 463
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+    "entity_name": "GeneratorBase.writeString",
+    "entity_type": "class",
+    "line_start": 229,
+    "line_end": 231,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "Subclasses are forced to throw UnsupportedOperationException for specific write methods",
+    "reasoning": "The base class provides an implementation that throws UnsupportedOperationException for methods like writeString(Reader, int). This breaks the substitutability principle because a client expects a working JsonGenerator implementation, not one that fails at runtime for standard interface methods."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove UnsupportedOperationException from default implementations in GeneratorBase",
+    "rationale": "The Liskov Substitution Principle is violated when base class methods throw UnsupportedOperationException for standard interface operations. While these methods are intended to be overridden, they should provide a default implementation (e.g., using writeString(String)) or be marked abstract to force implementation, rather than throwing runtime exceptions that break client expectations.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [],
+    "patch_blocks_count": 0,
+    "changes": []
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+        "loc": 387,
+        "blank_lines": 74,
+        "comment_lines": 33,
+        "function_count": 23,
+        "avg_cc": 2.87,
+        "max_cc": 44.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 2753.469467163086
+}

@@ -1,0 +1,40 @@
+{
+  "issue_id": "ISP-017",
+  "principle": "ISP",
+  "title": "Refactor ISP-017 (ISP): The 'co.elastic.logstash.api.Event' interface is a fat interface, bundling to...",
+  "branch": "refactor/ISP-017",
+  "base": "main",
+  "head_commit": "22b093a1453fbe4f3f30563aa4cab10cf4907391",
+  "status": "obsolete",
+  "obsolete_reason": "entity `co.elastic.logstash.api.Event` not found in current source of `logstash-core/src/main/java/org/logstash/Event.java` \u2014 likely renamed/removed by an earlier refactor",
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "co.elastic.logstash.api.Event",
+    "entity_type": "class",
+    "line_start": 36,
+    "line_end": 37,
+    "severity": "high",
+    "scan_count": 1,
+    "description": "The 'co.elastic.logstash.api.Event' interface is a fat interface, bundling too many responsibilities.",
+    "reasoning": "The 'co.elastic.logstash.api.Event' interface defines a large number of methods covering diverse functionalities such as field access, modification, cancellation, timestamp management, tagging, cloning, and merging. Clients (e.g., plugins) that only need a subset of these functionalities (e.g., only reading fields or only tagging) are forced to depend on the entire broad interface, including methods they do not use. This violates ISP by not segregating the interface into more focused roles like 'ReadableEvent', 'WritableEvent', 'CloneableEvent', etc."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 79.55431938171387
+}

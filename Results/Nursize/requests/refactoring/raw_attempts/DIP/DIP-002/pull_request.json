@@ -1,0 +1,100 @@
+{
+  "issue_id": "DIP-002",
+  "principle": "DIP",
+  "title": "Refactor DIP-002 (DIP): Session directly instantiates concrete HTTPAdapter objects for transport.",
+  "branch": "refactor/DIP-002",
+  "base": "main",
+  "head_commit": "d97e7e9c79ed8bfa8dd1b666962c1c28fe28d2ad",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 9084,
+    "completion_tokens": 1356
+  },
+  "detected_issue": {
+    "file_path": "src/requests/sessions.py",
+    "entity_name": "Session.__init__",
+    "entity_type": "class",
+    "line_start": 161,
+    "line_end": 161,
+    "severity": "high",
+    "scan_count": 12,
+    "description": "Session directly instantiates concrete HTTPAdapter objects for transport.",
+    "reasoning": "The `Session` class, a high-level orchestrator for HTTP requests, directly creates instances of `HTTPAdapter` and mounts them for 'https://' and 'http://' schemes. This hardcodes the transport mechanism, making the `Session` tightly coupled to the concrete `HTTPAdapter` implementation. If a different transport adapter (e.g., for custom protocols, mocking, or alternative HTTP libraries) were needed, the `Session` class itself would require modification, violating DIP's principle that high-level modules should depend on abstractions (e.g., an `ITransportAdapter` interface) rather than concrete implementations."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject default HTTPAdapter instances into Session via constructor to improve testability and decouple dependencies.",
+    "rationale": "The Session class was hardcoding the instantiation of HTTPAdapter. By allowing these to be passed as optional arguments (defaulting to the original behavior), we enable dependency injection, allowing users or tests to provide mock or custom adapters without modifying the Session class.",
+    "files_touched": [
+      "src/requests/sessions.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/sessions.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/sessions.py",
+        "search_text": "    def __init__(self):\n        #: A case-insensitive dictionary of headers to be sent on each\n        #: :class:`Request <Request>` sent from this\n        #: :class:`Session <Session>`.\n        self.headers = default_headers()\n\n        #: Default Authentication tuple or object to attach to\n        #: :class:`Request <Request>`.\n        self.auth = None\n\n        #: Dictionary mapping protocol or protocol and host to the URL of the proxy\n        #: (e.g. {'http': 'foo.bar:3128', 'http://host.name': 'foo.bar:4012'}) to\n        #: be used on each :class:`Request <Request>`.\n        self.proxies = {}\n\n        #: Event-handling hooks.\n        self.hooks = default_hooks()\n\n        #: Dictionary of querystring data to attach to each\n        #: :class:`Request <Request>`. The dictionary values may be lists for\n        #: representing multivalued query parameters.\n        self.params = {}\n\n        #: Stream response content default.\n        self.stream = False\n\n        #: SSL Verification default.\n        #: Defaults to `True`, requiring requests to verify the TLS certificate at the\n        #: remote end.\n        #: If verify is set to `False`, requests will accept any TLS certificate\n        #: presented by the server, and will ignore hostname mismatches and/or\n        #: expired certificates, which will make your application vulnerable to\n        #: man-in-the-middle (MitM) attacks.\n        #: Only set this to `False` for testing.\n        self.verify = True\n\n        #: SSL client certificate default, if String, path to ssl client\n        #: cert file (.pem). If Tuple, ('cert', 'key') pair.\n        self.cert = None\n\n        #: Maximum number of redirects allowed. If the request exceeds this\n        #: limit, a :class:`TooManyRedirects` exception is raised.\n        #: This defaults to requests.models.DEFAULT_REDIRECT_LIMIT, which is\n        #: 30.\n        self.max_redirects = DEFAULT_REDIRECT_LIMIT\n\n        #: Trust environment settings for proxy configuration, default\n        #: authentication and similar.\n        self.trust_env = True\n\n        #: A CookieJar containing all currently outstanding cookies set on this\n        #: session. By default it is a\n        #: :class:`RequestsCookieJar <requests.cookies.RequestsCookieJar>`, but\n        #: may be any other ``cookielib.CookieJar`` compatible object.\n        self.cookies = cookiejar_from_dict({})\n\n        # Default connection adapters.\n        self.adapters = OrderedDict()\n        self.mount(\"https://\", HTTPAdapter())\n        self.mount(\"http://\", HTTPAdapter())",
+        "replace_text": "    def __init__(self, http_adapter=None, https_adapter=None):\n        #: A case-insensitive dictionary of headers to be sent on each\n        #: :class:`Request <Request>` sent from this\n        #: :class:`Session <Session>`.\n        self.headers = default_headers()\n\n        #: Default Authentication tuple or object to attach to\n        #: :class:`Request <Request>`.\n        self.auth = None\n\n        #: Dictionary mapping protocol or protocol and host to the URL of the proxy\n        #: (e.g. {'http': 'foo.bar:3128', 'http://host.name': 'foo.bar:4012'}) to\n        #: be used on each :class:`Request <Request>`.\n        self.proxies = {}\n\n        #: Event-handling hooks.\n        self.hooks = default_hooks()\n\n        #: Dictionary of querystring data to attach to each\n        #: :class:`Request <Request>`. The dictionary values may be lists for\n        #: representing multivalued query parameters.\n        self.params = {}\n\n        #: Stream response content default.\n        self.stream = False\n\n        #: SSL Verification default.\n        #: Defaults to `True`, requiring requests to verify the TLS certificate at the\n        #: remote end.\n        #: If verify is set to `False`, requests will accept any TLS certificate\n        #: presented by the server, and will ignore hostname mismatches and/or\n        #: expired certificates, which will make your application vulnerable to\n        #: man-in-the-middle (MitM) attacks.\n        #: Only set this to `False` for testing.\n        self.verify = True\n\n        #: SSL client certificate default, if String, path to ssl client\n        #: cert file (.pem). If Tuple, ('cert', 'key') pair.\n        self.cert = None\n\n        #: Maximum number of redirects allowed. If the request exceeds this\n        #: limit, a :class:`TooManyRedirects` exception is raised.\n        #: This defaults to requests.models.DEFAULT_REDIRECT_LIMIT, which is\n        #: 30.\n        self.max_redirects = DEFAULT_REDIRECT_LIMIT\n\n        #: Trust environment settings for proxy configuration, default\n        #: authentication and similar.\n        self.trust_env = True\n\n        #: A CookieJar containing all currently outstanding cookies set on this\n        #: session. By default it is a\n        #: :class:`RequestsCookieJar <requests.cookies.RequestsCookieJar>`, but\n        #: may be any other ``cookielib.CookieJar`` compatible object.\n        self.cookies = cookiejar_from_dict({})\n\n        # Default connection adapters.\n        self.adapters = OrderedDict()\n        self.mount(\"https://\", https_adapter or HTTPAdapter())\n        self.mount(\"http://\", http_adapter or HTTPAdapter())",
+        "search_lines": 60,
+        "replace_lines": 60
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165685.3063106537,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......sattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.81s (0:02:44)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 591,
+        "blank_lines": 157,
+        "comment_lines": 112,
+        "function_count": 31,
+        "avg_cc": 3.85,
+        "max_cc": 15.0,
+        "mi": 37.21
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/sessions.py",
+        "loc": 591,
+        "blank_lines": 157,
+        "comment_lines": 112,
+        "function_count": 31,
+        "avg_cc": 3.91,
+        "max_cc": 15.0,
+        "mi": 36.83
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/sessions.py b/src/requests/sessions.py\nindex 17910ed..2dc6d7a 100644\n--- a/src/requests/sessions.py\n+++ b/src/requests/sessions.py\n@@ -416,7 +416,7 @@ class Session(SessionRedirectMixin, SessionAdapterMixin):\n         \"max_redirects\",\n     ]\n \n-    def __init__(self):\n+    def __init__(self, http_adapter=None, https_adapter=None):\n         #: A case-insensitive dictionary of headers to be sent on each\n         #: :class:`Request <Request>` sent from this\n         #: :class:`Session <Session>`.\n@@ -474,8 +474,8 @@ class Session(SessionRedirectMixin, SessionAdapterMixin):\n \n         # Default connection adapters.\n         self.adapters = OrderedDict()\n-        self.mount(\"https://\", HTTPAdapter())\n-        self.mount(\"http://\", HTTPAdapter())\n+        self.mount(\"https://\", https_adapter or HTTPAdapter())\n+        self.mount(\"http://\", http_adapter or HTTPAdapter())\n \n     def __enter__(self):\n         return self\n",
+  "duration_ms": 170445.53232192993
+}

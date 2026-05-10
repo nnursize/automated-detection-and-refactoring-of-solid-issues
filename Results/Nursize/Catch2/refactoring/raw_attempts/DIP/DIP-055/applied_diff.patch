@@ -1,0 +1,25 @@
+diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp
+index 6db620e..2a759db 100644
+--- a/extras/catch_amalgamated.hpp
++++ b/extras/catch_amalgamated.hpp
+@@ -8104,13 +8104,17 @@ namespace Generators {
+             }
+             return true;
+         }
++
++        static GeneratorWrapper<std::vector<T>> create(size_t size, GeneratorWrapper<T>&& generator) {
++            return GeneratorWrapper<std::vector<T>>(
++                Catch::Detail::make_unique<ChunkGenerator<T>>(size, CATCH_MOVE(generator))
++            );
++        }
+     };
+ 
+     template <typename T>
+     GeneratorWrapper<std::vector<T>> chunk(size_t size, GeneratorWrapper<T>&& generator) {
+-        return GeneratorWrapper<std::vector<T>>(
+-            Catch::Detail::make_unique<ChunkGenerator<T>>(size, CATCH_MOVE(generator))
+-        );
++        return ChunkGenerator<T>::create(size, CATCH_MOVE(generator));
+     }
+ 
+ } // namespace Generators

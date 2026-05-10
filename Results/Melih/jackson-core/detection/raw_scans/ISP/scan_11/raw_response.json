@@ -1,0 +1,73 @@
+{
+  "scan_id": "jackson-core_ISP_scan_11",
+  "repo_name": "jackson-core",
+  "principle": "ISP",
+  "scan_number": 11,
+  "timestamp": "2026-05-02T15:31:13.387353",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Interface Segregation Principle (ISP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonGenerator.java\",\n      \"entity_name\": \"JsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 2483,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The `JsonGenerator` interface is bloated, forcing implementations to provide methods they may not support, indicated by default throwing implementations.\",\n      \"reasoning\": \"The `JsonGenerator` abstract class defines a very broad set of capabilities, including methods for writing Object/Type IDs (`writeObjectId`, `writeObjectRef`, `writeTypeId`), writing from a `Reader` (`writeString(Reader reader, int len)`), and binary data from an `InputStream` (`writeBinary(Base64Variant bv, InputStream data, int dataLength)`). Many of these methods have default implementations that throw `UnsupportedOperationException` (e.g., L1339, L1361, L1381 for IDs; L231, L266 in `GeneratorBase` for `Reader` and `InputStream` based writes). This forces concrete generators (clients) that do not support these specific features to depend on and 'implement' methods they do not use, violating ISP.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/JsonParser.java\",\n      \"entity_name\": \"JsonParser\",\n      \"entity_type\": \"class\",\n      \"line_start\": 30,\n      \"line_end\": 723,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The `JsonParser` interface is bloated, forcing implementations to provide methods they may not support, indicated by default throwing implementations.\",\n      \"reasoning\": \"The `JsonParser` abstract class defines a wide range of parsing capabilities. Methods like `readBinaryValue(Base64Variant bv, OutputStream out)` (L1380) and `nonBlockingInputFeeder()` (L269, L260 implies non-blocking support) have default implementations that throw `_reportUnsupportedOperation()` in `JsonParser` itself or its `ParserMinimalBase` ancestor. This indicates that not all parser implementations are expected to support these features (e.g., a parser for a non-binary format, or a blocking parser). Clients are thus forced to depend on interfaces they do not use, violating ISP.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java\",\n      \"entity_name\": \"WriterBasedJsonGenerator\",\n      \"entity_type\": \"class\",\n      \"line_start\": 17,\n      \"line_end\": 2190,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The `WriterBasedJsonGenerator` is forced to implement byte-array specific methods (`writeRawUTF8String`, `writeUTF8String`) from `JsonGenerator` but explicitly throws `_reportUnsupportedOperation()`.\",\n      \"reasoning\": \"As a `Writer`-based generator, `WriterBasedJsonGenerator` operates on character streams. However, it inherits `writeRawUTF8String(byte[] text, int offset, int length)` and `writeUTF8String(byte[] text, int offset, int length)` from the `JsonGenerator` interface. It explicitly throws `_reportUnsupportedOperation()` for these methods (L574, L580), indicating it does not support them. This forces the class to implement methods irrelevant to its core functionality, violating ISP. These methods should ideally be part of a more specialized interface for byte-oriented generators.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/base/BinaryTSFactory.java\",\n      \"entity_name\": \"BinaryTSFactory\",\n      \"entity_type\": \"class\",\n      \"line_start\": 15,\n      \"line_end\": 247,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The `BinaryTSFactory` is forced to implement character-based parser creation methods but explicitly throws `_nonByteSource()` (which throws `UnsupportedOperationException`).\",\n      \"reasoning\": \"The `BinaryTSFactory` is designed to create parsers for binary input. However, it inherits methods like `createParser(Reader r)`, `createParser(String content)`, and `createParser(char[] content, int offset, int len)` from `TokenStreamFactory`. For these character-based input types, `BinaryTSFactory` explicitly calls `_nonByteSource()` (L97, L118, L124), which then throws `UnsupportedOperationException`. This forces the factory to implement methods for input types it does not support, violating ISP. These methods should be segregated into a `CharSourceTokenStreamFactory` or similar interface.\"\n    },\n    {\n      \"file_path\": \"src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java\",\n      \"entity_name\": \"NonBlockingUtf8JsonParserBase\",\n      \"entity_type\": \"class\",\n      \"line_start\": 19,\n      \"line_end\": 1223,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The `NonBlockingUtf8JsonParserBase` abstract class declares byte-specific abstract methods (`getNextSignedByteFromBuffer`, etc.) that might not be relevant for all non-blocking parser implementations.\",\n      \"reasoning\": \"The `NonBlockingUtf8JsonParserBase` abstract class includes abstract methods like `getNextSignedByteFromBuffer()` (L172), `getNextUnsignedByteFromBuffer()` (L178), and `getByteFromBuffer(final int ptr)` (L185). These methods are tightly coupled to byte-level input handling. While this class is named 'Utf8', its parent `NonBlockingJsonParserBase` is more general. If there were other non-blocking input types (e.g., character-based non-blocking parsers, or parsers for other encodings that don't map directly to single bytes), their implementors would be forced to provide implementations for these byte-specific methods, even if they are not directly applicable, violating ISP. These byte-specific methods should be in an interface specifically for byte-oriented non-blocking parsers.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+      "entity_name": "JsonGenerator",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 2483,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The `JsonGenerator` interface is bloated, forcing implementations to provide methods they may not support, indicated by default throwing implementations.",
+      "reasoning": "The `JsonGenerator` abstract class defines a very broad set of capabilities, including methods for writing Object/Type IDs (`writeObjectId`, `writeObjectRef`, `writeTypeId`), writing from a `Reader` (`writeString(Reader reader, int len)`), and binary data from an `InputStream` (`writeBinary(Base64Variant bv, InputStream data, int dataLength)`). Many of these methods have default implementations that throw `UnsupportedOperationException` (e.g., L1339, L1361, L1381 for IDs; L231, L266 in `GeneratorBase` for `Reader` and `InputStream` based writes). This forces concrete generators (clients) that do not support these specific features to depend on and 'implement' methods they do not use, violating ISP."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/JsonParser.java",
+      "entity_name": "JsonParser",
+      "entity_type": "class",
+      "line_start": 30,
+      "line_end": 723,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The `JsonParser` interface is bloated, forcing implementations to provide methods they may not support, indicated by default throwing implementations.",
+      "reasoning": "The `JsonParser` abstract class defines a wide range of parsing capabilities. Methods like `readBinaryValue(Base64Variant bv, OutputStream out)` (L1380) and `nonBlockingInputFeeder()` (L269, L260 implies non-blocking support) have default implementations that throw `_reportUnsupportedOperation()` in `JsonParser` itself or its `ParserMinimalBase` ancestor. This indicates that not all parser implementations are expected to support these features (e.g., a parser for a non-binary format, or a blocking parser). Clients are thus forced to depend on interfaces they do not use, violating ISP."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "entity_name": "WriterBasedJsonGenerator",
+      "entity_type": "class",
+      "line_start": 17,
+      "line_end": 2190,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The `WriterBasedJsonGenerator` is forced to implement byte-array specific methods (`writeRawUTF8String`, `writeUTF8String`) from `JsonGenerator` but explicitly throws `_reportUnsupportedOperation()`.",
+      "reasoning": "As a `Writer`-based generator, `WriterBasedJsonGenerator` operates on character streams. However, it inherits `writeRawUTF8String(byte[] text, int offset, int length)` and `writeUTF8String(byte[] text, int offset, int length)` from the `JsonGenerator` interface. It explicitly throws `_reportUnsupportedOperation()` for these methods (L574, L580), indicating it does not support them. This forces the class to implement methods irrelevant to its core functionality, violating ISP. These methods should ideally be part of a more specialized interface for byte-oriented generators."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/base/BinaryTSFactory.java",
+      "entity_name": "BinaryTSFactory",
+      "entity_type": "class",
+      "line_start": 15,
+      "line_end": 247,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The `BinaryTSFactory` is forced to implement character-based parser creation methods but explicitly throws `_nonByteSource()` (which throws `UnsupportedOperationException`).",
+      "reasoning": "The `BinaryTSFactory` is designed to create parsers for binary input. However, it inherits methods like `createParser(Reader r)`, `createParser(String content)`, and `createParser(char[] content, int offset, int len)` from `TokenStreamFactory`. For these character-based input types, `BinaryTSFactory` explicitly calls `_nonByteSource()` (L97, L118, L124), which then throws `UnsupportedOperationException`. This forces the factory to implement methods for input types it does not support, violating ISP. These methods should be segregated into a `CharSourceTokenStreamFactory` or similar interface."
+    },
+    {
+      "file_path": "src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java",
+      "entity_name": "NonBlockingUtf8JsonParserBase",
+      "entity_type": "class",
+      "line_start": 19,
+      "line_end": 1223,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The `NonBlockingUtf8JsonParserBase` abstract class declares byte-specific abstract methods (`getNextSignedByteFromBuffer`, etc.) that might not be relevant for all non-blocking parser implementations.",
+      "reasoning": "The `NonBlockingUtf8JsonParserBase` abstract class includes abstract methods like `getNextSignedByteFromBuffer()` (L172), `getNextUnsignedByteFromBuffer()` (L178), and `getByteFromBuffer(final int ptr)` (L185). These methods are tightly coupled to byte-level input handling. While this class is named 'Utf8', its parent `NonBlockingJsonParserBase` is more general. If there were other non-blocking input types (e.g., character-based non-blocking parsers, or parsers for other encodings that don't map directly to single bytes), their implementors would be forced to provide implementations for these byte-specific methods, even if they are not directly applicable, violating ISP. These byte-specific methods should be in an interface specifically for byte-oriented non-blocking parsers."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 42449.514389038086,
+  "error": null
+}

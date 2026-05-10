@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/JsonGenerator.java",
+    "entity_name": "JsonGenerator.streamWriteConstraints",
+    "entity_type": "method",
+    "line_start": 51,
+    "line_end": 53,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level abstract class depends on a concrete implementation via a static method call",
+    "reasoning": "The abstract class JsonGenerator (a high-level module) depends on the concrete class StreamWriteConstraints (a low-level detail) by calling its static defaults() method. This violates DIP as abstractions should not depend on details; instead, the constraints should be provided via an abstraction or injected."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8StreamJsonParser.java",
+    "entity_name": "UTF8StreamJsonParser",
+    "entity_type": "class",
+    "line_start": 115,
+    "line_end": 128,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Concrete parser implementation depends on a concrete symbol table implementation",
+    "reasoning": "Rigid Coupling smell -> The UTF8StreamJsonParser depends directly on the concrete class ByteQuadsCanonicalizer. According to DIP, modules should depend on abstractions. By coupling the parser to a specific symbol table implementation, it becomes difficult to swap the symbol management logic (e.g., for different memory or performance profiles) without modifying the parser."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser",
+    "entity_type": "class",
+    "line_start": 116,
+    "line_end": 130,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Concrete parser implementation depends on a concrete symbol table implementation",
+    "reasoning": "Rigid Coupling smell -> Similar to the UTF-8 parser, the ReaderBasedJsonParser depends on the concrete CharsToNameCanonicalizer. This prevents the inversion of control where different canonicalization strategies could be injected through a common interface or abstraction."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+    "entity_name": "UTF8JsonGenerator",
+    "entity_type": "class",
+    "line_start": 104,
+    "line_end": 118,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Generator implementation depends on a concrete IOContext for resource management",
+    "reasoning": "Rigid Coupling smell -> The generator depends on the concrete IOContext class to perform low-level buffer allocation (e.g., ioCtxt.allocWriteEncodingBuffer()). This couples the high-level generation logic to the specific buffer management and recycling strategy of IOContext, rather than depending on a generic buffer provider abstraction."
+  }
+]

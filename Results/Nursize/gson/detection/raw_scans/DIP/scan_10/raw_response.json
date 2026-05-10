@@ -1,0 +1,51 @@
+{
+  "scan_id": "gson_DIP_scan_10",
+  "repo_name": "gson",
+  "principle": "DIP",
+  "scan_number": 10,
+  "timestamp": "2026-05-02T16:56:13.315247",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.2,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a java repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Dependency Inversion Principle (DIP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/Gson.java\",\n      \"entity_name\": \"Gson\",\n      \"entity_type\": \"class\",\n      \"line_start\": 135,\n      \"line_end\": 1256,\n      \"principle\": \"DIP\",\n      \"severity\": \"high\",\n      \"description\": \"High-level class Gson directly instantiates low-level internal components.\",\n      \"reasoning\": \"The Gson class, which serves as the high-level entry point for the library, directly instantiates low-level internal components such as ConstructorConstructor (L253) and is tightly coupled to concrete implementations in the internal.bind package. This violates DIP, which states that high-level modules should depend on abstractions rather than low-level details, and that dependencies should ideally be injected.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/TypeAdapter.java\",\n      \"entity_name\": \"TypeAdapter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 121,\n      \"line_end\": 322,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Abstract class TypeAdapter depends on concrete implementations JsonTreeReader and JsonTreeWriter.\",\n      \"reasoning\": \"The abstract TypeAdapter class imports and utilizes concrete implementations JsonTreeReader and JsonTreeWriter (e.g., in methods like toJsonTree at L178 and fromJsonTree at L241). This violates DIP as the base abstraction is coupled to specific low-level implementation details, making the abstraction depend on details rather than the other way around.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/stream/JsonReader.java\",\n      \"entity_name\": \"JsonReader\",\n      \"entity_type\": \"class\",\n      \"line_start\": 211,\n      \"line_end\": 1860,\n      \"principle\": \"DIP\",\n      \"severity\": \"medium\",\n      \"description\": \"Base class JsonReader depends on its subclass JsonTreeReader.\",\n      \"reasoning\": \"The JsonReader class imports com.google.gson.internal.bind.JsonTreeReader, which is a concrete subclass of JsonReader. This violates DIP because the abstraction (base class) should not have knowledge of or depend on its specific implementation details (subclasses), which also creates a circular dependency between the stream and internal.bind packages.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+      "entity_name": "Gson",
+      "entity_type": "class",
+      "line_start": 135,
+      "line_end": 1256,
+      "principle": "DIP",
+      "severity": "high",
+      "description": "High-level class Gson directly instantiates low-level internal components.",
+      "reasoning": "The Gson class, which serves as the high-level entry point for the library, directly instantiates low-level internal components such as ConstructorConstructor (L253) and is tightly coupled to concrete implementations in the internal.bind package. This violates DIP, which states that high-level modules should depend on abstractions rather than low-level details, and that dependencies should ideally be injected."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/TypeAdapter.java",
+      "entity_name": "TypeAdapter",
+      "entity_type": "class",
+      "line_start": 121,
+      "line_end": 322,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Abstract class TypeAdapter depends on concrete implementations JsonTreeReader and JsonTreeWriter.",
+      "reasoning": "The abstract TypeAdapter class imports and utilizes concrete implementations JsonTreeReader and JsonTreeWriter (e.g., in methods like toJsonTree at L178 and fromJsonTree at L241). This violates DIP as the base abstraction is coupled to specific low-level implementation details, making the abstraction depend on details rather than the other way around."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "entity_name": "JsonReader",
+      "entity_type": "class",
+      "line_start": 211,
+      "line_end": 1860,
+      "principle": "DIP",
+      "severity": "medium",
+      "description": "Base class JsonReader depends on its subclass JsonTreeReader.",
+      "reasoning": "The JsonReader class imports com.google.gson.internal.bind.JsonTreeReader, which is a concrete subclass of JsonReader. This violates DIP because the abstraction (base class) should not have knowledge of or depend on its specific implementation details (subclasses), which also creates a circular dependency between the stream and internal.bind packages."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 64662.96720504761,
+  "error": null
+}

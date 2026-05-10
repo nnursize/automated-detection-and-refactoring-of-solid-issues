@@ -1,0 +1,80 @@
+{
+  "issue_id": "DIP-004",
+  "principle": "DIP",
+  "title": "Refactor DIP-004 (DIP): Low-level HTTPAdapter directly instantiates a high-level Response object.",
+  "branch": "refactor/DIP-004",
+  "base": "main",
+  "head_commit": "d97e7e9c79ed8bfa8dd1b666962c1c28fe28d2ad",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in src/requests/adapters.py (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7981,
+    "completion_tokens": 820
+  },
+  "detected_issue": {
+    "file_path": "src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.build_response",
+    "entity_type": "method",
+    "line_start": 298,
+    "line_end": 298,
+    "severity": "medium",
+    "scan_count": 12,
+    "description": "Low-level HTTPAdapter directly instantiates a high-level Response object.",
+    "reasoning": "The `HTTPAdapter` is a low-level component responsible for interacting with the underlying `urllib3` library. However, its `build_response` method directly instantiates the high-level `Response` object. This couples the low-level adapter to the concrete details of the high-level response representation. Ideally, the adapter should return an abstraction of a response, or a higher-level module should provide a factory for creating `Response` objects, allowing the adapter to remain independent of the specific `Response` implementation."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject Response class into HTTPAdapter to decouple from concrete implementation",
+    "rationale": "The HTTPAdapter directly instantiated the Response class, creating a hard dependency. By adding a response_cls attribute (defaulting to the existing Response class), we allow for dependency injection and inversion of control, adhering to the Dependency Inversion Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/adapters.py"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "    def __init__(\n        self,\n        pool_connections=DEFAULT_POOLSIZE,\n        pool_maxsize=DEFAULT_POOLSIZE,\n        max_retries=DEFAULT_RETRIES,\n        pool_block=DEFAULT_POOLBLOCK,\n    ):\n        if max_retries == DEFAULT_RETRIES:\n            self.max_retries = Retry(0, read=False)\n        else:\n            self.max_retries = Retry.from_int(max_retries)\n        self.config = {}\n        self.proxy_manager = {}\n\n        super().__init__()\n\n        self._pool_connections = pool_connections\n        self._pool_maxsize = pool_maxsize\n        self._pool_block = pool_block\n\n        self.init_poolmanager(pool_connections, maxsize=pool_maxsize, block=pool_block)",
+        "replace_text": "    def __init__(\n        self,\n        pool_connections=DEFAULT_POOLSIZE,\n        pool_maxsize=DEFAULT_POOLSIZE,\n        max_retries=DEFAULT_RETRIES,\n        pool_block=DEFAULT_POOLBLOCK,\n        response_cls=Response,\n    ):\n        if max_retries == DEFAULT_RETRIES:\n            self.max_retries = Retry(0, read=False)\n        else:\n            self.max_retries = Retry.from_int(max_retries)\n        self.config = {}\n        self.proxy_manager = {}\n        self.response_cls = response_cls\n\n        super().__init__()\n\n        self._pool_connections = pool_connections\n        self._pool_maxsize = pool_maxsize\n        self._pool_block = pool_block\n\n        self.init_poolmanager(pool_connections, pool_maxsize, block=pool_block)",
+        "search_lines": 21,
+        "replace_lines": 23
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/adapters.py",
+        "search_text": "    def build_response(self, req, resp):\n        \"\"\"Builds a :class:`Response <requests.Response>` object from a urllib3\n        response. This should not be called from user code, and is only exposed\n        for use when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`\n\n        :param req: The :class:`PreparedRequest <PreparedRequest>` used to generate the response.\n        :param resp: The urllib3 response object.\n        :rtype: requests.Response\n        \"\"\"\n        response = Response()\n\n        # Fallback to None if there's no status_code, for whatever reason.",
+        "replace_text": "    def build_response(self, req, resp):\n        \"\"\"Builds a :class:`Response <requests.Response>` object from a urllib3\n        response. This should not be called from user code, and is only exposed\n        for use when subclassing the\n        :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`\n\n        :param req: The :class:`PreparedRequest <PreparedRequest>` used to generate the response.\n        :param resp: The urllib3 response object.\n        :rtype: requests.Response\n        \"\"\"\n        response = self.response_cls()\n\n        # Fallback to None if there's no status_code, for whatever reason.",
+        "search_lines": 13,
+        "replace_lines": 13
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/adapters.py",
+        "loc": 588,
+        "blank_lines": 108,
+        "comment_lines": 13,
+        "function_count": 24,
+        "avg_cc": 3.29,
+        "max_cc": 14.0,
+        "mi": 47.37
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 12538.08307647705
+}

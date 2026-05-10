@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "search_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return (TypeAdapter<T>) new RecordAdapter<>(\n          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n  }",
+    "replace_text": "    if (ReflectionHelper.isRecord(raw)) {\n      return (TypeAdapter<T>) new RecordAdapter<>(\n          raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n    }\n\n    // If the class is anonymous or a local class, we cannot reflectively instantiate it.\n    // We return null to let other factories handle it or to let Gson skip it.\n    if (raw.isAnonymousClass() || raw.isLocalClass()) {\n      return null;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n  }"
+  }
+]

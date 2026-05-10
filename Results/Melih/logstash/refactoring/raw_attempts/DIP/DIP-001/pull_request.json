@@ -1,0 +1,93 @@
+{
+  "issue_id": "DIP-001",
+  "principle": "DIP",
+  "title": "Refactor DIP-001 (DIP): Direct instantiation of dependencies in constructor",
+  "branch": "refactor/DIP-001",
+  "base": "main",
+  "head_commit": "2b82659c1dd06283b4768c5cc61541f985ba7fa5",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 11068,
+    "completion_tokens": 473
+  },
+  "detected_issue": {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.Queue",
+    "entity_type": "class",
+    "line_start": 89,
+    "line_end": 120,
+    "severity": "high",
+    "scan_count": 11,
+    "description": "Direct instantiation of dependencies in constructor",
+    "reasoning": "The Queue constructor directly instantiates FileCheckpointIO and uses hardcoded logic to create dependencies, preventing the injection of mock implementations for testing and violating the Dependency Inversion Principle."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Inject CheckpointIO into Queue constructor to satisfy DIP",
+    "rationale": "The Queue class was directly instantiating FileCheckpointIO, creating a hard dependency on a concrete implementation. By adding a CheckpointIO field and allowing it to be passed via the Settings object (or a factory), we decouple the queue from the file system implementation, enabling easier testing and adherence to the Dependency Inversion Principle.",
+    "files_touched": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "        this.pageCapacity = settings.getCapacity();\n        this.maxBytes = settings.getQueueMaxBytes();\n        this.checkpointIO = new FileCheckpointIO(dirPath, settings.getCheckpointRetry());\n        this.elementClass = settings.getElementClass();",
+        "replace_text": "        this.pageCapacity = settings.getCapacity();\n        this.maxBytes = settings.getQueueMaxBytes();\n        this.checkpointIO = settings.getCheckpointIO(this.queueManager.getDirPath().toString());\n        this.elementClass = settings.getElementClass();",
+        "search_lines": 4,
+        "replace_lines": 4
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "search_text": "    public Queue(Settings settings, Metric metric) {\n        this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n        try {\n            this.queueManager = new QueueManager(settings.getDirPath());\n        } catch (final IOException ex) {\n            throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n        }\n\n        this.pageCapacity = settings.getCapacity();",
+        "replace_text": "    public Queue(Settings settings, Metric metric) {\n        this.metric = Objects.requireNonNullElseGet(metric, NamespacedMetricImpl::getNullMetric);\n        try {\n            this.queueManager = new QueueManager(settings.getDirPath());\n        } catch (final IOException ex) {\n            throw new IllegalStateException(QueueExceptionMessages.CANNOT_CREATE_QUEUE_DIR, ex);\n        }\n\n        this.pageCapacity = settings.getCapacity();",
+        "search_lines": 9,
+        "replace_lines": 9
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 734,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+        "loc": 734,
+        "blank_lines": 148,
+        "comment_lines": 79,
+        "function_count": 43,
+        "avg_cc": 4.49,
+        "max_cc": 151.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\nindex 7fe08bb..bfff445 100644\n--- a/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n+++ b/logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\n@@ -111,7 +111,7 @@ public final class Queue implements Closeable, QueueWriter, QueueReader, QueueAd\n \n         this.pageCapacity = settings.getCapacity();\n         this.maxBytes = settings.getQueueMaxBytes();\n-        this.checkpointIO = new FileCheckpointIO(dirPath, settings.getCheckpointRetry());\n+        this.checkpointIO = settings.getCheckpointIO(this.queueManager.getDirPath().toString());\n         this.elementClass = settings.getElementClass();\n         this.compressionCodec = settings.getCompressionCodecFactory().create(metric);\n         this.tailPages = new ArrayList<>();\n",
+  "duration_ms": 3002.6073455810547
+}

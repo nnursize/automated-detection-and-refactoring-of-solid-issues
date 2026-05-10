@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "search_text": "    @JRubyMethod(name = \"open_queue\")\n    public final IRubyObject openQueue(final ThreadContext context) {\n        final AbstractNamespacedMetricExt queueNamespace = metric.namespace(context, pipelineNamespacedPath(QUEUE_KEY));\n        try {\n            queue = QueueFactoryExt.create(context, settings, queueNamespace);\n        } catch (final Exception ex) {\n            LOGGER.error(\"Logstash failed to create queue.\", ex);\n            throw new IllegalStateException(ex);\n        }\n        inputQueueClient = queue.writeClient(context);",
+    "replace_text": "    @JRubyMethod(name = \"open_queue\")\n    public final IRubyObject openQueue(final ThreadContext context) {\n        final AbstractNamespacedMetricExt queueNamespace = metric.namespace(context, pipelineNamespacedPath(QUEUE_KEY));\n        try {\n            queue = createQueue(context, settings, queueNamespace);\n        } catch (final Exception ex) {\n            LOGGER.error(\"Logstash failed to create queue.\", ex);\n            throw new IllegalStateException(ex);\n        }\n        inputQueueClient = queue.writeClient(context);"
+  },
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "search_text": "    private boolean isBatchMetricsEnabled(ThreadContext context) {\n        IRubyObject pipelineBatchMetricsSetting = getSetting(context, \"pipeline.batch.metrics.sampling_mode\");\n        return !pipelineBatchMetricsSetting.isNil() &&\n                QueueFactoryExt.BatchMetricMode.valueOf(\n                        pipelineBatchMetricsSetting.asJavaString().toUpperCase()\n                ) != QueueFactoryExt.BatchMetricMode.DISABLED;\n    }",
+    "replace_text": "    private boolean isBatchMetricsEnabled(ThreadContext context) {\n        IRubyObject pipelineBatchMetricsSetting = getSetting(context, \"pipeline.batch.metrics.sampling_mode\");\n        return !pipelineBatchMetricsSetting.isNil() &&\n                QueueFactoryExt.BatchMetricMode.valueOf(\n                        pipelineBatchMetricsSetting.asJavaString().toUpperCase()\n                ) != QueueFactoryExt.BatchMetricMode.DISABLED;\n    }\n\n    protected AbstractWrappedQueueExt createQueue(final ThreadContext context, final IRubyObject settings, final AbstractNamespacedMetricExt queueNamespace) {\n        return QueueFactoryExt.create(context, settings, queueNamespace);\n    }"
+  }
+]

@@ -1,0 +1,95 @@
+{
+  "scan_id": "logstash_SRP_scan_02",
+  "repo_name": "logstash",
+  "principle": "SRP",
+  "scan_number": 2,
+  "timestamp": "2026-04-19T13:13:53.868714",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Single Responsibility Principle (SRP).\n\n## Principle Definition\nA class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.\n\n## What to Look For\n- Classes that handle multiple unrelated responsibilities\n- Methods that mix business logic with I/O, formatting, or persiste...",
+  "raw_response": "{\n  \"findings\": [\n    {\n      \"file_path\": \"logstash-core/lib/logstash/agent.rb\",\n      \"entity_name\": \"LogStash::Agent\",\n      \"entity_type\": \"class\",\n      \"line_start\": 44,\n      \"line_end\": 500,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"Agent class acts as a God Object managing multiple unrelated system components.\",\n      \"reasoning\": \"The Agent class handles pipeline lifecycle management, the internal WebServer for the HTTP API, metric collection and periodic pollers, GeoIP database management logic, health observation, and the inter-pipeline communication bus. These are distinct responsibilities that should be encapsulated in separate manager classes.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/Event.java\",\n      \"entity_name\": \"Event\",\n      \"entity_type\": \"class\",\n      \"line_start\": 54,\n      \"line_end\": 430,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Event class mixes data encapsulation with serialization and string interpolation logic.\",\n      \"reasoning\": \"The Event class is the primary data structure for Logstash events. However, it also contains logic for JSON/CBOR serialization (using Jackson), complex string interpolation (sprintf), and memory estimation. Serialization and interpolation are external concerns that should be handled by utility or service classes.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java\",\n      \"entity_name\": \"Queue\",\n      \"entity_type\": \"class\",\n      \"line_start\": 58,\n      \"line_end\": 740,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Queue class manages logical queue operations alongside physical file system concerns.\",\n      \"reasoning\": \"The Queue class handles the high-level logic of a persistent queue (read/write/ack) but is also responsible for low-level file system tasks like disk space availability checks, file locking, and directory-level upgrades (QueueUpgrade). These infrastructure concerns should be separated from the queue's behavioral logic.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java\",\n      \"entity_name\": \"AbstractPipelineExt\",\n      \"entity_type\": \"class\",\n      \"line_start\": 98,\n      \"line_end\": 700,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Pipeline class mixes execution management with detailed telemetry and DLQ lifecycle management.\",\n      \"reasoning\": \"AbstractPipelineExt manages the execution of the pipeline but also contains extensive logic for initializing specific flow metrics (throughput, utilization, etc.) and managing the lifecycle of the Dead Letter Queue (DLQ) writer. The detailed metric registration and DLQ setup are distinct from the core responsibility of executing the filter/output graph.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/runner.rb\",\n      \"entity_name\": \"LogStash::Runner\",\n      \"entity_type\": \"class\",\n      \"line_start\": 56,\n      \"line_end\": 450,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"Runner class combines CLI parsing, environment validation, and system signal management.\",\n      \"reasoning\": \"The Runner class is responsible for parsing command-line arguments using Clamp, but it also performs environment validation (Java version checks, superuser checks), configures logging, and sets up system-level signal traps (SIGINT/SIGTERM). CLI parsing should be decoupled from system environment management.\"\n    },\n    {\n      \"file_path\": \"logstash-core/lib/logstash/config/config_ast.rb\",\n      \"entity_name\": \"LogStash::Config::AST::Config\",\n      \"entity_type\": \"class\",\n      \"line_start\": 82,\n      \"line_end\": 140,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"AST nodes are responsible for both representing the syntax tree and generating executable code.\",\n      \"reasoning\": \"The AST nodes (Config, PluginSection, Plugin) follow the 'Active Record' pattern for compilers where the data structure (the node) also contains the logic to 'compile' or generate Ruby source code strings. This mixes the representation of the configuration with the code generation logic.\"\n    },\n    {\n      \"file_path\": \"logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java\",\n      \"entity_name\": \"DeadLetterQueueWriter\",\n      \"entity_type\": \"class\",\n      \"line_start\": 86,\n      \"line_end\": 600,\n      \"principle\": \"SRP\",\n      \"severity\": \"medium\",\n      \"description\": \"DLQ Writer manages both data persistence and background filesystem monitoring.\",\n      \"reasoning\": \"The class is primarily responsible for writing events to the DLQ. However, it also manages a background 'scheduledFSWatcher' thread that uses the Java WatchService to monitor the filesystem for notifications from the reader to update its internal metrics. Monitoring the filesystem for external state changes is a separate concern from writing records.\"\n    }\n  ]\n}",
+  "findings": [
+    {
+      "file_path": "logstash-core/lib/logstash/agent.rb",
+      "entity_name": "LogStash::Agent",
+      "entity_type": "class",
+      "line_start": 44,
+      "line_end": 500,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "Agent class acts as a God Object managing multiple unrelated system components.",
+      "reasoning": "The Agent class handles pipeline lifecycle management, the internal WebServer for the HTTP API, metric collection and periodic pollers, GeoIP database management logic, health observation, and the inter-pipeline communication bus. These are distinct responsibilities that should be encapsulated in separate manager classes."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+      "entity_name": "Event",
+      "entity_type": "class",
+      "line_start": 54,
+      "line_end": 430,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Event class mixes data encapsulation with serialization and string interpolation logic.",
+      "reasoning": "The Event class is the primary data structure for Logstash events. However, it also contains logic for JSON/CBOR serialization (using Jackson), complex string interpolation (sprintf), and memory estimation. Serialization and interpolation are external concerns that should be handled by utility or service classes."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+      "entity_name": "Queue",
+      "entity_type": "class",
+      "line_start": 58,
+      "line_end": 740,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Queue class manages logical queue operations alongside physical file system concerns.",
+      "reasoning": "The Queue class handles the high-level logic of a persistent queue (read/write/ack) but is also responsible for low-level file system tasks like disk space availability checks, file locking, and directory-level upgrades (QueueUpgrade). These infrastructure concerns should be separated from the queue's behavioral logic."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+      "entity_name": "AbstractPipelineExt",
+      "entity_type": "class",
+      "line_start": 98,
+      "line_end": 700,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Pipeline class mixes execution management with detailed telemetry and DLQ lifecycle management.",
+      "reasoning": "AbstractPipelineExt manages the execution of the pipeline but also contains extensive logic for initializing specific flow metrics (throughput, utilization, etc.) and managing the lifecycle of the Dead Letter Queue (DLQ) writer. The detailed metric registration and DLQ setup are distinct from the core responsibility of executing the filter/output graph."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/runner.rb",
+      "entity_name": "LogStash::Runner",
+      "entity_type": "class",
+      "line_start": 56,
+      "line_end": 450,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "Runner class combines CLI parsing, environment validation, and system signal management.",
+      "reasoning": "The Runner class is responsible for parsing command-line arguments using Clamp, but it also performs environment validation (Java version checks, superuser checks), configures logging, and sets up system-level signal traps (SIGINT/SIGTERM). CLI parsing should be decoupled from system environment management."
+    },
+    {
+      "file_path": "logstash-core/lib/logstash/config/config_ast.rb",
+      "entity_name": "LogStash::Config::AST::Config",
+      "entity_type": "class",
+      "line_start": 82,
+      "line_end": 140,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "AST nodes are responsible for both representing the syntax tree and generating executable code.",
+      "reasoning": "The AST nodes (Config, PluginSection, Plugin) follow the 'Active Record' pattern for compilers where the data structure (the node) also contains the logic to 'compile' or generate Ruby source code strings. This mixes the representation of the configuration with the code generation logic."
+    },
+    {
+      "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+      "entity_name": "DeadLetterQueueWriter",
+      "entity_type": "class",
+      "line_start": 86,
+      "line_end": 600,
+      "principle": "SRP",
+      "severity": "medium",
+      "description": "DLQ Writer manages both data persistence and background filesystem monitoring.",
+      "reasoning": "The class is primarily responsible for writing events to the DLQ. However, it also manages a background 'scheduledFSWatcher' thread that uses the Java WatchService to monitor the filesystem for notifications from the reader to update its internal metrics. Monitoring the filesystem for external state changes is a separate concern from writing records."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 22225.698947906494,
+  "error": null
+}

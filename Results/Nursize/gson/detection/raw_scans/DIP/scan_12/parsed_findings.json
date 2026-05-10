@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/TypeAdapter.java",
+    "entity_name": "TypeAdapter",
+    "entity_type": "class",
+    "line_start": 121,
+    "line_end": 322,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Abstraction depends on concrete implementation details (JsonReader/JsonWriter).",
+    "reasoning": "The core TypeAdapter abstraction defines abstract methods 'read(JsonReader in)' and 'write(JsonWriter out, T value)'. This forces every implementation of TypeAdapter to depend on the concrete JsonReader and JsonWriter classes rather than on an interface or abstraction for streaming. This prevents the library from easily supporting different underlying serialization formats or stream types without modifying the core TypeAdapter contract."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "class",
+    "line_start": 924,
+    "line_end": 937,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level configuration class depends on numerous low-level concrete internal adapters.",
+    "reasoning": "GsonBuilder directly imports and instantiates concrete internal implementation classes like ArrayTypeAdapter, CollectionTypeAdapterFactory, MapTypeAdapterFactory, and ReflectiveTypeAdapterFactory. This hard-coded coupling between the high-level configuration API and low-level internal details makes it difficult to extend or swap out core behaviors without modifying the builder itself."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 60,
+    "line_end": 670,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Reflective factory depends on concrete ConstructorConstructor instead of an abstraction.",
+    "reasoning": "The constructor for ReflectiveTypeAdapterFactory requires a concrete 'ConstructorConstructor' (L66). This forces the factory to depend on a specific implementation of how objects are instantiated, violating DIP by not depending on an abstraction like ObjectConstructor or a generic creator interface."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson.newJsonReader",
+    "entity_type": "class",
+    "line_start": 798,
+    "line_end": 800,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Direct instantiation of concrete JsonReader dependency.",
+    "reasoning": "The Gson class directly instantiates concrete JsonReader and JsonWriter objects (L774, L798) rather than using a factory or receiving them through dependency injection. This tight coupling makes it harder to provide alternative reader/writer implementations for specialized environments."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "JsonAdapterAnnotationTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 37,
+    "line_end": 204,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Internal factory depends on concrete internal implementation details (TreeTypeAdapter).",
+    "reasoning": "The method 'create' (L77) and its helper 'getTypeAdapter' (L84) directly instantiate concrete 'TreeTypeAdapter' (L142) when dealing with @JsonAdapter annotations. This couples the annotation processing logic directly to the TreeTypeAdapter implementation detail."
+  }
+]

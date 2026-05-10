@@ -1,0 +1,37 @@
+diff --git a/src/requests/sessions.py b/src/requests/sessions.py
+index 7d34b29..32e8f47 100644
+--- a/src/requests/sessions.py
++++ b/src/requests/sessions.py
+@@ -337,19 +337,20 @@ class SessionRedirectMixin:
+         """
+         method = prepared_request.method
+ 
++        # Map of status codes to a set of methods that should be changed to GET
++        # or a specific method to change to.
+         # https://tools.ietf.org/html/rfc7231#section-6.4.4
+-        if response.status_code == codes.see_other and method != "HEAD":
+-            method = "GET"
+-
+-        # Do what the browsers do, despite standards...
+-        # First, turn 302s into GETs.
+-        if response.status_code == codes.found and method != "HEAD":
+-            method = "GET"
+-
+-        # Second, if a POST is responded to with a 301, turn it into a GET.
+-        # This bizarre behaviour is explained in Issue 1704.
+-        if response.status_code == codes.moved and method == "POST":
+-            method = "GET"
++        # Issue 1704: 301 POST -> GET
++        REDIRECT_METHOD_MAP = {
++            codes.see_other: ("GET", lambda m: m != "HEAD"),
++            codes.found: ("GET", lambda m: m != "HEAD"),
++            codes.moved: ("GET", lambda m: m == "POST"),
++        }
++
++        if response.status_code in REDIRECT_METHOD_MAP:
++            new_method, condition = REDIRECT_METHOD_MAP[response.status_code]
++            if condition(method):
++                method = new_method
+ 
+         prepared_request.method = method
+ 

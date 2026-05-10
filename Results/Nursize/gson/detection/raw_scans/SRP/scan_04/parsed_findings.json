@@ -1,0 +1,68 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader",
+    "entity_type": "class",
+    "line_start": 135,
+    "line_end": 1033,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The JsonReader class combines multiple distinct responsibilities including low-level character I/O, JSON lexical analysis, JSON syntax analysis, JSON path tracking, and configuration management.",
+    "reasoning": "This class exhibits the God Class smell. It is responsible for managing the input character buffer (`buffer`, `pos`, `limit`, `fillBuffer`), performing lexical analysis to identify tokens (`nextNonWhitespace`, `peekKeyword`, `peekNumber`, `nextQuotedValue`), managing the JSON parsing state stack (`stack`, `push`, `doPeek`), tracking the current position and path within the JSON document (`lineNumber`, `lineStart`, `pathNames`, `pathIndices`, `getPath`), and handling various parsing configurations (`strictness`, `nestingLimit`). These are several independent reasons for the class to change, violating SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson",
+    "entity_type": "class",
+    "line_start": 106,
+    "line_end": 749,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The Gson class acts as a central orchestrator, combining responsibilities for TypeAdapter management, I/O stream configuration, and various serialization/deserialization formats.",
+    "reasoning": "This class exhibits the God Class smell. Its primary role is to orchestrate JSON serialization and deserialization. However, it also directly manages the caching and resolution of TypeAdapters (including complex cyclic dependency handling in `getAdapter`), configures JsonReader and JsonWriter instances based on its own settings (`newJsonReader`, `newJsonWriter`), and provides numerous overloaded methods for handling different input/output formats (String, Reader, JsonElement, JsonReader, JsonWriter). This broad set of responsibilities means that changes to adapter resolution, I/O configuration, or supported data formats would all require modifications to this single class, violating SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 705,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The TypeAdapters class is a monolithic collection of static TypeAdapter and TypeAdapterFactory instances for a wide array of unrelated basic Java types.",
+    "reasoning": "This class exhibits the God Class / God Module smell. It serves as a central repository for TypeAdapters and TypeAdapterFactories for numerous distinct basic types, including primitives, wrapper types, common JDK classes (e.g., `Class`, `BitSet`, `URL`, `URI`, `Calendar`, `Locale`), and Gson-specific types (`JsonElement`, `LazilyParsedNumber`). While all these components are related to type adaptation, the sheer diversity of types means that any change to the serialization or deserialization logic for any of these individual types necessitates modifying this single class, violating SRP. Each distinct type's adapter could logically reside in its own dedicated class or a more granular grouping."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder",
+    "entity_type": "class",
+    "line_start": 45,
+    "line_end": 485,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The GsonBuilder class manages an excessive number of diverse configuration options and complex factory creation logic for building a Gson instance.",
+    "reasoning": "This class exhibits the God Class smell. It aggregates an extensive set of configuration parameters, including exclusion strategies, field naming policies, instance creators, multiple lists of TypeAdapterFactories, null serialization, date formats, map key serialization, floating point handling, HTML escaping, non-executable JSON generation, strictness, JDK Unsafe usage, and reflection access filters. The `createFactories` method (lines 370-450) is particularly complex, orchestrating the assembly of numerous internal TypeAdapterFactory instances based on these diverse settings. This wide range of responsibilities means the class has many independent reasons to change, such as adding a new exclusion mechanism, modifying date format options, or introducing new number handling strategies, violating SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap",
+    "entity_type": "class",
+    "line_start": 33,
+    "line_end": 462,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The LinkedTreeMap class tightly couples the Map interface implementation with the complex logic of two distinct underlying data structures: a balanced binary search tree and a doubly linked list.",
+    "reasoning": "This class exhibits the God Class smell. It is responsible for implementing the standard `Map` interface, maintaining a balanced binary search tree for efficient key-based operations (involving `root`, `left`, `right`, `parent`, `height`, `rebalance`, `rotateLeft`, `rotateRight`), and simultaneously managing a doubly linked list to preserve insertion order (`header`, `next`, `prev`). These are fundamentally distinct data structure concerns. Changes to the tree balancing algorithm, the iteration order mechanism, or the core map behavior would all require modifications to this single class, violating SRP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 457,
+    "principle": "SRP",
+    "severity": "high",
+    "description": "The ReflectiveTypeAdapterFactory orchestrates a complex process of class introspection, applying various configuration rules (exclusion, naming, access), and creating specialized adapters for different class structures.",
+    "reasoning": "This class exhibits the God Class smell. It is responsible for a multitude of concerns related to reflective type adaptation: delegating field exclusion to `excluder`, determining JSON field names based on `fieldNamingPolicy` and `@SerializedName` (`getFieldNames`), applying reflection access filters, handling different class types (regular classes vs. Java Records), creating object constructors via `constructorConstructor`, managing `@JsonAdapter` annotations, building `BoundField` representations, and traversing the class hierarchy (`getBoundFields`). This broad and intricate set of responsibilities means it has many independent reasons to change, such as updates to field naming conventions, new record features, or changes in reflection access rules, violating SRP."
+  }
+]

@@ -1,0 +1,100 @@
+{
+  "issue_id": "LSP-008",
+  "principle": "LSP",
+  "title": "Refactor LSP-008 (LSP): Subclass modifies a different header than its parent class, breaking expected...",
+  "branch": "refactor/LSP-008",
+  "base": "main",
+  "head_commit": "e96a1330471edbe1f13403a3614cb92ebe18f56a",
+  "status": "applied_passed",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3974,
+    "completion_tokens": 355
+  },
+  "detected_issue": {
+    "file_path": "src/requests/auth.py",
+    "entity_name": "HTTPProxyAuth.__call__",
+    "entity_type": "method",
+    "line_start": 101,
+    "line_end": 103,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Subclass modifies a different header than its parent class, breaking expected side effects",
+    "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth. While HTTPBasicAuth is expected to set the 'Authorization' header, HTTPProxyAuth overrides the __call__ method to set the 'Proxy-Authorization' header instead. Because it inherits from HTTPBasicAuth rather than AuthBase directly, it fails to fulfill the specific contract of its parent class (setting the standard Auth header), making it non-substitutable in contexts expecting Basic Authentication behavior."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor HTTPProxyAuth to inherit from AuthBase instead of HTTPBasicAuth to resolve LSP violation.",
+    "rationale": "HTTPProxyAuth was inheriting from HTTPBasicAuth but overriding its behavior to set a different header ('Proxy-Authorization' vs 'Authorization'). This violates the Liskov Substitution Principle as it breaks the contract of the parent class. By inheriting directly from AuthBase, we maintain the same interface while correctly separating the concerns.",
+    "files_touched": [
+      "src/requests/auth.py"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "src/requests/auth.py"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "src/requests/auth.py",
+        "search_text": "class HTTPProxyAuth(HTTPBasicAuth):\n    \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n\n    def __call__(self, r):\n        r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n        return r",
+        "replace_text": "class HTTPProxyAuth(AuthBase):\n    \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n\n    def __init__(self, username, password):\n        self.username = username\n        self.password = password\n\n    def __eq__(self, other):\n        return all(\n            [\n                self.username == getattr(other, \"username\", None),\n                self.password == getattr(other, \"password\", None),\n            ]\n        )\n\n    def __ne__(self, other):\n        return not self == other\n\n    def __call__(self, r):\n        r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n        return r",
+        "search_lines": 6,
+        "replace_lines": 21
+      }
+    ]
+  },
+  "test_results": {
+    "command": "C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Scripts\\python.exe -m pytest --tb=short -q --no-header -p no:cacheprovider -x --json-report --json-report-file=C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.pytest_report.json --deselect=tests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_unexpired_cert",
+    "passed": true,
+    "total": 610,
+    "passed_count": 606,
+    "failed_count": 0,
+    "skipped_count": 3,
+    "error_count": 0,
+    "duration_ms": 165202.97002792358,
+    "timed_out": false,
+    "new_failures_count": 0,
+    "pre_existing_failures_count": 0,
+    "new_failures": [],
+    "pre_existing_failures": [],
+    "output_tail": "........................................................................ [ 11%]\n........................................................................ [ 23%]\n......spytest-httpbin server hit an exception serving request: [WinError 10054] An existing connection was forcibly closed by the remote host\nattempting to ignore so the rest of the tests can run\n................................................................. [ 35%]\n...............................................x........................ [ 47%]\n........................................................................ [ 59%]\n...........................s......s..................................... [ 70%]\n........................................................................ [ 82%]\n........................................................................ [ 94%]\n..................................                                       [100%]\n============================== warnings summary ===============================\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (42) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\ntests/test_requests.py::TestRequests::test_set_basicauth[42-42]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'int'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:36: DeprecationWarning: Non-string usernames will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (None) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\ntests/test_requests.py::TestRequests::test_set_basicauth[None-None]\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\auth.py:46: DeprecationWarning: Non-string passwords will no longer be supported in Requests 3.0.0. Please convert the object you've passed in (<class 'NoneType'>) to a string or bytes object in the near future to avoid problems.\n    warnings.warn(\n\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_True\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_tls_settings_verify_bundle_expired_cert\ntests/test_requests.py::TestPreparingURLs::test_different_connection_pool_for_mtls_settings\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'localhost'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings\n    warnings.warn(\n\ntests/test_utils.py::TestContentEncodingDetection::test_none\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta charset=\"UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" />]\ntests/test_utils.py::TestContentEncodingDetection::test_pragmas[<?xml version=\"1.0\" encoding=\"UTF-8\"?>]\ntests/test_utils.py::TestContentEncodingDetection::test_precedence\n  C:\\Users\\User\\Desktop\\SDP-Codex\\S1-T7-Okeyish\\refactor_workspaces\\requests\\src\\requests\\utils.py:477: DeprecationWarning: In requests 3.0, get_encodings_from_content will be removed. For more information, please see the discussion on issue #2266. (This warning should only appear once.)\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n606 passed, 3 skipped, 1 deselected, 1 xfailed, 17 warnings in 164.37s (0:02:44)\n"
+  },
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/auth.py",
+        "loc": 208,
+        "blank_lines": 56,
+        "comment_lines": 26,
+        "function_count": 16,
+        "avg_cc": 2.63,
+        "max_cc": 14.0,
+        "mi": 50.08
+      }
+    ],
+    "after": [
+      {
+        "file": "src/requests/auth.py",
+        "loc": 220,
+        "blank_lines": 59,
+        "comment_lines": 26,
+        "function_count": 19,
+        "avg_cc": 2.41,
+        "max_cc": 14.0,
+        "mi": 48.46
+      }
+    ]
+  },
+  "diff": "diff --git a/src/requests/auth.py b/src/requests/auth.py\nindex 3aa7f83..4b277b9 100644\n--- a/src/requests/auth.py\n+++ b/src/requests/auth.py\n@@ -96,9 +96,24 @@ class HTTPBasicAuth(AuthBase):\n         return r\n \n \n-class HTTPProxyAuth(HTTPBasicAuth):\n+class HTTPProxyAuth(AuthBase):\n     \"\"\"Attaches HTTP Proxy Authentication to a given Request object.\"\"\"\n \n+    def __init__(self, username, password):\n+        self.username = username\n+        self.password = password\n+\n+    def __eq__(self, other):\n+        return all(\n+            [\n+                self.username == getattr(other, \"username\", None),\n+                self.password == getattr(other, \"password\", None),\n+            ]\n+        )\n+\n+    def __ne__(self, other):\n+        return not self == other\n+\n     def __call__(self, r):\n         r.headers[\"Proxy-Authorization\"] = _basic_auth_str(self.username, self.password)\n         return r\n",
+  "duration_ms": 187328.42826843262
+}

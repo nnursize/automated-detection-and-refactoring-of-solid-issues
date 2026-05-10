@@ -1,0 +1,104 @@
+{
+  "issue_id": "SRP-008",
+  "principle": "SRP",
+  "title": "Refactor SRP-008 (SRP): The JsonWriter class is responsible for writing JSON tokens, managing JSON fo...",
+  "branch": "refactor/SRP-008",
+  "base": "main",
+  "head_commit": "2f6c73f5bb622d5770715968852e9f1357b89017",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 8950,
+    "completion_tokens": 1682
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+    "entity_name": "JsonWriter",
+    "entity_type": "class",
+    "line_start": 40,
+    "line_end": 508,
+    "severity": "high",
+    "scan_count": 4,
+    "description": "The JsonWriter class is responsible for writing JSON tokens, managing JSON formatting (indentation, newlines, spaces), and handling HTML escaping.",
+    "reasoning": "This class exhibits a 'God Class' smell. It combines the core responsibility of writing syntactically correct JSON tokens to a character stream with distinct concerns such as: (1) applying formatting styles (indentation, newlines, spaces after separators, managed by `formattedColon`, `formattedComma`, `usesEmptyNewlineAndIndent` and `newline` method), and (2) performing HTML character escaping (`htmlSafe` flag and `string` method's logic). Changes to formatting rules or HTML escaping logic are separate reasons to change from ensuring valid JSON token output."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Extract JSON formatting and string escaping logic into a helper class to improve SRP",
+    "rationale": "JsonWriter was handling both structural JSON writing and low-level concerns like string escaping and formatting. By moving these to a dedicated JsonWriterHelper, we separate the concerns of 'how to write JSON' from 'how to format/escape data'.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+      "gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java"
+    ],
+    "files_created": [
+      "gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java"
+    ],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/stream/JsonWriter.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "search_text": "  private static final String[] REPLACEMENT_CHARS;\n  private static final String[] HTML_SAFE_REPLACEMENT_CHARS;\n\n  static {\n    REPLACEMENT_CHARS = new String[128];\n    for (int i = 0; i <= 0x1f; i++) {\n      REPLACEMENT_CHARS[i] = String.format(\"\\\\u%04x\", i);\n    }\n    REPLACEMENT_CHARS['\"'] = \"\\\\\\\"\";\n    REPLACEMENT_CHARS['\\\\'] = \"\\\\\\\\\";\n    REPLACEMENT_CHARS['\\t'] = \"\\\\t\";\n    REPLACEMENT_CHARS['\\b'] = \"\\\\b\";\n    REPLACEMENT_CHARS['\\n'] = \"\\\\n\";\n    REPLACEMENT_CHARS['\\r'] = \"\\\\r\";\n    REPLACEMENT_CHARS['\\f'] = \"\\\\f\";\n    HTML_SAFE_REPLACEMENT_CHARS = REPLACEMENT_CHARS.clone();\n    HTML_SAFE_REPLACEMENT_CHARS['<'] = \"\\\\u003c\";\n    HTML_SAFE_REPLACEMENT_CHARS['>'] = \"\\\\u003e\";\n    HTML_SAFE_REPLACEMENT_CHARS['&'] = \"\\\\u0026\";\n    HTML_SAFE_REPLACEMENT_CHARS['='] = \"\\\\u003d\";\n    HTML_SAFE_REPLACEMENT_CHARS['\\''] = \"\\\\u0027\";\n  }",
+        "replace_text": ">>>>>>> REPLACE\n\n<<<<<<< SEARCH gson/src/main/java/com/google/gson/stream/JsonWriter.java\n  private void string(String value) throws IOException {\n    String[] replacements = htmlSafe ? HTML_SAFE_REPLACEMENT_CHARS : REPLACEMENT_CHARS;\n    out.write('\\\"');\n    int last = 0;\n    int length = value.length();\n    for (int i = 0; i < length; i++) {\n      char c = value.charAt(i);\n      String replacement;\n      if (c < 128) {\n        replacement = replacements[c];\n        if (replacement == null) {\n          continue;\n        }\n      } else if (c == '\\u2028') {\n        replacement = \"\\\\u2028\";\n      } else if (c == '\\u2029') {\n        replacement = \"\\\\u2029\";\n      } else {\n        continue;\n      }\n      if (last < i) {\n        out.write(value, last, i - last);\n      }\n      out.write(replacement);\n      last = i + 1;\n    }\n    if (last < length) {\n      out.write(value, last, length - last);\n    }\n    out.write('\\\"');\n  }\n\n  private void newline() throws IOException {\n    if (usesEmptyNewlineAndIndent) {\n      return;\n    }\n\n    out.write(formattingStyle.getNewline());\n    for (int i = 1, size = stackSize; i < size; i++) {\n      out.write(formattingStyle.getIndent());\n    }\n  }\n=======\n  private void string(String value) throws IOException {\n    JsonWriterHelper.writeString(out, value, htmlSafe);\n  }\n\n  private void newline() throws IOException {\n    JsonWriterHelper.writeNewline(out, formattingStyle, stackSize);\n  }",
+        "search_lines": 22,
+        "replace_lines": 53
+      },
+      {
+        "kind": "create",
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java",
+        "new_content": "package com.google.gson.stream;\n\nimport com.google.gson.FormattingStyle;\nimport java.io.IOException;\nimport java.io.Writer;\n\nclass JsonWriterHelper {\n  private static final String[] REPLACEMENT_CHARS;\n  private static final String[] HTML_SAFE_REPLACEMENT_CHARS;\n\n  static {\n    REPLACEMENT_CHARS = new String[128];\n    for (int i = 0; i <= 0x1f; i++) {\n      REPLACEMENT_CHARS[i] = String.format(\"\\\\u%04x\", i);\n    }\n    REPLACEMENT_CHARS['\"'] = \"\\\\\\\"\";\n    REPLACEMENT_CHARS['\\\\'] = \"\\\\\\\\\";\n    REPLACEMENT_CHARS['\\t'] = \"\\\\t\";\n    REPLACEMENT_CHARS['\\b'] = \"\\\\b\";\n    REPLACEMENT_CHARS['\\n'] = \"\\\\n\";\n    REPLACEMENT_CHARS['\\r'] = \"\\\\r\";\n    REPLACEMENT_CHARS['\\f'] = \"\\\\f\";\n    HTML_SAFE_REPLACEMENT_CHARS = REPLACEMENT_CHARS.clone();\n    HTML_SAFE_REPLACEMENT_CHARS['<'] = \"\\\\u003c\";\n    HTML_SAFE_REPLACEMENT_CHARS['>'] = \"\\\\u003e\";\n    HTML_SAFE_REPLACEMENT_CHARS['&'] = \"\\\\u0026\";\n    HTML_SAFE_REPLACEMENT_CHARS['='] = \"\\\\u003d\";\n    HTML_SAFE_REPLACEMENT_CHARS['\\''] = \"\\\\u0027\";\n  }\n\n  static void writeString(Writer out, String value, boolean htmlSafe) throws IOException {\n    String[] replacements = htmlSafe ? HTML_SAFE_REPLACEMENT_CHARS : REPLACEMENT_CHARS;\n    out.write('\\\"');\n    int last = 0;\n    int length = value.length();\n    for (int i = 0; i < length; i++) {\n      char c = value.charAt(i);\n      String replacement;\n      if (c < 128) {\n        replacement = replacements[c];\n        if (replacement == null) continue;\n      } else if (c == '\\u2028') {\n        replacement = \"\\\\u2028\";\n      } else if (c == '\\u2029') {\n        replacement = \"\\\\u2029\";\n      } else {\n        continue;\n      }\n      if (last < i) out.write(value, last, i - last);\n      out.write(replacement);\n      last = i + 1;\n    }\n    if (last < length) out.write(value, last, length - last);\n    out.write('\\\"');\n  }\n\n  static void writeNewline(Writer out, FormattingStyle style, int stackSize) throws IOException {\n    if (style.getNewline().isEmpty() && style.getIndent().isEmpty()) return;\n    out.write(style.getNewline());\n    for (int i = 1; i < stackSize; i++) {\n      out.write(style.getIndent());\n    }\n  }\n}",
+        "new_content_lines": 64
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "loc": 759,
+        "blank_lines": 67,
+        "comment_lines": 10,
+        "function_count": 38,
+        "avg_cc": 3.5,
+        "max_cc": 96.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "loc": 787,
+        "blank_lines": 70,
+        "comment_lines": 10,
+        "function_count": 42,
+        "avg_cc": 3.45,
+        "max_cc": 104.0,
+        "mi": 0.0
+      },
+      {
+        "file": "gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java",
+        "loc": 59,
+        "blank_lines": 5,
+        "comment_lines": 0,
+        "function_count": 2,
+        "avg_cc": 6.5,
+        "max_cc": 12.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/stream/JsonWriter.java b/gson/src/main/java/com/google/gson/stream/JsonWriter.java\nindex f08a698..2bbc53c 100644\n--- a/gson/src/main/java/com/google/gson/stream/JsonWriter.java\n+++ b/gson/src/main/java/com/google/gson/stream/JsonWriter.java\n@@ -175,27 +175,58 @@ public class JsonWriter implements Closeable, Flushable {\n    * newline characters. This prevents eval() from failing with a syntax\n    * error. http://code.google.com/p/google-gson/issues/detail?id=341\n    */\n-  private static final String[] REPLACEMENT_CHARS;\n-  private static final String[] HTML_SAFE_REPLACEMENT_CHARS;\n+>>>>>>> REPLACE\n \n-  static {\n-    REPLACEMENT_CHARS = new String[128];\n-    for (int i = 0; i <= 0x1f; i++) {\n-      REPLACEMENT_CHARS[i] = String.format(\"\\\\u%04x\", i);\n+<<<<<<< SEARCH gson/src/main/java/com/google/gson/stream/JsonWriter.java\n+  private void string(String value) throws IOException {\n+    String[] replacements = htmlSafe ? HTML_SAFE_REPLACEMENT_CHARS : REPLACEMENT_CHARS;\n+    out.write('\\\"');\n+    int last = 0;\n+    int length = value.length();\n+    for (int i = 0; i < length; i++) {\n+      char c = value.charAt(i);\n+      String replacement;\n+      if (c < 128) {\n+        replacement = replacements[c];\n+        if (replacement == null) {\n+          continue;\n+        }\n+      } else if (c == '\\u2028') {\n+        replacement = \"\\\\u2028\";\n+      } else if (c == '\\u2029') {\n+        replacement = \"\\\\u2029\";\n+      } else {\n+        continue;\n+      }\n+      if (last < i) {\n+        out.write(value, last, i - last);\n+      }\n+      out.write(replacement);\n+      last = i + 1;\n+    }\n+    if (last < length) {\n+      out.write(value, last, length - last);\n+    }\n+    out.write('\\\"');\n+  }\n+\n+  private void newline() throws IOException {\n+    if (usesEmptyNewlineAndIndent) {\n+      return;\n+    }\n+\n+    out.write(formattingStyle.getNewline());\n+    for (int i = 1, size = stackSize; i < size; i++) {\n+      out.write(formattingStyle.getIndent());\n     }\n-    REPLACEMENT_CHARS['\"'] = \"\\\\\\\"\";\n-    REPLACEMENT_CHARS['\\\\'] = \"\\\\\\\\\";\n-    REPLACEMENT_CHARS['\\t'] = \"\\\\t\";\n-    REPLACEMENT_CHARS['\\b'] = \"\\\\b\";\n-    REPLACEMENT_CHARS['\\n'] = \"\\\\n\";\n-    REPLACEMENT_CHARS['\\r'] = \"\\\\r\";\n-    REPLACEMENT_CHARS['\\f'] = \"\\\\f\";\n-    HTML_SAFE_REPLACEMENT_CHARS = REPLACEMENT_CHARS.clone();\n-    HTML_SAFE_REPLACEMENT_CHARS['<'] = \"\\\\u003c\";\n-    HTML_SAFE_REPLACEMENT_CHARS['>'] = \"\\\\u003e\";\n-    HTML_SAFE_REPLACEMENT_CHARS['&'] = \"\\\\u0026\";\n-    HTML_SAFE_REPLACEMENT_CHARS['='] = \"\\\\u003d\";\n-    HTML_SAFE_REPLACEMENT_CHARS['\\''] = \"\\\\u0027\";\n+  }\n+=======\n+  private void string(String value) throws IOException {\n+    JsonWriterHelper.writeString(out, value, htmlSafe);\n+  }\n+\n+  private void newline() throws IOException {\n+    JsonWriterHelper.writeNewline(out, formattingStyle, stackSize);\n   }\n \n   /** The JSON output destination */\ndiff --git a/gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java b/gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java\nnew file mode 100644\nindex 0000000..0000000\n--- /dev/null\n+++ b/gson/src/main/java/com/google/gson/stream/JsonWriterHelper.java\n@@ -0,0 +1,64 @@\n+package com.google.gson.stream;\n+\n+import com.google.gson.FormattingStyle;\n+import java.io.IOException;\n+import java.io.Writer;\n+\n+class JsonWriterHelper {\n+  private static final String[] REPLACEMENT_CHARS;\n+  private static final String[] HTML_SAFE_REPLACEMENT_CHARS;\n+\n+  static {\n+    REPLACEMENT_CHARS = new String[128];\n+    for (int i = 0; i <= 0x1f; i++) {\n+      REPLACEMENT_CHARS[i] = String.format(\"\\\\u%04x\", i);\n+    }\n+    REPLACEMENT_CHARS['\"'] = \"\\\\\\\"\";\n+    REPLACEMENT_CHARS['\\\\'] = \"\\\\\\\\\";\n+    REPLACEMENT_CHARS['\\t'] = \"\\\\t\";\n+    REPLACEMENT_CHARS['\\b'] = \"\\\\b\";\n+    REPLACEMENT_CHARS['\\n'] = \"\\\\n\";\n+    REPLACEMENT_CHARS['\\r'] = \"\\\\r\";\n+    REPLACEMENT_CHARS['\\f'] = \"\\\\f\";\n+    HTML_SAFE_REPLACEMENT_CHARS = REPLACEMENT_CHARS.clone();\n+    HTML_SAFE_REPLACEMENT_CHARS['<'] = \"\\\\u003c\";\n+    HTML_SAFE_REPLACEMENT_CHARS['>'] = \"\\\\u003e\";\n+    HTML_SAFE_REPLACEMENT_CHARS['&'] = \"\\\\u0026\";\n+    HTML_SAFE_REPLACEMENT_CHARS['='] = \"\\\\u003d\";\n+    HTML_SAFE_REPLACEMENT_CHARS['\\''] = \"\\\\u0027\";\n+  }\n+\n+  static void writeString(Writer out, String value, boolean htmlSafe) throws IOException {\n+    String[] replacements = htmlSafe ? HTML_SAFE_REPLACEMENT_CHARS : REPLACEMENT_CHARS;\n+    out.write('\\\"');\n+    int last = 0;\n+    int length = value.length();\n+    for (int i = 0; i < length; i++) {\n+      char c = value.charAt(i);\n+      String replacement;\n+      if (c < 128) {\n+        replacement = replacements[c];\n+        if (replacement == null) continue;\n+      } else if (c == '\\u2028') {\n+        replacement = \"\\\\u2028\";\n+      } else if (c == '\\u2029') {\n+        replacement = \"\\\\u2029\";\n+      } else {\n+        continue;\n+      }\n+      if (last < i) out.write(value, last, i - last);\n+      out.write(replacement);\n+      last = i + 1;\n+    }\n+    if (last < length) out.write(value, last, length - last);\n+    out.write('\\\"');\n+  }\n+\n+  static void writeNewline(Writer out, FormattingStyle style, int stackSize) throws IOException {\n+    if (style.getNewline().isEmpty() && style.getIndent().isEmpty()) return;\n+    out.write(style.getNewline());\n+    for (int i = 1; i < stackSize; i++) {\n+      out.write(style.getIndent());\n+    }\n+  }\n+}\n\\ No newline at end of file\n",
+  "duration_ms": 5179.24952507019
+}

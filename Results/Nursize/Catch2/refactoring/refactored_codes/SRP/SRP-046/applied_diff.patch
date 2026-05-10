@@ -1,0 +1,100 @@
+diff --git a/third_party/clara.hpp b/third_party/clara.hpp
+index eb4c727..9bdc986 100644
+--- a/third_party/clara.hpp
++++ b/third_party/clara.hpp
+@@ -69,11 +69,15 @@ namespace clara { namespace TextFlow {
+ 
+     class Columns;
+ 
++    struct ColumnLayout {
++        size_t width = CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;
++        size_t indent = 0;
++        size_t initialIndent = std::string::npos;
++    };
++
+     class Column {
+         std::vector<std::string> m_strings;
+-        size_t m_width = CLARA_TEXTFLOW_CONFIG_CONSOLE_WIDTH;
+-        size_t m_indent = 0;
+-        size_t m_initialIndent = std::string::npos;
++        ColumnLayout m_layout;
+ 
+     public:
+         class iterator {
+@@ -108,7 +112,7 @@ namespace clara { namespace TextFlow {
+                 assert( m_stringIndex < m_column.m_strings.size() );
+ 
+                 m_suffix = false;
+-                auto width = m_column.m_width-indent();
++                auto width = m_column.m_layout.width-indent();
+                 m_end = m_pos;
+                 if (line()[m_pos] == '\n') {
+                     ++m_end;
+@@ -136,8 +140,8 @@ namespace clara { namespace TextFlow {
+             }
+ 
+             auto indent() const -> size_t {
+-                auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_initialIndent : std::string::npos;
+-                return initial == std::string::npos ? m_column.m_indent : initial;
++                auto initial = m_pos == 0 && m_stringIndex == 0 ? m_column.m_layout.initialIndent : std::string::npos;
++                return initial == std::string::npos ? m_column.m_layout.indent : initial;
+             }
+ 
+             auto addIndentAndSuffix(std::string const &plain) const -> std::string {
+@@ -152,8 +156,8 @@ namespace clara { namespace TextFlow {
+             using iterator_category = std::forward_iterator_tag;
+ 
+             explicit iterator( Column const& column ) : m_column( column ) {
+-                assert( m_column.m_width > m_column.m_indent );
+-                assert( m_column.m_initialIndent == std::string::npos || m_column.m_width > m_column.m_initialIndent );
++                assert( m_column.m_layout.width > m_column.m_layout.indent );
++                assert( m_column.m_layout.initialIndent == std::string::npos || m_column.m_layout.width > m_column.m_layout.initialIndent );
+                 calcLength();
+                 if( m_len == 0 )
+                     m_stringIndex++; // Empty string
+@@ -203,19 +207,19 @@ namespace clara { namespace TextFlow {
+ 
+         auto width( size_t newWidth ) -> Column& {
+             assert( newWidth > 0 );
+-            m_width = newWidth;
++            m_layout.width = newWidth;
+             return *this;
+         }
+         auto indent( size_t newIndent ) -> Column& {
+-            m_indent = newIndent;
++            m_layout.indent = newIndent;
+             return *this;
+         }
+         auto initialIndent( size_t newIndent ) -> Column& {
+-            m_initialIndent = newIndent;
++            m_layout.initialIndent = newIndent;
+             return *this;
+         }
+ 
+-        auto width() const -> size_t { return m_width; }
++        auto width() const -> size_t { return m_layout.width; }
+         auto begin() const -> iterator { return iterator( *this ); }
+         auto end() const -> iterator { return { *this, m_strings.size() }; }
+ 
+@@ -298,17 +302,17 @@ namespace clara { namespace TextFlow {
+                 std::string row, padding;
+ 
+                 for( size_t i = 0; i < m_columns.size(); ++i ) {
+-                    auto width = m_columns[i].width();
++                    auto colWidth = m_columns[i].width();
+                     if( m_iterators[i] != m_columns[i].end() ) {
+                         std::string col = *m_iterators[i];
+                         row += padding + col;
+-                        if( col.size() < width )
+-                            padding = std::string( width - col.size(), ' ' );
++                        if( col.size() < colWidth )
++                            padding = std::string( colWidth - col.size(), ' ' );
+                         else
+                             padding = "";
+                     }
+                     else {
+-                        padding += std::string( width, ' ' );
++                        padding += std::string( colWidth, ' ' );
+                     }
+                 }
+                 return row;

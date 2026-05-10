@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson",
+    "entity_type": "class",
+    "line_start": 248,
+    "line_end": 262,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Gson constructor directly instantiates internal implementation details.",
+    "reasoning": "The Gson class is the high-level entry point for the library. In its constructor, it directly instantiates concrete classes like ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory. According to DIP, high-level modules should depend on abstractions, not concrete low-level implementation details. This tight coupling makes it difficult to swap these components for testing or extension."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 582,
+    "line_end": 645,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of multiple concrete TypeAdapterFactory implementations.",
+    "reasoning": "The createFactories method contains a long list of direct 'new' calls to instantiate concrete factories such as CollectionTypeAdapterFactory, MapTypeAdapterFactory, and ReflectiveTypeAdapterFactory. This creates a hard-coded dependency on every specific adapter implementation in the library, violating the principle that modules should depend on abstractions (TypeAdapterFactory) rather than specific details."
+  },
+  {
+    "file_path": "gson/extras/src/main/java/com/google/gson/graph/GraphAdapterBuilder.java",
+    "entity_name": "GraphAdapterBuilder",
+    "entity_type": "class",
+    "line_start": 74,
+    "line_end": 76,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Extra utility class instantiates internal core library implementation.",
+    "reasoning": "GraphAdapterBuilder, which is part of the 'extras' package, directly instantiates ConstructorConstructor from the core 'internal' package. This violates DIP as the high-level utility is tightly coupled to a low-level internal detail of the core library. It should instead receive an abstraction or have the dependency injected."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.getTypeAdapter",
+    "entity_type": "method",
+    "line_start": 129,
+    "line_end": 130,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of concrete TreeTypeAdapter.",
+    "reasoning": "This factory method directly uses 'new TreeTypeAdapter' to create an instance. By hard-coding the creation of a specific TypeAdapter implementation, it prevents the use of different implementations or the ability to mock the adapter during unit testing of the factory logic."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory",
+    "entity_type": "class",
+    "line_start": 60,
+    "line_end": 71,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Constructor depends on concrete implementation classes rather than abstractions.",
+    "reasoning": "The constructor for ReflectiveTypeAdapterFactory requires concrete types like ConstructorConstructor and Excluder. Since these are classes containing specific logic for object instantiation and field filtering, the factory is tightly coupled to these details. DIP suggests depending on interfaces to allow for different behaviors or easier testing."
+  }
+]

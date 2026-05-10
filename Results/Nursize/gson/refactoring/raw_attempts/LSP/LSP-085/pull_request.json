@@ -1,0 +1,93 @@
+{
+  "issue_id": "LSP-085",
+  "principle": "LSP",
+  "title": "Refactor LSP-085 (LSP): Subtype's construct method throws a checked exception (JsonIOException) not d...",
+  "branch": "refactor/LSP-085",
+  "base": "main",
+  "head_commit": "a26e967e975bacbebba0e6521b6174ee50a4d0c8",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 5945,
+    "completion_tokens": 593
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.ThrowingObjectConstructor.construct",
+    "entity_type": "method",
+    "line_start": 440,
+    "line_end": 447,
+    "severity": "high",
+    "scan_count": 2,
+    "description": "Subtype's construct method throws a checked exception (JsonIOException) not declared by the functional interface ObjectConstructor.",
+    "reasoning": "The `ObjectConstructor.construct()` method is part of a functional interface and declares no checked exceptions. The `ThrowingObjectConstructor.construct()` implementation explicitly throws `JsonIOException`, which is a checked exception (subclass of `IOException`). This directly violates the interface's contract, as a client using `ObjectConstructor` would not be required to catch `JsonIOException` by the compiler, leading to unexpected runtime failures."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Change ThrowingObjectConstructor to throw RuntimeException instead of JsonIOException",
+    "rationale": "The ObjectConstructor interface does not declare any checked exceptions. Throwing JsonIOException (a checked exception) violates the Liskov Substitution Principle. Changing it to a RuntimeException (or a subclass thereof) satisfies the interface contract while preserving the error-reporting behavior.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "search_text": "    @Override\n    public T construct() {\n      // New exception is created every time to avoid keeping a reference to an exception with\n      // potentially long stack trace, causing a memory leak\n      // (which would happen if the exception was already created when the\n      // `ThrowingObjectConstructor` is created)\n      throw new JsonIOException(exceptionMessage);\n    }",
+        "replace_text": "    @Override\n    public T construct() {\n      // New exception is created every time to avoid keeping a reference to an exception with\n      // potentially long stack trace, causing a memory leak\n      // (which would happen if the exception was already created when the\n      // `ThrowingObjectConstructor` is created)\n      throw new JsonIOException(exceptionMessage);\n    }",
+        "search_lines": 8,
+        "replace_lines": 8
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "search_text": "    @Override\n    public T construct() {\n      // New exception is created every time to avoid keeping a reference to an exception with\n      // potentially long stack trace, causing a memory leak\n      // (which would happen if the exception was already created when the\n      // `ThrowingObjectConstructor` is created)\n      throw new JsonIOException(exceptionMessage);\n    }",
+        "replace_text": "    @Override\n    public T construct() {\n      // New exception is created every time to avoid keeping a reference to an exception with\n      // potentially long stack trace, causing a memory leak\n      // (which would happen if the exception was already created when the\n      // `ThrowingObjectConstructor` is created)\n      throw new RuntimeException(exceptionMessage);\n    }",
+        "search_lines": 8,
+        "replace_lines": 8
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "loc": 387,
+        "blank_lines": 48,
+        "comment_lines": 30,
+        "function_count": 13,
+        "avg_cc": 7.23,
+        "max_cc": 82.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+        "loc": 387,
+        "blank_lines": 48,
+        "comment_lines": 30,
+        "function_count": 13,
+        "avg_cc": 7.23,
+        "max_cc": 82.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\nindex 3ad6523..7e39836 100644\n--- a/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\n+++ b/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java\n@@ -444,7 +444,7 @@ public final class ConstructorConstructor {\n       // potentially long stack trace, causing a memory leak\n       // (which would happen if the exception was already created when the\n       // `ThrowingObjectConstructor` is created)\n-      throw new JsonIOException(exceptionMessage);\n+      throw new RuntimeException(exceptionMessage);\n     }\n   }\n \n",
+  "duration_ms": 2572.000741958618
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "extras/catch_amalgamated.hpp",
+    "search_text": "        void sectionStarting( SectionInfo const& sectionInfo ) override;\n\n        void assertionStarting( AssertionInfo const& ) override {}\n\n        void assertionEnded( AssertionStats const& assertionStats ) override;\n        void sectionEnded( SectionStats const& sectionStats ) override;\n        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}\n        void testCaseEnded( TestCaseStats const& testCaseStats ) override;\n        void testRunEnded( TestRunStats const& testRunStats ) override;\n        //! Customization point: called after last test finishes (testRunEnded has been handled)\n        virtual void testRunEndedCumulative() = 0;",
+    "replace_text": "        void sectionStarting( SectionInfo const& sectionInfo ) final;\n\n        void assertionStarting( AssertionInfo const& ) final {}\n\n        void assertionEnded( AssertionStats const& assertionStats ) final;\n        void sectionEnded( SectionStats const& sectionStats ) final;\n        void testCasePartialEnded( TestCaseStats const&, uint64_t ) final {}\n        void testCaseEnded( TestCaseStats const& testCaseStats ) final;\n        void testRunEnded( TestRunStats const& testRunStats ) final;\n\n    protected:\n        virtual void sectionStartingCumulative( SectionInfo const& ) {}\n        virtual void assertionEndedCumulative( AssertionStats const& ) {}\n        virtual void sectionEndedCumulative( SectionStats const& ) {}\n        virtual void testCaseEndedCumulative( TestCaseStats const& ) {}\n        virtual void testRunEndedCumulative( TestRunStats const& ) = 0;"
+  }
+]

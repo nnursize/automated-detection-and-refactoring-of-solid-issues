@@ -1,0 +1,123 @@
+[
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/Queue.java",
+    "entity_name": "Queue.close",
+    "entity_type": "method",
+    "line_start": 800,
+    "line_end": 829,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Swallows IOException in a helper method, potentially altering expected error reporting of Closeable.close().",
+    "reasoning": "The `Queue.close()` method overrides `java.io.Closeable.close()`, which declares `throws IOException`. Inside `releaseLockAndSwallow()`, which is called by `close()`, any `IOException` from `FileLockFactory.releaseLock()` is caught and logged as an error, but not rethrown. This means that if `FileLockFactory.releaseLock()` fails, the `IOException` is swallowed, potentially preventing clients from reliably catching all IO-related failures during the closing process, thus altering the expected error reporting contract of `Closeable.close()`."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.isShutdownRequested",
+    "entity_type": "method",
+    "line_start": 906,
+    "line_end": 909,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Base class method throws IllegalStateException, explicitly requiring subtypes to override it.",
+    "reasoning": "The `isShutdownRequested` method in `AbstractPipelineExt` throws an `IllegalStateException` and its comment explicitly states that it 'MUST be implemented in the concrete implementation of this class.' This violates LSP because a client expecting to use an `AbstractPipelineExt` instance (or a supertype if one exists) would encounter an unexpected runtime exception if a subtype fails to override this method, breaking the substitutability principle. The base class contract should be valid for all subtypes without requiring overrides to prevent exceptions."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/execution/AbstractPipelineExt.java",
+    "entity_name": "AbstractPipelineExt.LogErrorEvaluationListener.notify",
+    "entity_type": "method",
+    "line_start": 184,
+    "line_end": 219,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Swallows IOException from an internal call, which is not declared by the interface method.",
+    "reasoning": "The `LogErrorEvaluationListener.notify()` method implements `ConditionalEvaluationListener.notify()`, which does not declare `IOException`. However, inside the implementation, it calls `javaDlqWriter.writeEntry()`, which `throws IOException`. This `IOException` is caught and logged internally. By swallowing a checked exception that the interface method does not declare, `LogErrorEvaluationListener` changes the observable error-handling behavior for clients of the `ConditionalEvaluationListener` interface, preventing them from reacting to potential IO failures."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/common/io/DeadLetterQueueWriter.java",
+    "entity_name": "DeadLetterQueueWriter.close",
+    "entity_type": "method",
+    "line_start": 407,
+    "line_end": 421,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Swallows exceptions (including IOException) from critical cleanup steps, altering Closeable.close() contract.",
+    "reasoning": "The `DeadLetterQueueWriter.close()` method overrides `java.io.Closeable.close()`, which declares `throws IOException`. This implementation catches `Exception` (which includes `IOException`) from `finalizeSegment()` and `releaseFileLock()`, logs them as warnings, and then ignores them. This directly violates the `Closeable.close()` contract by preventing clients from catching and handling `IOException`s that occur during resource release, thus altering the expected error reporting behavior."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/config/ir/compiler/DatasetCompiler.java",
+    "entity_name": "DatasetCompiler.Complement.compute",
+    "entity_type": "method",
+    "line_start": 507,
+    "line_end": 519,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Swallows ConditionalEvaluationError from parent.compute(), altering error reporting behavior.",
+    "reasoning": "The `DatasetCompiler.Complement.compute()` method calls `parent.compute()` and catches `ConditionalEvaluationError`. If `parent.compute()` throws this exception, `Complement.compute()` swallows it and returns the `data` collection (which might be empty). If the `Dataset.compute()` interface contract implies that `ConditionalEvaluationError` should be propagated (or if other `Dataset` implementations propagate it), then `Complement`'s behavior of swallowing it changes the expected error reporting, violating LSP."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.setField",
+    "entity_type": "method",
+    "line_start": 204,
+    "line_end": 220,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Throws InvalidTagsTypeException for specific field 'tags', potentially violating generic setField contract.",
+    "reasoning": "The `Event.setField(FieldReference field, Object value)` method (which is called by the overridden `setField(String, Object)` from `co.elastic.logstash.api.Event`) throws `InvalidTagsTypeException` (a `RuntimeException`) if the 'tags' field is set with an illegal value type (e.g., a Map). If the `co.elastic.logstash.api.Event.setField` contract implies that any `Object` can be set for any field, then restricting the input type for a specific field and throwing an exception for it strengthens the precondition, which is an LSP violation. While it's an unchecked exception, it changes the expected behavior for a generic field setter."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.overwrite",
+    "entity_type": "method",
+    "line_start": 305,
+    "line_end": 309,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Uses instanceof check and alters behavior if argument is not of specific subtype.",
+    "reasoning": "The `Event.overwrite(co.elastic.logstash.api.Event e)` method checks `if (e instanceof Event)`. If `e` is not an instance of `Event` (i.e., it's another implementation of `co.elastic.logstash.api.Event`), the method simply returns `e` without modifying `this` event. This violates LSP because a client expects `event.overwrite(otherEvent)` to modify `event`. The behavior changes drastically (no modification) if `otherEvent` is a different subtype of `co.elastic.logstash.api.Event`, breaking substitutability."
+  },
+  {
+    "file_path": "logstash-core/src/main/java/org/logstash/Event.java",
+    "entity_name": "Event.append",
+    "entity_type": "method",
+    "line_start": 311,
+    "line_end": 315,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Uses instanceof check and alters behavior if argument is not of specific subtype.",
+    "reasoning": "The `Event.append(co.elastic.logstash.api.Event e)` method checks `if (e instanceof Event)`. If `e` is not an instance of `Event` (i.e., it's another implementation of `co.elastic.logstash.api.Event`), the method simply returns `e` without modifying `this` event. This violates LSP because a client expects `event.append(otherEvent)` to modify `event`. The behavior changes drastically (no modification) if `otherEvent` is a different subtype of `co.elastic.logstash.api.Event`, breaking substitutability."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/settings.rb",
+    "entity_name": "Setting.ArrayCoercible.validate",
+    "entity_type": "method",
+    "line_start": 490,
+    "line_end": 501,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Strengthens precondition by requiring input to be an Array and its elements to be of a specific class.",
+    "reasoning": "The `ArrayCoercible.validate(input)` method overrides `Setting.validate(input)`. While `Setting.validate` (implicitly) accepts any `Object` as input, `ArrayCoercible.validate` adds a precondition that `input` must be an `Array` and all its elements must be of a specific `@element_class`. Strengthening preconditions is a violation of LSP, as subtypes should not require more from their inputs than the base type."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/settings.rb",
+    "entity_name": "Setting.StringArray.validate",
+    "entity_type": "method",
+    "line_start": 540,
+    "line_end": 547,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Further strengthens precondition by requiring array elements to be from a predefined list of strings.",
+    "reasoning": "The `StringArray.validate(value)` method overrides `ArrayCoercible.validate(input)`. It adds a further precondition that the elements of the input array must be present in `@possible_strings`. This is an additional strengthening of the precondition beyond what `ArrayCoercible` already imposed, making it another LSP violation."
+  },
+  {
+    "file_path": "logstash-core/lib/logstash/settings.rb",
+    "entity_name": "Setting.SettingWithDeprecatedAlias.validate_value",
+    "entity_type": "method",
+    "line_start": 665,
+    "line_end": 672,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Introduces a new precondition that canonical and deprecated aliases cannot both be set.",
+    "reasoning": "The `SettingWithDeprecatedAlias.validate_value()` method overrides `Setting.validate_value()`. It introduces a new precondition: `if deprecated_alias.set? && canonical_setting.set?` which, if true, causes an `ArgumentError` to be thrown. This new restriction on the state of the object (an implicit input to `validate_value`) strengthens the precondition, violating LSP."
+  }
+]

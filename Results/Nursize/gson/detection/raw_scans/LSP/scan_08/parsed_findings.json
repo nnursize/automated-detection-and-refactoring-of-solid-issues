@@ -1,0 +1,189 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.FloatAdapter.write",
+    "entity_type": "method",
+    "line_start": 466,
+    "line_end": 479,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype introduces IllegalArgumentException for NaN/Infinity values not declared by base TypeAdapter.write.",
+    "reasoning": "The `TypeAdapter.write` method (base type) declares `IOException`. The `FloatAdapter.write` method, when `strict` is true, can throw an `IllegalArgumentException` if the `floatValue` is `NaN` or `Infinity`. While `IllegalArgumentException` is an unchecked exception and thus not strictly violating the method signature, it introduces a new failure mode (value validation) not explicitly covered by the base contract, which primarily implies I/O or serialization format issues."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.DoubleAdapter.write",
+    "entity_type": "method",
+    "line_start": 499,
+    "line_end": 509,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype introduces IllegalArgumentException for NaN/Infinity values not declared by base TypeAdapter.write.",
+    "reasoning": "The `TypeAdapter.write` method (base type) declares `IOException`. The `DoubleAdapter.write` method, when `strict` is true, can throw an `IllegalArgumentException` if the `doubleValue` is `NaN` or `Infinity`. Similar to `FloatAdapter`, this introduces a new failure mode (value validation) not explicitly covered by the base contract, which primarily implies I/O or serialization format issues."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+    "entity_name": "TypeAdapters.CALENDAR.create",
+    "entity_type": "method",
+    "line_start": 866,
+    "line_end": 873,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException not declared by base TypeAdapter.read.",
+    "reasoning": "The `IntegerFieldsTypeAdapter.read` method (which `CALENDAR` inherits) calls the abstract `create` method. The `create` implementation for `CALENDAR` calls `toIntExact`, which can throw `IllegalArgumentException`. The ultimate base method `TypeAdapter.read` only declares `IOException`. Introducing `IllegalArgumentException` (a `RuntimeException`) for value range validation changes the expected failure contract of the `read` method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.DURATION.create",
+    "entity_type": "method",
+    "line_start": 53,
+    "line_end": 55,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "The `IntegerFieldsTypeAdapter.read` method (which `DURATION` inherits) calls the abstract `create` method. The `create` implementation for `DURATION` calls `Duration.ofSeconds`, which can throw `DateTimeException` (a `RuntimeException`). The ultimate base method `TypeAdapter.read` only declares `IOException`. Introducing `DateTimeException` for value validation changes the expected failure contract of the `read` method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.INSTANT.create",
+    "entity_type": "method",
+    "line_start": 66,
+    "line_end": 68,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `DURATION`, the `create` implementation for `INSTANT` calls `Instant.ofEpochSecond`, which can throw `DateTimeException` (a `RuntimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.LOCAL_DATE.create",
+    "entity_type": "method",
+    "line_start": 79,
+    "line_end": 81,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException or DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `CALENDAR`, the `create` implementation for `LOCAL_DATE` calls `toIntExact` (throwing `IllegalArgumentException`) and `LocalDate.of` (throwing `DateTimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.LOCAL_TIME.create",
+    "entity_type": "method",
+    "line_start": 92,
+    "line_end": 96,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException or DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `LOCAL_DATE`, the `create` implementation for `LOCAL_TIME` calls `toIntExact` (throwing `IllegalArgumentException`) and `LocalTime.of` (throwing `DateTimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.MONTH_DAY.create",
+    "entity_type": "method",
+    "line_start": 147,
+    "line_end": 149,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException or DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `LOCAL_DATE`, the `create` implementation for `MONTH_DAY` calls `toIntExact` (throwing `IllegalArgumentException`) and `MonthDay.of` (throwing `DateTimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.PERIOD.create",
+    "entity_type": "method",
+    "line_start": 238,
+    "line_end": 240,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException or DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `LOCAL_DATE`, the `create` implementation for `PERIOD` calls `toIntExact` (throwing `IllegalArgumentException`) and `Period.of` (throwing `DateTimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.YEAR.create",
+    "entity_type": "method",
+    "line_start": 251,
+    "line_end": 253,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException or DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `LOCAL_DATE`, the `create` implementation for `YEAR` calls `toIntExact` (throwing `IllegalArgumentException`) and `Year.of` (throwing `DateTimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+    "entity_name": "JavaTimeTypeAdapters.YEAR_MONTH.create",
+    "entity_type": "method",
+    "line_start": 264,
+    "line_end": 266,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's create method, called by parent's read, throws IllegalArgumentException or DateTimeException not declared by base TypeAdapter.read.",
+    "reasoning": "Similar to `LOCAL_DATE`, the `create` implementation for `YEAR_MONTH` calls `toIntExact` (throwing `IllegalArgumentException`) and `YearMonth.of` (throwing `DateTimeException`). This changes the expected failure contract of `TypeAdapter.read`."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.RecordAdapter.finalize",
+    "entity_type": "method",
+    "line_start": 650,
+    "line_end": 669,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Subtype's finalize method throws RuntimeException not declared by abstract base Adapter.finalize or ultimate TypeAdapter.read.",
+    "reasoning": "The `Adapter.finalize` method is abstract and declares no exceptions. The `RecordAdapter.finalize` implementation can throw `InstantiationException`, `IllegalArgumentException`, or `InvocationTargetException` (all wrapped in `RuntimeException`). While `RuntimeException`s are unchecked, introducing them for construction failures, when the ultimate `TypeAdapter.read` method only declares `IOException`, changes the expected failure modes of the deserialization process, violating the implicit contract."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.ThrowingObjectConstructor.construct",
+    "entity_type": "method",
+    "line_start": 440,
+    "line_end": 447,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype's construct method throws a checked exception (JsonIOException) not declared by the functional interface ObjectConstructor.",
+    "reasoning": "The `ObjectConstructor.construct()` method is part of a functional interface and declares no checked exceptions. The `ThrowingObjectConstructor.construct()` implementation explicitly throws `JsonIOException`, which is a checked exception (subclass of `IOException`). This directly violates the interface's contract, as a client using `ObjectConstructor` would not be required to catch `JsonIOException` by the compiler, leading to unexpected runtime failures."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newDefaultConstructor (lambda)",
+    "entity_type": "method",
+    "line_start": 308,
+    "line_end": 342,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Lambda for ObjectConstructor.construct can throw RuntimeException (wrapping various exceptions) not declared by the functional interface.",
+    "reasoning": "The `ObjectConstructor.construct()` method (functional interface) declares no checked exceptions. The lambda returned by `newDefaultConstructor` can throw `RuntimeException` (wrapping `InstantiationException`, `InvocationTargetException`, `IllegalAccessException`). While `RuntimeException`s are unchecked, introducing them for construction failures, when the interface provides no explicit guidance on failure modes, changes the implicit failure contract. A client might expect a 'clean' call or a specific, declared exception, not a generic `RuntimeException` for these types of failures."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap.put",
+    "entity_type": "method",
+    "line_start": 123,
+    "line_end": 132,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype strengthens preconditions by disallowing null keys and optionally null values, throwing NullPointerException not specified by Map.put.",
+    "reasoning": "The `Map.put` method (which `AbstractMap.put` implements) does not specify that `NullPointerException` will be thrown for null keys or values (many `Map` implementations like `HashMap` allow them). `LinkedTreeMap.put` explicitly throws `NullPointerException` for null keys and for null values if `allowNullValues` is false. This strengthens the preconditions for `put`, violating LSP by introducing an unexpected runtime exception for valid arguments according to the broader `Map` interface contract."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/LinkedTreeMap.java",
+    "entity_name": "LinkedTreeMap.Node.setValue",
+    "entity_type": "method",
+    "line_start": 514,
+    "line_end": 520,
+    "principle": "LSP",
+    "severity": "high",
+    "description": "Subtype strengthens preconditions by disallowing null values, throwing NullPointerException not specified by Map.Entry.setValue.",
+    "reasoning": "The `Map.Entry.setValue` method does not specify that `NullPointerException` will be thrown for null values. `LinkedTreeMap.Node.setValue` explicitly throws `NullPointerException` if the `value` is null and `allowNullValue` is false. This strengthens the preconditions for `setValue`, violating LSP by introducing an unexpected runtime exception for valid arguments according to the `Map.Entry` interface contract."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/reflect/TypeToken.java",
+    "entity_name": "TypeToken.isAssignableFrom(Type from)",
+    "entity_type": "method",
+    "line_start": 157,
+    "line_end": 173,
+    "principle": "LSP",
+    "severity": "medium",
+    "description": "Method changes behavior from returning false to throwing IllegalArgumentException for unsupported Type types.",
+    "reasoning": "The `Class.isAssignableFrom` method (which `TypeToken.isAssignableFrom` conceptually mirrors) returns `false` when a type cannot be assigned. However, `TypeToken.isAssignableFrom(Type from)` throws an `IllegalArgumentException` if the `type` field of the `TypeToken` instance is not a `Class`, `ParameterizedType`, or `GenericArrayType`. This changes the expected behavior from a boolean return to an exception, violating LSP."
+  }
+]

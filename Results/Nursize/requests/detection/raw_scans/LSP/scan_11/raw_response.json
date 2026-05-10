@@ -1,0 +1,51 @@
+{
+  "scan_id": "requests_LSP_scan_11",
+  "repo_name": "requests",
+  "principle": "LSP",
+  "scan_number": 11,
+  "timestamp": "2026-05-03T01:38:00.735968",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.5,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a python repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Liskov Substitution Principle (LSP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad AP...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"RequestsCookieJar\",\n      \"entity_type\": \"class\",\n      \"line_start\": 176,\n      \"line_end\": 437,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Conflicting iteration contracts from multiple inheritance\",\n      \"reasoning\": \"RequestsCookieJar inherits from both cookielib.CookieJar and MutableMapping. These base types have incompatible contracts for iteration: CookieJar is an iterable of Cookie objects, while MutableMapping is an iterable of keys (strings). A subtype cannot satisfy both contracts simultaneously; substituting it for a standard Mapping will yield unexpected objects during iteration, and substituting it for a CookieJar will yield strings instead of Cookie objects if the Mapping contract takes precedence.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/auth.py\",\n      \"entity_name\": \"HTTPProxyAuth\",\n      \"entity_type\": \"class\",\n      \"line_start\": 99,\n      \"line_end\": 104,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Subtype alters the target and side-effect of the parent class contract\",\n      \"reasoning\": \"HTTPProxyAuth inherits from HTTPBasicAuth but overrides the __call__ method to modify the 'Proxy-Authorization' header instead of the 'Authorization' header. This violates LSP because a client expecting an HTTPBasicAuth object to provide credentials to the origin server will find that substituting it with an HTTPProxyAuth object fails to authenticate the request to the server, altering the correctness of the program's network behavior.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/structures.py\",\n      \"entity_name\": \"CaseInsensitiveDict\",\n      \"entity_type\": \"class\",\n      \"line_start\": 13,\n      \"line_end\": 80,\n      \"principle\": \"LSP\",\n      \"severity\": \"low\",\n      \"description\": \"Violation of key-preservation post-conditions in Mapping interface\",\n      \"reasoning\": \"As a subtype of MutableMapping, CaseInsensitiveDict violates the standard expectation that keys are preserved exactly as provided. By normalizing keys (e.g., to lowercase), it alters the expected behavior where distinct keys (like 'Key' and 'key') should result in distinct entries and contribute to the mapping's length. Logic relying on case-sensitive key preservation in a standard Mapping will fail when this subtype is substituted.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "RequestsCookieJar",
+      "entity_type": "class",
+      "line_start": 176,
+      "line_end": 437,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Conflicting iteration contracts from multiple inheritance",
+      "reasoning": "RequestsCookieJar inherits from both cookielib.CookieJar and MutableMapping. These base types have incompatible contracts for iteration: CookieJar is an iterable of Cookie objects, while MutableMapping is an iterable of keys (strings). A subtype cannot satisfy both contracts simultaneously; substituting it for a standard Mapping will yield unexpected objects during iteration, and substituting it for a CookieJar will yield strings instead of Cookie objects if the Mapping contract takes precedence."
+    },
+    {
+      "file_path": "requests/src/requests/auth.py",
+      "entity_name": "HTTPProxyAuth",
+      "entity_type": "class",
+      "line_start": 99,
+      "line_end": 104,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Subtype alters the target and side-effect of the parent class contract",
+      "reasoning": "HTTPProxyAuth inherits from HTTPBasicAuth but overrides the __call__ method to modify the 'Proxy-Authorization' header instead of the 'Authorization' header. This violates LSP because a client expecting an HTTPBasicAuth object to provide credentials to the origin server will find that substituting it with an HTTPProxyAuth object fails to authenticate the request to the server, altering the correctness of the program's network behavior."
+    },
+    {
+      "file_path": "requests/src/requests/structures.py",
+      "entity_name": "CaseInsensitiveDict",
+      "entity_type": "class",
+      "line_start": 13,
+      "line_end": 80,
+      "principle": "LSP",
+      "severity": "low",
+      "description": "Violation of key-preservation post-conditions in Mapping interface",
+      "reasoning": "As a subtype of MutableMapping, CaseInsensitiveDict violates the standard expectation that keys are preserved exactly as provided. By normalizing keys (e.g., to lowercase), it alters the expected behavior where distinct keys (like 'Key' and 'key') should result in distinct entries and contribute to the mapping's length. Logic relying on case-sensitive key preservation in a standard Mapping will fail when this subtype is substituted."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 54920.32980918884,
+  "error": null
+}

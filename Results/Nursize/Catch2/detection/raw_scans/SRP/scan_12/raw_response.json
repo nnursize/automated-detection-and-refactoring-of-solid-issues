@@ -1,0 +1,40 @@
+{
+  "scan_id": "Catch2_SRP_scan_12",
+  "repo_name": "Catch2",
+  "principle": "SRP",
+  "scan_number": 12,
+  "timestamp": "2026-05-02T11:13:43.523976",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.8,
+  "context_mode": "skeleton",
+  "prompt_text": "You are shown a SKELETON view of a c++ repository: class headers,\ninheritance, method signatures, and attributes \u2014 but NO method bodies.\n\nUse this signature-level view to detect structural violations of Single Responsibility Principle (SRP):\n- Fat interfaces / bloated classes (many unrelated method groups)\n- Clients forced to implement methods they don't need (abstract methods / NotImplementedError / empty overrides)\n- Inheritance hierarchies where subclasses alter the contract shape\n- Broad API...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Config\",\n      \"entity_type\": \"class\",\n      \"line_start\": 3804,\n      \"line_end\": 3865,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Config class is a God object, holding configuration for diverse aspects of the testing framework.\",\n      \"reasoning\": \"This class is responsible for managing configuration related to test selection (filters, sections), reporting (reporters, listeners, output files, colour modes, verbosity), test execution behavior (throws, assertions, durations, run order, random seed, sharding), and benchmark-specific settings. Any change in these unrelated areas would require modifying this single class, violating the Single Responsibility Principle. It should be decomposed into more specialized configuration objects, e.g., TestRunConfig, ReportingConfig, BenchmarkConfig.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"Session\",\n      \"entity_type\": \"class\",\n      \"line_start\": 4952,\n      \"line_end\": 4992,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The Session class acts as a central orchestrator, combining command-line parsing, configuration management, and test execution logic.\",\n      \"reasoning\": \"This class is responsible for too many distinct concerns: parsing command-line arguments (`applyCommandLine`, `cli`), managing global configuration (`useConfigData`, `configData`, `config`), orchestrating the entire test run lifecycle (`run`, `runInternal`), and displaying general information (`showHelp`, `libIdentify`). Changes to any of these areas would necessitate modifying the Session class, indicating multiple reasons to change and a clear violation of SRP.\"\n    },\n    {\n      \"file_path\": \"Catch2/extras/catch_amalgamated.hpp\",\n      \"entity_name\": \"IEventListener\",\n      \"entity_type\": \"class\",\n      \"line_start\": 9016,\n      \"line_end\": 9101,\n      \"principle\": \"SRP\",\n      \"severity\": \"high\",\n      \"description\": \"The IEventListener interface is too broad, forcing implementers to handle many unrelated event types.\",\n      \"reasoning\": \"This interface represents a single conceptual responsibility ('react to all test events'), but it likely exposes methods for a very wide range of events (test run, test case, section, assertion, benchmark, listing, errors, etc.), as seen in derived classes like `StreamingReporterBase` and `EventListenerBase`. This forces concrete listeners to implement methods for concerns they might not care about (e.g., a listener only interested in assertion failures would still need",
+  "findings": [
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Config",
+      "entity_type": "class",
+      "line_start": 3804,
+      "line_end": 3865,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Config class is a God object, holding configuration for diverse aspects of the testing framework.",
+      "reasoning": "This class is responsible for managing configuration related to test selection (filters, sections), reporting (reporters, listeners, output files, colour modes, verbosity), test execution behavior (throws, assertions, durations, run order, random seed, sharding), and benchmark-specific settings. Any change in these unrelated areas would require modifying this single class, violating the Single Responsibility Principle. It should be decomposed into more specialized configuration objects, e.g., TestRunConfig, ReportingConfig, BenchmarkConfig."
+    },
+    {
+      "file_path": "Catch2/extras/catch_amalgamated.hpp",
+      "entity_name": "Session",
+      "entity_type": "class",
+      "line_start": 4952,
+      "line_end": 4992,
+      "principle": "SRP",
+      "severity": "high",
+      "description": "The Session class acts as a central orchestrator, combining command-line parsing, configuration management, and test execution logic.",
+      "reasoning": "This class is responsible for too many distinct concerns: parsing command-line arguments (`applyCommandLine`, `cli`), managing global configuration (`useConfigData`, `configData`, `config`), orchestrating the entire test run lifecycle (`run`, `runInternal`), and displaying general information (`showHelp`, `libIdentify`). Changes to any of these areas would necessitate modifying the Session class, indicating multiple reasons to change and a clear violation of SRP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 57640.4869556427,
+  "error": null
+}

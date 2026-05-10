@@ -1,0 +1,93 @@
+{
+  "issue_id": "LSP-006",
+  "principle": "LSP",
+  "title": "Refactor LSP-006 (LSP): The ITracker interface uses explicit methods to identify specific subtypes (i...",
+  "branch": "refactor/LSP-006",
+  "base": "main",
+  "head_commit": "c4fb8fdc2847e98069506246b6cf6bdb5e597f83",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3640,
+    "completion_tokens": 551
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::TestCaseTracking::ITracker",
+    "entity_type": "class",
+    "line_start": 4712,
+    "line_end": 4762,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "The ITracker interface uses explicit methods to identify specific subtypes (isSectionTracker, isGeneratorTracker).",
+    "reasoning": "By including isSectionTracker() and isGeneratorTracker() in the ITracker interface, the design forces the base class to be aware of its potential specializations. Callers are encouraged to use these methods to downcast or change behavior depending on the concrete subtype, which breaks the polymorphic contract where the base type should be sufficient for all interactions."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Remove type-checking methods from ITracker interface to satisfy LSP",
+    "rationale": "The ITracker interface was leaking implementation details by providing methods to identify specific subtypes (isSectionTracker, isGeneratorTracker). Removing these methods forces the design to rely on polymorphism rather than downcasting or type-checking, adhering to the Liskov Substitution Principle.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "        /**\n         * Returns true if the instance is a section tracker\n         *\n         * Subclasses should override to true if they are, replaces RTTI\n         * for internal debug checks.\n         */\n        virtual bool isSectionTracker() const;\n        /**\n         * Returns true if the instance is a generator tracker\n         *\n         * Subclasses should override to true if they are, replaces RTTI\n         * for internal debug checks.\n         */\n        virtual bool isGeneratorTracker() const;\n    };",
+        "replace_text": "    };",
+        "search_lines": 15,
+        "replace_lines": 1
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class SectionTracker : public TrackerBase {\n        std::vector<StringRef> m_filters;\n        // Note that lifetime-wise we piggy back off the name stored in the `ITracker` parent`.\n        // Currently it allocates owns the name, so this is safe. If it is later refactored\n        // to not own the name, the name still has to outlive the `ITracker` parent, so\n        // this should still be safe.\n        StringRef m_trimmed_name;\n    public:\n        SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );\n\n        bool isSectionTracker() const override;\n\n        bool isComplete() const override;",
+        "replace_text": "    class SectionTracker : public TrackerBase {\n        std::vector<StringRef> m_filters;\n        // Note that lifetime-wise we piggy back off the name stored in the `ITracker` parent`.\n        // Currently it allocates owns the name, so this is safe. If it is later refactored\n        // to not own the name, the name still has to outlive the `ITracker` parent, so\n        // this should still be safe.\n        StringRef m_trimmed_name;\n    public:\n        SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );\n\n        bool isComplete() const override;",
+        "search_lines": 13,
+        "replace_lines": 11
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10485,
+        "blank_lines": 3074,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 428.33,
+        "max_cc": 1283.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10470,
+        "blank_lines": 3073,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.33,
+        "max_cc": 1277.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex b9ba53d..b589142 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -10449,20 +10449,6 @@ namespace TestCaseTracking {\n         //! Marks tracker as executing a child, doing se recursively up the tree\n         void openChild();\n \n-        /**\n-         * Returns true if the instance is a section tracker\n-         *\n-         * Subclasses should override to true if they are, replaces RTTI\n-         * for internal debug checks.\n-         */\n-        virtual bool isSectionTracker() const;\n-        /**\n-         * Returns true if the instance is a generator tracker\n-         *\n-         * Subclasses should override to true if they are, replaces RTTI\n-         * for internal debug checks.\n-         */\n-        virtual bool isGeneratorTracker() const;\n     };\n \n     class TrackerContext {\n@@ -10522,8 +10508,6 @@ namespace TestCaseTracking {\n     public:\n         SectionTracker( NameAndLocation&& nameAndLocation, TrackerContext& ctx, ITracker* parent );\n \n-        bool isSectionTracker() const override;\n-\n         bool isComplete() const override;\n \n         static SectionTracker& acquire( TrackerContext& ctx, NameAndLocationRef const& nameAndLocation );\n",
+  "duration_ms": 4276.664972305298
+}

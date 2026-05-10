@@ -1,0 +1,312 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: LSP-005
+- **Principle**: Liskov Substitution Principle (LSP)
+- **File**: `src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java`
+- **Entity**: `NonBlockingUtf8JsonParserBase._decodeEscaped` (current lines L101-L101 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 3 independent scans
+
+### Description
+Subclass throws UnsupportedOperationException for a method inherited from the base class.
+
+### Reasoning
+The method _decodeEscaped() is inherited from the base class (JsonParserBase) and is expected to return a char. By throwing an exception (via VersionUtil.throwInternal()), the subclass violates the behavioral contract of the base class, making it non-substitutable.
+
+## Principle reference
+**Liskov Substitution Principle** — Subtypes must be substitutable for their base types without altering the correctness of the program. When a subclass overrides behavior in a way that breaks the base class contract, it violates LSP.
+
+What typically signals a violation:
+- Subclasses that override methods and change their expected behavior
+- Subclasses that raise exceptions not raised by the parent
+- Subclasses that ignore or nullify parent class methods
+- Type-checking (isinstance) used to handle subclasses differently
+- Subclasses that violate preconditions or postconditions of parent methods
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `src/main/java/tools/jackson/core/json/async/NonBlockingUtf8JsonParserBase.java`
+```java
+package tools.jackson.core.json.async;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.ObjectReadContext;
+import tools.jackson.core.io.CharTypes;
+import tools.jackson.core.io.IOContext;
+import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.core.sym.ByteQuadsCanonicalizer;
+import tools.jackson.core.util.InternalJacksonUtil;
+import tools.jackson.core.util.VersionUtil;
+
+/**
+ * Non-blocking parser base implementation for JSON content.
+ *<p>
+ * NOTE: only supports parsing of UTF-8 encoded content (and 7-bit US-ASCII since
+ * it is strict subset of UTF-8): other encodings are not supported.
+ */
+public abstract class NonBlockingUtf8JsonParserBase
+    extends NonBlockingJsonParserBase
+{
+    private final static int FEAT_MASK_TRAILING_COMMA = JsonReadFeature.ALLOW_TRAILING_COMMA.getMask();
+    private final static int FEAT_MASK_LEADING_ZEROS = JsonReadFeature.ALLOW_LEADING_ZEROS_FOR_NUMBERS.getMask();
+    private final static int FEAT_MASK_ALLOW_MISSING = JsonReadFeature.ALLOW_MISSING_VALUES.getMask();
+    private final static int FEAT_MASK_ALLOW_SINGLE_QUOTES = JsonReadFeature.ALLOW_SINGLE_QUOTES.getMask();
+    private final static int FEAT_MASK_ALLOW_UNQUOTED_NAMES = JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES.getMask();
+
+    // This is the main input-code lookup table, fetched eagerly
+    private final static int[] _icUTF8 = CharTypes.getInputCodeUtf8();
+
+    // Latin1 encoding is not supported, but we do use 8-bit subset for
+    // pre-processing task, to simplify first pass, keep it fast.
+    protected final static int[] _icLatin1 = CharTypes.getInputCodeLatin1();
+
+    /*
+    /**********************************************************************
+    /* Input source config
+    /**********************************************************************
+     */
+
+    /**
+     * In addition to current buffer pointer, and end pointer,
+     * we will also need to know number of bytes originally
+     * contained. This is needed to correctly update location
+     * information when the block has been completed.
+     */
+    protected int _origBufferLen;
+
+    /**
+     * Helper object for handling comment and whitespace skipping logic.
+     */
+    protected NonBlockingCommentSkipper _commentSkipper;
+
+    /*
+    /**********************************************************************
+    /* Life-cycle
+    /**********************************************************************
+     */
+
+    protected NonBlockingUtf8JsonParserBase(ObjectReadContext readCtxt, IOContext ctxt,
+            int stdFeatures, int formatFeatures, ByteQuadsCanonicalizer sym)
+    {
+        super(readCtxt, ctxt, stdFeatures, formatFeatures, sym);
+        _commentSkipper = new NonBlockingCommentSkipper(this);
+    }
+
+    /*
+    /**********************************************************************
+    /* AsyncInputFeeder impl
+    /**********************************************************************
+     */
+
+    public final boolean needMoreInput() {
+        return (_inputPtr >=_inputEnd) && !_endOfInput;
+    }
+
+    public void endOfInput() {
+        _endOfInput = true;
+    }
+
+    /*
+    /**********************************************************************
+    /* Abstract methods/overrides from JsonParser
+    /**********************************************************************
+     */
+
+    /* Implementing these methods efficiently for non-blocking cases would
+     * be complicated; so for now let's just use the default non-optimized
+     * implementation
+     */
+
+//    public boolean nextName(SerializableString str) throws JacksonException
+//    public String nextTextValue() throws JacksonException
+//    public int nextIntValue(int defaultValue) throws JacksonException
+//    public long nextLongValue(long defaultValue) throws JacksonException
+//    public Boolean nextBooleanValue() throws JacksonException
+
+    // Should never be called: cannot be implemented quite as expected
+    // due to non-blocking behavior
+    @Override
+    protected char _decodeEscaped() throws JacksonException {
+        VersionUtil.throwInternal();
+        return ' ';
+    }
+
+    /*
+    /**********************************************************************
+    /* Main-level decoding
+    /**********************************************************************
+     */
+
+    @Override
+    public JsonToken nextToken() throws JacksonException
+    {
+        // First: regardless of where we really are, need at least one more byte;
+        // can simplify some of the checks by short-circuiting right away
+        if (_inputPtr >= _inputEnd) {
+            if (_closed) {
+                return null;
+            }
+            // note: if so, do not even bother changing state
+            if (_endOfInput) { // except for this special case
+                // End-of-input within (possibly...) started token is bit complicated,
+                // so offline
+                if (_currToken == JsonToken.NOT_AVAILABLE) {
+                    return _finishTokenWithEOF();
+                }
+                return _eofAsNextToken();
+            }
+            return JsonToken.NOT_AVAILABLE;
+        }
+        // in the middle of tokenization?
+        if (_currToken == JsonToken.NOT_AVAILABLE) {
+            return _finishToken();
+        }
+
+        // No: fresh new token; may or may not have existing one
+        _numTypesValid = NR_UNKNOWN;
+        _tokenInputTotal = _currInputProcessed + (_inputPtr - _currBufferStart);
+
+        // also: clear any data retained so far
+        _binaryValue = null;
+        int ch = getNextUnsignedByteFromBuffer();
+
+        switch (_majorState) {
+        case MAJOR_INITIAL:
+            return _startDocument(ch);
+
+        case MAJOR_ROOT:
+            return _startValue(ch);
+
+        case MAJOR_OBJECT_PROPERTY_FIRST: // expect property-name or end-object
+            return _startName(ch);
+        case MAJOR_OBJECT_PROPERTY_NEXT: // expect comma + property-name or end-object
+            return _startNameAfterComma(ch);
+
+        case MAJOR_OBJECT_VALUE: // expect colon, followed by value
+            return _startValueExpectColon(ch);
+
+        case MAJOR_ARRAY_ELEMENT_FIRST: // expect value or end-array
+            return _startValue(ch);
+
+        case MAJOR_ARRAY_ELEMENT_NEXT: // expect leading comma + value or end-array
+            return _startValueExpectComma(ch);
+
+        default:
+        }
+        VersionUtil.throwInternal();
+        return null;
+    }
+
+    /**
+     * @return next signed byte from the buffer
+     * @since v2.14
+     */
+    protected abstract byte getNextSignedByteFromBuffer();
+
+    /**
+     * @return next unsigned byte from the buffer
+     * @since v2.14
+     */
+    protected abstract int getNextUnsignedByteFromBuffer();
+
+    /**
+     * @param ptr pointer to byte that is required
+     * @return byte from the buffer at the given pointer
+     * @since v2.14
+     */
+    protected abstract byte getByteFromBuffer(final int ptr);
+
+    /**
+     * Method called when decoding of a token has been started, but not yet completed due
+     * to missing input; method is to continue decoding due to at least one more byte
+     * being made available to decode.
+     *
+     * @return Token decoded, if complete; {@link JsonToken#NOT_AVAILABLE} if not
+     *
+     * @throws JacksonException (generally {@link tools.jackson.core.exc.StreamReadException}) for decoding problems
+     */
+    protected final JsonToken _finishToken() throws JacksonException
+    {
+        // NOTE: caller ensures there's input available...
+        switch (_minorState) {
+        case MINOR_ROOT_BOM:
+            return _finishBOM(_pending32);
+        case MINOR_PROPERTY_LEADING_WS:
+            return _startName(getNextUnsignedByteFromBuffer());
+        case MINOR_PROPERTY_LEADING_COMMA:
+            return _startNameAfterComma(getNextUnsignedByteFromBuffer());
+
+        // Property name states
+        case MINOR_PROPERTY_NAME:
+            return _parseEscapedName(_quadLength,  _pending32, _pendingBytes);
+        case MINOR_PROPERTY_NAME_ESCAPE:
+            return _finishPropertyWithEscape();
+        case MINOR_PROPERTY_APOS_NAME:
+            return _finishAposName(_quadLength,  _pending32, _pendingBytes);
+        case MINOR_PROPERTY_UNQUOTED_NAME:
+            return _finishUnquotedName(_quadLength,  _pending32, _pendingBytes);
+
+        // Value states
+# ... 2833 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `src/main/java/tools/jackson/core/json/async/NonBlockingByteArrayJsonParser.java`
+- `src/main/java/tools/jackson/core/json/async/NonBlockingByteBufferJsonParser.java`
+- `src/main/java/tools/jackson/core/json/async/NonBlockingCommentSkipper.java`
+- `src/main/java/tools/jackson/core/json/async/NonBlockingJsonParserBase.java`
+- `src/main/java/tools/jackson/core/json/async/package-info.java`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

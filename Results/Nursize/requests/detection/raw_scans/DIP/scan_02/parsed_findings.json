@@ -1,0 +1,101 @@
+[
+  {
+    "file_path": "requests/src/requests/api.py",
+    "entity_name": "request",
+    "entity_type": "class",
+    "line_start": 30,
+    "line_end": 34,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level API function directly instantiates a concrete Session object.",
+    "reasoning": "The `request` function in `requests.api` is a high-level entry point for making HTTP requests. It directly instantiates `sessions.Session()`. This couples the high-level API to a concrete implementation of session management rather than depending on an abstraction. This makes it challenging to substitute different session implementations, mock the session for testing, or extend its behavior without modifying the core `api.py` file, violating the Dependency Inversion Principle."
+  },
+  {
+    "file_path": "requests/src/requests/sessions.py",
+    "entity_name": "Session.__init__",
+    "entity_type": "method",
+    "line_start": 182,
+    "line_end": 204,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Session constructor directly instantiates concrete HTTPAdapter objects for default protocols.",
+    "reasoning": "The `Session` class is a high-level component responsible for managing persistent settings and orchestrating requests. In its `__init__` method, it directly instantiates `HTTPAdapter()` for both 'https://' and 'http://' protocols. `HTTPAdapter` is a concrete, low-level implementation detail for handling HTTP/HTTPS transport using `urllib3`. By hard-coding these concrete adapters, the `Session` is coupled to a specific transport mechanism. While it provides a `mount` method for flexibility, the default behavior violates DIP by depending on concrete details rather than an abstraction (e.g., an adapter factory or injected default adapters)."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Request.prepare",
+    "entity_type": "method",
+    "line_start": 102,
+    "line_end": 118,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Request object directly instantiates PreparedRequest, its concrete representation.",
+    "reasoning": "The `Request` class represents a user's abstract request. Its `prepare` method is a high-level operation to transform this abstract request into a `PreparedRequest` suitable for transmission. By directly instantiating `PreparedRequest()`, the `Request` class is coupled to the concrete implementation of `PreparedRequest`. Ideally, `Request` should depend on an abstraction for preparing requests, or `PreparedRequest` instances should be provided through injection or a factory, adhering to DIP by decoupling the high-level `Request` from the low-level `PreparedRequest` detail."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "PreparedRequest.prepare_auth",
+    "entity_type": "method",
+    "line_start": 361,
+    "line_end": 372,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "PreparedRequest directly instantiates HTTPBasicAuth based on input tuple.",
+    "reasoning": "The `PreparedRequest.prepare_auth` method, which is a low-level detail of preparing a request, directly instantiates `HTTPBasicAuth(*auth)` if the `auth` parameter is a tuple. This means `PreparedRequest` has concrete knowledge of the `HTTPBasicAuth` class and how to construct it. If the `auth` parameter were always expected to be an instance of an `AuthBase` abstraction, this direct instantiation would be avoided, promoting better adherence to DIP by ensuring details depend on abstractions."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response.apparent_encoding",
+    "entity_type": "class",
+    "line_start": 472,
+    "line_end": 477,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Response directly depends on concrete character detection libraries (chardet/charset_normalizer).",
+    "reasoning": "The `Response` class is a high-level object that represents the server's response. Its `apparent_encoding` property directly calls `chardet.detect` (or `charset_normalizer.detect` through an alias) to determine the content encoding. This creates a tight coupling between the high-level `Response` object and specific, low-level character detection libraries. Introducing an abstraction for an 'encoding detection service' and injecting it would allow for swapping out different detection mechanisms without modifying the `Response` class, aligning with DIP."
+  },
+  {
+    "file_path": "requests/src/requests/models.py",
+    "entity_name": "Response.json",
+    "entity_type": "method",
+    "line_start": 541,
+    "line_end": 562,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Response directly depends on concrete JSON parsing library (json/simplejson).",
+    "reasoning": "The `Response.json` method directly calls `complexjson.loads` (which resolves to Python's `json` module or `simplejson`). This couples the high-level `Response` object to a concrete JSON parsing library. Similar to encoding detection, an abstraction for a 'JSON parser' could be used, allowing different JSON libraries to be injected or configured, thereby adhering to the Dependency Inversion Principle by having the high-level `Response` depend on an abstraction rather than a concrete detail."
+  },
+  {
+    "file_path": "requests/src/requests/adapters.py",
+    "entity_name": "HTTPAdapter.build_response",
+    "entity_type": "method",
+    "line_start": 286,
+    "line_end": 308,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "HTTPAdapter directly instantiates a concrete Response object.",
+    "reasoning": "The `HTTPAdapter.build_response` method is responsible for translating a `urllib3` response into a Requests `Response` object. It directly instantiates `Response()`. While `HTTPAdapter` is itself a low-level detail in the Requests architecture, and `Response` is a core Requests type, this still represents a direct dependency on a concrete class. An alternative would be to inject a `Response` factory or builder, allowing for more flexibility in how `Response` objects are created, although the impact here is less significant than higher-level violations."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "get_netrc_auth",
+    "entity_type": "class",
+    "line_start": 125,
+    "line_end": 160,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Utility function directly imports and instantiates the concrete 'netrc' module.",
+    "reasoning": "The `get_netrc_auth` function directly imports `netrc` and instantiates `netrc.netrc()`. This creates a tight coupling to a specific, low-level library for reading `.netrc` files. While `utils.py` is a collection of utilities and often deals with concrete details, abstracting the `netrc` interaction (e.g., through an interface for 'credential storage') would make the function more flexible and less dependent on a particular external library's implementation details, aligning better with DIP."
+  },
+  {
+    "file_path": "requests/src/requests/utils.py",
+    "entity_name": "DEFAULT_CA_BUNDLE_PATH",
+    "entity_type": "class",
+    "line_start": 62,
+    "line_end": 62,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Global constant directly calls a concrete function to determine CA bundle path.",
+    "reasoning": "The `DEFAULT_CA_BUNDLE_PATH` constant is initialized by directly calling `certs.where()`, which in turn wraps `certifi.where()`. This hard-codes a dependency on a specific mechanism (`certifi`) for locating the CA certificate bundle. While `certs.py` provides a thin layer, `utils.py` still depends on a concrete implementation detail. For a utility module, this might be considered acceptable, but it technically violates DIP by depending on a specific detail rather than an abstraction for 'CA bundle location service'."
+  }
+]

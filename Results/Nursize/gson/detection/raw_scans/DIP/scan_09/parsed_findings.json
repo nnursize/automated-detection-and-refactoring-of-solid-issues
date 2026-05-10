@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 1008,
+    "line_end": 1076,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level GsonBuilder directly instantiates numerous low-level concrete TypeAdapterFactory implementations.",
+    "reasoning": "The createFactories method directly instantiates concrete classes such as CollectionTypeAdapterFactory, MapTypeAdapterFactory, and ReflectiveTypeAdapterFactory. This violates DIP because the high-level builder module is tightly coupled to specific low-level implementation details rather than depending on abstractions or having these factories provided through a registry or injection mechanism."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newMapConstructor",
+    "entity_type": "method",
+    "line_start": 321,
+    "line_end": 351,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "ConstructorConstructor directly depends on concrete collection implementations like LinkedTreeMap.",
+    "reasoning": "The method newMapConstructor directly references and instantiates concrete classes like LinkedTreeMap, LinkedHashMap, and TreeMap. As a component responsible for object construction, it violates DIP by hard-coding dependencies on specific implementation details (like the internal LinkedTreeMap) instead of relying on a configurable provider or factory abstraction."
+  },
+  {
+    "file_path": "gson/metrics/src/main/java/com/google/gson/metrics/ParseBenchmark.java",
+    "entity_name": "ParseBenchmark.GsonBindParser",
+    "entity_type": "class",
+    "line_start": 277,
+    "line_end": 286,
+    "principle": "DIP",
+    "severity": "low",
+    "description": "Internal parser class directly instantiates its dependencies using a concrete builder.",
+    "reasoning": "The GsonBindParser class directly instantiates a Gson instance using 'new GsonBuilder()...create()' in a static field. This violates DIP by manually constructing its dependency (Gson) rather than receiving it through injection, which limits the ability to swap or configure the parser's behavior during benchmarking."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder",
+    "entity_type": "class",
+    "line_start": 107,
+    "line_end": 113,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "GsonBuilder directly instantiates internal implementation details in static fields.",
+    "reasoning": "The class directly instantiates ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory to define its default state. This hardcodes dependencies on concrete internal classes, making it difficult to substitute these components for testing or customization without modifying the builder's source code."
+  }
+]

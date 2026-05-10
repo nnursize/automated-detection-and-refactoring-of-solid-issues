@@ -1,0 +1,85 @@
+{
+  "issue_id": "OCP-023",
+  "principle": "OCP",
+  "title": "Refactor OCP-023 (OCP): Conditional logic for special class types (anonymous, local, record) violates...",
+  "branch": "refactor/OCP-023",
+  "base": "main",
+  "head_commit": "24c27a12f3f40c9ccc25cefa0c354dbf2fbdf297",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 7705,
+    "completion_tokens": 1153
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 69,
+    "line_end": 104,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Conditional logic for special class types (anonymous, local, record) violates OCP.",
+    "reasoning": "The `create()` method contains `if` checks for `ReflectionHelper.isAnonymousOrNonStaticLocal` and `ReflectionHelper.isRecord`. If new special class types requiring different reflection-based serialization/deserialization handling were introduced, this method would need modification to include new `if` branches, violating OCP."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a strategy-based approach for handling special class types in ReflectiveTypeAdapterFactory",
+    "rationale": "Replaced hardcoded if-checks with a list of TypeAdapterStrategy implementations to allow adding new special class types without modifying the core create() method.",
+    "files_touched": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "search_text": "    // Don't allow using reflection on anonymous and local classes because synthetic fields for\n    // captured enclosing values make this unreliable\n    if (ReflectionHelper.isAnonymousOrNonStaticLocal(raw)) {\n      // This adapter just serializes and deserializes null, ignoring the actual values\n      // This is done for backward compatibility; troubleshooting-wise it might be better to throw\n      // exceptions\n      return new TypeAdapter<T>() {\n        @Override\n        public T read(JsonReader in) throws IOException {\n          in.skipValue();\n          return null;\n        }\n\n        @Override\n        public void write(JsonWriter out, T value) throws IOException {\n          out.nullValue();\n        }\n\n        @Override\n        public String toString() {\n          return \"AnonymousOrNonStaticLocalClassAdapter\";\n        }\n      };\n    }\n\n    FilterResult filterResult =\n        ReflectionAccessFilterHelper.getFilterResult(reflectionFilters, raw);\n    if (filterResult == FilterResult.BLOCK_ALL) {\n      throw new JsonIOException(\n          \"ReflectionAccessFilter does not permit using reflection for \"\n              + raw\n              + \". Register a TypeAdapter for this type or adjust the access filter.\");\n    }\n    boolean blockInaccessible = filterResult == FilterResult.BLOCK_INACCESSIBLE;\n\n    // If the type is actually a Java Record, we need to use the RecordAdapter instead. This will\n    // always be false on JVMs that do not support records.\n    if (ReflectionHelper.isRecord(raw)) {\n      @SuppressWarnings(\"unchecked\")\n      TypeAdapter<T> adapter =\n          (TypeAdapter<T>)\n              new RecordAdapter<>(\n                  raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n      return adapter;\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));",
+        "replace_text": "    FilterResult filterResult =\n        ReflectionAccessFilterHelper.getFilterResult(reflectionFilters, raw);\n    if (filterResult == FilterResult.BLOCK_ALL) {\n      throw new JsonIOException(\n          \"ReflectionAccessFilter does not permit using reflection for \"\n              + raw\n              + \". Register a TypeAdapter for this type or adjust the access filter.\");\n    }\n    boolean blockInaccessible = filterResult == FilterResult.BLOCK_INACCESSIBLE;\n\n    for (SpecialTypeStrategy strategy : SPECIAL_TYPE_STRATEGIES) {\n      TypeAdapter<T> adapter = strategy.create(gson, type, raw, blockInaccessible);\n      if (adapter != null) {\n        return adapter;\n      }\n    }\n\n    ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n    return new FieldReflectionAdapter<>(\n        constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n  }\n\n  private interface SpecialTypeStrategy {\n    <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible);\n  }\n\n  private static final List<SpecialTypeStrategy> SPECIAL_TYPE_STRATEGIES = Arrays.asList(\n      new SpecialTypeStrategy() {\n        @Override\n        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible) {\n          if (ReflectionHelper.isAnonymousOrNonStaticLocal(raw)) {\n            return new TypeAdapter<T>() {\n              @Override public T read(JsonReader in) throws IOException { in.skipValue(); return null; }\n              @Override public void write(JsonWriter out, T value) throws IOException { out.nullValue(); }\n              @Override public String toString() { return \"AnonymousOrNonStaticLocalClassAdapter\"; }\n            };\n          }\n          return null;\n        }\n      },\n      new SpecialTypeStrategy() {\n        @Override\n        @SuppressWarnings(\"unchecked\")\n        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible) {\n          if (ReflectionHelper.isRecord(raw)) {\n            return (TypeAdapter<T>) new RecordAdapter<>(\n                raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n          }\n          return null;\n        }\n      }\n  );",
+        "search_lines": 49,
+        "replace_lines": 52
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 538,
+        "blank_lines": 72,
+        "comment_lines": 48,
+        "function_count": 11,
+        "avg_cc": 9.09,
+        "max_cc": 90.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+        "loc": 549,
+        "blank_lines": 71,
+        "comment_lines": 41,
+        "function_count": 10,
+        "avg_cc": 9.8,
+        "max_cc": 89.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\nindex 3010bef..17865ed 100644\n--- a/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n+++ b/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java\n@@ -102,31 +102,6 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n       return null; // it's a primitive!\n     }\n \n-    // Don't allow using reflection on anonymous and local classes because synthetic fields for\n-    // captured enclosing values make this unreliable\n-    if (ReflectionHelper.isAnonymousOrNonStaticLocal(raw)) {\n-      // This adapter just serializes and deserializes null, ignoring the actual values\n-      // This is done for backward compatibility; troubleshooting-wise it might be better to throw\n-      // exceptions\n-      return new TypeAdapter<T>() {\n-        @Override\n-        public T read(JsonReader in) throws IOException {\n-          in.skipValue();\n-          return null;\n-        }\n-\n-        @Override\n-        public void write(JsonWriter out, T value) throws IOException {\n-          out.nullValue();\n-        }\n-\n-        @Override\n-        public String toString() {\n-          return \"AnonymousOrNonStaticLocalClassAdapter\";\n-        }\n-      };\n-    }\n-\n     FilterResult filterResult =\n         ReflectionAccessFilterHelper.getFilterResult(reflectionFilters, raw);\n     if (filterResult == FilterResult.BLOCK_ALL) {\n@@ -137,15 +112,11 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n     }\n     boolean blockInaccessible = filterResult == FilterResult.BLOCK_INACCESSIBLE;\n \n-    // If the type is actually a Java Record, we need to use the RecordAdapter instead. This will\n-    // always be false on JVMs that do not support records.\n-    if (ReflectionHelper.isRecord(raw)) {\n-      @SuppressWarnings(\"unchecked\")\n-      TypeAdapter<T> adapter =\n-          (TypeAdapter<T>)\n-              new RecordAdapter<>(\n-                  raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n-      return adapter;\n+    for (SpecialTypeStrategy strategy : SPECIAL_TYPE_STRATEGIES) {\n+      TypeAdapter<T> adapter = strategy.create(gson, type, raw, blockInaccessible);\n+      if (adapter != null) {\n+        return adapter;\n+      }\n     }\n \n     ObjectConstructor<T> constructor = constructorConstructor.get(type, true);\n@@ -153,6 +124,38 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {\n         constructor, getBoundFields(gson, type, raw, blockInaccessible, false));\n   }\n \n+  private interface SpecialTypeStrategy {\n+    <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible);\n+  }\n+\n+  private static final List<SpecialTypeStrategy> SPECIAL_TYPE_STRATEGIES = Arrays.asList(\n+      new SpecialTypeStrategy() {\n+        @Override\n+        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible) {\n+          if (ReflectionHelper.isAnonymousOrNonStaticLocal(raw)) {\n+            return new TypeAdapter<T>() {\n+              @Override public T read(JsonReader in) throws IOException { in.skipValue(); return null; }\n+              @Override public void write(JsonWriter out, T value) throws IOException { out.nullValue(); }\n+              @Override public String toString() { return \"AnonymousOrNonStaticLocalClassAdapter\"; }\n+            };\n+          }\n+          return null;\n+        }\n+      },\n+      new SpecialTypeStrategy() {\n+        @Override\n+        @SuppressWarnings(\"unchecked\")\n+        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type, Class<? super T> raw, boolean blockInaccessible) {\n+          if (ReflectionHelper.isRecord(raw)) {\n+            return (TypeAdapter<T>) new RecordAdapter<>(\n+                raw, getBoundFields(gson, type, raw, blockInaccessible, true), blockInaccessible);\n+          }\n+          return null;\n+        }\n+      }\n+  );\n+  }\n+\n   private static <M extends AccessibleObject & Member> void checkAccessible(\n       Object object, M member) {\n     if (!ReflectionAccessFilterHelper.canAccess(\n",
+  "duration_ms": 4146.798849105835
+}

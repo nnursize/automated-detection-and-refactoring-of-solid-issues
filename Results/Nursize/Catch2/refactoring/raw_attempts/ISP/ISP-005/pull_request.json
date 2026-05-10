@@ -1,0 +1,80 @@
+{
+  "issue_id": "ISP-005",
+  "principle": "ISP",
+  "title": "Refactor ISP-005 (ISP): IGeneratorTracker interface has too many methods, potentially forcing impleme...",
+  "branch": "refactor/ISP-005",
+  "base": "main",
+  "head_commit": "8c45ea2ed7ab55827fab32c5593ad112e5115d5d",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in extras/catch_amalgamated.hpp (block 0)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 2916,
+    "completion_tokens": 572
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "IGeneratorTracker",
+    "entity_type": "class",
+    "line_start": 10653,
+    "line_end": 10786,
+    "severity": "medium",
+    "scan_count": 2,
+    "description": "IGeneratorTracker interface has too many methods, potentially forcing implementations to provide unused functionality.",
+    "reasoning": "The IGeneratorTracker interface appears to have a significant number of methods related to managing generators within the test framework. If a specific use case only requires a subset of these tracking functionalities, implementing the full interface would be unnecessary. This violates ISP by forcing clients to depend on methods they do not use. It could potentially be refactored into smaller interfaces for different aspects of generator tracking."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor IGeneratorTracker into smaller, focused interfaces to adhere to ISP.",
+    "rationale": "The IGeneratorTracker interface was monolithic. By splitting it into IGeneratorTracker (for lifecycle) and IGenerator (for value retrieval), clients only depend on the functionality they actually require.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 2,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class IGeneratorTracker;\n\n    namespace Generators {\n        class GeneratorUntypedBase;\n        using GeneratorBasePtr = Catch::Detail::unique_ptr<GeneratorUntypedBase>;\n    }",
+        "replace_text": "    class IGeneratorTracker;\n    class IGenerator;\n\n    namespace Generators {\n        class GeneratorUntypedBase;\n        using GeneratorBasePtr = Catch::Detail::unique_ptr<GeneratorUntypedBase>;\n    }",
+        "search_lines": 6,
+        "replace_lines": 7
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    class IResultCapture {\n    public:\n        virtual ~IResultCapture();\n\n        virtual void notifyAssertionStarted( AssertionInfo const& info ) = 0;\n        virtual bool sectionStarted( StringRef sectionName,\n                                     SourceLineInfo const& sectionLineInfo,\n                                     Counts& assertions ) = 0;\n        virtual void sectionEnded( SectionEndInfo&& endInfo ) = 0;\n        virtual void sectionEndedEarly( SectionEndInfo&& endInfo ) = 0;\n\n        virtual IGeneratorTracker*\n        acquireGeneratorTracker( StringRef generatorName,\n                                 SourceLineInfo const& lineInfo ) = 0;\n        virtual IGeneratorTracker*\n        createGeneratorTracker( StringRef generatorName,\n                                SourceLineInfo lineInfo,\n                                Generators::GeneratorBasePtr&& generator ) = 0;",
+        "replace_text": "    class IResultCapture {\n    public:\n        virtual ~IResultCapture();\n\n        virtual void notifyAssertionStarted( AssertionInfo const& info ) = 0;\n        virtual bool sectionStarted( StringRef sectionName,\n                                     SourceLineInfo const& sectionLineInfo,\n                                     Counts& assertions ) = 0;\n        virtual void sectionEnded( SectionEndInfo&& endInfo ) = 0;\n        virtual void sectionEndedEarly( SectionEndInfo&& endInfo ) = 0;\n\n        virtual IGeneratorTracker*\n        acquireGeneratorTracker( StringRef generatorName,\n                                 SourceLineInfo const& lineInfo ) = 0;\n        virtual IGeneratorTracker*\n        createGeneratorTracker( StringRef generatorName,\n                                SourceLineInfo lineInfo,\n                                Generators::GeneratorBasePtr&& generator ) = 0;",
+        "search_lines": 18,
+        "replace_lines": 18
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10515,
+        "blank_lines": 3083,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.0,
+        "max_cc": 1276.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 3583.5328102111816
+}

@@ -1,0 +1,123 @@
+[
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.peek",
+    "entity_type": "method",
+    "line_start": 278,
+    "line_end": 301,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to switch statement on JsonToken enum.",
+    "reasoning": "The `peek` method uses a large `switch` statement that dispatches logic based on the `peeked` integer constant, which represents a `JsonToken`. If a new `JsonToken` type were introduced (e.g., for a new JSON literal or structure), this `switch` statement would require modification to include a new `case` branch, violating the Open/Closed Principle. This is a classic 'Switch Statements on Type' design smell."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+    "entity_name": "JsonReader.doPeek",
+    "entity_type": "method",
+    "line_start": 304,
+    "line_end": 429,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to multiple switch statements and conditional logic based on JSON scope and token types.",
+    "reasoning": "The `doPeek` method is a central part of the JSON parsing logic, containing multiple `switch` statements that dispatch based on `peekStack` (JSON scope) and observed characters. Any extension to the JSON grammar, such as introducing new structural elements, delimiters, or comment styles, would necessitate modifications within these `switch` statements or the surrounding conditional logic. This heavy reliance on explicit type-checking and state-based branching makes the class not closed for modification, which is a strong OCP violation, indicative of 'Divergent Change' and 'Switch Statements on Type' smells."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonElementTypeAdapter.java",
+    "entity_name": "JsonElementTypeAdapter.write",
+    "entity_type": "method",
+    "line_start": 101,
+    "line_end": 125,
+    "principle": "OCP",
+    "severity": "high",
+    "description": "Violation of OCP due to an if-else if chain on concrete JsonElement types.",
+    "reasoning": "The `write` method explicitly checks the concrete type of the `JsonElement` using a long `if/else if` chain (`value.isJsonNull()`, `value.isJsonPrimitive()`, `value.isJsonArray()`, `value.isJsonObject()`). If a new subclass of `JsonElement` (e.g., `JsonComment`, `JsonBinary`) were introduced, this method would require direct modification to add a new branch for handling that type. This clearly violates the Open/Closed Principle, as adding new behavior (supporting a new JsonElement type) necessitates modifying existing code. A more OCP-compliant design would use polymorphism, where each `JsonElement` subclass overrides a common `writeTo(JsonWriter)` method."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.get",
+    "entity_type": "method",
+    "line_start": 92,
+    "line_end": 132,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to an if-else if chain for selecting object construction strategy.",
+    "reasoning": "The `get` method acts as a dispatcher for various object construction strategies, using an `if/else if` chain to prioritize and select a constructor (instance creator, special collections, default constructor, default implementations, Unsafe allocator). Adding a new strategy for object creation (e.g., a new type of built-in collection requiring specific instantiation, or a new way to handle immutable classes) would require modifying this central dispatch logic, violating OCP. This is a 'Divergent Change' smell."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newCollectionConstructor",
+    "entity_type": "method",
+    "line_start": 222,
+    "line_end": 235,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to an if-else if chain for creating collection constructors.",
+    "reasoning": "This method contains a long `if/else if` chain that explicitly checks against concrete `Collection` implementations (`ArrayList`, `LinkedHashSet`, `TreeSet`, `ArrayDeque`). If new default collection implementations were to be supported by Gson, this chain would need to be extended. This directly violates the Open/Closed Principle, as adding support for new collection types requires modifying existing code."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java",
+    "entity_name": "ConstructorConstructor.newMapConstructor",
+    "entity_type": "method",
+    "line_start": 246,
+    "line_end": 271,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to an if-else if chain for creating map constructors.",
+    "reasoning": "Similar to `newCollectionConstructor`, this method uses an `if/else if` chain to check against specific `Map` implementations (`LinkedTreeMap`, `LinkedHashMap`, `TreeMap`, `ConcurrentHashMap`, `ConcurrentSkipListMap`). To support new default map implementations, this chain would need to be extended, violating OCP. This is a clear 'Switch Statements on Type' smell."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/GsonBuilder.java",
+    "entity_name": "GsonBuilder.createFactories",
+    "entity_type": "method",
+    "line_start": 423,
+    "line_end": 492,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to hardcoded creation and ordering of built-in TypeAdapterFactories.",
+    "reasoning": "The `createFactories` method explicitly constructs and orders a long list of `TypeAdapterFactory` instances for all built-in type handling. While `TypeAdapterFactory` is an OCP-friendly pattern itself, this method centralizes the configuration, effectively acting as a giant implicit 'switch' for all core type adapters. If new fundamental types required built-in adapters, or if the order of existing factories needed to change, this method would require direct modification. This makes the overall Gson configuration *closed for extension* with respect to built-in type handling, leading to a 'Divergent Change' smell."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+    "entity_name": "ReflectiveTypeAdapterFactory.create",
+    "entity_type": "method",
+    "line_start": 79,
+    "line_end": 114,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to an if-else if chain for handling different class categories.",
+    "reasoning": "This method contains `if` statements to handle different categories of classes (primitive types, anonymous/local classes, and records). If Java introduced new language features (e.g., a new kind of value type or sealed class) that require special handling during reflection-based serialization/deserialization, this `create` method would need to be modified to include new `if` branches or other logic for those types. This violates OCP because extending support for new class categories requires modifying existing code."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapterRuntimeTypeWrapper.java",
+    "entity_name": "TypeAdapterRuntimeTypeWrapper.write",
+    "entity_type": "method",
+    "line_start": 28,
+    "line_end": 50,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to explicit type-checking logic for TypeAdapter instances.",
+    "reasoning": "The `write` method contains complex `if/else if` logic that explicitly checks the types of `TypeAdapter` instances (`runtimeTypeAdapter instanceof ReflectiveTypeAdapterFactory.Adapter` and `isReflective(delegate)`) to decide which adapter to use for serialization. If new types of `TypeAdapter` implementations or new delegation patterns were introduced (especially non-reflective ones that should be preferred), this logic would need modification to accommodate them. This is a strong OCP violation, as extending the type adapter ecosystem requires altering existing dispatch logic."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+    "entity_name": "JsonAdapterAnnotationTypeAdapterFactory.getTypeAdapter",
+    "entity_type": "method",
+    "line_start": 92,
+    "line_end": 126,
+    "principle": "OCP",
+    "severity": "medium",
+    "description": "Violation of OCP due to an if-else if chain for creating custom adapters from @JsonAdapter annotation.",
+    "reasoning": "This method dynamically creates a `TypeAdapter` based on the class specified in the `@JsonAdapter` annotation. It uses a long `if/else if` chain to determine if the `instance` is a `TypeAdapter`, `TypeAdapterFactory`, or `JsonSerializer`/`JsonDeserializer`. If Gson were to introduce a new way to define custom adapters (e.g., a new interface like `JsonConverter`), this method would need to be modified to include a new branch for that type, violating OCP."
+  },
+  {
+    "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java",
+    "entity_name": "DefaultDateTypeAdapter.deserializeToDate",
+    "entity_type": "method",
+    "line_start": 142,
+    "line_end": 161,
+    "principle": "OCP",
+    "severity": "low",
+    "description": "Violation of OCP due to hardcoded iteration through date formats for deserialization.",
+    "reasoning": "The `deserializeToDate` method attempts to parse a date string by iterating through a predefined `List<DateFormat>` and then falling back to `ISO8601Utils.parse()`. To add support for a new date format, the `dateFormats` list (initialized in the constructor) would need to be modified, or a new fallback parsing strategy would need to be integrated, directly modifying this method's logic. This violates OCP because extending the set of supported date formats requires altering existing code."
+  }
+]

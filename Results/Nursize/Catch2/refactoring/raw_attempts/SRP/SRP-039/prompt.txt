@@ -1,0 +1,341 @@
+[SYSTEM]
+You are a senior software engineer performing an automated refactoring task.
+
+You will be given:
+- A specific design-principle violation that another LLM detected.
+- The current source code of the file(s) involved.
+- A precise output format you MUST follow so a separate program can apply your fix programmatically.
+
+Your job is to produce the smallest set of edits that resolves the violation while keeping all existing behaviour intact (the repository's test suite will be run against your changes).
+
+Hard rules:
+1. Preserve public API and existing behaviour. The tests must still pass.
+2. Do not rename existing public symbols unless absolutely necessary; if you do, keep a backwards-compatible alias.
+3. Do not delete unrelated code, comments, or imports.
+4. Output the JSON header and the SEARCH/REPLACE/CREATE blocks exactly as specified — no other prose.
+5. Each SEARCH block must match a UNIQUE, contiguous slice of the current file byte-for-byte. If the same text appears more than once, include enough surrounding context to make it unique.
+6. **Keep SEARCH blocks small.** A SEARCH block should typically be a single method/function (or just its signature + body) plus enough adjacent lines to be unique — NOT whole classes or whole files. Large SEARCH blocks waste output tokens and risk being truncated mid-emission. Prefer many small SEARCH/REPLACE blocks over one giant one.
+7. CREATE blocks may only create files that do not already exist.
+8. If a safe fix would require moving/copying hundreds of lines, extracting many new files, or otherwise risks an incomplete response, do NOT start emitting a partial refactor. Output NO blocks and an empty files_touched list instead.
+9. If you cannot safely refactor the violation in one shot, output NO blocks and an empty files_touched list in the JSON header — that signals "give up on this issue cleanly."
+
+
+[USER]
+## Detected violation
+
+- **Issue ID**: SRP-039
+- **Principle**: Single Responsibility Principle (SRP)
+- **File**: `extras/catch_amalgamated.hpp`
+- **Entity**: `Catch::IMutableRegistryHub` (current lines L1299-L1310 in the file as shown below)
+- **Severity**: high
+- **Confidence**: detected by 1 independent scans
+
+### Description
+The IMutableRegistryHub interface is responsible for registering all types of components within the Catch2 framework, including reporters, listeners, test cases, exception translators, tag aliases, and enum values.
+
+### Reasoning
+This interface combines the management of multiple distinct registries. Changes to how any specific component type is registered (e.g., reporters vs. exception translators) would necessitate altering this single interface, violating SRP. It should be broken down into more specific registry interfaces.
+
+## Principle reference
+**Single Responsibility Principle** — A class should have only one reason to change. It should encapsulate exactly one responsibility. When a class handles multiple unrelated concerns (e.g., data processing AND rendering AND persistence), it violates SRP.
+
+What typically signals a violation:
+- Classes that handle multiple unrelated responsibilities
+- Methods that mix business logic with I/O, formatting, or persistence
+- God classes that do too many things
+- Classes where different groups of methods operate on different subsets of attributes
+
+## Current source
+
+NOTE: The line numbers in the violation above were taken from the original detection scan. Earlier refactors in this run may have shifted them. The file content below is the CURRENT state of the file in the working copy — use it as the source of truth and write SEARCH blocks that match this content exactly.
+
+### File: `extras/catch_amalgamated.hpp`
+```c++
+# ... 1178 earlier lines elided ...
+
+    enum class Verbosity {
+        Quiet = 0,
+        Normal,
+        High
+    };
+
+    struct WarnAbout { enum What {
+        Nothing = 0x00,
+        //! A test case or leaf section did not run any assertions
+        NoAssertions = 0x01,
+        //! A command line test spec matched no test cases
+        UnmatchedTestSpec = 0x02,
+    }; };
+
+    enum class ShowDurations {
+        DefaultForReporter,
+        Always,
+        Never
+    };
+    enum class TestRunOrder {
+        Declared,
+        LexicographicallySorted,
+        Randomized
+    };
+    enum class ColourMode : std::uint8_t {
+        //! Let Catch2 pick implementation based on platform detection
+        PlatformDefault,
+        //! Use ANSI colour code escapes
+        ANSI,
+        //! Use Win32 console colour API
+        Win32,
+        //! Don't use any colour
+        None
+    };
+    struct WaitForKeypress { enum When {
+        Never,
+        BeforeStart = 1,
+        BeforeExit = 2,
+        BeforeStartAndExit = BeforeStart | BeforeExit
+    }; };
+
+    class TestSpec;
+    class IStream;
+
+    class IConfig : public Detail::NonCopyable {
+    public:
+        virtual ~IConfig();
+
+        virtual bool allowThrows() const = 0;
+        virtual StringRef name() const = 0;
+        virtual bool includeSuccessfulResults() const = 0;
+        virtual bool shouldDebugBreak() const = 0;
+        virtual bool warnAboutMissingAssertions() const = 0;
+        virtual bool warnAboutUnmatchedTestSpecs() const = 0;
+        virtual bool zeroTestsCountAsSuccess() const = 0;
+        virtual int abortAfter() const = 0;
+        virtual bool showInvisibles() const = 0;
+        virtual ShowDurations showDurations() const = 0;
+        virtual double minDuration() const = 0;
+        virtual TestSpec const& testSpec() const = 0;
+        virtual bool hasTestFilters() const = 0;
+        virtual std::vector<std::string> const& getTestsOrTags() const = 0;
+        virtual TestRunOrder runOrder() const = 0;
+        virtual uint32_t rngSeed() const = 0;
+        virtual unsigned int shardCount() const = 0;
+        virtual unsigned int shardIndex() const = 0;
+        virtual ColourMode defaultColourMode() const = 0;
+        virtual std::vector<std::string> const& getSectionsToRun() const = 0;
+        virtual Verbosity verbosity() const = 0;
+
+        virtual bool skipBenchmarks() const = 0;
+        virtual bool benchmarkNoAnalysis() const = 0;
+        virtual unsigned int benchmarkSamples() const = 0;
+        virtual double benchmarkConfidenceInterval() const = 0;
+        virtual unsigned int benchmarkResamples() const = 0;
+        virtual std::chrono::milliseconds benchmarkWarmupTime() const = 0;
+    };
+}
+
+#endif // CATCH_INTERFACES_CONFIG_HPP_INCLUDED
+
+
+#ifndef CATCH_INTERFACES_REGISTRY_HUB_HPP_INCLUDED
+#define CATCH_INTERFACES_REGISTRY_HUB_HPP_INCLUDED
+
+
+#include <string>
+
+namespace Catch {
+
+    class TestCaseHandle;
+    struct TestCaseInfo;
+    class ITestCaseRegistry;
+    class IExceptionTranslatorRegistry;
+    class IExceptionTranslator;
+    class ReporterRegistry;
+    class IReporterFactory;
+    class ITagAliasRegistry;
+    class ITestInvoker;
+    class IMutableEnumValuesRegistry;
+    struct SourceLineInfo;
+
+    class StartupExceptionRegistry;
+    class EventListenerFactory;
+
+    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
+
+    class IRegistryHub {
+    public:
+        virtual ~IRegistryHub(); // = default
+
+        virtual ReporterRegistry const& getReporterRegistry() const = 0;
+        virtual ITestCaseRegistry const& getTestCaseRegistry() const = 0;
+        virtual ITagAliasRegistry const& getTagAliasRegistry() const = 0;
+        virtual IExceptionTranslatorRegistry const& getExceptionTranslatorRegistry() const = 0;
+
+
+        virtual StartupExceptionRegistry const& getStartupExceptionRegistry() const = 0;
+    };
+
+    class IMutableRegistryHub {
+    public:
+        virtual ~IMutableRegistryHub(); // = default
+        virtual void registerReporter( std::string const& name, IReporterFactoryPtr factory ) = 0;
+        virtual void registerListener( Detail::unique_ptr<EventListenerFactory> factory ) = 0;
+        virtual void registerTest(Detail::unique_ptr<TestCaseInfo>&& testInfo, Detail::unique_ptr<ITestInvoker>&& invoker) = 0;
+        virtual void registerTranslator( Detail::unique_ptr<IExceptionTranslator>&& translator ) = 0;
+        virtual void registerTagAlias( std::string const& alias, std::string const& tag, SourceLineInfo const& lineInfo ) = 0;
+        virtual void registerStartupException() noexcept = 0;
+        virtual IMutableEnumValuesRegistry& getMutableEnumValuesRegistry() = 0;
+    };
+
+    IRegistryHub const& getRegistryHub();
+    IMutableRegistryHub& getMutableRegistryHub();
+    void cleanUp();
+    std::string translateActiveException();
+
+}
+
+#endif // CATCH_INTERFACES_REGISTRY_HUB_HPP_INCLUDED
+
+
+#ifndef CATCH_BENCHMARK_STATS_HPP_INCLUDED
+#define CATCH_BENCHMARK_STATS_HPP_INCLUDED
+
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_ESTIMATE_HPP_INCLUDED
+#define CATCH_ESTIMATE_HPP_INCLUDED
+
+namespace Catch {
+    namespace Benchmark {
+        template <typename Type>
+        struct Estimate {
+            Type point;
+            Type lower_bound;
+            Type upper_bound;
+            double confidence_interval;
+        };
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_ESTIMATE_HPP_INCLUDED
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_OUTLIER_CLASSIFICATION_HPP_INCLUDED
+#define CATCH_OUTLIER_CLASSIFICATION_HPP_INCLUDED
+
+namespace Catch {
+    namespace Benchmark {
+        struct OutlierClassification {
+            int samples_seen = 0;
+            int low_severe = 0;     // more than 3 times IQR below Q1
+            int low_mild = 0;       // 1.5 to 3 times IQR below Q1
+            int high_mild = 0;      // 1.5 to 3 times IQR above Q3
+            int high_severe = 0;    // more than 3 times IQR above Q3
+
+            constexpr int total() const {
+                return low_severe + low_mild + high_mild + high_severe;
+            }
+        };
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_OUTLIERS_CLASSIFICATION_HPP_INCLUDED
+// The fwd decl & default specialization needs to be seen by VS2017 before
+// BenchmarkStats itself, or VS2017 will report compilation error.
+
+#include <string>
+#include <vector>
+
+namespace Catch {
+
+    struct BenchmarkInfo {
+        std::string name;
+        double estimatedDuration;
+        int iterations;
+        unsigned int samples;
+        unsigned int resamples;
+        double clockResolution;
+        double clockCost;
+    };
+
+    // We need to keep template parameter for backwards compatibility,
+    // but we also do not want to use the template paraneter.
+    template <class Dummy>
+    struct BenchmarkStats {
+        BenchmarkInfo info;
+
+        std::vector<Benchmark::FDuration> samples;
+        Benchmark::Estimate<Benchmark::FDuration> mean;
+        Benchmark::Estimate<Benchmark::FDuration> standardDeviation;
+        Benchmark::OutlierClassification outliers;
+        double outlierVariance;
+    };
+
+
+} // end namespace Catch
+
+#endif // CATCH_BENCHMARK_STATS_HPP_INCLUDED
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_ENVIRONMENT_HPP_INCLUDED
+#define CATCH_ENVIRONMENT_HPP_INCLUDED
+
+
+namespace Catch {
+    namespace Benchmark {
+        struct EnvironmentEstimate {
+            FDuration mean;
+            OutlierClassification outliers;
+        };
+        struct Environment {
+            EnvironmentEstimate clock_resolution;
+            EnvironmentEstimate clock_cost;
+        };
+    } // namespace Benchmark
+} // namespace Catch
+
+#endif // CATCH_ENVIRONMENT_HPP_INCLUDED
+
+
+// Adapted from donated nonius code.
+
+#ifndef CATCH_EXECUTION_PLAN_HPP_INCLUDED
+# ... 12899 later lines elided ...
+```
+
+## Sibling files in the same package (for plausible new-module names)
+- `extras/catch_amalgamated.cpp`
+
+## Output format
+
+Respond with EXACTLY one JSON object on a fenced ```json``` block describing your reasoning, followed by zero or more SEARCH/REPLACE blocks and zero or more CREATE blocks. No other prose.
+
+```json
+{
+  "summary": "one-line description of the fix",
+  "rationale": "why this fix resolves the violation",
+  "files_touched": ["path/to/file.py", "path/to/new_file.py"]
+}
+```
+
+For each modification of an existing file, emit:
+
+<<<<<<< SEARCH path/to/file.py
+exact existing text to find — must match byte-for-byte, including indentation and blank lines
+=======
+new text to replace it with
+>>>>>>> REPLACE
+
+The file path after `<<<<<<< SEARCH` is mandatory on every SEARCH block. Do not write a bare `<<<<<<< SEARCH` line.
+
+For each new file, emit:
+
+<<<<<<< CREATE path/to/new_file.py
+full content of the new file
+>>>>>>> END
+
+The path must be relative to the repository root (e.g. `seaborn/categorical.py`). Do not include backticks around the path. The fences `<<<<<<< SEARCH`, `=======`, `>>>>>>> REPLACE`, `<<<<<<< CREATE`, and `>>>>>>> END` must each appear on their own line.

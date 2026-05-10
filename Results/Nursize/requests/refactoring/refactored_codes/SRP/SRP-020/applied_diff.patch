@@ -1,0 +1,70 @@
+diff --git a/src/requests/adapters.py b/src/requests/adapters.py
+index 130154f..8aad06f 100644
+--- a/src/requests/adapters.py
++++ b/src/requests/adapters.py
+@@ -241,6 +241,30 @@ class HTTPAdapter(BaseAdapter):
+             **pool_kwargs,
+         )
+ 
++    def _create_proxy_manager(self, proxy, **proxy_kwargs):
++        """Creates a urllib3 ProxyManager for the given proxy."""
++        if proxy.lower().startswith("socks"):
++            username, password = get_auth_from_url(proxy)
++            return SOCKSProxyManager(
++                proxy,
++                username=username,
++                password=password,
++                num_pools=self._pool_connections,
++                maxsize=self._pool_maxsize,
++                block=self._pool_block,
++                **proxy_kwargs,
++            )
++
++        proxy_headers = self.proxy_headers(proxy)
++        return proxy_from_url(
++            proxy,
++            proxy_headers=proxy_headers,
++            num_pools=self._pool_connections,
++            maxsize=self._pool_maxsize,
++            block=self._pool_block,
++            **proxy_kwargs,
++        )
++
+     def proxy_manager_for(self, proxy, **proxy_kwargs):
+         """Return urllib3 ProxyManager for the given proxy.
+ 
+@@ -253,31 +277,9 @@ class HTTPAdapter(BaseAdapter):
+         :returns: ProxyManager
+         :rtype: urllib3.ProxyManager
+         """
+-        if proxy in self.proxy_manager:
+-            manager = self.proxy_manager[proxy]
+-        elif proxy.lower().startswith("socks"):
+-            username, password = get_auth_from_url(proxy)
+-            manager = self.proxy_manager[proxy] = SOCKSProxyManager(
+-                proxy,
+-                username=username,
+-                password=password,
+-                num_pools=self._pool_connections,
+-                maxsize=self._pool_maxsize,
+-                block=self._pool_block,
+-                **proxy_kwargs,
+-            )
+-        else:
+-            proxy_headers = self.proxy_headers(proxy)
+-            manager = self.proxy_manager[proxy] = proxy_from_url(
+-                proxy,
+-                proxy_headers=proxy_headers,
+-                num_pools=self._pool_connections,
+-                maxsize=self._pool_maxsize,
+-                block=self._pool_block,
+-                **proxy_kwargs,
+-            )
+-
+-        return manager
++        if proxy not in self.proxy_manager:
++            self.proxy_manager[proxy] = self._create_proxy_manager(proxy, **proxy_kwargs)
++        return self.proxy_manager[proxy]
+ 
+     def cert_verify(self, conn, url, verify, cert):
+         """Verify a SSL certificate. This method should not be called from user

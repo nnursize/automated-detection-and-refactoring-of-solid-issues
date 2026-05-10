@@ -1,0 +1,51 @@
+{
+  "issue_id": "ISP-010",
+  "principle": "ISP",
+  "title": "Refactor ISP-010 (ISP): `RequestsCookieJar` implements `MutableMapping` but its `__setitem__` and `__...",
+  "branch": "refactor/ISP-010",
+  "base": "main",
+  "head_commit": "5f58fef93a8fcbe83fabe9dea284cf8fccce1e3d",
+  "status": "llm_error",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": "unhandled error: FatalLLMError: Server unavailable (503) \u2014 skipping to preserve quota: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/requests/cookies.py",
+    "entity_name": "RequestsCookieJar",
+    "entity_type": "class",
+    "line_start": 176,
+    "line_end": 437,
+    "severity": "medium",
+    "scan_count": 1,
+    "description": "`RequestsCookieJar` implements `MutableMapping` but its `__setitem__` and `__delitem__` methods provide an incomplete or overly broad contract for cookie management.",
+    "reasoning": "`RequestsCookieJar` inherits from `collections.abc.MutableMapping`, requiring it to implement methods like `__setitem__(self, key, value)` and `__delitem__(self, key)`. The `__setitem__` method only allows setting a cookie's `name` and `value`, ignoring other critical cookie attributes like `domain`, `path`, and `expires`. Clients needing to set full cookie attributes are forced to use the more specific `set_cookie` or `set` methods. Similarly, `__delitem__` removes *all* cookies matching the given name, regardless of domain or path, which can be an overly broad operation compared to typical dictionary item deletion and might not be the desired behavior for clients needing to remove a specific cookie instance. This forces clients to depend on an interface (`MutableMapping`) that either provides an incomplete contract (`__setitem__`) or an overly broad operation (`__delitem__`) for cookie management, thus violating ISP by forcing clients to depend on methods they might not fully use or that don't precisely match their needs for granular cookie control."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "src/requests/cookies.py",
+        "loc": 436,
+        "blank_lines": 109,
+        "comment_lines": 12,
+        "function_count": 48,
+        "avg_cc": 2.42,
+        "max_cc": 9.0,
+        "mi": 39.73
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 672.0395088195801
+}

@@ -1,0 +1,85 @@
+{
+  "issue_id": "DIP-004",
+  "principle": "DIP",
+  "title": "Refactor DIP-004 (DIP): Function `getMutableRegistryHub` accesses a static global variable `RegistryH...",
+  "branch": "refactor/DIP-004",
+  "base": "main",
+  "head_commit": "c0e90c222f4f361304a843758cc8db4850cc978d",
+  "status": "applied_unverified",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 3084,
+    "completion_tokens": 320
+  },
+  "detected_issue": {
+    "file_path": "extras/catch_amalgamated.hpp",
+    "entity_name": "Catch::getMutableRegistryHub",
+    "entity_type": "class",
+    "line_start": 670,
+    "line_end": 670,
+    "severity": "high",
+    "scan_count": 3,
+    "description": "Function `getMutableRegistryHub` accesses a static global variable `RegistryHub::getRegistryHub()`.",
+    "reasoning": "The `Catch::getMutableRegistryHub` function accesses a static global variable via `RegistryHub::getRegistryHub()`. This creates a hardcoded dependency on a specific global instance, violating DIP. High-level modules should depend on abstractions, not concrete global implementations. This makes testing and substitution of dependencies challenging."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Introduce a RegistryHubProvider interface to decouple global registry access",
+    "rationale": "The current implementation of getMutableRegistryHub relies on a hardcoded global static instance. By introducing an IRegistryHubProvider interface and allowing for dependency injection of a provider, we can decouple the high-level components from the concrete global registry implementation, adhering to the Dependency Inversion Principle.",
+    "files_touched": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "files_created": [],
+    "files_modified": [
+      "extras/catch_amalgamated.hpp"
+    ],
+    "patch_blocks_count": 1,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "extras/catch_amalgamated.hpp",
+        "search_text": "    IRegistryHub const& getRegistryHub();\n    IMutableRegistryHub& getMutableRegistryHub();\n    void cleanUp();\n    std::string translateActiveException();\n\n    class IRegistryHubProvider {\n    public:\n        virtual ~IRegistryHubProvider() = default;\n        virtual IRegistryHub const& getRegistryHub() const = 0;\n    };",
+        "replace_text": "    IRegistryHub const& getRegistryHub();\n    IMutableRegistryHub& getMutableRegistryHub();\n    void cleanUp();\n    std::string translateActiveException();\n\n    class IRegistryHubProvider {\n    public:\n        virtual ~IRegistryHubProvider() = default;\n        virtual IRegistryHub const& getRegistryHub() const = 0;\n        virtual IMutableRegistryHub& getMutableRegistryHub() = 0;\n    };\n\n    void setRegistryHubProvider(IRegistryHubProvider* provider);",
+        "search_lines": 10,
+        "replace_lines": 13
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10519,
+        "blank_lines": 3084,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.0,
+        "max_cc": 1276.0,
+        "mi": 0.0
+      }
+    ],
+    "after": [
+      {
+        "file": "extras/catch_amalgamated.hpp",
+        "loc": 10521,
+        "blank_lines": 3085,
+        "comment_lines": 725,
+        "function_count": 3,
+        "avg_cc": 426.0,
+        "max_cc": 1276.0,
+        "mi": 0.0
+      }
+    ]
+  },
+  "diff": "diff --git a/extras/catch_amalgamated.hpp b/extras/catch_amalgamated.hpp\nindex 043baf9..7e42c6d 100644\n--- a/extras/catch_amalgamated.hpp\n+++ b/extras/catch_amalgamated.hpp\n@@ -1384,8 +1384,11 @@ namespace Catch {\n     public:\n         virtual ~IRegistryHubProvider() = default;\n         virtual IRegistryHub const& getRegistryHub() const = 0;\n+        virtual IMutableRegistryHub& getMutableRegistryHub() = 0;\n     };\n \n+    void setRegistryHubProvider(IRegistryHubProvider* provider);\n+\n }\n \n #endif // CATCH_INTERFACES_REGISTRY_HUB_HPP_INCLUDED\n",
+  "duration_ms": 3445.237636566162
+}

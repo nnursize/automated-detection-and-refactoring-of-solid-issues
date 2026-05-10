@@ -1,0 +1,172 @@
+{
+  "scan_id": "requests_OCP_scan_01",
+  "repo_name": "requests",
+  "principle": "OCP",
+  "scan_number": 1,
+  "timestamp": "2026-05-03T00:32:45.765813",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following python source code repository for violations of the Open/Closed Principle (OCP).\n\n## Principle Definition\nSoftware entities should be open for extension but closed for modification. When adding new behavior requires modifying existing code (e.g., adding elif branches, modifying switch statements), it violates OCP.\n\n## What to Look For\n- Long if/elif/else or switch chains that would need modification to add new types\n- Functions with type-checking logic (isinstance checks) t...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"proxy_bypass\",\n      \"entity_type\": \"function\",\n      \"line_start\": 69,\n      \"line_end\": 74,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Conditional logic for proxy bypass sources.\",\n      \"reasoning\": \"The function uses an if/else statement to choose between `proxy_bypass_environment` and `proxy_bypass_registry`. If a new mechanism for bypassing proxies (e.g., from a configuration file or another OS-specific method) were introduced, this function would require modification to add another conditional branch, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"super_len\",\n      \"entity_type\": \"function\",\n      \"line_start\": 80,\n      \"line_end\": 130,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Multiple hasattr and isinstance checks for object length calculation.\",\n      \"reasoning\": \"The `super_len` function uses a series of `hasattr` checks (`__len__`, `len`, `fileno`, `tell`, `seek`) and an `isinstance` check for `str` to determine how to calculate the length of an object. If a new type of object with a different length-determining mechanism needs to be supported, this function must be modified to include new conditional logic, violating OCP. This could be improved by using a strategy pattern or a registry of length calculators.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"to_key_val_list\",\n      \"entity_type\": \"function\",\n      \"line_start\": 214,\n      \"line_end\": 230,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking for input data conversion.\",\n      \"reasoning\": \"The function uses `isinstance(value, (str, bytes, bool, int))` as a guard clause and `isinstance(value, Mapping)` to determine how to process the input. If new primitive types or other collection types that require specific handling before conversion to a list of tuples were introduced, this function would need modification, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"get_encoding_from_headers\",\n      \"entity_type\": \"function\",\n      \"line_start\": 304,\n      \"line_end\": 319,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Conditional logic for guessing encoding based on content type.\",\n      \"reasoning\": \"The function uses an `if/elif` chain to guess the encoding based on the `content-type` header. If a new content type requires a specific default encoding, this function must be modified to add another conditional branch, violating OCP. A more extensible approach would involve a registry or mapping of content types to encoding strategies.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"guess_json_utf\",\n      \"entity_type\": \"function\",\n      \"line_start\": 420,\n      \"line_end\": 444,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic for detecting JSON encoding based on byte patterns.\",\n      \"reasoning\": \"The function uses a series of `if` statements to detect JSON encoding by checking for Byte Order Marks (BOMs) and null byte counts. While these are standard and stable, if new JSON encoding detection heuristics or formats were to be supported, this function would require modification to add new conditional branches, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/utils.py\",\n      \"entity_name\": \"_validate_header_part\",\n      \"entity_type\": \"function\",\n      \"line_start\": 487,\n      \"line_end\": 499,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking for header part validation.\",\n      \"reasoning\": \"The function uses `isinstance(header_part, str)` and `elif isinstance(header_part, bytes)` to select the appropriate validator. If new types were allowed for header parts (e.g., a custom object that handles its own validation), this function would need modification to include new conditional logic, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"RequestEncodingMixin._encode_params\",\n      \"entity_type\": \"method\",\n      \"line_start\": 50,\n      \"line_end\": 70,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Conditional logic for encoding request parameters based on type.\",\n      \"reasoning\": \"This method uses a series of `if/elif` statements and `isinstance`/`hasattr` checks to determine how to encode different types of `data`. If a new type of data (e.g., a custom object that knows how to encode itself) needs to be supported, this method would require modification to add new conditional branches, violating OCP. This could be refactored using a strategy pattern or a dispatch table.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"RequestEncodingMixin._encode_files\",\n      \"entity_type\": \"method\",\n      \"line_start\": 72,\n      \"line_end\": 125,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Nested conditional logic for handling different file input formats.\",\n      \"reasoning\": \"This method contains nested `if/elif` statements to handle different tuple lengths for file specifications (2-tuple, 3-tuple, 4-tuple) and then `isinstance`/`hasattr` checks for the file pointer `fp`. If new file input formats or ways to specify file metadata were introduced, this method would need modification to extend its conditional logic, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_url\",\n      \"entity_type\": \"method\",\n      \"line_start\": 207,\n      \"line_end\": 259,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Type-checking and specific string characteristic checks for URL preparation.\",\n      \"reasoning\": \"The method includes `isinstance` checks for `url` and `params` (e.g., `isinstance(url, bytes)`). Additionally, it contains conditional logic like `if not unicode_is_ascii(host)` and `elif host.startswith(('*', '.'))` to handle specific hostname characteristics. If new URL or parameter representations, or new hostname validation rules, were introduced, these checks would need to be updated, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_body\",\n      \"entity_type\": \"method\",\n      \"line_start\": 275,\n      \"line_end\": 319,\n      \"principle\": \"OCP\",\n      \"severity\": \"high\",\n      \"description\": \"Complex conditional logic for preparing request body based on input type.\",\n      \"reasoning\": \"This method uses a complex `if/elif/else` structure to handle different ways of providing a request body (JSON, streamed data, multipart files, form-encoded data). It relies on the presence of `json`, `files`, and `is_stream` flags, along with `isinstance` and `hasattr` checks. Adding a new type of request body (e.g., a custom object that handles its own serialization) would require modifying this method, violating OCP. This is a strong candidate for a strategy pattern or a body preparer registry.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"PreparedRequest.prepare_auth\",\n      \"entity_type\": \"method\",\n      \"line_start\": 332,\n      \"line_end\": 348,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Special-casing basic HTTP auth based on tuple input.\",\n      \"reasoning\": \"The method explicitly checks `if isinstance(auth, tuple) and len(auth) == 2` to special-case the creation of `HTTPBasicAuth`. While the `AuthBase` class provides an extensible interface for custom authentication, this specific conditional handles a common shortcut that is not extensible. If new simple tuple-based authentication types were introduced, this `if` statement would need modification, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response.iter_content\",\n      \"entity_type\": \"method\",\n      \"line_start\": 443,\n      \"line_end\": 477,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic for streaming different raw response objects.\",\n      \"reasoning\": \"Inside the `generate` nested function, there's an `if hasattr(self.raw, 'stream')` check to differentiate between urllib3's raw response object and a 'standard file-like object'. If a new type of raw response object (e.g., from a different underlying HTTP library) were introduced, this conditional would need modification to handle its specific streaming interface, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response.json\",\n      \"entity_type\": \"method\",\n      \"line_start\": 538,\n      \"line_end\": 564,\n      \"principle\": \"OCP\",\n      \"severity\": \"medium\",\n      \"description\": \"Conditional logic for JSON encoding detection.\",\n      \"reasoning\": \"The method includes an `if not self.encoding ...` block that attempts to guess JSON encoding using `guess_json_utf` (which itself is an OCP violation). If new JSON encoding detection strategies were needed, this method would need modification to incorporate them, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/models.py\",\n      \"entity_name\": \"Response.raise_for_status\",\n      \"entity_type\": \"method\",\n      \"line_start\": 583,\n      \"line_end\": 600,\n      \"principle\": \"OCP\",\n      \"severity\": \"low\",\n      \"description\": \"Conditional logic for categorizing HTTP status codes.\",\n      \"reasoning\": \"The method uses `if/elif` statements to categorize HTTP status codes into client errors (4xx) and server errors (5xx). If new categories of errors were introduced (e.g., custom application error ranges), this method would need modification, violating OCP.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/sessions.py\",\n      \"entity_name\": \"SessionRedirectMixin.should_",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "proxy_bypass",
+      "entity_type": "class",
+      "line_start": 69,
+      "line_end": 74,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Conditional logic for proxy bypass sources.",
+      "reasoning": "The function uses an if/else statement to choose between `proxy_bypass_environment` and `proxy_bypass_registry`. If a new mechanism for bypassing proxies (e.g., from a configuration file or another OS-specific method) were introduced, this function would require modification to add another conditional branch, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "super_len",
+      "entity_type": "class",
+      "line_start": 80,
+      "line_end": 130,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Multiple hasattr and isinstance checks for object length calculation.",
+      "reasoning": "The `super_len` function uses a series of `hasattr` checks (`__len__`, `len`, `fileno`, `tell`, `seek`) and an `isinstance` check for `str` to determine how to calculate the length of an object. If a new type of object with a different length-determining mechanism needs to be supported, this function must be modified to include new conditional logic, violating OCP. This could be improved by using a strategy pattern or a registry of length calculators."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "to_key_val_list",
+      "entity_type": "class",
+      "line_start": 214,
+      "line_end": 230,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Type-checking for input data conversion.",
+      "reasoning": "The function uses `isinstance(value, (str, bytes, bool, int))` as a guard clause and `isinstance(value, Mapping)` to determine how to process the input. If new primitive types or other collection types that require specific handling before conversion to a list of tuples were introduced, this function would need modification, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "get_encoding_from_headers",
+      "entity_type": "class",
+      "line_start": 304,
+      "line_end": 319,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Conditional logic for guessing encoding based on content type.",
+      "reasoning": "The function uses an `if/elif` chain to guess the encoding based on the `content-type` header. If a new content type requires a specific default encoding, this function must be modified to add another conditional branch, violating OCP. A more extensible approach would involve a registry or mapping of content types to encoding strategies."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "guess_json_utf",
+      "entity_type": "class",
+      "line_start": 420,
+      "line_end": 444,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic for detecting JSON encoding based on byte patterns.",
+      "reasoning": "The function uses a series of `if` statements to detect JSON encoding by checking for Byte Order Marks (BOMs) and null byte counts. While these are standard and stable, if new JSON encoding detection heuristics or formats were to be supported, this function would require modification to add new conditional branches, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/utils.py",
+      "entity_name": "_validate_header_part",
+      "entity_type": "class",
+      "line_start": 487,
+      "line_end": 499,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Type-checking for header part validation.",
+      "reasoning": "The function uses `isinstance(header_part, str)` and `elif isinstance(header_part, bytes)` to select the appropriate validator. If new types were allowed for header parts (e.g., a custom object that handles its own validation), this function would need modification to include new conditional logic, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "RequestEncodingMixin._encode_params",
+      "entity_type": "method",
+      "line_start": 50,
+      "line_end": 70,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Conditional logic for encoding request parameters based on type.",
+      "reasoning": "This method uses a series of `if/elif` statements and `isinstance`/`hasattr` checks to determine how to encode different types of `data`. If a new type of data (e.g., a custom object that knows how to encode itself) needs to be supported, this method would require modification to add new conditional branches, violating OCP. This could be refactored using a strategy pattern or a dispatch table."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "RequestEncodingMixin._encode_files",
+      "entity_type": "method",
+      "line_start": 72,
+      "line_end": 125,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Nested conditional logic for handling different file input formats.",
+      "reasoning": "This method contains nested `if/elif` statements to handle different tuple lengths for file specifications (2-tuple, 3-tuple, 4-tuple) and then `isinstance`/`hasattr` checks for the file pointer `fp`. If new file input formats or ways to specify file metadata were introduced, this method would need modification to extend its conditional logic, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_url",
+      "entity_type": "method",
+      "line_start": 207,
+      "line_end": 259,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Type-checking and specific string characteristic checks for URL preparation.",
+      "reasoning": "The method includes `isinstance` checks for `url` and `params` (e.g., `isinstance(url, bytes)`). Additionally, it contains conditional logic like `if not unicode_is_ascii(host)` and `elif host.startswith(('*', '.'))` to handle specific hostname characteristics. If new URL or parameter representations, or new hostname validation rules, were introduced, these checks would need to be updated, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_body",
+      "entity_type": "method",
+      "line_start": 275,
+      "line_end": 319,
+      "principle": "OCP",
+      "severity": "high",
+      "description": "Complex conditional logic for preparing request body based on input type.",
+      "reasoning": "This method uses a complex `if/elif/else` structure to handle different ways of providing a request body (JSON, streamed data, multipart files, form-encoded data). It relies on the presence of `json`, `files`, and `is_stream` flags, along with `isinstance` and `hasattr` checks. Adding a new type of request body (e.g., a custom object that handles its own serialization) would require modifying this method, violating OCP. This is a strong candidate for a strategy pattern or a body preparer registry."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "PreparedRequest.prepare_auth",
+      "entity_type": "method",
+      "line_start": 332,
+      "line_end": 348,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Special-casing basic HTTP auth based on tuple input.",
+      "reasoning": "The method explicitly checks `if isinstance(auth, tuple) and len(auth) == 2` to special-case the creation of `HTTPBasicAuth`. While the `AuthBase` class provides an extensible interface for custom authentication, this specific conditional handles a common shortcut that is not extensible. If new simple tuple-based authentication types were introduced, this `if` statement would need modification, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Response.iter_content",
+      "entity_type": "method",
+      "line_start": 443,
+      "line_end": 477,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic for streaming different raw response objects.",
+      "reasoning": "Inside the `generate` nested function, there's an `if hasattr(self.raw, 'stream')` check to differentiate between urllib3's raw response object and a 'standard file-like object'. If a new type of raw response object (e.g., from a different underlying HTTP library) were introduced, this conditional would need modification to handle its specific streaming interface, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Response.json",
+      "entity_type": "method",
+      "line_start": 538,
+      "line_end": 564,
+      "principle": "OCP",
+      "severity": "medium",
+      "description": "Conditional logic for JSON encoding detection.",
+      "reasoning": "The method includes an `if not self.encoding ...` block that attempts to guess JSON encoding using `guess_json_utf` (which itself is an OCP violation). If new JSON encoding detection strategies were needed, this method would need modification to incorporate them, violating OCP."
+    },
+    {
+      "file_path": "requests/src/requests/models.py",
+      "entity_name": "Response.raise_for_status",
+      "entity_type": "method",
+      "line_start": 583,
+      "line_end": 600,
+      "principle": "OCP",
+      "severity": "low",
+      "description": "Conditional logic for categorizing HTTP status codes.",
+      "reasoning": "The method uses `if/elif` statements to categorize HTTP status codes into client errors (4xx) and server errors (5xx). If new categories of errors were introduced (e.g., custom application error ranges), this method would need modification, violating OCP."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 67291.65697097778,
+  "error": null
+}

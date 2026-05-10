@@ -1,0 +1,35 @@
+[
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 10662,
+    "line_end": 10786,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "RunContext depends on concrete low-level modules FatalConditionHandler and OutputRedirect.",
+    "reasoning": "RunContext is a high-level module responsible for test execution orchestration. It directly includes and instantiates concrete system-level dependencies like FatalConditionHandler (for signal handling) and OutputRedirect (for IO manipulation) instead of depending on abstractions or receiving them via injection. This couples the execution logic to specific platform implementations."
+  },
+  {
+    "file_path": "Catch2/src/catch2/internal/catch_run_context.hpp",
+    "entity_name": "RunContext",
+    "entity_type": "class",
+    "line_start": 36,
+    "line_end": 161,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "RunContext depends on concrete low-level modules FatalConditionHandler and OutputRedirect.",
+    "reasoning": "RunContext is a high-level module responsible for test execution orchestration. It directly includes and instantiates concrete system-level dependencies like FatalConditionHandler (for signal handling) and OutputRedirect (for IO manipulation) instead of depending on abstractions or receiving them via injection. This couples the execution logic to specific platform implementations."
+  },
+  {
+    "file_path": "Catch2/extras/catch_amalgamated.cpp",
+    "entity_name": "ConsoleAssertionPrinter",
+    "entity_type": "class",
+    "line_start": 9278,
+    "line_end": 9426,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Direct instantiation of TextFlow::Column layout utility within reporting logic.",
+    "reasoning": "The high-level reporter logic directly instantiates the TextFlow::Column concrete class to handle text formatting and indentation. This creates a tight coupling between the reporting logic and the specific text layout implementation, violating the principle that high-level modules should depend on abstractions rather than concrete details."
+  }
+]

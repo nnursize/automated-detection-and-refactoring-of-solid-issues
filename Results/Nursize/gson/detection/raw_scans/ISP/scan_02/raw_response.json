@@ -1,0 +1,183 @@
+{
+  "scan_id": "gson_ISP_scan_02",
+  "repo_name": "gson",
+  "principle": "ISP",
+  "scan_number": 2,
+  "timestamp": "2026-05-02T15:43:16.881989",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "temperature": 0.5,
+  "context_mode": "full-repo",
+  "prompt_text": "Analyze the following java source code repository for violations of the Interface Segregation Principle (ISP).\n\n## Principle Definition\nClients should not be forced to depend on interfaces they do not use. When a class implements an interface but leaves some methods empty or raises NotImplementedError, it violates ISP. Large interfaces that force implementing classes to provide unneeded methods violate ISP.\n\n## What to Look For\n- Abstract base classes or interfaces with too many methods\n- Classe...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.CLASS.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 33,\n      \"line_end\": 39,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The TypeAdapter for Class throws UnsupportedOperationException for write method.\",\n      \"reasoning\": \"The TypeAdapter interface requires both a 'read' and a 'write' method. This specific implementation for `java.lang.Class` explicitly throws an `UnsupportedOperationException` for the `write` method (and also for `read`). This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java\",\n      \"entity_name\": \"TypeAdapters.CLASS.read\",\n      \"entity_type\": \"method\",\n      \"line_start\": 41,\n      \"line_end\": 46,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"The TypeAdapter for Class throws UnsupportedOperationException for read method.\",\n      \"reasoning\": \"The TypeAdapter interface requires both a 'read' and a 'write' method. This specific implementation for `java.lang.Class` explicitly throws an `UnsupportedOperationException` for the `read` method (and also for `write`). This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsBoolean\",\n      \"entity_type\": \"method\",\n      \"line_start\": 160,\n      \"line_end\": 162,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsBoolean method throws UnsupportedOperationException for non-boolean types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods (e.g., `getAsBoolean`, `getAsNumber`, `getAsString`). Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle. Clients should not be forced to depend on interfaces they do not use.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsNumber\",\n      \"entity_type\": \"method\",\n      \"line_start\": 172,\n      \"line_end\": 174,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsNumber method throws UnsupportedOperationException for non-number types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsString\",\n      \"entity_type\": \"method\",\n      \"line_start\": 184,\n      \"line_end\": 186,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsString method throws UnsupportedOperationException for non-string types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsDouble\",\n      \"entity_type\": \"method\",\n      \"line_start\": 196,\n      \"line_end\": 198,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsDouble method throws UnsupportedOperationException for non-double types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsFloat\",\n      \"entity_type\": \"method\",\n      \"line_start\": 208,\n      \"line_end\": 210,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsFloat method throws UnsupportedOperationException for non-float types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsLong\",\n      \"entity_type\": \"method\",\n      \"line_start\": 220,\n      \"line_end\": 222,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsLong method throws UnsupportedOperationException for non-long types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsInt\",\n      \"entity_type\": \"method\",\n      \"line_start\": 232,\n      \"line_end\": 234,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsInt method throws UnsupportedOperationException for non-int types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsByte\",\n      \"entity_type\": \"method\",\n      \"line_start\": 244,\n      \"line_end\": 246,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsByte method throws UnsupportedOperationException for non-byte types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsCharacter\",\n      \"entity_type\": \"method\",\n      \"line_start\": 257,\n      \"line_end\": 259,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsCharacter method throws UnsupportedOperationException for non-character types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsBigDecimal\",\n      \"entity_type\": \"method\",\n      \"line_start\": 270,\n      \"line_end\": 272,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsBigDecimal method throws UnsupportedOperationException for non-BigDecimal types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsBigInteger\",\n      \"entity_type\": \"method\",\n      \"line_start\": 283,\n      \"line_end\": 285,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsBigInteger method throws UnsupportedOperationException for non-BigInteger types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/gson/src/main/java/com/google/gson/JsonElement.java\",\n      \"entity_name\": \"JsonElement.getAsShort\",\n      \"entity_type\": \"method\",\n      \"line_start\": 295,\n      \"line_end\": 297,\n      \"principle\": \"ISP\",\n      \"severity\": \"high\",\n      \"description\": \"JsonElement's getAsShort method throws UnsupportedOperationException for non-short types.\",\n      \"reasoning\": \"The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle.\"\n    },\n    {\n      \"file_path\": \"gson/test-shrinker/src/main/java/com/example/GenericClasses.java\",\n      \"entity_name\": \"GenericClasses.DummyClass.Adapter.write\",\n      \"entity_type\": \"method\",\n      \"line_start\": 39,\n      \"line_end\": 41,\n      \"principle\": \"ISP\",\n      \"severity\": \"medium\",\n      \"description\": \"The TypeAdapter for DummyClass throws UnsupportedOperationException for write method.\",\n      \"reasoning\": \"The `TypeAdapter` interface requires both a 'read' and a 'write' method. This specific implementation for `DummyClass` explicitly throws an `UnsupportedOperationException` for the `write` method. This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle. While `TypeAdapter` itself is a relatively small interface, this specific implementation demonstrates a clear non-use of one of its core methods.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.CLASS.write",
+      "entity_type": "method",
+      "line_start": 33,
+      "line_end": 39,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The TypeAdapter for Class throws UnsupportedOperationException for write method.",
+      "reasoning": "The TypeAdapter interface requires both a 'read' and a 'write' method. This specific implementation for `java.lang.Class` explicitly throws an `UnsupportedOperationException` for the `write` method (and also for `read`). This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/internal/bind/TypeAdapters.java",
+      "entity_name": "TypeAdapters.CLASS.read",
+      "entity_type": "method",
+      "line_start": 41,
+      "line_end": 46,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "The TypeAdapter for Class throws UnsupportedOperationException for read method.",
+      "reasoning": "The TypeAdapter interface requires both a 'read' and a 'write' method. This specific implementation for `java.lang.Class` explicitly throws an `UnsupportedOperationException` for the `read` method (and also for `write`). This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsBoolean",
+      "entity_type": "method",
+      "line_start": 160,
+      "line_end": 162,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsBoolean method throws UnsupportedOperationException for non-boolean types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods (e.g., `getAsBoolean`, `getAsNumber`, `getAsString`). Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle. Clients should not be forced to depend on interfaces they do not use."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsNumber",
+      "entity_type": "method",
+      "line_start": 172,
+      "line_end": 174,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsNumber method throws UnsupportedOperationException for non-number types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsString",
+      "entity_type": "method",
+      "line_start": 184,
+      "line_end": 186,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsString method throws UnsupportedOperationException for non-string types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsDouble",
+      "entity_type": "method",
+      "line_start": 196,
+      "line_end": 198,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsDouble method throws UnsupportedOperationException for non-double types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsFloat",
+      "entity_type": "method",
+      "line_start": 208,
+      "line_end": 210,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsFloat method throws UnsupportedOperationException for non-float types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsLong",
+      "entity_type": "method",
+      "line_start": 220,
+      "line_end": 222,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsLong method throws UnsupportedOperationException for non-long types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsInt",
+      "entity_type": "method",
+      "line_start": 232,
+      "line_end": 234,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsInt method throws UnsupportedOperationException for non-int types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsByte",
+      "entity_type": "method",
+      "line_start": 244,
+      "line_end": 246,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsByte method throws UnsupportedOperationException for non-byte types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsCharacter",
+      "entity_type": "method",
+      "line_start": 257,
+      "line_end": 259,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsCharacter method throws UnsupportedOperationException for non-character types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsBigDecimal",
+      "entity_type": "method",
+      "line_start": 270,
+      "line_end": 272,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsBigDecimal method throws UnsupportedOperationException for non-BigDecimal types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsBigInteger",
+      "entity_type": "method",
+      "line_start": 283,
+      "line_end": 285,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsBigInteger method throws UnsupportedOperationException for non-BigInteger types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/gson/src/main/java/com/google/gson/JsonElement.java",
+      "entity_name": "JsonElement.getAsShort",
+      "entity_type": "method",
+      "line_start": 295,
+      "line_end": 297,
+      "principle": "ISP",
+      "severity": "high",
+      "description": "JsonElement's getAsShort method throws UnsupportedOperationException for non-short types.",
+      "reasoning": "The abstract `JsonElement` class defines a contract with many `getAsX()` methods. Subclasses like `JsonObject` and `JsonNull` (and `JsonArray` in certain cases) inherit these methods but cannot meaningfully implement them, leading to `UnsupportedOperationException` or `IllegalStateException` being thrown. This forces clients (the subclasses) to depend on methods they do not use, indicating that the `JsonElement`'s contract is 'fat' and violates the Interface Segregation Principle."
+    },
+    {
+      "file_path": "gson/test-shrinker/src/main/java/com/example/GenericClasses.java",
+      "entity_name": "GenericClasses.DummyClass.Adapter.write",
+      "entity_type": "method",
+      "line_start": 39,
+      "line_end": 41,
+      "principle": "ISP",
+      "severity": "medium",
+      "description": "The TypeAdapter for DummyClass throws UnsupportedOperationException for write method.",
+      "reasoning": "The `TypeAdapter` interface requires both a 'read' and a 'write' method. This specific implementation for `DummyClass` explicitly throws an `UnsupportedOperationException` for the `write` method. This indicates that the `TypeAdapter` interface is too broad for this client, forcing it to implement a method it does not use, thereby violating the Interface Segregation Principle. While `TypeAdapter` itself is a relatively small interface, this specific implementation demonstrates a clear non-use of one of its core methods."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 47125.25820732117,
+  "error": null
+}

@@ -1,0 +1,107 @@
+diff --git a/src/requests/models.py b/src/requests/models.py
+index 2d043f5..1855267 100644
+--- a/src/requests/models.py
++++ b/src/requests/models.py
+@@ -59,14 +59,12 @@ from .utils import (
+     check_header_validity,
+     get_auth_from_url,
+     guess_filename,
+-    guess_json_utf,
+     iter_slices,
+-    parse_header_links,
+     requote_uri,
+-    stream_decode_response_unicode,
+     super_len,
+     to_key_val_list,
+ )
++from .models_utils import ResponseDecoder
+ 
+ #: The set of HTTP status codes that indicate an automatically
+ #: processable redirect.
+@@ -955,48 +953,12 @@ class Response:
+         :raises requests.exceptions.JSONDecodeError: If the response body does not
+             contain valid json.
+         """
+-
+-        if not self.encoding and self.content and len(self.content) > 3:
+-            # No encoding set. JSON RFC 4627 section 3 states we should expect
+-            # UTF-8, -16 or -32. Detect which one to use; If the detection or
+-            # decoding fails, fall back to `self.text` (using charset_normalizer to make
+-            # a best guess).
+-            encoding = guess_json_utf(self.content)
+-            if encoding is not None:
+-                try:
+-                    return complexjson.loads(self.content.decode(encoding), **kwargs)
+-                except UnicodeDecodeError:
+-                    # Wrong UTF codec detected; usually because it's not UTF-8
+-                    # but some other 8-bit codec.  This is an RFC violation,
+-                    # and the server didn't bother to tell us what codec *was*
+-                    # used.
+-                    pass
+-                except JSONDecodeError as e:
+-                    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+-
+-        try:
+-            return complexjson.loads(self.text, **kwargs)
+-        except JSONDecodeError as e:
+-            # Catch JSON-related errors and raise as requests.JSONDecodeError
+-            # This aliases json.JSONDecodeError and simplejson.JSONDecodeError
+-            raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
++        return ResponseDecoder.decode_json(self, **kwargs)
+ 
+     @property
+     def links(self):
+         """Returns the parsed header links of the response, if any."""
+-
+-        header = self.headers.get("link")
+-
+-        resolved_links = {}
+-
+-        if header:
+-            links = parse_header_links(header)
+-
+-            for link in links:
+-                key = link.get("rel") or link.get("url")
+-                resolved_links[key] = link
+-
+-        return resolved_links
++        return ResponseDecoder.parse_links(self.headers)
+ 
+     def raise_for_status(self):
+         """Raises :class:`HTTPError`, if one occurred."""
+diff --git a/src/requests/models_utils.py b/src/requests/models_utils.py
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/src/requests/models_utils.py
+@@ -0,0 +1,29 @@
++from .compat import json as complexjson, JSONDecodeError
++from .exceptions import JSONDecodeError as RequestsJSONDecodeError, InvalidJSONError
++from .utils import guess_json_utf, parse_header_links, stream_decode_response_unicode
++
++class ResponseDecoder:
++    @staticmethod
++    def decode_json(response, **kwargs):
++        if not response.encoding and response.content and len(response.content) > 3:
++            encoding = guess_json_utf(response.content)
++            if encoding is not None:
++                try:
++                    return complexjson.loads(response.content.decode(encoding), **kwargs)
++                except (UnicodeDecodeError, JSONDecodeError):
++                    pass
++        try:
++            return complexjson.loads(response.text, **kwargs)
++        except JSONDecodeError as e:
++            raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
++
++    @staticmethod
++    def parse_links(headers):
++        header = headers.get("link")
++        resolved_links = {}
++        if header:
++            links = parse_header_links(header)
++            for link in links:
++                key = link.get("rel") or link.get("url")
++                resolved_links[key] = link
++        return resolved_links
+\ No newline at end of file

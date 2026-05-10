@@ -1,0 +1,89 @@
+{
+  "issue_id": "DIP-001",
+  "principle": "DIP",
+  "title": "Refactor DIP-001 (DIP): Gson directly instantiates internal implementation details.",
+  "branch": "refactor/DIP-001",
+  "base": "main",
+  "head_commit": "29fb26dc6739abacd329814707753280ac11a2e7",
+  "status": "patch_failed",
+  "obsolete_reason": null,
+  "apply_error": "search_text not found in gson/src/main/java/com/google/gson/GsonBuilder.java (block 1)",
+  "error": null,
+  "detection_label": {
+    "label": null,
+    "explanation": null
+  },
+  "llm_response": {
+    "finish_reason": "FinishReason.STOP",
+    "prompt_tokens": 17112,
+    "completion_tokens": 1644
+  },
+  "detected_issue": {
+    "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+    "entity_name": "Gson.Gson",
+    "entity_type": "method",
+    "line_start": 248,
+    "line_end": 255,
+    "severity": "high",
+    "scan_count": 5,
+    "description": "Gson directly instantiates internal implementation details.",
+    "reasoning": "The high-level Gson facade directly instantiates ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory using the 'new' keyword. This couples the high-level module to specific low-level implementation details rather than depending on abstractions or receiving these components via dependency injection."
+  },
+  "fix_logic": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "temperature": 0.2,
+    "summary": "Refactor Gson constructor to use dependency injection for internal components",
+    "rationale": "The Gson class was directly instantiating ConstructorConstructor and JsonAdapterAnnotationTypeAdapterFactory. By moving this instantiation logic to the GsonBuilder (which is the factory for Gson), we decouple Gson from these specific implementations, adhering to the Dependency Inversion Principle.",
+    "files_touched": [],
+    "files_created": [],
+    "files_modified": [
+      "gson/src/main/java/com/google/gson/Gson.java",
+      "gson/src/main/java/com/google/gson/GsonBuilder.java"
+    ],
+    "patch_blocks_count": 3,
+    "changes": [
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/Gson.java",
+        "search_text": "    if (builder == GsonBuilder.DEFAULT) {\n      this.constructorConstructor = GsonBuilder.DEFAULT_CONSTRUCTOR_CONSTRUCTOR;\n      this.jsonAdapterFactory = GsonBuilder.DEFAULT_JSON_ADAPTER_ANNOTATION_TYPE_ADAPTER_FACTORY;\n      this.factories = GsonBuilder.DEFAULT_TYPE_ADAPTER_FACTORIES;\n    } else {\n      this.constructorConstructor =\n          new ConstructorConstructor(instanceCreators, useJdkUnsafe, reflectionFilters);\n      this.jsonAdapterFactory = new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);\n      this.factories = builder.createFactories(constructorConstructor, jsonAdapterFactory);\n    }",
+        "replace_text": "    this.constructorConstructor = builder.constructorConstructor;\n    this.jsonAdapterFactory = builder.jsonAdapterFactory;\n    this.factories = builder.factories;",
+        "search_lines": 10,
+        "replace_lines": 3
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "search_text": "  private final List<ReflectionAccessFilter> reflectionFilters = new ArrayList<>();\n\n  public GsonBuilder() {}\n\n  GsonBuilder(Gson gson) {\n    this.excluder = gson.excluder;\n    this.fieldNamingPolicy = gson.fieldNamingStrategy;\n    this.instanceCreators.putAll(gson.instanceCreators);\n    this.complexMapKeySerialization = gson.complexMapKeySerialization;\n    this.serializeNulls = gson.jsonWriterSettings.serializeNulls;\n    this.generateNonExecutableJson = gson.jsonWriterSettings.generateNonExecutableJson;\n    this.escapeHtmlChars = !gson.jsonWriterSettings.htmlSafe;\n    this.formattingStyle = gson.jsonWriterSettings.formattingStyle;\n    this.strictness = gson.jsonWriterSettings.strictness;\n    this.serializeSpecialFloatingPointValues = gson.serializeSpecialFloatingPointValues;\n    this.useJdkUnsafe = gson.useJdkUnsafe;\n    this.longSerializationPolicy = gson.longSerializationPolicy;\n    this.datePattern = gson.datePattern;\n    this.dateStyle = gson.dateStyle;\n    this.timeStyle = gson.timeStyle;\n    this.factories.addAll(gson.builderFactories);\n    this.hierarchyFactories.addAll(gson.builderHierarchyFactories);\n    this.objectToNumberStrategy = gson.objectToNumberStrategy;\n    this.numberToNumberStrategy = gson.numberToNumberStrategy;\n    this.reflectionFilters.addAll(gson.reflectionFilters);\n  }",
+        "replace_text": "  private final List<ReflectionAccessFilter> reflectionFilters = new ArrayList<>();\n\n  ConstructorConstructor constructorConstructor;\n  JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory;\n  List<TypeAdapterFactory> factories;\n\n  public GsonBuilder() {}\n\n  GsonBuilder(Gson gson) {\n    this.excluder = gson.excluder;\n    this.fieldNamingPolicy = gson.fieldNamingStrategy;\n    this.instanceCreators.putAll(gson.instanceCreators);\n    this.complexMapKeySerialization = gson.complexMapKeySerialization;\n    this.serializeNulls = gson.jsonWriterSettings.serializeNulls;\n    this.generateNonExecutableJson = gson.jsonWriterSettings.generateNonExecutableJson;\n    this.escapeHtmlChars = !gson.jsonWriterSettings.htmlSafe;\n    this.formattingStyle = gson.jsonWriterSettings.formattingStyle;\n    this.strictness = gson.jsonWriterSettings.strictness;\n    this.serializeSpecialFloatingPointValues = gson.serializeSpecialFloatingPointValues;\n    this.useJdkUnsafe = gson.useJdkUnsafe;\n    this.longSerializationPolicy = gson.longSerializationPolicy;\n    this.datePattern = gson.datePattern;\n    this.dateStyle = gson.dateStyle;\n    this.timeStyle = gson.timeStyle;\n    this.factories = new ArrayList<>(gson.builderFactories);\n    this.hierarchyFactories = new ArrayList<>(gson.builderHierarchyFactories);\n    this.objectToNumberStrategy = gson.objectToNumberStrategy;\n    this.numberToNumberStrategy = gson.numberToNumberStrategy;\n    this.reflectionFilters.addAll(gson.reflectionFilters);\n    this.constructorConstructor = gson.constructorConstructor;\n    this.jsonAdapterFactory = gson.jsonAdapterFactory;\n  }",
+        "search_lines": 26,
+        "replace_lines": 32
+      },
+      {
+        "kind": "search_replace",
+        "file_path": "gson/src/main/java/com/google/gson/GsonBuilder.java",
+        "search_text": "  public Gson create() {\n    List<TypeAdapterFactory> factories = new ArrayList<>(this.factories.size() + this.hierarchyFactories.size() + 3);\n    factories.addAll(this.factories);\n    Collections.reverse(factories);\n    List<TypeAdapterFactory> hierarchyFactories = new ArrayList<>(this.hierarchyFactories);\n    Collections.reverse(hierarchyFactories);\n    factories.addAll(hierarchyFactories);\n    addTypeAdaptersForDate(datePattern, dateStyle, timeStyle, factories);\n\n    return new Gson(\n        excluder,\n        fieldNamingPolicy,\n        new HashMap<>(instanceCreators),\n        complexMapKeySerialization,\n        serializeNulls,\n        generateNonExecutableJson,\n        escapeHtmlChars,\n        formattingStyle,\n        strictness,\n        serializeSpecialFloatingPointValues,\n        useJdkUnsafe,\n        longSerializationPolicy,\n        datePattern,\n        dateStyle,\n        timeStyle,\n        new ArrayList<>(this.factories),\n        new ArrayList<>(this.hierarchyFactories),\n        factories,\n        objectToNumberStrategy,\n        numberToNumberStrategy,\n        new ArrayList<>(reflectionFilters));\n  }",
+        "replace_text": "  public Gson create() {\n    List<TypeAdapterFactory> factories = new ArrayList<>(this.factories.size() + this.hierarchyFactories.size() + 3);\n    factories.addAll(this.factories);\n    Collections.reverse(factories);\n    List<TypeAdapterFactory> hierarchyFactories = new ArrayList<>(this.hierarchyFactories);\n    Collections.reverse(hierarchyFactories);\n    factories.addAll(hierarchyFactories);\n    addTypeAdaptersForDate(datePattern, dateStyle, timeStyle, factories);\n\n    ConstructorConstructor constructorConstructor = new ConstructorConstructor(instanceCreators, useJdkUnsafe, reflectionFilters);\n    JsonAdapterAnnotationTypeAdapterFactory jsonAdapterFactory = new JsonAdapterAnnotationTypeAdapterFactory(constructorConstructor);\n    List<TypeAdapterFactory> finalFactories = createFactories(constructorConstructor, jsonAdapterFactory);\n\n    GsonBuilder builder = new GsonBuilder(this);\n    builder.constructorConstructor = constructorConstructor;\n    builder.jsonAdapterFactory = jsonAdapterFactory;\n    builder.factories = finalFactories;\n\n    return new Gson(builder);\n  }",
+        "search_lines": 32,
+        "replace_lines": 20
+      }
+    ]
+  },
+  "test_results": null,
+  "metrics": {
+    "before": [
+      {
+        "file": "gson/src/main/java/com/google/gson/Gson.java",
+        "loc": 1181,
+        "blank_lines": 69,
+        "comment_lines": 13,
+        "function_count": 38,
+        "avg_cc": 7.21,
+        "max_cc": 237.0,
+        "mi": 0.0
+      }
+    ],
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 23757.00283050537
+}

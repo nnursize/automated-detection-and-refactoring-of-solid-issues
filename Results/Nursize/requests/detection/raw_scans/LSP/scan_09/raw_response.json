@@ -1,0 +1,40 @@
+{
+  "scan_id": "requests_LSP_scan_09",
+  "repo_name": "requests",
+  "principle": "LSP",
+  "scan_number": 9,
+  "timestamp": "2026-05-03T01:34:11.955765",
+  "provider": "gemini",
+  "model": "gemini-3-flash-preview",
+  "temperature": 0.8,
+  "context_mode": "class-centric",
+  "prompt_text": "Analyze the following python classes for violations of the Liskov Substitution Principle (LSP).\n\nFor each class you are given:\n- Its full source body\n- Its base class bodies (where available in the repo)\n- The file's imports\n- Short headers of sibling classes in the same file\n\nUse the inheritance and import context to reason about dependencies and substitutability.\n\n## Principle Definition\nSubtypes must be substitutable for their base types without altering the correctness of the program. When a...",
+  "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"RequestsCookieJar.__getitem__\",\n      \"entity_type\": \"class\",\n      \"line_start\": 314,\n      \"line_end\": 322,\n      \"principle\": \"LSP\",\n      \"severity\": \"medium\",\n      \"description\": \"Raises CookieConflictError instead of KeyError when multiple cookies match a name, violating the Mapping contract.\",\n      \"reasoning\": \"As a subclass of MutableMapping, __getitem__ is expected to return a value for a given key or raise a KeyError if the key is missing. By raising a custom CookieConflictError (which is a subclass of RuntimeError, not KeyError) when multiple cookies share the same name but differ in domain or path, the class violates the behavioral contract of a standard mapping where the key provided to the interface is expected to be the unique identifier.\"\n    },\n    {\n      \"file_path\": \"requests/src/requests/cookies.py\",\n      \"entity_name\": \"MockRequest.add_header\",\n      \"entity_type\": \"class\",\n      \"line_start\": 78,\n      \"line_end\": 82,\n      \"principle\": \"LSP\",\n      \"severity\": \"high\",\n      \"description\": \"Explicitly raises NotImplementedError for a method required by the interface it is designed to mimic.\",\n      \"reasoning\": \"MockRequest is explicitly designed to mimic the interface of urllib.request.Request for compatibility with the CookieJar system. By raising NotImplementedError for the add_header method, it fails to be a full substitute for the original class. This violates LSP because any consumer expecting the standard Request interface will encounter a runtime crash if this method is invoked.\"\n    }\n  ]\n}\n```",
+  "findings": [
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "RequestsCookieJar.__getitem__",
+      "entity_type": "class",
+      "line_start": 314,
+      "line_end": 322,
+      "principle": "LSP",
+      "severity": "medium",
+      "description": "Raises CookieConflictError instead of KeyError when multiple cookies match a name, violating the Mapping contract.",
+      "reasoning": "As a subclass of MutableMapping, __getitem__ is expected to return a value for a given key or raise a KeyError if the key is missing. By raising a custom CookieConflictError (which is a subclass of RuntimeError, not KeyError) when multiple cookies share the same name but differ in domain or path, the class violates the behavioral contract of a standard mapping where the key provided to the interface is expected to be the unique identifier."
+    },
+    {
+      "file_path": "requests/src/requests/cookies.py",
+      "entity_name": "MockRequest.add_header",
+      "entity_type": "class",
+      "line_start": 78,
+      "line_end": 82,
+      "principle": "LSP",
+      "severity": "high",
+      "description": "Explicitly raises NotImplementedError for a method required by the interface it is designed to mimic.",
+      "reasoning": "MockRequest is explicitly designed to mimic the interface of urllib.request.Request for compatibility with the CookieJar system. By raising NotImplementedError for the add_header method, it fails to be a full substitute for the original class. This violates LSP because any consumer expecting the standard Request interface will encounter a runtime crash if this method is invoked."
+    }
+  ],
+  "parse_errors": 0,
+  "duration_ms": 53477.75363922119,
+  "error": null
+}

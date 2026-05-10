@@ -1,0 +1,57 @@
+[
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/ByteSourceJsonBootstrapper.java",
+    "entity_name": "ByteSourceJsonBootstrapper.constructParser",
+    "entity_type": "method",
+    "line_start": 283,
+    "line_end": 300,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "Direct instantiation of concrete parser implementation",
+    "reasoning": "The constructParser method directly instantiates UTF8StreamJsonParser (L299). This couples the bootstrapping logic to a specific parser implementation rather than depending on an abstraction or using a factory/injection mechanism."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/GeneratorBase.java",
+    "entity_name": "GeneratorBase._constructDefaultPrettyPrinter",
+    "entity_type": "method",
+    "line_start": 377,
+    "line_end": 379,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Abstract base class hard-codes dependency on concrete PrettyPrinter",
+    "reasoning": "The abstract class GeneratorBase directly instantiates DefaultPrettyPrinter (L378). Abstractions should not depend on details; hard-coding a specific implementation of an interface in a base class prevents users from easily substituting different defaults."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/io/IOContext.java",
+    "entity_name": "IOContext.constructTextBuffer",
+    "entity_type": "method",
+    "line_start": 214,
+    "line_end": 217,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Context object directly instantiates concrete buffer implementation",
+    "reasoning": "IOContext directly instantiates TextBuffer (L216) and ReadConstrainedTextBuffer (L220). This creates a tight coupling between the I/O context and specific buffer implementations, making it difficult to swap buffer management strategies."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/base/TextualTSFactory.java",
+    "entity_name": "TextualTSFactory._createWriter",
+    "entity_type": "method",
+    "line_start": 339,
+    "line_end": 346,
+    "principle": "DIP",
+    "severity": "medium",
+    "description": "Base factory hard-codes dependency on concrete Writer implementation",
+    "reasoning": "TextualTSFactory, which serves as a high-level factory abstraction, directly instantiates UTF8Writer (L345) instead of delegating to a provider or using an abstract method, forcing a dependency on a low-level I/O detail."
+  },
+  {
+    "file_path": "src/main/java/tools/jackson/core/json/JsonFactory.java",
+    "entity_name": "JsonFactory",
+    "entity_type": "class",
+    "line_start": 32,
+    "line_end": 527,
+    "principle": "DIP",
+    "severity": "high",
+    "description": "High-level factory depends on concrete low-level async parser implementations",
+    "reasoning": "JsonFactory imports and directly references concrete classes like NonBlockingByteArrayJsonParser and NonBlockingByteBufferJsonParser (implied by imports and methods L351, L362). As a high-level module, it should depend on the JsonParser abstraction rather than specific implementation details."
+  }
+]

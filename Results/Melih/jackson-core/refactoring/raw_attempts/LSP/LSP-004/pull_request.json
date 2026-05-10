@@ -1,0 +1,40 @@
+{
+  "issue_id": "LSP-004",
+  "principle": "LSP",
+  "title": "Refactor LSP-004 (LSP): Method signature in subclass forces checked exception handling not present in...",
+  "branch": "refactor/LSP-004",
+  "base": "main",
+  "head_commit": "c445684d3c509e85f30ab38aa81d30048b3bda64",
+  "status": "detection_rejected",
+  "obsolete_reason": null,
+  "apply_error": null,
+  "error": null,
+  "detection_label": {
+    "label": false,
+    "explanation": "ReaderBasedJsonParser._decodeEscaped() at line 2653 provides a full, correct implementation that parses escape sequences and declares the same 'throws JacksonException' as the base class. There is no exception wrapping mismatch or contract alteration. The reasoning was confused and does not match the actual code."
+  },
+  "llm_response": {
+    "finish_reason": null,
+    "prompt_tokens": 0,
+    "completion_tokens": 0
+  },
+  "detected_issue": {
+    "file_path": "src/main/java/tools/jackson/core/json/ReaderBasedJsonParser.java",
+    "entity_name": "ReaderBasedJsonParser._decodeEscaped",
+    "entity_type": "method",
+    "line_start": 1056,
+    "line_end": 1062,
+    "severity": "medium",
+    "scan_count": 4,
+    "description": "Method signature in subclass forces checked exception handling not present in base class.",
+    "reasoning": "While the method is protected, the pattern of catching IOException and wrapping it into a JacksonException is inconsistent across parser implementations. In this specific case, the implementation relies on the base class behavior but forces a wrapper that alters the signature expectations of internal components."
+  },
+  "fix_logic": null,
+  "test_results": null,
+  "metrics": {
+    "before": null,
+    "after": null
+  },
+  "diff": "",
+  "duration_ms": 0.0
+}

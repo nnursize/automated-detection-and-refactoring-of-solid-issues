@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "search_replace",
+    "file_path": "logstash-core/src/main/java/org/logstash/ackedqueue/io/MmapPageIOV1.java",
+    "search_text": "    // we don't have different versions yet so simply check if the version is VERSION_ONE for basic integrity check\n    // and if an unexpected version byte is read throw PageIOInvalidVersionException\n    private static void validateVersion(byte version)\n        throws MmapPageIOV2.PageIOInvalidVersionException {\n        if (version != VERSION_ONE) {\n            throw new MmapPageIOV2.PageIOInvalidVersionException(String\n                .format(\"Expected page version=%d but found version=%d\", VERSION_ONE, version));\n        }\n    }",
+    "replace_text": "    @FunctionalInterface\n    private interface VersionValidator {\n        void validate(byte version) throws MmapPageIOV2.PageIOInvalidVersionException;\n    }\n\n    private static final VersionValidator VERSION_VALIDATOR = version -> {\n        if (version != VERSION_ONE) {\n            throw new MmapPageIOV2.PageIOInvalidVersionException(String\n                .format(\"Expected page version=%d but found version=%d\", VERSION_ONE, version));\n        }\n    };\n\n    private static void validateVersion(byte version)\n        throws MmapPageIOV2.PageIOInvalidVersionException {\n        VERSION_VALIDATOR.validate(version);\n    }"
+  }
+]
